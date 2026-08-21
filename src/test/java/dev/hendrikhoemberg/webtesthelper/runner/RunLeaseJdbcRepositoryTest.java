@@ -197,7 +197,7 @@ class RunLeaseJdbcRepositoryTest extends AbstractPostgresTest {
 
         assertThat(leases.reclaimExpiredLeases()).containsExactly(stale);
         assertThat(jdbc.queryForObject("SELECT status FROM run WHERE id = ?", String.class, stale))
-                .isEqualTo("FAILED");
+                .isEqualTo("CANCELLED");
         assertThat(jdbc.queryForObject("SELECT error_message FROM run WHERE id = ?", String.class, stale))
                 .isEqualTo("durch neueren Lauf ersetzt");
         assertThat(jdbc.queryForObject("SELECT status FROM run WHERE id = ?", String.class, queued))

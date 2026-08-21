@@ -74,23 +74,45 @@ public class RunLeaseJdbcRepository {
              WHERE id = ? AND lease_owner = ?
             """;
 
-    private static final String RECLAIM_SQL = """
+    /**
+     * Requeues stale RUNNING runs whose site has no QUEUED run. A site with a QUEUED run
+     * must not be requeued into it — that would violate ux_run_single_queued_per_site — so
+     * such stale runs are superseded (CANCELLED) by {@link #SWEEP_SUPERSEDE_SQL} instead.
+     */
+    private static final String SWEEP_REQUEUE_SQL = """
             UPDATE run r
-               SET status           = CASE WHEN s.superseded THEN 'FAILED' ELSE 'QUEUED' END,
-                   finished_at      = CASE WHEN s.superseded THEN now() END,
-                   error_message    = CASE WHEN s.superseded
-                                           THEN 'durch neueren Lauf ersetzt' END,
+               SET status           = 'QUEUED',
                    lease_owner      = NULL,
                    lease_expires_at = NULL
-              FROM (SELECT r.id AS id,
-                           EXISTS (SELECT 1
-                                     FROM run q
-                                    WHERE q.site_id = r.site_id
-                                      AND q.status = 'QUEUED'
-                                      AND q.id <> r.id) AS superseded
-                      FROM run r
-                     WHERE r.status = 'RUNNING' AND r.lease_expires_at < now()) s
-             WHERE r.id = s.id
+             WHERE r.status = 'RUNNING'
+               AND r.lease_expires_at < now()
+               AND NOT EXISTS (SELECT 1
+                                 FROM run q
+                                WHERE q.site_id = r.site_id
+                                  AND q.status = 'QUEUED'
+                                  AND q.id <> r.id)
+         RETURNING r.id
+            """;
+
+    /**
+     * Supersedes stale RUNNING runs whose site already has a QUEUED run. CANCELLED rather
+     * than requeued (and CANCELLED rather than FAILED: supersession is a cancellation, and
+     * FAILED would trigger a failure notification once the notification path lands).
+     */
+    private static final String SWEEP_SUPERSEDE_SQL = """
+            UPDATE run r
+               SET status           = 'CANCELLED',
+                   finished_at      = now(),
+                   error_message    = 'durch neueren Lauf ersetzt',
+                   lease_owner      = NULL,
+                   lease_expires_at = NULL
+             WHERE r.status = 'RUNNING'
+               AND r.lease_expires_at < now()
+               AND EXISTS (SELECT 1
+                             FROM run q
+                            WHERE q.site_id = r.site_id
+                              AND q.status = 'QUEUED'
+                              AND q.id <> r.id)
          RETURNING r.id
             """;
 
@@ -133,8 +155,33 @@ public class RunLeaseJdbcRepository {
         return jdbc.update(FINISH_SQL, status.name(), errorMessage, runId, owner) == 1;
     }
 
-    /** Startup and timer sweep: requeue everything whose worker died holding the lease. */
+    /**
+     * Startup and timer sweep: requeue everything whose worker died holding the lease, or
+     * cancel it when a queued run already supersedes it (one run at a time per site, spec
+     * 5.3, is what makes the two states mutually exclusive).
+     *
+     * <p>The requeue statement can race with an enqueue committing a QUEUED run for the
+     * same site between this sweep's snapshot and its UPDATE (READ COMMITTED). The retry
+     * makes that harmless: the racing QUEUED row is visible on the second attempt, so the
+     * stale run no longer matches the NOT EXISTS guard and is superseded instead.
+     */
     public List<Long> reclaimExpiredLeases() {
-        return jdbc.queryForList(RECLAIM_SQL, Long.class);
+        List<Long> requeued = requeueExpiredLeases();
+        requeued.addAll(jdbc.queryForList(SWEEP_SUPERSEDE_SQL, Long.class));
+        return requeued;
+    }
+
+    private List<Long> requeueExpiredLeases() {
+        try {
+            return jdbc.queryForList(SWEEP_REQUEUE_SQL, Long.class);
+        } catch (DuplicateKeyException racingEnqueue) {
+            // An enqueue committed a QUEUED run for one of these sites between our snapshot
+            // and the UPDATE, violating ux_run_single_queued_per_site. The statement rolled
+            // back atomically; retrying once is enough — the affected site now has a visible
+            // QUEUED run, so the stale run falls through to the supersede statement.
+            log.warn("Requeue collided with a racing enqueue; the stale run will be superseded instead",
+                    racingEnqueue);
+            return jdbc.queryForList(SWEEP_REQUEUE_SQL, Long.class);
+        }
     }
 }

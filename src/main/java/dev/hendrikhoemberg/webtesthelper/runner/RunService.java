@@ -10,19 +10,23 @@ import dev.hendrikhoemberg.webtesthelper.runner.persistence.RunRepository;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
  * Run creation, listing and summary. Lease mechanics live in the Jdbc repository; this
  * service owns the JPA-backed lifecycle and read side.
+ *
+ * <p>Deliberately not {@code @Transactional} at the type level: each Spring Data repository
+ * call is its own transaction anyway, and {@link #enqueue} must re-query with a fresh
+ * persistence context after a failed insert (a transaction whose save hit the unique index
+ * is rollback-only and poisoned for further queries).
  */
 @Service
-@Transactional
 public class RunService {
 
     private final RunRepository runs;
@@ -41,24 +45,27 @@ public class RunService {
         if (!sites.exists(siteId)) {
             throw new IllegalArgumentException("Site " + siteId + " existiert nicht");
         }
-        return runs.findFirstBySiteIdAndStatusOrderByQueuedAtAsc(siteId, RunStatus.QUEUED)
-                .map(RunEntity::getId)
-                .orElseGet(() -> {
-                    RunEntity run = new RunEntity();
-                    run.setSiteId(siteId);
-                    run.setTriggerType(trigger);
-                    run.setScope(scope);
-                    try {
-                        return runs.save(run).getId();
-                    } catch (DataIntegrityViolationException raceLostToAnotherEnqueue) {
-                        // Mirrors claimNext's swallow-and-retry: the find-then-save check is
-                        // racy, so ux_run_single_queued_per_site converts the loser's insert into
-                        // a duplicate key. Re-query the winner's QUEUED run and return it instead.
-                        return runs.findFirstBySiteIdAndStatusOrderByQueuedAtAsc(siteId, RunStatus.QUEUED)
-                                .orElseThrow(() -> raceLostToAnotherEnqueue)
-                                .getId();
-                    }
-                });
+        Optional<RunEntity> alreadyQueued = runs.findFirstBySiteIdAndStatusOrderByQueuedAtAsc(
+                siteId, RunStatus.QUEUED);
+        if (alreadyQueued.isPresent()) {
+            return alreadyQueued.get().getId();
+        }
+        RunEntity run = new RunEntity();
+        run.setSiteId(siteId);
+        run.setTriggerType(trigger);
+        run.setScope(scope);
+        try {
+            return runs.save(run).getId();
+        } catch (DataIntegrityViolationException raceLostToAnotherEnqueue) {
+            // Mirrors claimNext's swallow-and-retry: the find-then-save check is
+            // racy, so ux_run_single_queued_per_site converts the loser's insert into
+            // a duplicate key. Re-query the winner's QUEUED run and return it instead.
+            // The re-query runs in a fresh transaction: the failed save rolled back and
+            // poisoned its own persistence context, which must not be reused.
+            return runs.findFirstBySiteIdAndStatusOrderByQueuedAtAsc(siteId, RunStatus.QUEUED)
+                    .orElseThrow(() -> raceLostToAnotherEnqueue)
+                    .getId();
+        }
     }
 
     public List<RunSummary> recentForSite(long siteId, int limit) {
