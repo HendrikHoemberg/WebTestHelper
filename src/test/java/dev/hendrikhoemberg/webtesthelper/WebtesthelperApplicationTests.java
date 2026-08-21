@@ -1,10 +1,9 @@
 package dev.hendrikhoemberg.webtesthelper;
 
+import dev.hendrikhoemberg.webtesthelper.support.AbstractPostgresTest;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
-class WebtesthelperApplicationTests {
+class WebtesthelperApplicationTests extends AbstractPostgresTest {
 
 	@Test
 	void contextLoads() {
