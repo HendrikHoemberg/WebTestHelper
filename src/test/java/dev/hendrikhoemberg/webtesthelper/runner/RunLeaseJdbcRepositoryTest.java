@@ -87,7 +87,7 @@ class RunLeaseJdbcRepositoryTest extends AbstractPostgresTest {
     }
 
     @Test
-    void onlyOneRunPerSiteIsEverRunning() throws Exception {
+    void parallelClaimsOfASingleQueuedRunYieldExactlyOneClaim() throws Exception {
         // The queued backstop (ux_run_single_queued_per_site) means a site can only ever have
         // a single QUEUED run, so the interesting race is several workers converging on that
         // one row: SKIP LOCKED hands it to exactly one, and the RUNNING backstop guarantees
@@ -186,6 +186,25 @@ class RunLeaseJdbcRepositoryTest extends AbstractPostgresTest {
         assertThat(leases.reclaimExpiredLeases()).containsExactly(runId);
         assertThat(jdbc.queryForObject("SELECT status FROM run WHERE id = ?", String.class, runId))
                 .isEqualTo("QUEUED");
+    }
+
+    @Test
+    void theSweepResolvesAStaleRunWhenAQueuedOneExists() {
+        long stale = queueRun(siteA);
+        leases.claimNext("worker-1", Duration.ofMinutes(5)).orElseThrow();
+        jdbc.update("UPDATE run SET lease_expires_at = now() - interval '1 minute' WHERE id = ?", stale);
+        long queued = queueRun(siteA);
+
+        assertThat(leases.reclaimExpiredLeases()).containsExactly(stale);
+        assertThat(jdbc.queryForObject("SELECT status FROM run WHERE id = ?", String.class, stale))
+                .isEqualTo("FAILED");
+        assertThat(jdbc.queryForObject("SELECT error_message FROM run WHERE id = ?", String.class, stale))
+                .isEqualTo("durch neueren Lauf ersetzt");
+        assertThat(jdbc.queryForObject("SELECT status FROM run WHERE id = ?", String.class, queued))
+                .isEqualTo("QUEUED");
+
+        assertThat(leases.claimNext("worker-2", Duration.ofMinutes(5)).orElseThrow().runId())
+                .isEqualTo(queued);
     }
 
     @Test

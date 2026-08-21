@@ -130,7 +130,7 @@ public class SiteService {
     }
 
     public boolean exists(long siteId) {
-        return sites.findById(siteId).isPresent();
+        return sites.existsById(siteId);
     }
 
     private SiteCheckSettingEntity newSetting(long siteId, CheckType type) {

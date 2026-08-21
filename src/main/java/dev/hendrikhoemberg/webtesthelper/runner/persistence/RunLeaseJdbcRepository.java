@@ -75,12 +75,23 @@ public class RunLeaseJdbcRepository {
             """;
 
     private static final String RECLAIM_SQL = """
-            UPDATE run
-               SET status           = 'QUEUED',
+            UPDATE run r
+               SET status           = CASE WHEN s.superseded THEN 'FAILED' ELSE 'QUEUED' END,
+                   finished_at      = CASE WHEN s.superseded THEN now() END,
+                   error_message    = CASE WHEN s.superseded
+                                           THEN 'durch neueren Lauf ersetzt' END,
                    lease_owner      = NULL,
                    lease_expires_at = NULL
-             WHERE status = 'RUNNING' AND lease_expires_at < now()
-         RETURNING id
+              FROM (SELECT r.id AS id,
+                           EXISTS (SELECT 1
+                                     FROM run q
+                                    WHERE q.site_id = r.site_id
+                                      AND q.status = 'QUEUED'
+                                      AND q.id <> r.id) AS superseded
+                      FROM run r
+                     WHERE r.status = 'RUNNING' AND r.lease_expires_at < now()) s
+             WHERE r.id = s.id
+         RETURNING r.id
             """;
 
     private static final Logger log = LoggerFactory.getLogger(RunLeaseJdbcRepository.class);
