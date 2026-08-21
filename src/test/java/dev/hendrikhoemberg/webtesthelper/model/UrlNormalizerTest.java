@@ -231,5 +231,38 @@ class UrlNormalizerTest {
             assertThat(UrlNormalizer.normalize("http://[::1]:8080/x").orElseThrow().host())
                     .isEqualTo("[::1]");
         }
+
+        @Test
+        void rawAndPercentEncodedUtf8QueryValuesMerge() {
+            // The percent-encoded and raw spellings of the same UTF-8 value must fingerprint
+            // identically instead of one becoming mojibake (Ã¼ber).
+            assertThat(norm("https://example.com/s?q=%C3%BCber"))
+                    .isEqualTo(norm("https://example.com/s?q=über"));
+        }
+
+        @Test
+        void queryPercentEncodedSlashKeepsItsEscape() {
+            // %2F in a query is a literal slash inside a value; it must not be decoded into a
+            // path separator or collapse the query.
+            assertThat(norm("https://example.com/s?q=a%2Fb"))
+                    .isEqualTo("https://example.com/s?q=a%2Fb");
+        }
+
+        @Test
+        void underscoreHostKeepsItsNonDefaultPort() {
+            // An underscore host makes URI.getHost() return null, so the port is parsed by hand;
+            // foo_bar.com:8080 and foo_bar.com are different services and must not collide.
+            assertThat(norm("http://foo_bar.com:8080/x")).isEqualTo("http://foo_bar.com:8080/x");
+            assertThat(norm("http://foo_bar.com/x")).isEqualTo("http://foo_bar.com/x");
+        }
+
+        @Test
+        void percentEncodedDotSegmentsAreNotResolved() {
+            // RFC 3986 §5.2.4 runs on the raw path, so a percent-encoded %2e%2e is a literal dot
+            // segment, not a path-climbing "..". Pinned deliberately so nobody silently "fixes" it
+            // into removing a segment that the server actually serves as a distinct path.
+            assertThat(norm("https://example.com/a/%2e%2e/b"))
+                    .isEqualTo("https://example.com/a/../b");
+        }
     }
 }

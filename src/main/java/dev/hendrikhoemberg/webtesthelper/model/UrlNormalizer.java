@@ -173,17 +173,12 @@ public final class UrlNormalizer {
             return Optional.empty();
         }
 
-        Integer port = port(uri, scheme);
-        if (port == null) {
+        AuthorityParts authority = authorityOf(uri, scheme);
+        if (authority == null || authority.host() == null || authority.host().isEmpty()) {
             return Optional.empty();
         }
 
-        String rawHost = host(uri);
-        if (rawHost == null) {
-            return Optional.empty();
-        }
-
-        String host = normalizeHost(rawHost);
+        String host = normalizeHost(authority.host());
         if (host == null || host.isEmpty()) {
             return Optional.empty();
         }
@@ -194,29 +189,14 @@ public final class UrlNormalizer {
         Map<String, List<String>> query = splitQuery(uri.getRawQuery());
         String queryString = sortAndFilter(query);
 
-        return Optional.of(new NormalizedUrl(scheme, host, port, path, queryString));
+        return Optional.of(new NormalizedUrl(scheme, host, authority.port(), path, queryString));
     }
 
-    /** Port, or null when unparseable. Missing / default is substituted. */
-    private static Integer port(URI uri, String scheme) {
-        if (uri.getRawAuthority() == null) {
-            return null;
-        }
-        int p = uri.getPort();
-        if (p >= 0 && p <= 65535) {
-            return p;
-        }
-        if (p < -1) { // URI semantics: -1 means absent, < -1 means undefined
-            return null;
-        }
-        return NormalizedUrl.defaultPort(scheme);
-    }
-
-    /** Host, handling IPv6 literals and the case where {@link URI#getHost()} is null. */
-    private static String host(URI uri) {
+    /** Host and effective port, or empty when the authority is unparseable. */
+    private static AuthorityParts authorityOf(URI uri, String scheme) {
         String host = uri.getHost();
         if (host != null) {
-            return host;
+            return new AuthorityParts(host, portOf(uri.getPort(), scheme));
         }
         if (uri.isOpaque()) {
             return null;
@@ -229,27 +209,60 @@ public final class UrlNormalizer {
         String authority = at >= 0 ? rawAuthority.substring(at + 1) : rawAuthority;
         if (authority.startsWith("[")) {
             int close = authority.indexOf(']');
-            if (close > 0) {
-                String ipv6 = authority.substring(1, close);
-                try {
-                    return java.net.InetAddress.getByName(ipv6).getHostAddress();
-                } catch (java.net.UnknownHostException e) {
-                    return ipv6.startsWith("::") ? ipv6 : null;
-                }
+            if (close <= 0) {
+                return null;
             }
-            return null;
+            String ipv6 = authority.substring(1, close);
+            String h;
+            try {
+                h = java.net.InetAddress.getByName(ipv6).getHostAddress();
+            } catch (java.net.UnknownHostException e) {
+                h = ipv6.startsWith("::") ? ipv6 : null;
+            }
+            if (h == null) {
+                return null;
+            }
+            int p = portFromText(authority.substring(close + 1), scheme);
+            return p < 0 ? null : new AuthorityParts(h, p);
         }
         int colon = authority.lastIndexOf(':');
         String hostPart = colon >= 0 ? authority.substring(0, colon) : authority;
         if (hostPart.isEmpty()) {
             return null;
         }
-        String lower = hostPart.toLowerCase(Locale.ROOT);
-        try {
-            return IDN.toASCII(lower);
-        } catch (IllegalArgumentException e) {
-            return null;
+        String portText = colon >= 0 ? authority.substring(colon + 1) : null;
+        int p = portFromText(portText, scheme);
+        return p < 0 ? null : new AuthorityParts(hostPart, p);
+    }
+
+    /** Port from a URI host when the host parses natively. */
+    private static int portOf(int uriPort, String scheme) {
+        if (uriPort >= 0 && uriPort <= 65535) {
+            return uriPort;
         }
+        if (uriPort < -1) { // URI semantics: -1 means absent, < -1 means undefined
+            return -1;
+        }
+        return NormalizedUrl.defaultPort(scheme);
+    }
+
+    /** Port from an authority suffix such as {@code :8080}, or the default when absent. */
+    private static int portFromText(String text, String scheme) {
+        if (text == null || text.isEmpty()) {
+            return NormalizedUrl.defaultPort(scheme);
+        }
+        if (!text.chars().allMatch(Character::isDigit)) {
+            return -1;
+        }
+        try {
+            int p = Integer.parseInt(text);
+            return p >= 1 && p <= 65535 ? p : -1;
+        } catch (NumberFormatException e) {
+            return -1;
+        }
+    }
+
+    private record AuthorityParts(String host, int port) {
     }
 
     /**
@@ -372,7 +385,13 @@ public final class UrlNormalizer {
                 || (code >= '0' && code <= '9') || code == '-' || code == '.' || code == '_' || code == '~';
     }
 
-    /** Query key/value pairs, percent-decoded for comparison and surviving unencoded. */
+    /**
+     * Query key/value pairs. Each name and value is run through the same conservative percent
+     * normalisation the path uses (RFC 3986 §6.2.2.1): raw non-ASCII and illegal characters are
+     * percent-encoded, unreserved single-byte escapes are decoded and everything else (notably
+     * UTF-8 sequences and {@code %2F}) stays percent-encoded. This way {@code q=über} and
+     * {@code q=%C3%BCber} fingerprint identically instead of mojibake'ing apart.
+     */
     private static Map<String, List<String>> splitQuery(String rawQuery) {
         Map<String, List<String>> map = new LinkedHashMap<>();
         if (rawQuery == null || rawQuery.isEmpty()) {
@@ -386,10 +405,10 @@ public final class UrlNormalizer {
             String key;
             String value;
             if (eq >= 0) {
-                key = percentDecode(pair.substring(0, eq));
-                value = percentDecode(pair.substring(eq + 1));
+                key = normalizePercentEncoding(cleanAndEncode(pair.substring(0, eq)));
+                value = normalizePercentEncoding(cleanAndEncode(pair.substring(eq + 1)));
             } else {
-                key = percentDecode(pair);
+                key = normalizePercentEncoding(cleanAndEncode(pair));
                 value = "";
             }
             map.computeIfAbsent(key, k -> new ArrayList<>()).add(value);
@@ -448,19 +467,4 @@ public final class UrlNormalizer {
                     "hsa_kw", "hsa_mt", "hsa_net", "hsa_ver", "_hsenc", "_hsmi", "pk_campaign",
                     "pk_kwd", "pk_source", "pk_medium", "mtm_campaign", "mtm_keyword", "mtm_source",
                     "mtm_medium")));
-
-    private static String percentDecode(String s) {
-        StringBuilder sb = new StringBuilder(s.length());
-        for (int i = 0; i < s.length(); i++) {
-            char c = s.charAt(i);
-            if (c == '%' && i + 2 < s.length() && isHex(s.charAt(i + 1)) && isHex(s.charAt(i + 2))) {
-                int code = Integer.parseInt(s.substring(i + 1, i + 3), 16);
-                sb.append((char) code);
-                i += 2;
-            } else {
-                sb.append(c);
-            }
-        }
-        return sb.toString();
-    }
 }
