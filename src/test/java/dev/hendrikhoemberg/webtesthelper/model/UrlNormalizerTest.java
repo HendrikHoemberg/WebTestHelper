@@ -34,6 +34,12 @@ class UrlNormalizerTest {
         }
 
         @Test
+        void stripsTrackingParametersCaseInsensitively() {
+            assertThat(norm("https://example.com/s?UTM_SOURCE=x&page=1"))
+                    .isEqualTo("https://example.com/s?page=1");
+        }
+
+        @Test
         void dropsTheQueryEntirelyWhenOnlyTrackingParametersWerePresent() {
             assertThat(norm("https://example.com/s?utm_source=news")).isEqualTo("https://example.com/s");
         }

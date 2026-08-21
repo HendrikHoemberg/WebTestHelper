@@ -453,10 +453,11 @@ public final class UrlNormalizer {
     }
 
     private static boolean isTracking(String key) {
-        return TRACKING_PARAMS.contains(key)
-                || key.startsWith("utm_")
-                || key.startsWith("matomo_")
-                || key.startsWith("piwik_");
+        String lower = key.toLowerCase(Locale.ROOT);
+        return TRACKING_PARAMS.contains(lower)
+                || lower.startsWith("utm_")
+                || lower.startsWith("matomo_")
+                || lower.startsWith("piwik_");
     }
 
     private static final Set<String> TRACKING_PARAMS = java.util.Collections.unmodifiableSet(
