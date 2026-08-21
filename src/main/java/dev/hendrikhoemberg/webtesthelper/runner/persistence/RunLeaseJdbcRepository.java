@@ -4,6 +4,8 @@ import dev.hendrikhoemberg.webtesthelper.model.RunScope;
 import dev.hendrikhoemberg.webtesthelper.model.RunStatus;
 import dev.hendrikhoemberg.webtesthelper.model.RunTrigger;
 import dev.hendrikhoemberg.webtesthelper.runner.RunLease;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -81,6 +83,8 @@ public class RunLeaseJdbcRepository {
          RETURNING id
             """;
 
+    private static final Logger log = LoggerFactory.getLogger(RunLeaseJdbcRepository.class);
+
     private static final RowMapper<RunLease> LEASE_MAPPER = (rs, row) -> new RunLease(
             rs.getLong("id"),
             rs.getLong("site_id"),
@@ -99,9 +103,13 @@ public class RunLeaseJdbcRepository {
             return jdbc.query(CLAIM_SQL, LEASE_MAPPER, owner, (double) leaseFor.toSeconds())
                     .stream().findFirst();
         } catch (DuplicateKeyException raceLostToAnotherWorker) {
-            // ux_run_single_active_per_site fired: another transaction committed a RUNNING
-            // run for this site between our NOT EXISTS check and our UPDATE. Nothing to
-            // claim right now; the caller polls again.
+            // Invariant: the only unique index CLAIM_SQL can violate is
+            // ux_run_single_active_per_site (it touches nothing else and it is a single
+            // UPDATE, so the only duplicate key possible is another transaction's committed
+            // RUNNING row for the same site). Any DuplicateKeyException raised here is
+            // therefore the per-site race — nothing to claim right now, the caller polls again.
+            // If a future unique constraint is added to `run`, revisit this catch.
+            log.debug("Lost the one-run-per-site race while claiming; will retry on next poll", raceLostToAnotherWorker);
             return Optional.empty();
         }
     }

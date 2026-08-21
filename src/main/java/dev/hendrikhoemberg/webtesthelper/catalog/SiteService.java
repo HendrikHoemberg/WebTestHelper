@@ -129,6 +129,10 @@ public class SiteService {
                 checkSettings.findBySiteId(id).size());
     }
 
+    public boolean exists(long siteId) {
+        return sites.findById(siteId).isPresent();
+    }
+
     private SiteCheckSettingEntity newSetting(long siteId, CheckType type) {
         SiteCheckSettingEntity setting = new SiteCheckSettingEntity();
         setting.setSiteId(siteId);
