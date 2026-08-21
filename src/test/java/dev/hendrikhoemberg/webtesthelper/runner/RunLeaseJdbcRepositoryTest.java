@@ -129,6 +129,28 @@ class RunLeaseJdbcRepositoryTest extends AbstractPostgresTest {
     }
 
     @Test
+    void aStaleRunningRunPlusAQueuedRunNeverBothBecomeRunning() throws Exception {
+        long stale = queueRun(siteA);
+        leases.claimNext("worker-1", Duration.ofMinutes(5)).orElseThrow();
+        jdbc.update("UPDATE run SET lease_expires_at = now() - interval '1 minute' WHERE id = ?", stale);
+        long queued = queueRun(siteA);
+
+        List<Optional<RunLease>> results = inParallel(6,
+                () -> leases.claimNext("worker-" + Thread.currentThread().threadId(), Duration.ofMinutes(5)));
+
+        // At most one attempt claims anything — the index makes the losing UPDATE fail with a
+        // DuplicateKeyException (swallowed) so the stale and queued runs can never both go RUNNING.
+        List<RunLease> claimed = results.stream().flatMap(Optional::stream).toList();
+        assertThat(claimed).hasSize(1);
+        assertThat(claimed.get(0).runId()).isEqualTo(stale);
+        assertThat(jdbc.queryForObject(
+                "SELECT count(*) FROM run WHERE site_id = ? AND status = 'RUNNING'", Integer.class, siteA))
+                .isEqualTo(1);
+        assertThat(jdbc.queryForObject(
+                "SELECT status FROM run WHERE id = ?", String.class, queued)).isEqualTo("QUEUED");
+    }
+
+    @Test
     void heartbeatExtendsTheLeaseOnlyForTheOwner() {
         long runId = queueRun(siteA);
         leases.claimNext("worker-1", Duration.ofSeconds(30)).orElseThrow();
