@@ -44,8 +44,10 @@ WebTestHelper is a self-hosted web application that lets non-technical employees
 | Deployment | Docker on Linux, local user accounts | Browser binaries and system libraries stay in sync |
 | Schedule shape | Tiered: daily pulse / weekly full / monthly deep | Different checks have different costs and different side effects |
 | Triggers | Cron plus manual "Run now" | Webhook explicitly deferred |
-| Storage | SQLite (WAL) via Spring Data JPA | Sufficient at this scale; Postgres is a driver and dialect swap |
-| UI | Thymeleaf + HTMX, SSE for progress | No SPA build chain; must still build in three years |
+| Storage | PostgreSQL via Spring Data JPA | First-class Hibernate dialect, real `ALTER TABLE`, native JSON and UUID — one more Compose service, no migration tax |
+| Migrations | Flyway, versioned SQL | Schema evolves across four phases over live triage data; `ddl-auto` is not an option past week one |
+| UI | Thymeleaf + HTMX + Alpine.js, SSE for progress | No SPA build chain; HTMX for round-trips, Alpine for local state |
+| Frontend assets | Vendored locally, no CDN | Internal host may have no outbound internet |
 | Locale | German only | The audience is internal colleagues |
 
 ## 5. Architecture
@@ -106,33 +108,42 @@ schedule fires (or "Run now")
   └─ Run(QUEUED) → worker acquires lease
        ├─ seed frontier: start URLs + sitemap.xml
        ├─ soft-404 probe: fetch {baseUrl}/{random-uuid}, retain fingerprint
-       ├─ crawl loop  ── browser pool (N contexts)
-       │    navigate → PageSnapshot → page-scoped checks
+       ├─ crawl loop  ── browser workers (N platform threads)
+       │    claim URL batch → navigate → PageSnapshot → page checks
        │    ├─ new internal URLs → frontier
        │    └─ external and asset URLs → dedup'd set
-       ├─ asset verification ── HTTP pool (M workers)
-       │    HEAD, fall back to ranged GET
-       ├─ site-scoped checks (language coverage, sitemap consistency, TLS)
+       ├─ asset verification ── virtual threads, per-host semaphore
+       │    external URL cache hit? → reuse
+       │    else HEAD, fall back to ranged GET → cache result
+       ├─ site checks (hreflang, sitemap consistency, TLS)
        ├─ journeys, each in a fresh context
        ├─ end-of-run re-verification of every failure
-       └─ materialise: fingerprint → diff against previous run → report
+       └─ materialise: fingerprint → diff within coverage → report
 ```
 
-Two pools with opposite cost profiles. A browser context is expensive and slow; an HTTP HEAD is neither. Verifying 4,000 external links through a browser takes hours; through an HTTP pool it takes minutes. Both are rate-limited per host.
+Two execution models with opposite cost profiles. A browser page load is expensive and slow; an HTTP HEAD is neither. Verifying 4,000 external links through a browser takes hours; through virtual threads it takes minutes. Both are rate-limited per host.
 
 **One run at a time per site**, so results stay coherent and crawls stay polite.
 
 ### 5.4 Concurrency and pools
 
-| Pool | Default size | Purpose |
-|---|---|---|
-| Browser contexts (runner) | 4 | Page navigation and snapshot capture |
-| HTTP asset checkers | 16 | Link, image, and file verification |
-| Browser contexts (recorder) | 2, hard cap | Interactive recording sessions |
+**Playwright's Java API is not thread-safe.** A `Playwright` instance and every object created from it may only be used on the thread that created it. This is a hard constraint and it dictates the pool design.
 
-The recorder pool is **separate from the runner pool**. An idle recording session holds a context for minutes; sharing the runner's pool would let two people recording halve crawl throughput.
+| Pool | Threads | Default size | Purpose |
+|---|---|---|---|
+| Browser workers (runner) | platform | 4 | Each owns its own `Playwright` + `Browser`; creates and destroys contexts in-thread |
+| Asset checkers | virtual | unbounded, per-host semaphore | Link, image, and file verification |
+| Browser workers (recorder) | platform | 2, hard cap | Interactive recording sessions |
 
-Contexts are recycled every N pages to bound memory. Each context starts with fresh cookies so runs are reproducible.
+A browser worker is a **thread-confined `Playwright` + `Browser` pair**, not a context borrowed from a shared browser. Four Chromium *processes*, not four contexts in one — which is what drives the container's memory sizing (§16).
+
+Contexts are created fresh per page batch and destroyed in the owning thread, bounding memory and starting each page with clean cookies so runs are reproducible.
+
+**Asset checking runs on virtual threads.** External link verification is pure blocking I/O — the textbook case. Concurrency is bounded by a per-host semaphore rather than a fixed pool size, so politeness is enforced where it belongs and thread-count tuning disappears. `java.net.http.HttpClient` covers this with no added dependency.
+
+Browser workers stay on platform threads: Playwright's thread affinity and native resources make them a poor fit for virtual threads.
+
+The recorder pool is **separate from the runner pool**. An idle recording session holds a browser for minutes; sharing would let two people recording halve crawl throughput.
 
 ## 6. Domain model
 
@@ -203,6 +214,12 @@ Report sections derive from the combination:
 
 `MuteRule` handles patterns alongside per-finding mutes — *"all dead links to linkedin.com, 90 days, reason: rate-limits our checker"*.
 
+**Baseline acceptance — required, not a convenience.** The first run against an existing site produces every pre-existing defect at once, all marked new. A list of 200 findings is not triageable, and run one is precisely where a new user decides whether the tool is worth their attention. The diff model only starts paying out from run two.
+
+So a run offers **"Accept as baseline"**: one action moves every `UNTRIAGED` finding in that run to `ACKNOWLEDGED` with a system-supplied reason and the run recorded as the baseline. Run two then shows only genuine change.
+
+The findings list also supports **bulk triage** — select many, apply one action — for the same reason.
+
 ### 6.4 Coverage — load-bearing
 
 A run records what it actually covered: the set of check types it ran and the set of URLs it visited.
@@ -217,9 +234,22 @@ This gets an explicit test.
 
 ### 6.5 Storage
 
-SQLite in WAL mode with `busy_timeout` set. SQLite permits one writer, so workers accumulate a run's results in memory and persist once at materialisation.
+**PostgreSQL**, schema managed by **Flyway** with versioned SQL migrations. `ddl-auto` is `validate` in every environment including tests — the migrations are the schema, and a mismatch must fail startup rather than silently reshape a database holding real triage history.
 
-Repositories stay vanilla Spring Data — Postgres is a driver and dialect change, not a rewrite.
+Native `jsonb` carries the shapes that are genuinely document-like: check configuration, locator candidates, run coverage, finding evidence. Native `uuid` for step ids.
+
+**Two distinct write patterns**, and conflating them is a mistake:
+
+| Data | Pattern | Mechanism |
+|---|---|---|
+| Findings and occurrences | accumulated in memory during the run, written once at materialisation | `JdbcTemplate` batch insert |
+| Crawl frontier | incremental, continuous, needed for resumability and live progress | batched claim/complete, `JdbcTemplate` |
+
+The frontier cannot wait for materialisation — that is the whole point of persisting it. But it also must not write once per URL. Workers **claim a batch of URLs** (default 20) under a single statement and report completion in batches, so 15,000 pages cost hundreds of statements rather than tens of thousands.
+
+JPA covers the aggregate roots where its ergonomics help. It is explicitly *not* used for the two high-volume tables above: batching 15,000 rows through the persistence context is slow and memory-hungry for no benefit.
+
+**Value types are Java records** — `PageSnapshot`, `Finding`, check results, locator candidates. Lombok is for JPA entities only, where records do not work. Records are shorter, immutable by construction, and the value types are exactly what gets passed across module boundaries.
 
 Artifacts (screenshots, HTML, HAR) go to disk under `/data/artifacts/{runId}/`, pruned after the last 12 runs per site. Findings are small and kept indefinitely.
 
@@ -237,10 +267,12 @@ Artifacts (screenshots, HTML, HAR) go to disk under `/data/artifacts/{runId}/`, 
 | `MEDIA_PLAYABLE` | page | `<video>` / `<audio>` sources resolve, metadata loads (`readyState >= 1`, `duration > 0`) |
 | `IFRAME_EMBED` | page | not blocked by X-Frame-Options / CSP, renders non-empty content |
 | `MIXED_CONTENT` | page | no http subresources on an https page |
-| `CONSOLE_ERRORS` | page | no uncaught JS errors |
+| `CONSOLE_ERRORS` | page | no uncaught JS errors — **off by default**, see below |
 | `TLS_CERT` | site | valid, not expiring within N days |
 | `HREFLANG` | site | language alternates resolve and reciprocate across the crawled set |
-| `SITEMAP_CONSISTENCY` | site | sitemap entries resolve, and crawled pages are not missing from it |
+| `SITEMAP_CONSISTENCY` | site | sitemap entries resolve, and crawled pages are not missing from it — **off by default** |
+
+**Two checks ship disabled**, deliberately. Real sites throw console errors constantly — third-party scripts, tracking pixels, consent tools — and plenty of pages are legitimately absent from a sitemap. Enabled by default, these two would make the very first report mostly noise, which is the one thing this design cannot afford. Both carry an ignore-pattern list so a site can enable them once its known-benign output is filtered out.
 
 Three implementations where the obvious approach is the useless one:
 
@@ -285,17 +317,19 @@ interface CheckDescriptor {
 }
 
 interface PageCheck extends CheckDescriptor {
-    List<Finding> evaluate(PageSnapshot snapshot, CheckConfig config);
+    List<CheckFinding> evaluate(PageSnapshot snapshot, CheckConfig config);
 }
 
 interface SiteCheck extends CheckDescriptor {
-    List<Finding> evaluate(RunSnapshots snapshots, SiteContext site, CheckConfig config);
+    List<CheckFinding> evaluate(RunSnapshots snapshots, SiteContext site, CheckConfig config);
 }
 
 interface InteractionCheck extends CheckDescriptor {
-    List<Finding> evaluate(Page page, SiteContext site, CheckConfig config);
+    List<CheckFinding> evaluate(Page page, SiteContext site, CheckConfig config);
 }
 ```
+
+`CheckFinding` is a transient record emitted by a check — type, severity, `subjectKey`, observing page, message key and arguments, evidence. The persistent `Finding` entity of §6.2 is created from it during materialisation, which is the only point where fingerprints and site-wide promotion can be computed. Keeping the two types distinct stops checks from needing any knowledge of identity or lifecycle.
 
 Implementations are registered automatically by their interface. Adding the twelfth check must not require touching the runner.
 
@@ -313,7 +347,15 @@ Trust is the product. Four mechanisms:
 
 **Per-check severity with per-site override.** `ERROR` / `WARN` / `INFO`. Only `ERROR` triggers notification by default.
 
-**Politeness:** robots.txt respected by default with a per-site override (the company hosts these sites), per-host concurrency and delay caps, and an identifying User-Agent so the company's own access logs stay greppable.
+**Politeness:** robots.txt respected by default with a per-site override (the company hosts these sites), per-host concurrency and delay caps enforced by semaphore, and an identifying User-Agent so the company's own access logs stay greppable.
+
+### 8.1 External URL cache
+
+External URLs are verified against a shared `ExternalUrlCheck` table keyed by normalised URL, holding the last result and timestamp. A URL verified within the TTL (default 24 h) is not re-fetched.
+
+Twenty sites linking to the same partner or social URL currently cost twenty requests per sweep. This collapses them to one, which cuts the largest single cost driver in a run **and** the largest source of `UNVERIFIABLE` findings, because the checker stops tripping third-party rate limits.
+
+Cache entries record which sites depend on them, so a URL that transitions to dead produces findings on every affected site rather than only the one that happened to check it. Failures are cached with a much shorter TTL (default 1 h) than successes, so a recovered link is not reported dead for a day.
 
 ## 9. Scheduling
 
@@ -439,7 +481,13 @@ Delivery is a `Notifier` interface with `EmailNotifier` as its only implementati
 
 ## 12. Web UI
 
-Thymeleaf server-rendered with HTMX fragments. No SPA build chain. Live run progress via SSE; the recorder's WebSocket is the one bidirectional exception.
+Thymeleaf server-rendered with HTMX fragments. No SPA build chain, no bundler. Live run progress via SSE (HTMX's SSE extension); the recorder's WebSocket is the one bidirectional exception.
+
+**HTMX plus Alpine.js**, with a clear division: HTMX owns anything that touches the server, Alpine owns local state that never does — filter chips, expand/collapse on the "Known (23)" group, bulk-select checkboxes for triage, conditional field display in Settings. Without Alpine that becomes hand-rolled JavaScript scattered through templates.
+
+**Both vendored into `src/main/resources/static/vendor/`, never a CDN.** This runs on an internal host that may have no outbound internet, and a self-hosted tool that breaks because unpkg is unreachable is an avoidable embarrassment.
+
+The Phase 4 recorder needs hand-written JavaScript regardless — canvas rendering, WebSocket framing, and input forwarding are beyond what either library does.
 
 **Screens:**
 
@@ -512,7 +560,9 @@ Documentation that cannot rot is worth more than documentation that is merely th
 
 ## 14. Failure handling and operations
 
-**Crawl frontier is a database table**, not an in-memory queue. Costs a little write traffic; buys live progress, resumability after a container restart, and orphaned-run recovery.
+**Crawl frontier is a database table**, not an in-memory queue. Costs a little write traffic; buys live progress, resumability after a container restart, and orphaned-run recovery. Workers claim and complete in batches (§6.5) so the cost stays in the hundreds of statements per run, not tens of thousands.
+
+**Observability.** A system whose entire purpose is diagnosing other systems must be diagnosable itself. Structured logging with `runId` and `siteId` in the MDC, so one run's complete history is greppable across every worker thread. Spring Actuator exposes health and the pool metrics that actually predict trouble: queue depth, browser worker saturation, outbox backlog.
 
 **Lease expiry.** Runs are leased by workers. On startup and on a timer, expired leases are reclaimed and their runs resumed or failed.
 
@@ -556,23 +606,34 @@ Every check is developed and regression-tested against it, against a real Chromi
 | Integration | Crawler and checks against the fixture site with real Chromium |
 | Integration | Journey record-and-replay against the fixture site |
 | Integration | Outbox and mail rendering against a test SMTP server (GreenMail) |
-| Repository | Spring Data against SQLite in a temp directory |
+| Repository | Spring Data against real Postgres via Testcontainers `@ServiceConnection` |
+| Migration | Flyway applied to an empty Testcontainers database; `ddl-auto=validate` proves entities match migrations |
 | Architecture | Spring Modulith boundary verification; message-key and help-topic completeness (§13.7) |
+
+Repository tests run against **real Postgres**, never an in-memory substitute. An H2 stand-in would validate against a dialect the production system never uses, which is how `jsonb` and constraint behaviour diverge silently.
 
 ## 16. Deployment
 
-Single Docker image: JRE 25, the application, and Chromium with its system libraries baked in. Browser version is pinned to the Playwright version.
+Two services in one Compose file:
+
+```
+webtesthelper   :8080   JRE 25 + app + Chromium and its system libraries
+postgres        :5432   volume: pgdata
+```
+
+The application image pins the Chromium build to the Playwright version; the two are upgraded together or not at all.
 
 ```
 /data
-  ├── webtesthelper.db      SQLite (WAL)
   ├── keyfile               AES-GCM key for credentials and SMTP password
   └── artifacts/{runId}/    screenshots, HTML, HAR
 ```
 
-`docker compose up -d`, port 8080, one persistent volume at `/data`. Reverse proxy terminates TLS; base URL configured in Settings.
+**Memory sizing.** Four browser workers means four Chromium *processes* (§5.4), not four contexts in one. Budget ~500 MB per worker under load plus ~1 GB for the JVM: **3 GB minimum, 4 GB comfortable.** Undersizing shows up as the OOM killer terminating Chromium mid-run, which surfaces as inexplicable `PAGE_UNREACHABLE` findings — worth naming, because it is a confusing failure to diagnose from the symptoms.
 
-Environment variables bootstrap first start: admin credentials, SMTP settings, base URL.
+`docker compose up -d`, port 8080, one persistent volume at `/data` plus one for Postgres. Reverse proxy terminates TLS; base URL configured in Settings.
+
+Flyway migrates on startup. Environment variables bootstrap first start: admin credentials, database URL, SMTP settings, base URL.
 
 **Deployment inputs still to confirm:** which SMTP relay (company relay or external provider — decides the from-address and whether SPF/DKIM alignment is needed), and which mailbox serves as the IMAP verification target for `SUBMIT_AND_VERIFY_MAIL`.
 
@@ -582,8 +643,8 @@ Each phase gets its own implementation plan written against this document.
 
 | Phase | Contents | Value delivered |
 |---|---|---|
-| **1** | Domain model, persistence, job queue, browser pool, crawler, `PageSnapshot`, all layer-1 checks, fingerprint + diff + coverage, run history UI, manual run, fixture site, **SMTP settings + outbox + sender + test-mail button** | Most of the monthly checklist, run on demand |
-| **2** | Tiered schedules, digest content and notification policy, triage UI, mute rules, dashboard, guided site setup | It runs itself and tells you |
+| **1** | Postgres + Flyway, domain model, job queue with leases, thread-confined browser workers, crawler with batched frontier, `PageSnapshot`, all layer-1 page and site checks, external URL cache, fingerprint + diff + coverage, run history UI, manual run, baseline acceptance, fixture site, **SMTP settings + outbox + sender + test-mail button** | Most of the monthly checklist, run on demand |
+| **2** | Tiered schedules, digest content and notification policy, triage UI with bulk actions, mute rules, dashboard, guided site setup | It runs itself and tells you |
 | **3** | Cookie banner, contact form (three modes + IMAP), language switcher, button reachability, credential store | The interactive 20% |
 | **4** | Recorder, journeys, selector drift, journey health | The long tail |
 
