@@ -45,11 +45,15 @@ public class RunWorker {
         try {
             log.info("Run {} gestartet (site {})", lease.runId(), lease.siteId());
             executor.execute(lease);
-            leases.finish(lease.runId(), identity.name(), RunStatus.COMPLETED, null);
-            log.info("Run {} abgeschlossen", lease.runId());
+            if (leases.finish(lease.runId(), identity.name(), RunStatus.COMPLETED, null)) {
+                log.info("Run {} abgeschlossen", lease.runId());
+            } else {
+                log.warn("Run {} beendet, aber nicht mehr Eigentümer", lease.runId());
+            }
         } catch (Exception e) {
+            String message = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
             log.error("Run {} fehlgeschlagen", lease.runId(), e);
-            leases.finish(lease.runId(), identity.name(), RunStatus.FAILED, e.getMessage());
+            leases.finish(lease.runId(), identity.name(), RunStatus.FAILED, message);
         }
         return true;
     }
