@@ -11,6 +11,9 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * Real PostgreSQL for every persistence test (spec 15). An in-memory substitute would
  * validate against a dialect production never uses, which is how jsonb and constraint
  * behaviour diverge silently.
+ *
+ * <p>The static container is started and stopped per test class (Testcontainers runs it in
+ * beforeAll/afterAll), giving each test class a clean database.
  */
 @SpringBootTest
 @Testcontainers
