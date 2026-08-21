@@ -15,6 +15,11 @@ import org.testcontainers.containers.PostgreSQLContainer;
  * test {@link DataSource} to the {@link ServiceConnection} present when the context is first
  * created, so a per-class container (fresh port, stopped in {@code @AfterAll}) would leave
  * later classes pointing at a dead database.
+ *
+ * <p>Because the container (and the Spring context) is shared across the whole suite, test
+ * classes must not assume a clean database. {@code @Transactional} test classes get automatic
+ * rollback; any non-{@code @Transactional} subclass must clear its own tables in
+ * {@code @BeforeEach}.
  */
 @SpringBootTest
 @ActiveProfiles("test")

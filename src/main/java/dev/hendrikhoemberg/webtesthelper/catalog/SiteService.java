@@ -10,7 +10,6 @@ import dev.hendrikhoemberg.webtesthelper.model.CrawlBudget;
 import dev.hendrikhoemberg.webtesthelper.model.NormalizedUrl;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
 import dev.hendrikhoemberg.webtesthelper.model.UrlNormalizer;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -105,20 +104,22 @@ public class SiteService {
         SiteCheckSettingEntity setting = checkSettings.findBySiteIdAndCheckType(siteId, type)
                 .orElseGet(() -> newSetting(siteId, type));
         setting.setEnabled(enabled);
-        try {
-            checkSettings.save(setting);
-        } catch (DataIntegrityViolationException e) {
-            SiteCheckSettingEntity existing = checkSettings.findBySiteIdAndCheckType(siteId, type)
-                    .orElseThrow();
-            existing.setEnabled(enabled);
-            checkSettings.save(existing);
-        }
+        // A concurrent insert of the same (site_id, check_type) would violate ux_site_check and
+        // roll back this transaction — accepted rather than retried, because a conflict here is
+        // vanishingly rare (settings are seeded for every CheckType at create()).
+        checkSettings.save(setting);
     }
 
     public List<SiteSummary> summaries() {
-        return sites.findAll().stream()
+        List<SiteEntity> sites = this.sites.findAll();
+        Map<Long, Integer> settingCounts = new java.util.HashMap<>();
+        for (SiteCheckSettingEntity setting : checkSettings.findBySiteIdIn(
+                sites.stream().map(SiteEntity::getId).toList())) {
+            settingCounts.merge(setting.getSiteId(), 1, Integer::sum);
+        }
+        return sites.stream()
                 .map(site -> new SiteSummary(site.getId(), site.getName(), site.getBaseUrl(),
-                        site.isEnabled(), checkSettings.findBySiteId(site.getId()).size()))
+                        site.isEnabled(), settingCounts.getOrDefault(site.getId(), 0)))
                 .toList();
     }
 
