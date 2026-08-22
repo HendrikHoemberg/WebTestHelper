@@ -2,6 +2,7 @@ package dev.hendrikhoemberg.webtesthelper.checks;
 
 import dev.hendrikhoemberg.webtesthelper.model.CheckFinding;
 import dev.hendrikhoemberg.webtesthelper.model.ImageOrigin;
+import dev.hendrikhoemberg.webtesthelper.model.ImageRef;
 import dev.hendrikhoemberg.webtesthelper.support.Snapshots;
 import org.junit.jupiter.api.Test;
 
@@ -52,6 +53,31 @@ class ImageBrokenCheckTest {
     @Test
     void anUnreachablePageReportsNoImages() {
         assertThat(check.evaluate(Snapshots.page("https://example.com/x").unreachable("Timeout"),
+                Snapshots.config(check, Snapshots.facts()))).isEmpty();
+    }
+
+    @Test
+    void naturalWidthWithoutNaturalHeightIsBroken() {
+        // Spec 7.1: both dimensions must render. A decoder can report a width yet stand
+        // there with no height, and that still leaves a broken image in the layout.
+        assertThat(check.evaluate(
+                Snapshots.page("https://example.com/")
+                        .image("https://example.com/kaputt.png", 400, 0, ImageOrigin.IMG).build(),
+                Snapshots.config(check, Snapshots.facts())))
+                .singleElement()
+                .satisfies(finding -> assertThat(finding.subjectKey())
+                        .isEqualTo("https://example.com/kaputt.png"));
+    }
+
+    @Test
+    void anImageWhoseTargetCouldNotBeNormalisedDoesNotCrash() {
+        // PageNavigator only emits images with a normalised target, but a hand-built snapshot
+        // (or a future extraction origin) can carry none; naming it is impossible, so it is
+        // skipped rather than crashing the whole page's findings.
+        assertThat(check.evaluate(
+                Snapshots.page("https://example.com/")
+                        .image(new ImageRef("data:image/png;base64,bG9nbw==", null, "Alt-Text",
+                                0, 0, ImageOrigin.IMG)).build(),
                 Snapshots.config(check, Snapshots.facts()))).isEmpty();
     }
 }

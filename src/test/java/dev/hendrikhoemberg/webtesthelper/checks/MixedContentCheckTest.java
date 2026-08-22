@@ -35,6 +35,15 @@ class MixedContentCheckTest {
     }
 
     @Test
+    void anUnreachablePageCannotHaveMixedContent() {
+        // Nothing was loaded, so there is nothing whose scheme could have downgraded the padlock.
+        assertThat(check.evaluate(
+                Snapshots.page("https://example.com/")
+                        .image("http://example.com/logo.png", 40).unreachable("Timeout"),
+                Snapshots.config(check, Snapshots.facts()))).isEmpty();
+    }
+
+    @Test
     void aPlainLinkToAnInsecurePageIsNotMixedContent() {
         // A link is a destination, not a subresource: nothing is loaded into this page, the
         // padlock survives, and reporting it would be a false positive on every partner link.

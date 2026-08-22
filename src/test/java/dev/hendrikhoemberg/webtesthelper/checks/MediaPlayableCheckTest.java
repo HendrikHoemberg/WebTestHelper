@@ -45,4 +45,35 @@ class MediaPlayableCheckTest {
                         .media(MediaKind.AUDIO, "https://example.com/ton.wav", 1, 0.5, null).build(),
                 Snapshots.config(check, Snapshots.facts()))).isEmpty();
     }
+
+    @Test
+    void twoSourceLessElementsAreTwoFindingsEachNamingThePage() {
+        // A <video> and an <audio> with no src at all both collapse onto the page URL, so the
+        // dedupe key cannot be the URL — each element is its own broken thing.
+        assertThat(check.evaluate(
+                Snapshots.page("https://example.com/medien")
+                        .media(MediaKind.VIDEO, 0, 0.0, null)
+                        .media(MediaKind.AUDIO, 0, 0.0, null).build(),
+                Snapshots.config(check, Snapshots.facts())))
+                .hasSize(2)
+                .extracting(CheckFinding::messageKey)
+                .containsExactly("finding.MEDIA_PLAYABLE.video", "finding.MEDIA_PLAYABLE.audio");
+        assertThat(check.evaluate(
+                Snapshots.page("https://example.com/medien")
+                        .media(MediaKind.VIDEO, 0, 0.0, null)
+                        .media(MediaKind.AUDIO, 0, 0.0, null).build(),
+                Snapshots.config(check, Snapshots.facts())))
+                .extracting(CheckFinding::subjectKey)
+                .containsExactly("https://example.com/medien", "https://example.com/medien");
+    }
+
+    @Test
+    void theSameBrokenSourceTwiceOnAPageIsOneFinding() {
+        // One broken file is one broken thing regardless of how many elements use it.
+        assertThat(check.evaluate(
+                Snapshots.page("https://example.com/medien")
+                        .media(MediaKind.VIDEO, "https://example.com/fehlt.mp4", 0, 0.0, null)
+                        .media(MediaKind.VIDEO, "https://example.com/fehlt.mp4", 0, 0.0, null).build(),
+                Snapshots.config(check, Snapshots.facts()))).hasSize(1);
+    }
 }

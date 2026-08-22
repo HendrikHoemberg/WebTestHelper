@@ -186,6 +186,7 @@ class PageNavigatorTest {
         PageSnapshot snapshot = capture("schleife/a", 1);
 
         assertThat(snapshot.reachable()).isFalse();
+        assertThat(snapshot.unreachableReason()).contains("ERR_TOO_MANY_REDIRECTS");
         assertThat(snapshot.unreachableReason()).containsIgnoringCase("redirect");
     }
 

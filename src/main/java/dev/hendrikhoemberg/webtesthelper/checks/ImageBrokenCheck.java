@@ -4,6 +4,7 @@ import dev.hendrikhoemberg.webtesthelper.model.CheckFinding;
 import dev.hendrikhoemberg.webtesthelper.model.CheckType;
 import dev.hendrikhoemberg.webtesthelper.model.Evidence;
 import dev.hendrikhoemberg.webtesthelper.model.ImageRef;
+import dev.hendrikhoemberg.webtesthelper.model.NormalizedUrl;
 import dev.hendrikhoemberg.webtesthelper.model.PageSnapshot;
 import dev.hendrikhoemberg.webtesthelper.model.Severity;
 
@@ -49,7 +50,12 @@ public final class ImageBrokenCheck implements PageCheck {
         List<CheckFinding> findings = new ArrayList<>();
         Set<String> reported = new HashSet<>();
         for (ImageRef image : snapshot.images()) {
-            String subject = image.target().value();
+            NormalizedUrl target = image.target();
+            // Without a normalised target there is nothing to name the finding with.
+            if (target == null) {
+                continue;
+            }
+            String subject = target.value();
             if (image.rendered() || !reported.add(subject)) {
                 continue;
             }

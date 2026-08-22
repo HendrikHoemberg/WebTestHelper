@@ -122,8 +122,23 @@ public final class Snapshots {
         }
 
         public Builder image(String src, int naturalWidth, ImageOrigin origin) {
+            return image(src, naturalWidth, naturalWidth == 0 ? 0 : 40, origin);
+        }
+
+        public Builder image(String src, int naturalWidth, int naturalHeight, ImageOrigin origin) {
             images.add(new ImageRef(src, Snapshots.url(src), "Alt-Text", naturalWidth,
-                    naturalWidth == 0 ? 0 : 40, origin));
+                    naturalHeight, origin));
+            return this;
+        }
+
+        public Builder image(ImageRef image) {
+            images.add(image);
+            return this;
+        }
+
+        /** A media element without a {@code src} or {@code source} child — a broken element. */
+        public Builder media(MediaKind kind, int readyState, double duration, String errorCode) {
+            media.add(new MediaRef(kind, List.of(), readyState, duration, errorCode));
             return this;
         }
 
