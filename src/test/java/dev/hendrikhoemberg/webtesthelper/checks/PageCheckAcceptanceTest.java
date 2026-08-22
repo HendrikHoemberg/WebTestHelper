@@ -17,9 +17,9 @@ import dev.hendrikhoemberg.webtesthelper.support.AbstractPostgresTest;
 import dev.hendrikhoemberg.webtesthelper.support.FixtureSite;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -38,6 +38,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * literal form.
  */
 @Tag("browser")
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class PageCheckAcceptanceTest extends AbstractPostgresTest {
 
     @Autowired CrawlService crawler;
@@ -45,17 +46,23 @@ class PageCheckAcceptanceTest extends AbstractPostgresTest {
     @Autowired SiteService sites;
     @Autowired JdbcTemplate jdbc;
 
-    private static FixtureSite site;
+    private FixtureSite site;
 
     private SiteContext context;
     private CrawlResult result;
     private List<CheckFinding> findings;
 
-    @BeforeAll static void startSite() { site = FixtureSite.start(); }
-    @AfterAll static void stopSite() { site.close(); }
+    @AfterAll void stopSite() { site.close(); }
 
-    @BeforeEach
+    /**
+     * One crawl for the whole class. Every test below only reads {@code result} and
+     * {@code findings}, so re-crawling per test would cost eleven Chromium sweeps to prove
+     * the same snapshots — the exact opposite of the "navigate once, check many" claim in
+     * the class javadoc.
+     */
+    @BeforeAll
     void crawlOnce() {
+        site = FixtureSite.start();
         jdbc.update("DELETE FROM crawl_queue_item");
         jdbc.update("DELETE FROM run");
         jdbc.update("DELETE FROM site_check_setting");
