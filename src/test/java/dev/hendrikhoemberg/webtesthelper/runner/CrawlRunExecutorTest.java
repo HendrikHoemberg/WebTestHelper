@@ -21,7 +21,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Tag("browser")
-class CrawlRunExecutorIT extends AbstractPostgresTest {
+class CrawlRunExecutorTest extends AbstractPostgresTest {
 
     @Autowired RunWorker worker;
     @Autowired RunService runs;
