@@ -29,7 +29,11 @@ public final class CheckRegistry {
     public static CheckRegistry standard() {
         return new CheckRegistry(
                 List.of(new PageUnreachableCheck(),
-                        new PageStatusCheck()),
+                        new PageStatusCheck(),
+                        new RedirectChainCheck(),
+                        new ImageBrokenCheck(),
+                        new MediaPlayableCheck(),
+                        new MixedContentCheck()),
                 List.of());     // Plan 3b adds TLS_CERT, HREFLANG and SITEMAP_CONSISTENCY
     }
 
