@@ -1,7 +1,10 @@
 <!doctype html>
 <html lang="en">
 <head><meta charset="utf-8"><title>Startseite — Fixture</title>
+  <!-- extract.js discovers a[href], never <link>, so this dead alternate changes nothing
+       for the crawl; it only exercises the hreflang extraction path. -->
   <link rel="alternate" hreflang="de" href="/">
+  <link rel="alternate" hreflang="fr" href="http://localhost:9/fr/">
 </head>
 <body>
 <h1>Startseite</h1>

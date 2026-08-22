@@ -89,13 +89,13 @@ class PageSnapshotTest {
     private static PageSnapshot snapshotWith(List<LinkRef> links) {
         return new PageSnapshot(url("http://h/"), "http://h/", 0, true, null, 200,
                 Map.of(), List.of("http://h/"), 10L, "Titel", "de", "", 0L,
-                links, List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), null);
+                links, List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), null);
     }
 
     private static PageSnapshot snapshotAt(String value) {
         return new PageSnapshot(url(value), value, 0, true, null, 200,
                 Map.of(), List.of(value), 10L, "Titel", "de", "", 0L,
-                List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), null);
+                List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), null);
     }
 
     private static SiteContext siteContext() {

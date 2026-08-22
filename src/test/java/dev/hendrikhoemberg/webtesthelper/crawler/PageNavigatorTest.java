@@ -166,6 +166,28 @@ class PageNavigatorTest {
     }
 
     @Test
+    void hreflangAlternatesAreExtractedWithTheirLanguageAndTarget() {
+        PageSnapshot snapshot = capture("", 0);
+
+        assertThat(snapshot.alternates()).hasSize(2);
+        assertThat(snapshot.alternates())
+                .extracting(AlternateRef::hreflang)
+                .containsExactlyInAnyOrder("en", "de");
+        assertThat(snapshot.alternates())
+                .filteredOn(alternate -> alternate.hreflang().equals("en"))
+                .singleElement()
+                .satisfies(alternate -> assertThat(alternate.target().path())
+                        .isEqualTo("/en/index.html"));
+    }
+
+    @Test
+    void aPageWithoutAlternatesReturnsAnEmptyListRatherThanNull() {
+        PageSnapshot snapshot = capture("kontakt.html", 1);
+
+        assertThat(snapshot.alternates()).isNotNull().isEmpty();
+    }
+
+    @Test
     void aFailedSubresourceIsRecorded() {
         PageSnapshot snapshot = capture("", 0);
 

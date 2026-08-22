@@ -5,6 +5,7 @@ import dev.hendrikhoemberg.webtesthelper.checks.PageCheck;
 import dev.hendrikhoemberg.webtesthelper.model.ConsoleMessage;
 import dev.hendrikhoemberg.webtesthelper.model.FailedRequest;
 import dev.hendrikhoemberg.webtesthelper.model.FormRef;
+import dev.hendrikhoemberg.webtesthelper.model.AlternateRef;
 import dev.hendrikhoemberg.webtesthelper.model.FrameRef;
 import dev.hendrikhoemberg.webtesthelper.model.ImageOrigin;
 import dev.hendrikhoemberg.webtesthelper.model.ImageRef;
@@ -86,6 +87,7 @@ public final class Snapshots {
         private final List<ImageRef> images = new ArrayList<>();
         private final List<MediaRef> media = new ArrayList<>();
         private final List<FrameRef> frames = new ArrayList<>();
+        private final List<AlternateRef> alternates = new ArrayList<>();
         private final List<ConsoleMessage> console = new ArrayList<>();
         private final List<FailedRequest> failed = new ArrayList<>();
 
@@ -164,6 +166,12 @@ public final class Snapshots {
             return this;
         }
 
+        /** A hreflang alternate; href is normalised through the same machinery as links/frames. */
+        public Builder alternate(String hreflang, String href) {
+            alternates.add(new AlternateRef(hreflang, Snapshots.url(href)));
+            return this;
+        }
+
         public Builder consoleError(String message) {
             console.add(new ConsoleMessage("error", message, url.value()));
             return this;
@@ -192,7 +200,7 @@ public final class Snapshots {
                     Map.copyOf(headers),
                     redirectChain == null ? List.of(url.value()) : redirectChain,
                     120L, "Titel", "de", text, SimHash.of(text), links, images, media, frames,
-                    List.<FormRef>of(), console, failed, "seite.png");
+                    alternates, List.<FormRef>of(), console, failed, "seite.png");
         }
 
         public PageSnapshot unreachable(String reason) {

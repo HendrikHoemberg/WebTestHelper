@@ -26,6 +26,7 @@ public record PageSnapshot(
         List<ImageRef> images,
         List<MediaRef> media,
         List<FrameRef> frames,
+        List<AlternateRef> alternates,
         List<FormRef> forms,
         List<ConsoleMessage> consoleMessages,
         List<FailedRequest> failedRequests,
@@ -38,6 +39,7 @@ public record PageSnapshot(
         images = List.copyOf(images);
         media = List.copyOf(media);
         frames = List.copyOf(frames);
+        alternates = List.copyOf(alternates);
         forms = List.copyOf(forms);
         consoleMessages = List.copyOf(consoleMessages);
         failedRequests = List.copyOf(failedRequests);
@@ -65,6 +67,6 @@ public record PageSnapshot(
             String reason, List<ConsoleMessage> console, List<FailedRequest> failed) {
         return new PageSnapshot(url, requestedUrl, depth, false, reason, 0,
                 Map.of(), List.of(requestedUrl), 0L, "", "", "", 0L,
-                List.of(), List.of(), List.of(), List.of(), List.of(), console, failed, null);
+                List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), console, failed, null);
     }
 }

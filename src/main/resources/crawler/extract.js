@@ -125,10 +125,15 @@ async () => {
     }))
   }));
 
+  const alternates = [...document.querySelectorAll('link[rel~="alternate"][hreflang]')]
+    .map(link => ({ lang: link.getAttribute('hreflang') || '',
+                    abs: absolute(link.getAttribute('href') || '') }))
+    .filter(alternate => alternate.abs);
+
   return {
     title: document.title || '',
     lang: document.documentElement.getAttribute('lang') || '',
     text: (document.body && document.body.innerText) || '',
-    links, images, media, frames, forms
+    links, images, media, frames, forms, alternates
   };
 };
