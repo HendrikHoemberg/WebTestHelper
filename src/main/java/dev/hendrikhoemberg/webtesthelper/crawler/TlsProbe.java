@@ -15,10 +15,6 @@ import java.security.GeneralSecurityException;
 import java.security.cert.X509Certificate;
 import java.time.Duration;
 
-/**
- * Probes the TLS certificate presented at a site's base URL. Lives in the crawler because it does
- * network I/O; the pure {@code TlsCertCheck} consumes the resulting {@link TlsCertificateFact}.
- */
 @Component
 public class TlsProbe {
 
