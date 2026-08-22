@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="de">
+<head><meta charset="utf-8"><title>Kontakt — Fixture</title></head>
+<body>
+<h1>Kontakt</h1>
+<p><a href="/">Zurück zur Startseite</a></p>
+<form id="kontaktformular" action="/kontakt/absenden" method="post">
+  <label for="name">Name</label>
+  <input type="text" id="name" name="name" autocomplete="name" required>
+  <label for="email">E-Mail</label>
+  <input type="email" id="email" name="email" autocomplete="email" required>
+  <label for="nachricht">Nachricht</label>
+  <textarea id="nachricht" name="nachricht" required></textarea>
+  <button type="submit">Absenden</button>
+</form>
+<iframe src="/maps/embed/v1/place" title="Anfahrt" width="300" height="200"></iframe>
+<iframe src="/blockiert" title="Bewertungen" width="300" height="200"></iframe>
+<footer><img src="/assets/logo.png" alt="Logo"><img src="/assets/fehlt.png" alt="Auszeichnung"></footer>
+</body>
+</html>

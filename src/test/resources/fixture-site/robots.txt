@@ -1,0 +1,6 @@
+User-agent: *
+Disallow: /geheim/
+Disallow: /kontakt/absenden
+Allow: /
+
+Sitemap: /sitemap.xml
