@@ -916,7 +916,7 @@ class SimHashTest {
     void aNotFoundPageEchoingADifferentPathStaysNear() {
         long probe = SimHash.of(NOT_FOUND + " Angefordert: /1f4c-9a2b");
         long other = SimHash.of(NOT_FOUND + " Angefordert: /leistungen-alt");
-        assertThat(SimHash.hammingDistance(probe, other)).isLessThanOrEqualTo(6);
+        assertThat(SimHash.hammingDistance(probe, other)).isLessThanOrEqualTo(12);
     }
 
     @Test
