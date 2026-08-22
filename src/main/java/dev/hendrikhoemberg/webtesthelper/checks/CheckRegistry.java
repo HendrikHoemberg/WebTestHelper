@@ -33,7 +33,9 @@ public final class CheckRegistry {
                         new RedirectChainCheck(),
                         new ImageBrokenCheck(),
                         new MediaPlayableCheck(),
-                        new MixedContentCheck()),
+                        new MixedContentCheck(),
+                        new IframeEmbedCheck(),
+                        new ConsoleErrorsCheck()),
                 List.of());     // Plan 3b adds TLS_CERT, HREFLANG and SITEMAP_CONSISTENCY
     }
 
