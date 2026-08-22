@@ -75,9 +75,14 @@ public class RunLeaseJdbcRepository {
             """;
 
     /**
-     * Requeues stale RUNNING runs whose site has no QUEUED run. A site with a QUEUED run
-     * must not be requeued into it — that would violate ux_run_single_queued_per_site — so
-     * such stale runs are superseded (CANCELLED) by {@link #SWEEP_SUPERSEDE_SQL} instead.
+     * Requeues stale RUNNING runs that no queued run of the same scope already supersedes.
+     * Requeueing into an existing QUEUED run of that scope would violate
+     * ux_run_single_queued_per_site_scope, so those stale runs are superseded (CANCELLED) by
+     * {@link #SWEEP_SUPERSEDE_SQL} instead.
+     *
+     * <p>The guard matches on scope because the index does: a stale FULL run must still be
+     * requeued when the site merely has a PULSE run waiting, since they are different work
+     * (spec 9) and both are allowed to queue.
      */
     private static final String SWEEP_REQUEUE_SQL = """
             UPDATE run r
@@ -89,15 +94,17 @@ public class RunLeaseJdbcRepository {
                AND NOT EXISTS (SELECT 1
                                  FROM run q
                                 WHERE q.site_id = r.site_id
+                                  AND q.scope   = r.scope
                                   AND q.status = 'QUEUED'
                                   AND q.id <> r.id)
          RETURNING r.id
             """;
 
     /**
-     * Supersedes stale RUNNING runs whose site already has a QUEUED run. CANCELLED rather
-     * than requeued (and CANCELLED rather than FAILED: supersession is a cancellation, and
-     * FAILED would trigger a failure notification once the notification path lands).
+     * Supersedes stale RUNNING runs that a queued run of the same scope already replaces.
+     * CANCELLED rather than requeued (and CANCELLED rather than FAILED: supersession is a
+     * cancellation, and FAILED would trigger a failure notification once the notification
+     * path lands).
      */
     private static final String SWEEP_SUPERSEDE_SQL = """
             UPDATE run r
@@ -111,6 +118,7 @@ public class RunLeaseJdbcRepository {
                AND EXISTS (SELECT 1
                              FROM run q
                             WHERE q.site_id = r.site_id
+                              AND q.scope   = r.scope
                               AND q.status = 'QUEUED'
                               AND q.id <> r.id)
          RETURNING r.id

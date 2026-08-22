@@ -38,15 +38,21 @@ public class RunService {
     }
 
     /**
-     * Queues a run for a site, or returns the existing QUEUED run if one is already waiting
-     * (clicking "Jetzt prüfen" twice must not build a backlog).
+     * Queues a run for a site, or returns the existing QUEUED run <em>of the same scope</em> if
+     * one is already waiting (clicking "Jetzt prüfen" twice must not build a backlog).
+     *
+     * <p>Dedupe is per scope, not per site. The three tiers of spec 9 share the 03:00 window and
+     * on the first Sunday of a month all three fire for the same site; collapsing them would
+     * silently drop the deep run, which is the only tier that submits forms and verifies mail.
+     * One run at a time per site (spec 5.3) is a constraint on RUNNING, and claimNext still
+     * enforces it — the tiers queue together and execute one after another.
      */
     public long enqueue(long siteId, RunTrigger trigger, RunScope scope) {
         if (!sites.exists(siteId)) {
             throw new IllegalArgumentException("Site " + siteId + " existiert nicht");
         }
-        Optional<RunEntity> alreadyQueued = runs.findFirstBySiteIdAndStatusOrderByQueuedAtAsc(
-                siteId, RunStatus.QUEUED);
+        Optional<RunEntity> alreadyQueued = runs.findFirstBySiteIdAndStatusAndScopeOrderByQueuedAtAsc(
+                siteId, RunStatus.QUEUED, scope);
         if (alreadyQueued.isPresent()) {
             return alreadyQueued.get().getId();
         }
@@ -58,11 +64,12 @@ public class RunService {
             return runs.save(run).getId();
         } catch (DataIntegrityViolationException raceLostToAnotherEnqueue) {
             // Mirrors claimNext's swallow-and-retry: the find-then-save check is
-            // racy, so ux_run_single_queued_per_site converts the loser's insert into
+            // racy, so ux_run_single_queued_per_site_scope converts the loser's insert into
             // a duplicate key. Re-query the winner's QUEUED run and return it instead.
             // The re-query runs in a fresh transaction: the failed save rolled back and
             // poisoned its own persistence context, which must not be reused.
-            return runs.findFirstBySiteIdAndStatusOrderByQueuedAtAsc(siteId, RunStatus.QUEUED)
+            return runs.findFirstBySiteIdAndStatusAndScopeOrderByQueuedAtAsc(
+                            siteId, RunStatus.QUEUED, scope)
                     .orElseThrow(() -> raceLostToAnotherEnqueue)
                     .getId();
         }

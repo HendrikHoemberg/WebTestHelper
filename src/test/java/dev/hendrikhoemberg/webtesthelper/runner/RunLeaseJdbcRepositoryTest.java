@@ -189,6 +189,23 @@ class RunLeaseJdbcRepositoryTest extends AbstractPostgresTest {
     }
 
     @Test
+    void theSweepRequeuesAStaleRunWhenOnlyAnotherTierIsQueued() {
+        // ux_run_single_queued_per_site_scope is per scope, so a queued PULSE run does not block
+        // requeueing a stale FULL one — they are different work (spec 9) and both may wait.
+        long staleFull = queueRun(siteA);
+        leases.claimNext("worker-1", Duration.ofMinutes(5)).orElseThrow();
+        jdbc.update("UPDATE run SET lease_expires_at = now() - interval '1 minute' WHERE id = ?", staleFull);
+        jdbc.update("""
+                INSERT INTO run (site_id, trigger_type, scope, status)
+                VALUES (?, 'SCHEDULED', 'PULSE', 'QUEUED')
+                """, siteA);
+
+        assertThat(leases.reclaimExpiredLeases()).containsExactly(staleFull);
+        assertThat(jdbc.queryForObject("SELECT status FROM run WHERE id = ?", String.class, staleFull))
+                .isEqualTo("QUEUED");
+    }
+
+    @Test
     void theSweepResolvesAStaleRunWhenAQueuedOneExists() {
         long stale = queueRun(siteA);
         leases.claimNext("worker-1", Duration.ofMinutes(5)).orElseThrow();

@@ -38,6 +38,32 @@ class RunServiceTest extends AbstractPostgresTest {
     }
 
     @Test
+    void theThreeTiersQueueSideBySideForOneSite() {
+        // Spec 9 fires pulse, full and deep in the same 03:00 window; on the first Sunday of a
+        // month all three land on one site. Deduping them by site would silently drop the deep
+        // run, the only tier that submits forms and verifies mail. One run at a time per site
+        // (spec 5.3) constrains RUNNING, not QUEUED — claimNext still serialises execution.
+        long pulse = runs.enqueue(siteId, RunTrigger.SCHEDULED, RunScope.PULSE);
+        long full = runs.enqueue(siteId, RunTrigger.SCHEDULED, RunScope.FULL);
+        long deep = runs.enqueue(siteId, RunTrigger.SCHEDULED, RunScope.DEEP);
+
+        assertThat(List.of(pulse, full, deep)).doesNotHaveDuplicates();
+        assertThat(jdbc.queryForObject(
+                "SELECT count(*) FROM run WHERE site_id = ? AND status = 'QUEUED'",
+                Integer.class, siteId)).isEqualTo(3);
+    }
+
+    @Test
+    void enqueuingTheSameTierTwiceReusesTheQueuedRun() {
+        long first = runs.enqueue(siteId, RunTrigger.MANUAL, RunScope.FULL);
+
+        assertThat(runs.enqueue(siteId, RunTrigger.MANUAL, RunScope.FULL)).isEqualTo(first);
+        assertThat(jdbc.queryForObject(
+                "SELECT count(*) FROM run WHERE site_id = ? AND status = 'QUEUED'",
+                Integer.class, siteId)).isEqualTo(1);
+    }
+
+    @Test
     void parallelEnqueuesAllReturnTheSameRunAndLeaveOneQueued() throws Exception {
         int workers = 8;
         List<Long> ids = inParallel(workers,
