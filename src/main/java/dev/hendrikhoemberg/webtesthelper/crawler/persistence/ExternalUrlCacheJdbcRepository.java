@@ -7,8 +7,13 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
+
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -77,11 +82,26 @@ public class ExternalUrlCacheJdbcRepository {
             return;
         }
         String siteIdJson = "[%d]".formatted(siteId);
-        results.stream().map(r -> new Object[]{
-                r.url(), r.status().name(), r.httpStatus(), r.contentType(),
-                r.contentLength(), r.bodyPrefix(), r.failureText(),
-                Timestamp.from(r.checkedAt()), siteIdJson
-        }).toList().forEach(args ->
-                jdbc.update(UPSERT_SQL, args));
+        List<UrlVerification> list = List.copyOf(results);
+        jdbc.batchUpdate(UPSERT_SQL, new BatchPreparedStatementSetter() {
+            @Override
+            public void setValues(PreparedStatement ps, int i) throws SQLException {
+                UrlVerification r = list.get(i);
+                ps.setString(1, r.url());
+                ps.setString(2, r.status().name());
+                ps.setInt(3, r.httpStatus());
+                ps.setString(4, r.contentType());
+                ps.setLong(5, r.contentLength());
+                ps.setString(6, r.bodyPrefix());
+                ps.setString(7, r.failureText());
+                ps.setTimestamp(8, Timestamp.from(r.checkedAt().truncatedTo(ChronoUnit.MICROS)));
+                ps.setString(9, siteIdJson);
+            }
+
+            @Override
+            public int getBatchSize() {
+                return list.size();
+            }
+        });
     }
 }

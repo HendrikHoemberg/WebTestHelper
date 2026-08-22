@@ -43,6 +43,7 @@ public class UrlVerificationService {
                     return norm.isPresent() && !results.containsKey(norm.get().value());
                 })
                 .toList();
+        int snapshotSeeded = candidates.size() - unvisited.size();
 
         // Split on internal vs external.
         NormalizedUrl siteBaseUrl = site.baseUrl();
@@ -134,8 +135,8 @@ public class UrlVerificationService {
                 .filter(v -> v.status() == UrlStatus.DEAD).count();
         long unverifiableCount = results.values().stream()
                 .filter(v -> v.status() == UrlStatus.UNVERIFIABLE).count();
-        log.info("URL verification run: candidates={}, cacheHits={}, fetched={}, ok={}, dead={}, unverifiable={}",
-                candidates.size(), cacheHits, fetched, okCount, deadCount, unverifiableCount);
+        log.info("URL verification run: candidates={}, snapshotSeeded={}, cacheHits={}, fetched={}, ok={}, dead={}, unverifiable={}",
+                candidates.size(), snapshotSeeded, cacheHits, fetched, okCount, deadCount, unverifiableCount);
 
         return new UrlVerifications(results);
     }
