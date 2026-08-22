@@ -8,7 +8,7 @@ CREATE TABLE crawl_queue_item (
     depth INTEGER NOT NULL,
     discovered_from TEXT,
 
-    status TEXT NOT NULL DEFAULT 'PENDING',
+    status TEXT NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING','CLAIMED','DONE','FAILED','SKIPPED')),
     claimed_by TEXT,
     claimed_at TIMESTAMPTZ,
     attempts INTEGER NOT NULL DEFAULT 0,
