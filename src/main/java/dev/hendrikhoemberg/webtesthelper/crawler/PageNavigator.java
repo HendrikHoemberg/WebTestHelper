@@ -52,6 +52,11 @@ import java.util.concurrent.TimeUnit;
  * <p>Capture is called only from inside {@link BrowserPool#submit}. Playwright objects are
  * thread-confined: the {@code Browser} arrives from the pool's worker thread, everything derived
  * from it stays in this method. Only the {@link PageSnapshot} crosses threads.
+ *
+ * <p>The context is fresh <em>per page</em>, where spec 5.4 says per batch: a batch fans out
+ * across every pool worker, so it never corresponds to one thread and cannot own one context.
+ * Per-page is what actually delivers what that paragraph asks for — clean cookies on every page,
+ * bounded memory, reproducible runs — at the cost of one context creation per visit.
  */
 @Component
 public class PageNavigator {
@@ -79,7 +84,7 @@ public class PageNavigator {
             Path runArtifactDir) {
         NormalizedUrl requested = UrlNormalizer.normalize(target.url()).orElse(null);
         if (requested == null) {
-            return PageSnapshot.unreachable(fallbackUrl(target), target.url(), target.depth(),
+            return PageSnapshot.unreachable(fallbackUrl(), target.url(), target.depth(),
                     "Nicht als URL interpretierbar", List.of(), List.of());
         }
         throttle.await(requested.host(), properties.perHostDelay());
@@ -120,7 +125,7 @@ public class PageNavigator {
             }
 
             NormalizedUrl pageUrl = UrlNormalizer.normalize(page.url()).orElse(requested);
-            Extracted extracted = map(page.evaluate(EXTRACT_JS), pageUrl, site);
+            Extracted extracted = map(page.evaluate(EXTRACT_JS), site);
             String screenshotPath = screenshot(page, requested, runArtifactDir);
 
             Map<String, String> headers = new HashMap<>();
@@ -159,7 +164,7 @@ public class PageNavigator {
      * The single place where the script vocabulary (raw/abs/w/h/textLength/error…) meets the model
      * vocabulary (rawSource/target/naturalWidth/naturalHeight/contentTextLength/errorCode).
      */
-    private Extracted map(Object raw, NormalizedUrl pageUrl, SiteContext site) {
+    private Extracted map(Object raw, SiteContext site) {
         if (!(raw instanceof Map<?, ?> root)) {
             return Extracted.EMPTY;
         }
@@ -259,7 +264,7 @@ public class PageNavigator {
     }
 
     /** A referent for a URL that cannot even be interpreted — never points anywhere real. */
-    private static NormalizedUrl fallbackUrl(CrawlTarget target) {
+    private static NormalizedUrl fallbackUrl() {
         return new NormalizedUrl("http", "ungueltig", 80, "/", null);
     }
 

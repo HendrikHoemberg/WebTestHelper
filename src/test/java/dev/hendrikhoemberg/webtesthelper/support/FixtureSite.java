@@ -1,7 +1,6 @@
 package dev.hendrikhoemberg.webtesthelper.support;
 
 import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 
 import java.io.IOException;
@@ -12,7 +11,6 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
-import java.util.Map;
 import java.util.concurrent.Executors;
 
 /**
@@ -217,10 +215,5 @@ public final class FixtureSite implements AutoCloseable {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-    }
-
-    /** Unused today; kept so a route can declare extra response headers in one place. */
-    static Map<String, String> noHeaders() {
-        return Map.of();
     }
 }

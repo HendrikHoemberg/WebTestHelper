@@ -1,9 +1,7 @@
 package dev.hendrikhoemberg.webtesthelper.model;
 
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Everything a single page visit produced. Immutable and browser-free: a check receives one of
