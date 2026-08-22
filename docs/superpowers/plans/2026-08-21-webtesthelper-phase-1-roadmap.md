@@ -3,8 +3,8 @@
 **Date:** 2026-08-21
 **Spec:** `docs/superpowers/specs/2026-08-21-webtesthelper-design.md` (§17 defines Phase 1)
 **Status:** Plans 1, 2a, 2b and **3a** executed and reviewed against the spec; their commits are
-on `main`. Plan 3 is split into 3a and 3b; **3b is written next**, from 3a's execution findings
-below. Plans 4–5 are scoped below and written when their predecessor is done.
+on `main`. Plan 3 is split into 3a and 3b; **3b is written** (from 3a's execution findings below)
+and awaits execution. Plans 4–5 are scoped below and written when their predecessor is done.
 
 ---
 
@@ -24,17 +24,12 @@ browser boundary, plan 3 at the network boundary — which is why the table belo
 
 ## Calibration rules (apply to every plan)
 
-Full inline code is reserved for the parts that are subtle and load-bearing; everything else
-is specified at signature level with acceptance tests. Concretely:
-
-- **Full code:** migrations, configuration, the test that pins a subtle contract, and the
-  implementation of subtle algorithms (`UrlNormalizer`, lease SQL, thread confinement,
-  fingerprinting, coverage-scoped diff).
-- **Signatures + acceptance tests:** mechanical classes — JPA entities (exact field list and
-  column mapping), simple services, controllers, templates.
-- **Every step** still has exact file paths, exact commands, expected output, TDD order,
-  and a commit. No placeholders, ever.
-- Target: **each plan ≤ ~1,500 lines.** If a plan would exceed that, it is split again.
+**`CLAUDE.md`'s "Plan calibration" section is the authority.** It is not restated here, because
+a second copy is what drifts: the budget is **150 lines of verbatim code per plan**, ~800 total
+lines is a tripwire rather than a wall, and the preamble points at this file instead of copying
+it. The rules that governed plans 1–3a — "full code" for subtle algorithms, "no placeholders,
+ever", "≤ ~1,500 lines" — are superseded; those plans are not retrofitted, since an executed
+plan is never edited.
 
 ## The plans
 
@@ -69,10 +64,16 @@ is specified at signature level with acceptance tests. Concretely:
 | D15 | `CheckRegistry.standard()` is an explicit list, not component scanning; a build-failing coverage test replaces auto-registration | 3a |
 | D16 | `CONSOLE_ERRORS` ignore patterns are case-insensitive substrings, not D8's URL globs | 3a |
 | D17 | A cross-origin iframe is never reported empty — its text is unreadable, so "0 characters" says nothing | 3a |
+| D18 | A check may pin one message variant's severity below the site's resolved severity (`UNVERIFIABLE` at INFO, `expiringSoon` at WARN) | 3b |
+| D19 | The verification set comes from the crawl (`CrawlResult.verificationCandidates` + `sitemapUrls`), never from a check | 3b |
+| D20 | Only external URLs use the shared `external_url_check` cache; a site's own pages are verified fresh every run | 3b |
+| D21 | TLS is a `crawler` probe landing in `RunFacts`, not a handshake inside `TlsCertCheck` | 3b |
+| D22 | A sitemap entry that is a soft 404 is `PAGE_STATUS`'s finding; `SITEMAP_CONSISTENCY` reports only non-2xx, unreachable or `DEAD` entries | 3b |
 
 D5–D12 were added when plan 2 was written; the help deviation moved from D5 to D13 so the
 numbering stays chronological. Nothing referenced it yet. D14–D17 were added when plan 3a was
-written.
+written, D18–D22 when 3b was — 3b's plan file carries the reasoning behind each; this table is
+the index.
 
 ## Execution
 
@@ -80,10 +81,11 @@ Each plan is executed with `superpowers:subagent-driven-development` (recommende
 `executing-plans` immediately after it is written. The next plan is only written after the
 previous one executes and its commits land — execution findings are fed back into the plan.
 
-**On the line cap.** It is a guard against a plan running out of budget mid-execution, not an end
-in itself. Plan 2 hit it and was split at the browser boundary: 2a needs no Chromium at all, 2b
-needs it throughout. 2b still lands at ~2,200 lines because its acceptance tests are long, which
-is the right place for length — each of its four tasks is ~500 lines and executes on its own.
+**On splitting.** The old ≤1,500-line cap was a guard against a plan running out of budget
+mid-execution. Plan 2 hit it and was split at the browser boundary: 2a needs no Chromium at all,
+2b needs it throughout. 2b still lands at ~2,200 lines, three quarters of it verbatim source —
+which is what the code budget now targets directly, and why splitting a plan is cheap once its
+preamble is a reference rather than a copy.
 
 Plan 3 is split the same way, at the **network** boundary. 3a's checks are pure functions over a
 `PageSnapshot`: nothing they do reaches past the JVM, and every one of them is unit-tested from a
