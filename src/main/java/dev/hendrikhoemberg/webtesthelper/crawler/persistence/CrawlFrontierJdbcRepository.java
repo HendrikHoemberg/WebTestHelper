@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -31,14 +32,13 @@ public class CrawlFrontierJdbcRepository {
                    claimed_by = ?,
                    claimed_at = now(),
                    attempts   = attempts + 1
-              FROM (SELECT id
-                      FROM crawl_queue_item
-                     WHERE run_id = ? AND status = 'PENDING'
-                     ORDER BY depth, id
-                     LIMIT ?
-                     FOR UPDATE SKIP LOCKED) sub
-             WHERE crawl_queue_item.id = sub.id
-         RETURNING crawl_queue_item.id, crawl_queue_item.url, crawl_queue_item.depth
+              WHERE id IN (SELECT id
+                            FROM crawl_queue_item
+                           WHERE run_id = ? AND status = 'PENDING'
+                           ORDER BY depth, id
+                           LIMIT ?
+                           FOR UPDATE SKIP LOCKED)
+         RETURNING id, url, depth
             """;
 
     private static final String ENQUEUE_SQL = """
@@ -99,7 +99,10 @@ public class CrawlFrontierJdbcRepository {
     }
 
     public List<CrawlTarget> claimBatch(long runId, String owner, int batchSize) {
-        return jdbc.query(CLAIM_SQL, TARGET_MAPPER, owner, runId, batchSize);
+        // PostgreSQL does not specify RETURNING order, so breadth-first order is restored here.
+        return jdbc.query(CLAIM_SQL, TARGET_MAPPER, owner, runId, batchSize).stream()
+                .sorted(Comparator.comparingInt(CrawlTarget::depth).thenComparingLong(CrawlTarget::id))
+                .toList();
     }
 
     public void complete(Collection<CrawlOutcome> outcomes) {
