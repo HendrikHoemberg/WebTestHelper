@@ -213,7 +213,7 @@ public final class FixtureSite implements AutoCloseable {
 
     private static void sleep() {
         try {
-            Thread.sleep(5000);
+            Thread.sleep(20000);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
