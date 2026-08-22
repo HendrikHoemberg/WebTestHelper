@@ -92,6 +92,35 @@ class UrlAdmissionTest {
                 .isEqualTo(UrlAdmission.Reason.BAD_SCHEME);
     }
 
+    @Test
+    void anExternalHttpUrlIsAlwaysVerifiable() {
+        assertThat(admission().verifiable(url("https://partner.example/a"))).isTrue();
+        assertThat(admission().verifiable(url("http://partner.example/a"))).isTrue();
+    }
+
+    @Test
+    void anInternalUrlExcludedByPatternOrDepthIsStillVerifiable() {
+        UrlAdmission admission = new UrlAdmission(
+                site(List.of(), List.of("/blog/entwurf-*"), true, 1), RobotsRules.ALLOW_ALL);
+        assertThat(admission.verifiable(url("https://example.com/blog/entwurf-7"))).isTrue();
+        assertThat(admission.verifiable(url("https://example.com/tief/tiefer"))).isTrue();
+    }
+
+    @Test
+    void aRobotsDisallowedInternalUrlIsNotVerifiable() {
+        RobotsRules robots = RobotsRules.parse("User-agent: *\nDisallow: /geheim/");
+        assertThat(new UrlAdmission(site(List.of(), List.of(), true, 5), robots)
+                .verifiable(url("https://example.com/geheim/intern.html"))).isFalse();
+        assertThat(new UrlAdmission(site(List.of(), List.of(), false, 5), robots)
+                .verifiable(url("https://example.com/geheim/intern.html"))).isTrue();
+    }
+
+    @Test
+    void aNonHttpSchemeIsNeverVerifiable() {
+        assertThat(admission().verifiable(new NormalizedUrl("ftp", "example.com", 21, "/x", null)))
+                .isFalse();
+    }
+
     private static SiteContext site(List<String> include, List<String> exclude,
                                     boolean respectRobots, int maxDepth) {
         return new SiteContext(

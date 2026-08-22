@@ -1,6 +1,8 @@
 package dev.hendrikhoemberg.webtesthelper.crawler;
 
 import dev.hendrikhoemberg.webtesthelper.crawler.persistence.CrawlFrontierJdbcRepository;
+import dev.hendrikhoemberg.webtesthelper.model.AlternateRef;
+import dev.hendrikhoemberg.webtesthelper.model.FrameRef;
 import dev.hendrikhoemberg.webtesthelper.model.LinkRef;
 import dev.hendrikhoemberg.webtesthelper.model.NormalizedUrl;
 import dev.hendrikhoemberg.webtesthelper.model.PageSnapshot;
@@ -17,12 +19,17 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
 import java.time.Duration;
+import java.util.HexFormat;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -116,7 +123,7 @@ public class CrawlService {
         }
 
         SoftNotFoundProbe probe = probe(request, runArtifacts);
-        seedFrontier(request, admission, robots);
+        List<String> sitemapUrls = seedFrontier(request, admission, robots);
         log.info("Lauf {} startet: Budget {} Seiten, Tiefe {}, {} Lang", request.runId(),
                 request.site().budget().maxPages(), request.site().budget().maxDepth(),
                 request.site().budget().maxDuration());
@@ -169,7 +176,42 @@ public class CrawlService {
                 request.runId(), visited.get(), failed.get(), partial);
         return new CrawlResult(
                 new RunSnapshots(request.runId(), request.site(), List.copyOf(snapshots), probe),
-                visited.get(), failed.get(), coveredUrls, partial, stopReason);
+                visited.get(), failed.get(), coveredUrls, partial, stopReason,
+                computeVerificationCandidates(snapshots, admission), sitemapUrls);
+    }
+
+    /**
+     * The URLs worth pinging over HTTP (deviation D19): every link target, frame source and
+     * hreflang alternate the crawl saw, kept only when the verifier's politeness gate allows
+     * it, minus the pages we already navigated. First-seen order so two runs over the same
+     * crawl produce identical candidate lists — a verification run is reproducible.
+     */
+    private static List<String> computeVerificationCandidates(List<PageSnapshot> snapshots,
+            UrlAdmission admission) {
+        Set<String> seen = new LinkedHashSet<>();
+        List<String> candidates = new ArrayList<>();
+        for (PageSnapshot snapshot : snapshots) {
+            for (LinkRef link : snapshot.links()) {
+                addCandidate(link.target(), admission, seen, candidates);
+            }
+            for (FrameRef frame : snapshot.frames()) {
+                addCandidate(frame.src(), admission, seen, candidates);
+            }
+            for (AlternateRef alternate : snapshot.alternates()) {
+                addCandidate(alternate.target(), admission, seen, candidates);
+            }
+        }
+        Set<String> visited = snapshots.stream().map(snapshot -> snapshot.url().value()).collect(
+                Collectors.toUnmodifiableSet());
+        candidates.removeIf(visited::contains);
+        return candidates;
+    }
+
+    private static void addCandidate(NormalizedUrl url, UrlAdmission admission, Set<String> seen,
+            List<String> candidates) {
+        if (url != null && admission.verifiable(url) && seen.add(url.value())) {
+            candidates.add(url.value());
+        }
     }
 
     /**
@@ -192,13 +234,7 @@ public class CrawlService {
             }
             visited.incrementAndGet();
             if (request.scope().crawlsWholeSite()) {
-                List<String> discovered = snapshot.internalLinks().stream()
-                        .map(LinkRef::target)
-                        .filter(url -> admission.admit(url, target.depth() + 1).admitted())
-                        .map(NormalizedUrl::value)
-                        .distinct()
-                        .toList();
-                frontier.enqueue(request.runId(), discovered, target.depth() + 1, target.url());
+                enqueueDiscovered(request, target, admission, snapshot);
             }
             return new CrawlOutcome(target.id(), CrawlItemStatus.DONE, snapshot.httpStatus(), null);
         } catch (RuntimeException e) {
@@ -208,7 +244,28 @@ public class CrawlService {
         }
     }
 
-    private void seedFrontier(CrawlRequest request, UrlAdmission admission, RobotsRules robots) {
+    /**
+     * Discovers the links a visited page exposes and enqueues them. Isolated so a database blip
+     * here cannot escape {@code visit}: the page was visited (counted once), and the occasional
+     * missed link is cheaper than corrupting the partial-coverage arithmetic (spec 6.4).
+     */
+    void enqueueDiscovered(CrawlRequest request, CrawlTarget target, UrlAdmission admission,
+            PageSnapshot snapshot) {
+        try {
+            List<String> discovered = snapshot.internalLinks().stream()
+                    .map(LinkRef::target)
+                    .filter(url -> admission.admit(url, target.depth() + 1).admitted())
+                    .map(NormalizedUrl::value)
+                    .distinct()
+                    .toList();
+            frontier.enqueue(request.runId(), discovered, target.depth() + 1, target.url());
+        } catch (RuntimeException e) {
+            log.warn("Lauf {}: Eintrag der entdeckten URLs für {} fehlgeschlagen: {}",
+                    request.runId(), target.url(), truncate(e.getMessage(), 500));
+        }
+    }
+
+    private List<String> seedFrontier(CrawlRequest request, UrlAdmission admission, RobotsRules robots) {
         if (!request.scope().crawlsWholeSite()) {                       // PULSE (spec 9)
             // Pinning a page is not a way around robots or the site's own exclude patterns
             // (spec 8) — respectRobots on the site is. So the pinned set is admitted like any
@@ -219,7 +276,7 @@ public class CrawlService {
                     .filter(page -> admitted(page, admission, request.runId()))
                     .map(NormalizedUrl::value).toList();
             frontier.seed(request.runId(), pinned, 0);
-            return;
+            return List.of();
         }
         // The base URL is the entry point and is seeded unfiltered: a site whose include
         // patterns do not cover its own start page would otherwise crawl nothing at all.
@@ -227,16 +284,27 @@ public class CrawlService {
 
         // sitemap.xml, one level of sitemap-index following (spec 5.3).
         // Sitemap entry points sit one level below the base URL, so a maxDepth=0 run still
-        // covers only the base page.
+        // covers only the base page. Every <loc> is recorded before admission filtering so the
+        // sitemap check sees the declared list, not the crawled one.
+        List<String> sitemapUrls = new ArrayList<>();
         String agent = request.site().effectiveUserAgent();
         for (NormalizedUrl sitemapUrl : sitemapUrls(request.site(), robots)) {
             fetcher.fetchText(sitemapUrl, agent).ifPresent(xml -> {
-                List<String> admitted = sitemapLocations(sitemapUrl, xml, agent).stream()
-                        .map(UrlNormalizer::normalize).flatMap(Optional::stream)
-                        .filter(candidate -> admission.admit(candidate, 1).admitted())
-                        .map(NormalizedUrl::value).toList();
-                frontier.enqueue(request.runId(), admitted, 1, "sitemap.xml");
+                for (String loc : sitemapLocations(sitemapUrl, xml, agent)) {
+                    UrlNormalizer.normalize(loc).ifPresent(url -> {
+                        if (sitemapUrls.add(url.value())) {
+                            addSitemapEntry(url, request, admission);
+                        }
+                    });
+                }
             });
+        }
+        return List.copyOf(sitemapUrls);
+    }
+
+    private void addSitemapEntry(NormalizedUrl candidate, CrawlRequest request, UrlAdmission admission) {
+        if (admission.admit(candidate, 1).admitted()) {
+            frontier.enqueue(request.runId(), List.of(candidate.value()), 1, "sitemap.xml");
         }
     }
 
@@ -296,10 +364,34 @@ public class CrawlService {
                 .resolve(request.site().baseUrl().value(), "/" + UUID.randomUUID()).orElseThrow();
         PageSnapshot snapshot = pool.submit(browser -> navigator.capture(browser,
                 new CrawlTarget(-1L, probeUrl.value(), 0), request.site(), runArtifacts));
+        deleteProbeScreenshot(runArtifacts, probeUrl);
         return snapshot.reachable()
                 ? new SoftNotFoundProbe(snapshot.httpStatus(), snapshot.textSimhash(),
                                         snapshot.textContent().length())
                 : SoftNotFoundProbe.NONE;
+    }
+
+    /**
+     * The probe navigates {base}/{uuid} once to fingerprint the site's not-found page, leaving a
+     * screenshot behind like any other navigation. That screenshot is not a finding's evidence and
+     * must not linger as an unreferenced artifact, so it is dropped once the probe has been read.
+     * A temp file, not evidence — failure to delete is ignored.
+     */
+    private static void deleteProbeScreenshot(Path runArtifacts, NormalizedUrl probeUrl) {
+        try {
+            Files.deleteIfExists(runArtifacts.resolve(probeScreenshotName(probeUrl.value())));
+        } catch (IOException ignored) {
+        }
+    }
+
+    private static String probeScreenshotName(String url) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            return HexFormat.of().formatHex(digest.digest(url.getBytes(java.nio.charset.StandardCharsets.UTF_8)))
+                    .substring(0, 32) + ".png";
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     private static String truncate(String message, int max) {

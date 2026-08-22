@@ -17,8 +17,11 @@ import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import java.io.File;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +43,7 @@ class CrawlServiceFullCrawlTest extends AbstractPostgresTest {
 
     @Autowired CrawlService crawler;
     @Autowired JdbcTemplate jdbc;
+    @Autowired CrawlerProperties properties;
 
     private FixtureSite site;
     private long runId;
@@ -67,8 +71,20 @@ class CrawlServiceFullCrawlTest extends AbstractPostgresTest {
                 UrlNormalizer.normalize(site.baseUrl()).orElseThrow(),
                 new CrawlBudget(50, 3, Duration.ofMinutes(3)),
                 List.of(), List.of(), List.of(), true, null, Map.of());
+        deleteRunArtifacts(runId);
         result = crawler.crawl(new CrawlRequest(runId, context, RunScope.FULL, "test-worker"),
                 (visited, failed) -> progressReports.add(visited));
+    }
+
+    /** The shared /tmp artifact dir survives across runs (run ids restart per fresh container), so
+     *  each class starts from a clean slate before asserting the per-snapshot artifact count. */
+    private void deleteRunArtifacts(long id) {
+        Path dir = properties.artifactDir().resolve(String.valueOf(id));
+        try (var paths = java.nio.file.Files.walk(dir)) {
+            paths.sorted(Comparator.reverseOrder()).map(java.nio.file.Path::toFile)
+                    .forEach(java.io.File::delete);
+        } catch (java.io.IOException ignored) {
+        }
     }
 
     @Test
@@ -111,5 +127,32 @@ class CrawlServiceFullCrawlTest extends AbstractPostgresTest {
     @Test
     void progressIsReportedDuringTheCrawlNotOnlyAtTheEnd() {
         assertThat(progressReports).isNotEmpty().isSorted();
+    }
+
+    @Test
+    void theVerificationCandidatesAreTheUnvisitedVerifiableLinks() {
+        List<String> candidates = result.verificationCandidates();
+        assertThat(candidates).doesNotHaveDuplicates();
+        assertThat(candidates).anySatisfy(url -> assertThat(url).contains("/dateien/handbuch.pdf"));
+        assertThat(candidates).contains("http://localhost:9/tot");
+        assertThat(candidates).noneSatisfy(url -> assertThat(url).contains("/geheim/"));
+        assertThat(candidates).noneSatisfy(url -> assertThat(url).isIn(result.snapshots().visitedUrls()));
+    }
+
+    @Test
+    void theSitemapUrlsAreTheDeclaredLocEntries() {
+        assertThat(result.sitemapUrls()).doesNotHaveDuplicates();
+        assertThat(result.sitemapUrls()).hasSize(4);
+        assertThat(result.sitemapUrls())
+                .anySatisfy(url -> assertThat(url).contains("/nicht-vorhanden.html"));
+    }
+
+    @Test
+    void everyVisitedPageLeavesExactlyOneArtifactAndTheProbeScreenshotIsGone() {
+        File[] artifacts = properties.artifactDir().resolve(String.valueOf(runId)).toFile().listFiles();
+        assertThat(artifacts).isNotNull();
+        long screenshots = result.snapshots().snapshots().stream()
+                .filter(PageSnapshot::reachable).count();
+        assertThat(artifacts).hasSize((int) screenshots);
     }
 }

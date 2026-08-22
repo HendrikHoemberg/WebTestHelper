@@ -5,9 +5,13 @@ import dev.hendrikhoemberg.webtesthelper.checks.CheckEngine;
 import dev.hendrikhoemberg.webtesthelper.crawler.CrawlRequest;
 import dev.hendrikhoemberg.webtesthelper.crawler.CrawlResult;
 import dev.hendrikhoemberg.webtesthelper.crawler.CrawlService;
+import dev.hendrikhoemberg.webtesthelper.crawler.TlsProbe;
+import dev.hendrikhoemberg.webtesthelper.crawler.UrlVerificationService;
 import dev.hendrikhoemberg.webtesthelper.model.CheckFinding;
 import dev.hendrikhoemberg.webtesthelper.model.RunFacts;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
+import dev.hendrikhoemberg.webtesthelper.model.TlsCertificateFact;
+import dev.hendrikhoemberg.webtesthelper.model.UrlVerifications;
 import dev.hendrikhoemberg.webtesthelper.runner.persistence.RunLeaseJdbcRepository;
 import dev.hendrikhoemberg.webtesthelper.runner.persistence.RunResultJdbcRepository;
 import org.slf4j.Logger;
@@ -16,6 +20,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -44,16 +49,21 @@ public class CrawlRunExecutor implements RunExecutor {
 
     private final CrawlService crawler;
     private final CheckEngine checks;
+    private final UrlVerificationService verifier;
+    private final TlsProbe tlsProbe;
     private final SiteService sites;
     private final RunResultJdbcRepository results;
     private final RunLeaseJdbcRepository leases;
     private final WorkerIdentity identity;
 
-    public CrawlRunExecutor(CrawlService crawler, CheckEngine checks, SiteService sites,
+    public CrawlRunExecutor(CrawlService crawler, CheckEngine checks,
+            UrlVerificationService verifier, TlsProbe tlsProbe, SiteService sites,
             RunResultJdbcRepository results, RunLeaseJdbcRepository leases,
             WorkerIdentity identity) {
         this.crawler = crawler;
         this.checks = checks;
+        this.verifier = verifier;
+        this.tlsProbe = tlsProbe;
         this.sites = sites;
         this.results = results;
         this.leases = leases;
@@ -77,10 +87,26 @@ public class CrawlRunExecutor implements RunExecutor {
         // the stale-lease window so the sweep cannot reclaim a run that is still working (spec 14).
         leases.heartbeat(lease.runId(), identity.name(), LEASE_EXTENSION);
 
-        RunFacts facts = RunFacts.of(result.snapshots(), lease.scope(), startedAt);
-        List<CheckFinding> findings = checks.evaluateRun(result.snapshots(), site, facts);
-        log.info("Lauf {}: {} Befunde auf {} Seiten", lease.runId(), findings.size(),
-                result.snapshots().pageCount());
+        // Verification: ping every link the crawl did not itself navigate, and probe the base URL's
+        // certificate. A large site's verification pass is minutes of blocking I/O, so the lease is
+        // extended once more before it starts — a healthy run must not be reclaimed mid-verify (§14).
+        leases.heartbeat(lease.runId(), identity.name(), LEASE_EXTENSION);
+        UrlVerifications verifications = verifier.verify(site, result.snapshots(),
+                result.verificationCandidates());
+        TlsCertificateFact tls = tlsProbe.probe(site.baseUrl());
+        RunFacts facts = RunFacts.of(result.snapshots(), lease.scope(), startedAt,
+                verifications, tls, result.sitemapUrls());
+
+        List<CheckFinding> pageFindings = checks.evaluateRun(result.snapshots(), site, facts);
+        List<CheckFinding> siteFindings = checks.evaluateSite(result.snapshots(), site, facts);
+        List<CheckFinding> findings = new ArrayList<>(pageFindings.size() + siteFindings.size());
+        findings.addAll(pageFindings);
+        findings.addAll(siteFindings);
+
+        log.info("Lauf {}: {} Befunde ({} Seiten, {} verifiziert, {} TLS), {} externe URLs geprüft",
+                lease.runId(), findings.size(), result.snapshots().pageCount(),
+                verifications.size(), tls.host() == null ? 0 : 1,
+                result.verificationCandidates().size());
 
         List<String> coveredCheckTypes = lease.scope().checkTypes().stream()
                 .filter(site::enabled)

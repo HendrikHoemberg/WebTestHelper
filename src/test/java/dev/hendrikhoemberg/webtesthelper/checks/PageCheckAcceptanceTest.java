@@ -5,11 +5,14 @@ import dev.hendrikhoemberg.webtesthelper.catalog.SiteService;
 import dev.hendrikhoemberg.webtesthelper.crawler.CrawlRequest;
 import dev.hendrikhoemberg.webtesthelper.crawler.CrawlResult;
 import dev.hendrikhoemberg.webtesthelper.crawler.CrawlService;
+import dev.hendrikhoemberg.webtesthelper.crawler.TlsProbe;
+import dev.hendrikhoemberg.webtesthelper.crawler.UrlVerificationService;
 import dev.hendrikhoemberg.webtesthelper.model.CheckFinding;
 import dev.hendrikhoemberg.webtesthelper.model.CheckSetting;
 import dev.hendrikhoemberg.webtesthelper.model.CheckType;
 import dev.hendrikhoemberg.webtesthelper.model.RunFacts;
 import dev.hendrikhoemberg.webtesthelper.model.RunScope;
+import dev.hendrikhoemberg.webtesthelper.model.Severity;
 import dev.hendrikhoemberg.webtesthelper.model.SimHash;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
 import dev.hendrikhoemberg.webtesthelper.model.SoftNotFoundProbe;
@@ -25,9 +28,12 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -44,6 +50,8 @@ class PageCheckAcceptanceTest extends AbstractPostgresTest {
     @Autowired CrawlService crawler;
     @Autowired CheckEngine engine;
     @Autowired SiteService sites;
+    @Autowired UrlVerificationService verifier;
+    @Autowired TlsProbe tlsProbe;
     @Autowired JdbcTemplate jdbc;
 
     private FixtureSite site;
@@ -75,8 +83,12 @@ class PageCheckAcceptanceTest extends AbstractPostgresTest {
         context = sites.contextFor(siteId);
         result = crawler.crawl(new CrawlRequest(runId, context, RunScope.FULL, "test-worker"),
                 (visited, failed) -> { });
-        findings = engine.evaluateRun(result.snapshots(), context,
-                RunFacts.of(result.snapshots(), RunScope.FULL, Instant.now()));
+        RunFacts facts = RunFacts.of(result.snapshots(), RunScope.FULL, Instant.now(),
+                verifier.verify(context, result.snapshots(), result.verificationCandidates()),
+                tlsProbe.probe(context.baseUrl()), result.sitemapUrls());
+        findings = new ArrayList<>();
+        findings.addAll(engine.evaluateRun(result.snapshots(), context, facts));
+        findings.addAll(engine.evaluateSite(result.snapshots(), context, facts));
     }
 
     private List<CheckFinding> of(CheckType type) {
@@ -172,7 +184,7 @@ class PageCheckAcceptanceTest extends AbstractPostgresTest {
     void theCheckThatShipsDisabledReportsNothingEvenThoughItHadSomethingToSay() {
         // Spec 7.1: enabled by default this would make the first report mostly noise. The
         // fixture does log console errors, so this asserts the switch, not an empty console.
-        // SITEMAP_CONSISTENCY, the other check that ships disabled, arrives in Plan 3b.
+        // SITEMAP_CONSISTENCY, the other check that ships disabled, is exercised separately.
         assertThat(result.snapshots().snapshots())
                 .anySatisfy(snapshot -> assertThat(snapshot.errors()).isNotEmpty());
         assertThat(of(CheckType.CONSOLE_ERRORS)).isEmpty();
@@ -206,5 +218,114 @@ class PageCheckAcceptanceTest extends AbstractPostgresTest {
                     assertThat(finding.subjectKey()).endsWith("/weiter/1");
                     assertThat(finding.messageArgs().getFirst()).isEqualTo("3");
                 });
+    }
+
+    private String base() {
+        return context.baseUrl().value();
+    }
+
+    @Test
+    void deadLinkReportsTheExternalTombstoneButNotTheSoft404() {
+        assertThat(of(CheckType.DEAD_LINK))
+                .filteredOn(finding -> finding.messageKey().endsWith(".dead"))
+                .filteredOn(finding -> finding.subjectKey().equals("http://localhost:9/tot"))
+                .singleElement()
+                .satisfies(finding -> assertThat(finding.observedOn().path()).isEqualTo("/"));
+
+        assertThat(of(CheckType.DEAD_LINK))
+                .filteredOn(finding -> finding.messageKey().endsWith(".dead"))
+                .extracting(CheckFinding::subjectKey)
+                .contains(base() + "hart-404")
+                .doesNotContain(base() + "verirrt.html");
+    }
+
+    @Test
+    void deadLinkReportsTheRobots403AsUnverifiableNotDead() {
+        assertThat(of(CheckType.DEAD_LINK))
+                .filteredOn(finding -> finding.subjectKey().endsWith("/geblockt-403"))
+                .singleElement()
+                .satisfies(finding -> {
+                    assertThat(finding.messageKey()).isEqualTo("finding.DEAD_LINK.unverifiable");
+                    assertThat(finding.severity()).isEqualTo(Severity.INFO);
+                });
+    }
+
+    @Test
+    void deadLinkStaysSilentOnThingsTheVerifierFoundFine() {
+        assertThat(of(CheckType.DEAD_LINK))
+                .extracting(CheckFinding::subjectKey)
+                .doesNotContain(base() + "dateien/handbuch.pdf")
+                .doesNotContain(site.externalBase() + "extern/ok");
+    }
+
+    @Test
+    void fileDownloadReportsTheHtmlPretendingToBeAPdf() {
+        assertThat(of(CheckType.FILE_DOWNLOAD))
+                .filteredOn(finding -> finding.subjectKey().endsWith("/dateien/preisliste.pdf"))
+                .singleElement()
+                .satisfies(finding -> {
+                    assertThat(finding.messageKey()).isEqualTo("finding.FILE_DOWNLOAD.wrongType");
+                    assertThat(finding.messageArgs().get(1)).contains("text/html");
+                });
+        assertThat(of(CheckType.FILE_DOWNLOAD))
+                .extracting(CheckFinding::subjectKey)
+                .doesNotContain(base() + "dateien/handbuch.pdf");
+    }
+
+    @Test
+    void hreflangReportsTheDeadAlternateAndTheMissingReciprocation() {
+        assertThat(of(CheckType.HREFLANG))
+                .filteredOn(finding -> finding.messageKey().endsWith(".deadAlternate"))
+                .singleElement()
+                .satisfies(finding -> assertThat(finding.subjectKey()).contains("fr"));
+        assertThat(of(CheckType.HREFLANG))
+                .filteredOn(finding -> finding.messageKey().endsWith(".notReciprocated"))
+                .singleElement()
+                .satisfies(finding -> {
+                    assertThat(finding.messageArgs()).contains(base() + "leistungen.html");
+                    assertThat(finding.messageArgs()).contains(base() + "en/index.html");
+                });
+    }
+
+    @Test
+    void tlsCertIsSilentOnAPlainHttpSite() {
+        // Deviation D6: the fixture is plain http, so the certificate check has nothing to say
+        // rather than reporting the absence of encryption as a defect.
+        assertThat(of(CheckType.TLS_CERT)).isEmpty();
+    }
+
+    @Test
+    void sitemapConsistencyIsSilentWhileDisabledAndSpeaksWhenEnabled() {
+        assertThat(of(CheckType.SITEMAP_CONSISTENCY)).isEmpty();
+
+        Map<CheckType, CheckSetting> sitemapOn = new EnumMap<>(context.checkSettings());
+        sitemapOn.put(CheckType.SITEMAP_CONSISTENCY, new CheckSetting(true, null, Map.of()));
+        SiteContext sitemapSite = new SiteContext(context.siteId(), context.name(),
+                context.baseUrl(), context.budget(), context.includePatterns(),
+                context.excludePatterns(), context.pinnedKeyPages(), context.respectRobots(),
+                context.userAgent(), sitemapOn);
+
+        List<CheckFinding> sitemapFindings = engine.evaluateSite(result.snapshots(), sitemapSite,
+                RunFacts.of(result.snapshots(), RunScope.FULL, Instant.now(),
+                        verifier.verify(sitemapSite, result.snapshots(),
+                                result.verificationCandidates()),
+                        tlsProbe.probe(sitemapSite.baseUrl()), result.sitemapUrls()));
+
+        assertThat(sitemapFindings)
+                .filteredOn(finding -> finding.messageKey().endsWith(".missingPage"))
+                .extracting(CheckFinding::subjectKey)
+                .contains(base() + "medien.html");
+        assertThat(sitemapFindings)
+                .filteredOn(finding -> finding.messageKey().endsWith(".deadEntry"))
+                .extracting(CheckFinding::subjectKey)
+                .doesNotContain(base() + "nicht-vorhanden.html");
+    }
+
+    @Test
+    void theWholeFindingListHoldsNoDuplicateTuples() {
+        Set<String> tuples = findings.stream()
+                .map(f -> f.type() + "|" + f.subjectKey() + "|" + f.locationKey() + "|" + f.messageKey())
+                .collect(Collectors.toSet());
+        assertThat(tuples).hasSize(findings.size());
     }
 }

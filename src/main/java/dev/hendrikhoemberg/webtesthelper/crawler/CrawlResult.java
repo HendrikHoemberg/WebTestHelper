@@ -7,9 +7,12 @@ import java.util.List;
 /** The outcome of one crawl: the snapshots for the check pass and the coverage facts (spec 6.4). */
 public record CrawlResult(RunSnapshots snapshots, int pagesVisited, int pagesFailed,
                           List<String> coveredUrls, boolean partialCoverage,
-                          String budgetStopReason) {
+                          String budgetStopReason, List<String> verificationCandidates,
+                          List<String> sitemapUrls) {
 
     public CrawlResult {
         coveredUrls = List.copyOf(coveredUrls);
+        verificationCandidates = List.copyOf(verificationCandidates);
+        sitemapUrls = List.copyOf(sitemapUrls);
     }
 }

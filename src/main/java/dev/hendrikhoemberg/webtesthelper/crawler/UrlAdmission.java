@@ -32,6 +32,23 @@ public record UrlAdmission(SiteContext site, RobotsRules robots) {
             "mp3", "mp4", "wav", "ogg", "webm", "mov", "avi", "css", "js", "json", "xml", "rss",
             "woff", "woff2", "ttf", "eot", "exe", "dmg", "apk");
 
+    /**
+     * Whether a URL may be verified over HTTP (deviation D19). The verifier's politeness gate:
+     * any http(s) URL off the site is fair game, and an internal one is verifiable whenever
+     * robots permits it. Depth and include/exclude patterns do not matter here — a URL the
+     * crawl chose not to navigate is still something we may ping, and robots is the only
+     * exclusion the verifier honours.
+     */
+    public boolean verifiable(NormalizedUrl url) {
+        if (!"http".equals(url.scheme()) && !"https".equals(url.scheme())) {
+            return false;
+        }
+        if (!site.baseUrl().sameSiteAs(url)) {
+            return true;
+        }
+        return !site.respectRobots() || robots.allows(url.locationKey());
+    }
+
     public Decision admit(NormalizedUrl url, int depth) {
         if (!"http".equals(url.scheme()) && !"https".equals(url.scheme())) {
             return Decision.no(Reason.BAD_SCHEME);
