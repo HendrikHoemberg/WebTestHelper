@@ -172,6 +172,12 @@ public final class Snapshots {
             return this;
         }
 
+        /** A plain HTTP failure (status &ge; 400) with no network-error text. */
+        public Builder failedDocument(String src, Integer status) {
+            failed.add(new FailedRequest(src, "GET", "document", status, null));
+            return this;
+        }
+
         public PageSnapshot build() {
             return new PageSnapshot(url, requestedUrl, depth, true, null, httpStatus,
                     Map.copyOf(headers),

@@ -28,12 +28,14 @@ import java.util.stream.Collectors;
  *
  * <ol>
  *   <li><strong>Blocked.</strong> The snapshot carries a failed {@code document} request for the
- *       frame's URL. Measured against the fixture, an {@code X-Frame-Options: DENY} frame fails
- *       with {@code net::ERR_BLOCKED_BY_RESPONSE}; the console message Chromium also writes
- *       names the <em>parent</em> page, so it cannot be tied back to a frame and is not used.
- *       Known limitation (recorded for plan 3b): the failed request URL is compared against the
- *       frame's declared {@code src}, so a frame whose document <em>redirects</em> before being
- *       refused is missed — the failed URL is the post-redirect one and matches nothing.
+ *       frame's URL whose failure text is {@code net::ERR_BLOCKED_BY_RESPONSE} — the signal
+ *       measured against the fixture for an {@code X-Frame-Options: DENY} frame. A failed
+ *       document request without that text (e.g. a 404) is not a refusal and is left to plan 3b's
+ *       DEAD_LINK; the console message Chromium also writes names the <em>parent</em> page, so it
+ *       cannot be tied back to a frame and is not used. Known limitation (recorded for plan 3b):
+ *       the failed request URL is compared against the frame's declared {@code src}, so a frame
+ *       whose document <em>redirects</em> before being refused is missed — the failed URL is the
+ *       post-redirect one and matches nothing.
  *   <li><strong>Maps.</strong> Spec 7.1's named case: the real failure is billing or an API key,
  *       and "the iframe loaded" passes a grey tile with a <em>for development purposes only</em>
  *       watermark. The provider's error code in the console is the signal.
@@ -79,6 +81,8 @@ public final class IframeEmbedCheck implements PageCheck {
         }
         Set<String> blocked = snapshot.failedRequests().stream()
                 .filter(request -> "document".equals(request.resourceType()))
+                .filter(request -> request.failureText() != null
+                        && request.failureText().contains("ERR_BLOCKED_BY_RESPONSE"))
                 .map(FailedRequest::url)
                 .map(UrlNormalizer::key)
                 .flatMap(Optional::stream)

@@ -31,6 +31,17 @@ class IframeEmbedCheckTest {
     }
 
     @Test
+    void aFrameWhoseDocumentFailedForAReasonOtherThanBlockingIsNotReportedAsBlocked() {
+        // The crawler records every failed document request, not just refusals; a 404 is a
+        // dead link (plan 3b's DEAD_LINK), not a provider refusing to be embedded.
+        assertThat(check.evaluate(
+                Snapshots.page("https://example.com/kontakt")
+                        .frame("https://bewertungen.example/widget", false, 0)
+                        .failedDocument("https://bewertungen.example/widget", 404).build(),
+                Snapshots.config(check, Snapshots.facts()))).isEmpty();
+    }
+
+    @Test
     void aMapsEmbedWithAProviderErrorIsReportedEvenThoughItLoaded() {
         // Spec 7.1: the real failure is billing or an API key, and "the iframe loaded" passes
         // a grey tile with a watermark. The console is where the truth is.
