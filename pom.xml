@@ -31,6 +31,9 @@
 		<playwright.version>1.62.0</playwright.version>
 		<spring-modulith.version>2.1.0</spring-modulith.version>
 		<greenmail.version>2.1.12</greenmail.version>
+		<!-- Empty: the default build runs every test. The `fast` profile sets this to
+		     `browser` for the edit-test loop. -->
+		<surefire.excludedGroups/>
 	</properties>
 
 	<dependencyManagement>
@@ -179,6 +182,19 @@
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<includes>
+						<include>**/Test*.java</include>
+						<include>**/*Test.java</include>
+						<include>**/*Tests.java</include>
+						<include>**/*TestCase.java</include>
+					</includes>
+					<excludedGroups>${surefire.excludedGroups}</excludedGroups>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<executions>
 					<execution>
@@ -215,5 +231,20 @@
 			</plugin>
 		</plugins>
 	</build>
+
+	<profiles>
+		<!--
+		  ./mvnw test -Pfast — skips the @Tag("browser") classes, which cost ~90s of the
+		  suite's ~95s. For the edit-test loop only: it does not prove the crawler, the
+		  browser pool or the page-check acceptance suite, so CI and pre-merge runs use the
+		  default build.
+		-->
+		<profile>
+			<id>fast</id>
+			<properties>
+				<surefire.excludedGroups>browser</surefire.excludedGroups>
+			</properties>
+		</profile>
+	</profiles>
 
 </project>
