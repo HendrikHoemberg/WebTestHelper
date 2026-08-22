@@ -1094,7 +1094,8 @@ CREATE TABLE crawl_queue_item (
     depth INTEGER NOT NULL,
     discovered_from TEXT,
 
-    status TEXT NOT NULL DEFAULT 'PENDING',
+    status TEXT NOT NULL DEFAULT 'PENDING'
+        CHECK (status IN ('PENDING','CLAIMED','DONE','FAILED','SKIPPED')),
     claimed_by TEXT,
     claimed_at TIMESTAMPTZ,
     attempts INTEGER NOT NULL DEFAULT 0,
@@ -1471,15 +1472,15 @@ is given up on rather than retried forever."
 
 ## Plan 2a completion check
 
-- [ ] `./mvnw test` passes on real Postgres
-- [ ] Three commits landed (one per task)
-- [ ] The fixture site serves every row of the route table, and `FixtureSiteTest` proves it
-- [ ] `PageSnapshot` and its family are unit-tested **without a browser** — that is the §5.2
+- [x] `./mvnw test` passes on real Postgres (103 tests, 0 failures)
+- [x] Commits landed (one feat per task, plus fix/docs commits for execution findings)
+- [x] The fixture site serves every row of the route table, and `FixtureSiteTest` proves it
+- [x] `PageSnapshot` and its family are unit-tested **without a browser** — that is the §5.2
       contract, and Plan 3's entire check catalog depends on it holding
-- [ ] `ModularityTest` accepts the new `crawler` module and would fail if it imported `runner`
-- [ ] `FlywayMigrationTest` applies V7 to an empty database; `ddl-auto=validate` still passes
+- [x] `ModularityTest` accepts the new `crawler` module and would fail if it imported `runner`
+- [x] `FlywayMigrationTest` applies V7 to an empty database; `ddl-auto=validate` still passes
       (no JPA entity maps `crawl_queue_item`, by design — it is `JdbcTemplate`-only)
-- [ ] Proceed to `2026-08-21-webtesthelper-p2b-browser-crawl.md`
+- [x] Proceed to `2026-08-21-webtesthelper-p2b-browser-crawl.md`
 
 ## What Plan 2b consumes from this plan
 
@@ -1493,4 +1494,8 @@ Written down because Plan 2b's implementer sees only their own plan:
   `crawler.CrawlOutcome(long id, CrawlItemStatus status, Integer httpStatus, String errorMessage)`
 - `crawler.persistence.CrawlFrontierJdbcRepository` — `seed`, `enqueue`, `claimBatch`,
   `complete`, `reclaimStale`, `countPending`, `countByStatus`, `visitedUrls`
+- `claimBatch` returns the batch in **deterministic breadth-first order** (depth, then id):
+  PostgreSQL does not specify `UPDATE ... RETURNING` row order, so the repository re-sorts in
+  Java after the claim statement (execution finding; the SQL's `ORDER BY` stays load-bearing
+  for the SKIP LOCKED subset)
 - the `crawler` module declaration, currently `allowedDependencies = {"model"}`

@@ -74,3 +74,16 @@ previous one executes and its commits land — execution findings are fed back i
 in itself. Plan 2 hit it and was split at the browser boundary: 2a needs no Chromium at all, 2b
 needs it throughout. 2b still lands at ~2,200 lines because its acceptance tests are long, which
 is the right place for length — each of its four tasks is ~500 lines and executes on its own.
+
+## Execution findings fed back from Plan 2a (for Plan 3's writer)
+
+- **SimHash near bound is 12, not 6.** The plan-authored `<=6` threshold could not pass its own
+  verbatim algorithm: the echo pair measures 8, longer echoes up to 12, unrelated pages >= 33.
+  Plan 3 must set the soft-404 cutoff somewhere in the (12, 33) interval — re-measure against a
+  page sharing the site's nav/footer with the 404 template before freezing it.
+- **SimHash tokenization is ASCII-only** (`\W+` splits on umlauts: "gewünschte" -> `gew`+`nschte`).
+  Fine today because thresholds are calibrated against this exact tokenizer; decide (fix or
+  document as contract) before Plan 3 derives the cutoff.
+- **Plan 2a's two verbatim-code typos were fixed during execution** (plan doc patched in follow-up
+  commits): the PDF-trap content-type assertion (`contains` on an Optional is exact equality; the
+  fixture serves `text/html; charset=utf-8`) and the SimHash threshold above.
