@@ -68,12 +68,18 @@ class CheckDocumentationTest {
             assertThat(registry.all()).allSatisfy(check -> {
                 for (String key : List.of(check.titleKey(), check.descriptionKey(),
                         check.remediationKey())) {
-                    String text = messages.getMessage(key, null, locale);
-                    for (CheckType type : CheckType.values()) {
-                        assertThat(text).as("%s", key).doesNotContain(type.name());
-                    }
+                    assertNoCheckTypeName(messages.getMessage(key, null, locale), key);
+                }
+                for (String key : check.messageKeys()) {
+                    assertNoCheckTypeName(messages.getMessage(key, null, locale), key);
                 }
             });
+        }
+    }
+
+    private static void assertNoCheckTypeName(String text, String key) {
+        for (CheckType type : CheckType.values()) {
+            assertThat(text).as("%s", key).doesNotContain(type.name());
         }
     }
 

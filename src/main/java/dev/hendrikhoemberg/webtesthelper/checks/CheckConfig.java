@@ -3,6 +3,7 @@ package dev.hendrikhoemberg.webtesthelper.checks;
 import dev.hendrikhoemberg.webtesthelper.model.RunFacts;
 import dev.hendrikhoemberg.webtesthelper.model.Severity;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -20,7 +21,13 @@ public record CheckConfig(Severity severity, Map<String, Object> options, RunFac
     public CheckConfig {
         Objects.requireNonNull(severity, "severity");
         Objects.requireNonNull(facts, "facts");
-        options = options == null ? Map.of() : Map.copyOf(options);
+        if (options == null) {
+            options = Map.of();
+        } else {
+            Map<String, Object> copy = new HashMap<>(options);
+            copy.values().removeIf(Objects::isNull);    // jsonb: {"maxDistance": null}
+            options = Map.copyOf(copy);
+        }
     }
 
     public int option(String key, int fallback) {

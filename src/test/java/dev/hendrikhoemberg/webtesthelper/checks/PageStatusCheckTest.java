@@ -93,4 +93,15 @@ class PageStatusCheckTest {
                 .satisfies(finding ->
                         assertThat(finding.messageKey()).isEqualTo("finding.PAGE_STATUS.httpError"));
     }
+
+    @Test
+    void aThreeHundredFinalStatusIsNotReported() {
+        // Main-frame navigation follows redirects, so a 3xx is almost never the status a page
+        // check is handed — the browser lands on the redirect target and that page is what gets
+        // visited. A 3xx as the *final* status is therefore a corner case that is currently out
+        // of scope; if it ever shows up in the data, decide then how it should read.
+        assertThat(check.evaluate(
+                Snapshots.page("https://example.com/umgeleitet").status(301).build(),
+                Snapshots.config(check, Snapshots.facts(probe())))).isEmpty();
+    }
 }

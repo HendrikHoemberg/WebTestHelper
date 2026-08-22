@@ -22,6 +22,11 @@ import java.util.Set;
  * and the closest unrelated real page 27 (then 31, 33, 35, 37). Sixteen sits in that gap with
  * margin on both sides.
  *
+ * <p>Note that the echo ceiling (20) can already exceed the cutoff: the cutoff is calibrated
+ * against the closest <em>real</em> page (27), so a site whose not-found page echoes the
+ * requested path more fiercely should be re-measured with a real browser rather than prompting
+ * an unmeasured lowering of the cutoff.
+ *
  * <p>Override per site with {@code {"maxDistance": 20}} — and re-measure before doing so, since
  * a cutoff that eats real pages is worse than no check at all (spec 8).
  */
