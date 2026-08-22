@@ -87,3 +87,28 @@ is the right place for length — each of its four tasks is ~500 lines and execu
 - **Plan 2a's two verbatim-code typos were fixed during execution** (plan doc patched in follow-up
   commits): the PDF-trap content-type assertion (`contains` on an Optional is exact equality; the
   fixture serves `text/html; charset=utf-8`) and the SimHash threshold above.
+
+## Execution findings fed back from Plan 2b (for Plan 3's writer)
+
+- **The frontier claim now runs inside a CTE — keep it there.** The 2a shape
+  `UPDATE … WHERE id IN (SELECT … LIMIT ? FOR UPDATE SKIP LOCKED)` is planner-unsafe: once the
+  planner unnestes the subquery into a semi-join the LIMIT stops being applied (observed: a
+  LIMIT-2 claim returned 4 rows mid-suite, breaking the maxPages budget test). The CTE keeps the
+  LIMIT inside a locked, non-unnestable unit. Any future frontier SQL must not reintroduce the
+  IN-subquery shape.
+- **Sitemap entries are seeded at depth 1, not the plan-authored depth 0.** Depth 0 would let a
+  `maxDepth=0` run crawl every sitemap page and fail the plan's own
+  `maxDepthTruncates…` test once the fixture's real `sitemap.xml` is seeded.
+- **The fixture's `/langsam` slot sleeps 20 s, not 5 s** (2a sized it for a 30 s timeout context;
+  2b's tests use a 15 s navigation budget, and 5 s never triggered the timeout case).
+- **`CrawlRunExecutorIT` is `CrawlRunExecutorTest`** — surefire's default includes match class
+  names, and a `*IT` class is silently skipped by `./mvnw test`; the whole-plan acceptance test
+  must run in the default suite. Any future `*IT` class needs an explicit surefire include.
+- **Carry-overs for Plan 3:** `SiteResourceFetcher` hardcodes the User-Agent (wire the site's
+  `effectiveUserAgent()` through when it grows into asset verification); `CrawlService.visit()`
+  counts a page as visited *and* failed if the discovery enqueue throws (narrow, DB-failure-only);
+  the soft-404 probe leaves one unreferenced screenshot per run in the run's artifact dir; the
+  snapshot memory bound is soft in the all-unreachable corner (`room` counts reachable pages).
+- **Soft-404 re-measure reminder (2a finding):** the 2b crawler tests still pass with the
+  plan-authored `<=6` pairwise probe agreement because the fixture's 404 echo is an exact clone —
+  this says nothing about the (12, 33) cutoff Plan 3 must pick.
