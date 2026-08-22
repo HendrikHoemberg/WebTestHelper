@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-21
 **Spec:** `docs/superpowers/specs/2026-08-21-webtesthelper-design.md` (§17 defines Phase 1)
-**Status:** Plan 1 written and ready for execution; Plans 2–5 are scoped below and written when their predecessor is done.
+**Status:** Plan 1 executed (six commits on `main`). Plan 2 written, split into 2a and 2b. Plans 3–5 are scoped below and written when their predecessor is done.
 
 ---
 
@@ -37,8 +37,9 @@ is specified at signature level with acceptance tests. Concretely:
 | # | File | Goal | Ends with | Depends on |
 |---|---|---|---|---|
 | 1 | `2026-08-21-webtesthelper-p1-foundation.md` | Postgres + Flyway, Modulith skeleton, `model` types, site catalog, `UrlNormalizer`, leased run queue, worker loop | A booting app where runs are queued, claimed with `SKIP LOCKED`, heartbeated, and completed | — |
-| 2 | `2026-08-21-webtesthelper-p2-crawler.md` | Fixture site harness, `PageSnapshot` value types, thread-confined browser pool, batched crawl frontier, snapshot extraction | A manual run crawls the fixture site end-to-end, snapshots captured, frontier durable | 1 |
-| 3 | `2026-08-21-webtesthelper-p3-checks.md` | Check SPI + registry + doc-enforcement test, all layer-1 page checks (incl. soft-404), asset verification on virtual threads, external URL cache, site checks | A run evaluates every layer-1 check against real snapshots and emits transient `CheckFinding`s | 2 |
+| 2a | `2026-08-21-webtesthelper-p2a-frontier.md` | Fixture site harness, `PageSnapshot` value family, batched crawl frontier | Every failure mode is served from loopback, snapshots are proven without a browser, the frontier is durable and concurrently claimable | 1 |
+| 2b | `2026-08-21-webtesthelper-p2b-browser-crawl.md` | Admission rules (robots, patterns, sitemap), thread-confined browser pool, snapshot extraction, crawl pipeline + `RunExecutor` | A manual run crawls the fixture site end-to-end, snapshots captured, coverage recorded | 2a |
+| 3 | `2026-08-21-webtesthelper-p3-checks.md` | Check SPI + registry + doc-enforcement test, all layer-1 page checks (incl. soft-404), asset verification on virtual threads, external URL cache, site checks | A run evaluates every layer-1 check against real snapshots and emits transient `CheckFinding`s | 2b |
 | 4 | `2026-08-21-webtesthelper-p4-findings.md` | Fingerprinting + materialisation + site-wide promotion, coverage-scoped diff, pipeline assembly (crawl → verify → checks → re-verify → materialise → diff), baseline acceptance | Two runs against the fixture site produce a correct coverage-scoped diff; baseline works | 3 |
 | 5 | `2026-08-21-webtesthelper-p5-web-smtp.md` | Security + German UI (run list, run detail, manual run, baseline button), `?` help affordances, SMTP settings + outbox + sender + test-mail | The usable product: schedule a manual run, read the diff, prove the mail relay | 4 |
 
@@ -50,10 +51,26 @@ is specified at signature level with acceptance tests. Concretely:
 | D2 | Page checks run in one post-verification pass, not inline in the crawl loop | 3 |
 | D3 | `CheckConfig` carries run-scoped facts (`RunFacts`), keeping the §7.3 signature | 3 |
 | D4 | "target URL lowercased" = scheme + host only; path case preserved | 1 |
-| D5 | Embedded help gets a minimal Phase 1 footprint (mechanism + 3 topics + test) | 5 |
+| D5 | Module direction is `runner → crawler`; `crawler` never imports `runner` | 2a |
+| D6 | The fixture site is plain HTTP; `MIXED_CONTENT` is proven from a hand-built snapshot | 2a |
+| D7 | Snapshots are memory-resident for a run, bounded by `CrawlBudget.maxPages` | 2a |
+| D8 | Include/exclude pattern syntax: `*` any run, `?` one char, anchored, matched on `locationKey()` | 2b |
+| D9 | robots.txt honours the `User-agent: *` group only | 2b |
+| D10 | Non-HTML URLs never enter the frontier — they are assets, verified over HTTP in Plan 3 | 2b |
+| D11 | The soft-404 probe navigates in a browser, so its fingerprint matches page text | 2b |
+| D12 | The fixture's working media source is a generated WAV rather than a checked-in MP4 | 2a |
+| D13 | Embedded help gets a minimal Phase 1 footprint (mechanism + 3 topics + test) | 5 |
+
+D5–D12 were added when plan 2 was written; the help deviation moved from D5 to D13 so the
+numbering stays chronological. Nothing referenced it yet.
 
 ## Execution
 
 Each plan is executed with `superpowers:subagent-driven-development` (recommended) or
 `executing-plans` immediately after it is written. The next plan is only written after the
 previous one executes and its commits land — execution findings are fed back into the plan.
+
+**On the line cap.** It is a guard against a plan running out of budget mid-execution, not an end
+in itself. Plan 2 hit it and was split at the browser boundary: 2a needs no Chromium at all, 2b
+needs it throughout. 2b still lands at ~2,200 lines because its acceptance tests are long, which
+is the right place for length — each of its four tasks is ~500 lines and executes on its own.
