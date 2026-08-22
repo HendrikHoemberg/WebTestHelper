@@ -99,7 +99,8 @@ public class CrawlService {
 
         RobotsRules robots = request.site().respectRobots()
                 ? UrlNormalizer.resolve(request.site().baseUrl().value(), "/robots.txt")
-                        .flatMap(fetcher::fetchText)
+                        .flatMap(url -> fetcher.fetchText(url,
+                                request.site().effectiveUserAgent()))
                         .map(RobotsRules::parse)
                         .orElse(RobotsRules.ALLOW_ALL)
                 : RobotsRules.ALLOW_ALL;
@@ -227,9 +228,10 @@ public class CrawlService {
         // sitemap.xml, one level of sitemap-index following (spec 5.3).
         // Sitemap entry points sit one level below the base URL, so a maxDepth=0 run still
         // covers only the base page.
+        String agent = request.site().effectiveUserAgent();
         for (NormalizedUrl sitemapUrl : sitemapUrls(request.site(), robots)) {
-            fetcher.fetchText(sitemapUrl).ifPresent(xml -> {
-                List<String> admitted = sitemapLocations(sitemapUrl, xml).stream()
+            fetcher.fetchText(sitemapUrl, agent).ifPresent(xml -> {
+                List<String> admitted = sitemapLocations(sitemapUrl, xml, agent).stream()
                         .map(UrlNormalizer::normalize).flatMap(Optional::stream)
                         .filter(candidate -> admission.admit(candidate, 1).admitted())
                         .map(NormalizedUrl::value).toList();
@@ -265,7 +267,7 @@ public class CrawlService {
      * fetched at most once, capped at {@value #SITEMAP_INDEX_LIMIT} children — a malformed index
      * that points at itself (or a sprawling one) must neither loop nor flood the frontier.
      */
-    private List<String> sitemapLocations(NormalizedUrl sitemap, String xml) {
+    private List<String> sitemapLocations(NormalizedUrl sitemap, String xml, String userAgent) {
         if (!SitemapReader.isIndex(xml)) {
             return SitemapReader.locations(xml);
         }
@@ -277,7 +279,7 @@ public class CrawlService {
             }
             fetched++;
             UrlNormalizer.resolve(sitemap.value(), child)
-                    .flatMap(fetcher::fetchText)
+                    .flatMap(resolved -> fetcher.fetchText(resolved, userAgent))
                     .ifPresent(childXml -> pageUrls.addAll(SitemapReader.locations(childXml)));
         }
         return pageUrls;

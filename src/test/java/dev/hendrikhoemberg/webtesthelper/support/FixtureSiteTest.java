@@ -131,4 +131,50 @@ class FixtureSiteTest {
                 HttpResponse.BodyHandlers.ofByteArray());
         assertThat(external.statusCode()).isEqualTo(200);
     }
+
+    private HttpResponse<byte[]> head(String path) throws Exception {
+        return client.send(HttpRequest.newBuilder(URI.create(site.url(path)))
+                        .method("HEAD", HttpRequest.BodyPublishers.noBody()).build(),
+                HttpResponse.BodyHandlers.ofByteArray());
+    }
+
+    @Test
+    void headCarriesTheRealContentLengthAndNoBody() throws Exception {
+        HttpResponse<byte[]> head = head("dateien/handbuch.pdf");
+        assertThat(head.statusCode()).isEqualTo(200);
+        assertThat(head.headers().firstValue("content-length"))
+                .hasValueSatisfying(len -> assertThat(Long.parseLong(len)).isGreaterThan(1024));
+        assertThat(head.body()).isEmpty();
+    }
+
+    @Test
+    void theKeinHeadSlotRefusesHeadButAnswersGet() throws Exception {
+        assertThat(head("kein-head").statusCode()).isEqualTo(405);
+        assertThat(get("kein-head").statusCode()).isEqualTo(200);
+    }
+
+    @Test
+    void theBlockedSlotAnswers403() throws Exception {
+        assertThat(get("geblockt-403").statusCode()).isEqualTo(403);
+    }
+
+    @Test
+    void theTinyPdfIsARightTypeFileUnderAKilobyte() throws Exception {
+        HttpResponse<byte[]> pdf = get("dateien/winzig.pdf");
+        assertThat(pdf.statusCode()).isEqualTo(200);
+        assertThat(pdf.headers().firstValue("content-type")).contains("application/pdf");
+        assertThat(pdf.body().length).isLessThan(1024);
+    }
+
+    @Test
+    void echoAnswersWithTheUserAgentItReceived() throws Exception {
+        HttpResponse<byte[]> response = client.send(
+                HttpRequest.newBuilder(URI.create(site.url("echo")))
+                        .header("User-Agent", "FixtureSiteTest/2.0")
+                        .build(),
+                HttpResponse.BodyHandlers.ofByteArray());
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(new String(response.body(), java.nio.charset.StandardCharsets.UTF_8))
+                .isEqualTo("FixtureSiteTest/2.0");
+    }
 }

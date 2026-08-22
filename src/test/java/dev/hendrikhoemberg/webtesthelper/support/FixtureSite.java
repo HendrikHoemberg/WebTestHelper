@@ -11,7 +11,10 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * The fixture site (spec 15): a small static site containing one of every failure mode,
@@ -48,6 +51,10 @@ public final class FixtureSite implements AutoCloseable {
 
     private final HttpServer server;
     private final int port;
+
+    private final AtomicInteger echoInFlight = new AtomicInteger();
+    private final AtomicInteger maxConcurrent = new AtomicInteger();
+    private final Map<String, AtomicInteger> requestCounts = new ConcurrentHashMap<>();
 
     private FixtureSite(HttpServer server) {
         this.server = server;
@@ -86,6 +93,14 @@ public final class FixtureSite implements AutoCloseable {
         return baseUrl() + path;
     }
 
+    public int maxConcurrent() {
+        return maxConcurrent.get();
+    }
+
+    public int requestCount(String path) {
+        return requestCounts.getOrDefault(path, new AtomicInteger()).get();
+    }
+
     @Override
     public void close() {
         server.stop(0);
@@ -93,6 +108,7 @@ public final class FixtureSite implements AutoCloseable {
 
     private void dispatch(HttpExchange exchange) throws IOException {
         String path = exchange.getRequestURI().getPath();
+        requestCounts.computeIfAbsent(path, ignored -> new AtomicInteger()).incrementAndGet();
         try {
             switch (path) {
                 case "/assets/logo.png" -> send(exchange, 200, "image/png", PNG_1X1);
@@ -100,6 +116,8 @@ public final class FixtureSite implements AutoCloseable {
                 case "/dateien/handbuch.pdf" -> send(exchange, 200, "application/pdf", pdf());
                 case "/dateien/preisliste.pdf" -> sendHtml(exchange, 200,
                         "<!doctype html><html lang=\"de\"><body><h1>Bitte anmelden</h1></body></html>");
+                case "/dateien/winzig.pdf" -> send(exchange, 200, "application/pdf",
+                        "%PDF-1.4\n".getBytes(StandardCharsets.US_ASCII));
                 case "/weiter/1" -> redirect(exchange, "/weiter/2");
                 case "/weiter/2" -> redirect(exchange, "/weiter/3");
                 case "/weiter/3" -> redirect(exchange, "/ziel.html");
@@ -113,6 +131,28 @@ public final class FixtureSite implements AutoCloseable {
                     sendHtml(exchange, 200, "<!doctype html><html lang=\"de\"><body><p>Bewertungen</p></body></html>");
                 }
                 case "/hart-404" -> sendHtml(exchange, 404, SOFT_404_BODY);
+                case "/geblockt-403" -> sendHtml(exchange, 403,
+                        "<!doctype html><html lang=\"de\"><body><h1>Zugriff verweigert</h1></body></html>");
+                case "/kein-head" -> {
+                    if ("HEAD".equals(exchange.getRequestMethod())) {
+                        exchange.sendResponseHeaders(405, -1);
+                    } else {
+                        sendHtml(exchange, 200,
+                                "<!doctype html><html lang=\"de\"><body><p>Ohne HEAD</p></body></html>");
+                    }
+                }
+                case "/echo" -> {
+                    int inFlight = echoInFlight.incrementAndGet();
+                    try {
+                        maxConcurrent.accumulateAndGet(inFlight, Math::max);
+                        sleep(50);
+                        String agent = exchange.getRequestHeaders().getFirst("User-Agent");
+                        send(exchange, 200, "text/plain; charset=utf-8",
+                                (agent == null ? "" : agent).getBytes(StandardCharsets.UTF_8));
+                    } finally {
+                        echoInFlight.decrementAndGet();
+                    }
+                }
                 case "/extern/ok" -> sendHtml(exchange, 200,
                         "<!doctype html><html lang=\"de\"><body><h1>Partnerseite</h1></body></html>");
                 case "/langsam" -> {
@@ -170,8 +210,13 @@ public final class FixtureSite implements AutoCloseable {
     }
 
     private static void send(HttpExchange exchange, int status, String contentType, byte[] body)
-            throws IOException {
+            throws IOException {                          // HEAD: length as a header, no body
         exchange.getResponseHeaders().add("Content-Type", contentType);
+        if ("HEAD".equals(exchange.getRequestMethod())) {
+            exchange.getResponseHeaders().add("Content-Length", String.valueOf(body.length));
+            exchange.sendResponseHeaders(status, -1);     // -1: headers only
+            return;
+        }
         exchange.sendResponseHeaders(status, body.length);
         exchange.getResponseBody().write(body);
     }
@@ -215,8 +260,12 @@ public final class FixtureSite implements AutoCloseable {
      * paid twice, once per test that drives this slot.
      */
     private static void sleep() {
+        sleep(8000);
+    }
+
+    private static void sleep(long millis) {
         try {
-            Thread.sleep(8000);
+            Thread.sleep(millis);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }

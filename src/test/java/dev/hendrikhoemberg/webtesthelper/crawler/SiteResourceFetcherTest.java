@@ -11,6 +11,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class SiteResourceFetcherTest {
 
+    private static final String AGENT = "SiteResourceFetcherTest/1.0";
+
     private static FixtureSite site;
     private final SiteResourceFetcher fetcher = new SiteResourceFetcher();
 
@@ -23,18 +25,23 @@ class SiteResourceFetcherTest {
 
     @Test
     void robotsTxtIsFetched() {
-        assertThat(fetcher.fetchText(url(site.url("robots.txt"))))
+        assertThat(fetcher.fetchText(url(site.url("robots.txt")), AGENT))
                 .hasValueSatisfying(body -> assertThat(body).contains("Disallow: /geheim/"));
     }
 
     @Test
     void aDeadHostYieldsEmptyRatherThanThrowing() {
-        assertThat(fetcher.fetchText(url("http://localhost:9/robots.txt"))).isEmpty();
+        assertThat(fetcher.fetchText(url("http://localhost:9/robots.txt"), AGENT)).isEmpty();
     }
 
     @Test
     void theFixturesSoft404CatchAllStillReturnsABodyAndThatIsTheCallersProblem() {
         // fetchText only reports transport and status; recognising a soft 404 is a check's job.
-        assertThat(fetcher.fetchText(url(site.url("sitemap-gibt-es-nicht.xml")))).isPresent();
+        assertThat(fetcher.fetchText(url(site.url("sitemap-gibt-es-nicht.xml")), AGENT)).isPresent();
+    }
+
+    @Test
+    void theUserAgentArrivesVerbatimSoAccessLogsStayGreppable() {
+        assertThat(fetcher.fetchText(url(site.url("echo")), AGENT)).contains(AGENT);
     }
 }

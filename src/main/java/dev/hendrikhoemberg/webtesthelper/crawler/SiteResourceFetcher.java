@@ -24,11 +24,11 @@ public class SiteResourceFetcher {
             .build();
 
     /** Empty on any transport failure or non-2xx status — an absent robots.txt is normal. */
-    public Optional<String> fetchText(NormalizedUrl url) {
+    public Optional<String> fetchText(NormalizedUrl url, String userAgent) {
         try {
             HttpRequest request = HttpRequest.newBuilder(URI.create(url.value()))
                     .timeout(Duration.ofSeconds(10))
-                    .header("User-Agent", "WebTestHelper/1.0 (+internes Website-Monitoring)")
+                    .header("User-Agent", userAgent)
                     .GET()
                     .build();
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
