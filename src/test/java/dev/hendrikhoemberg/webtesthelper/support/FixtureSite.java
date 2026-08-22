@@ -209,9 +209,14 @@ public final class FixtureSite implements AutoCloseable {
         return buffer.array();
     }
 
+    /**
+     * Outlasts the test profile's navigation timeout (5s) with enough margin that a loaded
+     * machine cannot make /langsam answer in time, and no more — every second beyond that is
+     * paid twice, once per test that drives this slot.
+     */
     private static void sleep() {
         try {
-            Thread.sleep(20000);
+            Thread.sleep(8000);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
