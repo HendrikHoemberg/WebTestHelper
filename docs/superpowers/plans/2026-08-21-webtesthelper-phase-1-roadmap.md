@@ -2,9 +2,9 @@
 
 **Date:** 2026-08-21
 **Spec:** `docs/superpowers/specs/2026-08-21-webtesthelper-design.md` (§17 defines Phase 1)
-**Status:** Plans 1, 2a, 2b and **3a** executed and reviewed against the spec; their commits are
-on `main`. Plan 3 is split into 3a and 3b; **3b is written** (from 3a's execution findings below)
-and awaits execution. Plans 4–5 are scoped below and written when their predecessor is done.
+**Status:** Plans 1, 2a, 2b, 3a and **3b** executed and reviewed against the spec; their commits
+are on `main`. Plan 3 is split into 3a and 3b; both halves are executed. Plans 4–5 are scoped
+below and written when their predecessor is done.
 
 ---
 
@@ -188,6 +188,29 @@ are now constants in that plan.
   /ziel.html`, final status 200), which is also the default hop limit. The acceptance test
   drives it with a per-site `maxHops: 2` instead of lowering the default, which proves the
   per-site config path at the same time.
+
+## Execution findings fed back from Plan 3b (for Plan 4's writer)
+
+3b executed with subagent-driven development: six task commits plus nine review-fix commits,
+297 `-Pfast` / 354 full tests green, browser acceptance included. The full list is in the p3b
+plan's "Execution findings" section; the headline items:
+
+- **Verification candidates include `AlternateRef.target()`**, not just links and frames —
+  the plan's own acceptance test demands it (`HreflangCheck` resolves alternates through
+  `facts.verifications()`). Plan 4 inherits candidates as all three ref kinds.
+- **`UrlVerification.contentLength` from a ranged GET is the part, not the resource** (206
+  answers `content-length: 1024`). Harmless for `tooSmall`; relevant only if re-verification
+  needs true size.
+- **Cache timestamps truncate to microseconds at the write site**; any test comparing
+  `Instant.now()` with a round-tripped row needs the same truncation.
+- **The verification pass relies on `RunWorker.executeLeased`'s run-level catch** to mark
+  `FAILED`; nothing swallows verifier exceptions locally. Deliberate (§14).
+- **`CrawlRunExecutorTest` now crawls once in `@BeforeAll`** — Plan 4 should extend it or
+  `PageCheckAcceptanceTest` rather than adding a third browser-suite class.
+- **`truncate(String, int)` is duplicated in four `crawler` classes** — the one duplication
+  the final review flagged; Plan 4 may centralise it.
+- All four p2b carry-overs are closed except the soft snapshot-memory bound, which is stated
+  as Plan 4's.
 
 ## Execution findings fed back from Plan 3a (for Plan 3b's writer)
 
