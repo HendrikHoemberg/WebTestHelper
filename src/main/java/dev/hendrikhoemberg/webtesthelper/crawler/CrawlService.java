@@ -19,9 +19,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.MessageDigest;
 import java.time.Duration;
-import java.util.HexFormat;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -183,8 +181,10 @@ public class CrawlService {
     /**
      * The URLs worth pinging over HTTP (deviation D19): every link target, frame source and
      * hreflang alternate the crawl saw, kept only when the verifier's politeness gate allows
-     * it, minus the pages we already navigated. First-seen order so two runs over the same
-     * crawl produce identical candidate lists — a verification run is reproducible.
+     * it, minus the pages we already navigated. First-seen order; for a given crawl the resulting
+     * set of candidates is deterministic across runs (the virtual-thread fan-out completes in
+     * nondeterministic order, so list order is not), and a verification run over the same crawl
+     * reproduces the set it checks.
      */
     private static List<String> computeVerificationCandidates(List<PageSnapshot> snapshots,
             UrlAdmission admission) {
@@ -379,18 +379,8 @@ public class CrawlService {
      */
     private static void deleteProbeScreenshot(Path runArtifacts, NormalizedUrl probeUrl) {
         try {
-            Files.deleteIfExists(runArtifacts.resolve(probeScreenshotName(probeUrl.value())));
+            Files.deleteIfExists(runArtifacts.resolve(ScreenshotNames.screenshotName(probeUrl.value())));
         } catch (IOException ignored) {
-        }
-    }
-
-    private static String probeScreenshotName(String url) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            return HexFormat.of().formatHex(digest.digest(url.getBytes(java.nio.charset.StandardCharsets.UTF_8)))
-                    .substring(0, 32) + ".png";
-        } catch (java.security.NoSuchAlgorithmException e) {
-            throw new IllegalStateException(e);
         }
     }
 

@@ -103,7 +103,7 @@ public class CrawlRunExecutor implements RunExecutor {
         findings.addAll(pageFindings);
         findings.addAll(siteFindings);
 
-        log.info("Lauf {}: {} Befunde ({} Seiten, {} verifiziert, {} TLS), {} externe URLs geprüft",
+        log.info("Lauf {}: {} Befunde ({} Seiten, {} verifiziert, {} TLS), {} geprüfte URLs",
                 lease.runId(), findings.size(), result.snapshots().pageCount(),
                 verifications.size(), tls.host() == null ? 0 : 1,
                 result.verificationCandidates().size());

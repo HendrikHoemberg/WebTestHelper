@@ -31,13 +31,10 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -244,7 +241,7 @@ public class PageNavigator {
     private String screenshot(Page page, NormalizedUrl requested, Path runArtifactDir) {
         try {
             Files.createDirectories(runArtifactDir);
-            String name = sha256Hex(requested.value()).substring(0, 32) + ".png";
+            String name = ScreenshotNames.screenshotName(requested.value());
             page.screenshot(new Page.ScreenshotOptions()
                     .setPath(runArtifactDir.resolve(name))
                     .setFullPage(false));
@@ -259,16 +256,6 @@ public class PageNavigator {
             return value;
         }
         return value.substring(0, max);
-    }
-
-    private static String sha256Hex(String value) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            return HexFormat.of().formatHex(
-                    digest.digest(value.getBytes(StandardCharsets.UTF_8)));
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException(e);
-        }
     }
 
     /** A referent for a URL that cannot even be interpreted — never points anywhere real. */
