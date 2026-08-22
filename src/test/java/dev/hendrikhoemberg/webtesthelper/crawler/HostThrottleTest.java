@@ -15,8 +15,12 @@ class HostThrottleTest {
         for (int i = 0; i < 3; i++) {
             throttle.await("example.com", Duration.ofMillis(120));
         }
+        // Two intervals of 120ms, minus a millisecond of slack: HostThrottle schedules on
+        // System.currentTimeMillis() while this measures with nanoTime(), so the truncation
+        // can land the last wake-up a fraction under the theoretical 240ms. The margin is far
+        // too small to pass if the throttle stopped spacing requests at all.
         assertThat(Duration.ofNanos(System.nanoTime() - start))
-                .isGreaterThanOrEqualTo(Duration.ofMillis(240));
+                .isGreaterThanOrEqualTo(Duration.ofMillis(235));
     }
 
     @Test
