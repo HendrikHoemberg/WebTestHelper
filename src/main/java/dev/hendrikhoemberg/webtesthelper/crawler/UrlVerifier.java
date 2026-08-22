@@ -51,15 +51,11 @@ public class UrlVerifier {
         Instant checkedAt = Instant.now();
         try {
             if (wantBody) {
-                HttpResponse<InputStream> response = get(url, userAgent);
-                String bodyPrefix = response.statusCode() < 400 ? readPrefix(response.body()) : null;
-                return fromResponse(url.value(), response, bodyPrefix, null, checkedAt);
+                return withBodyPrefix(url.value(), get(url, userAgent), checkedAt);
             }
             HttpResponse<InputStream> response = safeHead(url, userAgent);
             if (response == null || response.statusCode() == 405 || response.statusCode() == 501) {
-                response = get(url, userAgent);
-                String bodyPrefix = response.statusCode() < 400 ? readPrefix(response.body()) : null;
-                return fromResponse(url.value(), response, bodyPrefix, null, checkedAt);
+                return withBodyPrefix(url.value(), get(url, userAgent), checkedAt);
             }
             return fromResponse(url.value(), response, null, null, checkedAt);
         } catch (InterruptedException e) {
@@ -78,7 +74,14 @@ public class UrlVerifier {
                 fanOut.submit(() -> {
                     Semaphore host = permits.computeIfAbsent(url.registrableHost(),
                             ignored -> new Semaphore(properties.perHostPermits()));
-                    host.acquire();
+                    try {
+                        host.acquire();
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        results.put(url.value(),
+                                dead(url.value(), "Verbindung unterbrochen", 0, Instant.now()));
+                        return null;
+                    }
                     try {
                         throttle.await(url.host(), crawler.perHostDelay());
                         results.put(url.value(), verify(url, userAgent, wantBody.test(url)));
@@ -127,6 +130,14 @@ public class UrlVerifier {
             byte[] prefix = in.readNBytes(PREFIX_BYTES);            // 1024
             return new String(prefix, StandardCharsets.ISO_8859_1);
         }                                              // closing aborts the transfer
+    }
+
+    private static UrlVerification withBodyPrefix(String url, HttpResponse<InputStream> response,
+            Instant checkedAt) throws IOException {
+        try (InputStream body = response.body()) {
+            String bodyPrefix = response.statusCode() < 400 ? readPrefix(body) : null;
+            return fromResponse(url, response, bodyPrefix, null, checkedAt);
+        }
     }
 
     private static UrlVerification fromResponse(String url, HttpResponse<InputStream> response,

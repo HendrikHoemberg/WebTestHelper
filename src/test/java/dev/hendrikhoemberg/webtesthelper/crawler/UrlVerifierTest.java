@@ -65,6 +65,13 @@ class UrlVerifierTest {
     }
 
     @Test
+    void aBlockingWallIsUnverifiableEvenWhenABodyWasRequested() {
+        UrlVerification blocked = verifier.verify(url(site.url("geblockt-403")), AGENT, true);
+        assertThat(blocked.status()).isEqualTo(UrlStatus.UNVERIFIABLE);
+        assertThat(blocked.httpStatus()).isEqualTo(403);
+    }
+
+    @Test
     void aTransportFailureIsDEADWithAReasonAndNoStatus() {
         UrlVerification dead = verifier.verify(url("http://127.0.0.1:9/tot"), AGENT, false);
         assertThat(dead.status()).isEqualTo(UrlStatus.DEAD);
