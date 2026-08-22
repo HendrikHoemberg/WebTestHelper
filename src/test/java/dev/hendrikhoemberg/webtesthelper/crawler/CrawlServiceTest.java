@@ -90,6 +90,23 @@ class CrawlServiceTest extends AbstractPostgresTest {
     }
 
     @Test
+    void aClaimAbandonedByADeadWorkerIsReclaimedAndCrawled() {
+        // Spec 14: the frontier is a table so a run survives a worker dying mid-batch. Left
+        // unreclaimed the row stays CLAIMED forever — never visited, and countPending() then
+        // reports full coverage for a run that silently missed a page (spec 6.4).
+        // /ziel.html is reachable only through the redirect chain, so discovery never enqueues
+        // it: if it ends up covered, it was the reclaim that put it back.
+        jdbc.update("INSERT INTO crawl_queue_item (run_id, url, depth, status, claimed_by, claimed_at) "
+                        + "VALUES (?, ?, 1, 'CLAIMED', 'worker-tot', now() - interval '30 minutes')",
+                runId, site.url("ziel.html"));
+
+        CrawlResult result = crawl(RunScope.FULL, budget(50, 3, Duration.ofMinutes(3)), List.of());
+
+        assertThat(result.coveredUrls()).anySatisfy(url -> assertThat(url).endsWith("/ziel.html"));
+        assertThat(result.partialCoverage()).isFalse();
+    }
+
+    @Test
     void assetsAndOffSiteLinksNeverEnterTheFrontier() {
         crawl(RunScope.FULL, budget(50, 3, Duration.ofMinutes(3)), List.of());
         List<String> queued = jdbc.queryForList(
@@ -137,6 +154,17 @@ class CrawlServiceTest extends AbstractPostgresTest {
     void aPulseScopeCrawlsOnlyThePinnedKeyPages() {
         CrawlResult result = crawl(RunScope.PULSE, budget(50, 3, Duration.ofMinutes(3)),
                 List.of("/kontakt.html"));
+
+        assertThat(result.coveredUrls()).singleElement()
+                .satisfies(url -> assertThat(url).endsWith("/kontakt.html"));
+    }
+
+    @Test
+    void aPinnedPageThatRobotsDisallowsIsNotCrawled() {
+        // Spec 8: robots is honoured by default, and pinning a page is not the supported way to
+        // override it — respectRobots on the site is (deviation D9).
+        CrawlResult result = crawl(RunScope.PULSE, budget(50, 3, Duration.ofMinutes(3)),
+                List.of("/geheim/intern.html", "/kontakt.html"));
 
         assertThat(result.coveredUrls()).singleElement()
                 .satisfies(url -> assertThat(url).endsWith("/kontakt.html"));

@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -51,6 +52,15 @@ public class CrawlService {
 
     /** A malformed index pointing at itself must not become an infinite loop (spec 5.3). */
     private static final int SITEMAP_INDEX_LIMIT = 10;
+
+    /**
+     * How long a claim may sit untouched before its worker counts as dead. Comfortably longer
+     * than the slowest single navigation, so a healthy worker is never robbed of its batch.
+     */
+    private static final Duration STALE_CLAIM_TIMEOUT = Duration.ofMinutes(10);
+
+    /** A URL that has burned this many workers is given up on rather than reclaimed forever. */
+    private static final int MAX_CLAIM_ATTEMPTS = 3;
 
     private final CrawlFrontierJdbcRepository frontier;
     private final BrowserPool pool;
@@ -94,6 +104,15 @@ public class CrawlService {
                         .orElse(RobotsRules.ALLOW_ALL)
                 : RobotsRules.ALLOW_ALL;
         UrlAdmission admission = new UrlAdmission(request.site(), robots);
+
+        // A run whose lease expired is re-queued and re-executed (spec 14), and rows its dead
+        // worker had claimed are still CLAIMED. Unreclaimed they are never visited and never
+        // pending, so the resumed run would report full coverage for pages it never reached —
+        // which is precisely what spec 6.4 must not let happen.
+        int reclaimed = frontier.reclaimStale(request.runId(), STALE_CLAIM_TIMEOUT, MAX_CLAIM_ATTEMPTS);
+        if (reclaimed > 0) {
+            log.info("Lauf {} setzt {} verwaiste Ansprüche zurück", request.runId(), reclaimed);
+        }
 
         SoftNotFoundProbe probe = probe(request, runArtifacts);
         seedFrontier(request, admission, robots);
@@ -190,12 +209,19 @@ public class CrawlService {
 
     private void seedFrontier(CrawlRequest request, UrlAdmission admission, RobotsRules robots) {
         if (!request.scope().crawlsWholeSite()) {                       // PULSE (spec 9)
+            // Pinning a page is not a way around robots or the site's own exclude patterns
+            // (spec 8) — respectRobots on the site is. So the pinned set is admitted like any
+            // other URL, at depth 0 because these are entry points.
             List<String> pinned = request.site().pinnedKeyPages().stream()
                     .map(page -> UrlNormalizer.resolve(request.site().baseUrl().value(), page))
-                    .flatMap(Optional::stream).map(NormalizedUrl::value).toList();
+                    .flatMap(Optional::stream)
+                    .filter(page -> admitted(page, admission, request.runId()))
+                    .map(NormalizedUrl::value).toList();
             frontier.seed(request.runId(), pinned, 0);
             return;
         }
+        // The base URL is the entry point and is seeded unfiltered: a site whose include
+        // patterns do not cover its own start page would otherwise crawl nothing at all.
         frontier.seed(request.runId(), List.of(request.site().baseUrl().value()), 0);
 
         // sitemap.xml, one level of sitemap-index following (spec 5.3).
@@ -210,6 +236,16 @@ public class CrawlService {
                 frontier.enqueue(request.runId(), admitted, 1, "sitemap.xml");
             });
         }
+    }
+
+    /** Logs why a pinned key page was dropped — otherwise a shrinking pulse set is a mystery. */
+    private boolean admitted(NormalizedUrl page, UrlAdmission admission, long runId) {
+        UrlAdmission.Decision decision = admission.admit(page, 0);
+        if (!decision.admitted()) {
+            log.info("Lauf {} überspringt die vorgemerkte Seite {}: {}",
+                    runId, page.value(), decision.reason());
+        }
+        return decision.admitted();
     }
 
     /** {@code robots.sitemaps()} resolved against the base URL, or {base}/sitemap.xml as fallback. */
