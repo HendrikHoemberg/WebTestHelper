@@ -3,13 +3,12 @@ package dev.hendrikhoemberg.webtesthelper.model;
 import java.net.IDN;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -55,11 +54,18 @@ public final class UrlNormalizer {
         if (hasNonWebScheme(cleaned)) {
             return Optional.empty();
         }
+        // Both sides go through parse(), so its percent-encoding fallback covers hrefs that
+        // RFC 3986 forbids but real markup contains — <a href="mein dokument.pdf"> and friends.
+        // Resolving the raw text via URI.resolve(String) would throw on those and drop the link
+        // from the frontier silently, which is the worst possible failure for a link checker.
+        Optional<URI> baseUri = parse(cleanHref(base));
+        Optional<URI> target = parse(cleaned);
+        if (baseUri.isEmpty() || target.isEmpty()) {
+            return Optional.empty();
+        }
         try {
-            URI baseUri = new URI(base);
-            URI resolved = baseUri.resolve(cleaned);
-            return parse(resolved.toString()).flatMap(UrlNormalizer::build);
-        } catch (IllegalArgumentException | URISyntaxException e) {
+            return build(baseUri.get().resolve(target.get()));
+        } catch (IllegalArgumentException e) {
             return Optional.empty();
         }
     }
@@ -136,13 +142,13 @@ public final class UrlNormalizer {
         for (int i = 0; i < value.length(); i++) {
             char c = value.charAt(i);
             if (c <= 0x20 || c >= 0x7f || "\"<>[\\]^`{|}".indexOf(c) >= 0) {
-                appendPercent(sb, c);
+                i += appendPercent(sb, value, i) - 1;
             } else if (c == '%') {
                 if (i + 2 < value.length() && isHex(value.charAt(i + 1)) && isHex(value.charAt(i + 2))) {
                     sb.append(c).append(value.charAt(i + 1)).append(value.charAt(i + 2));
                     i += 2;
                 } else {
-                    appendPercent(sb, c);
+                    i += appendPercent(sb, value, i) - 1;
                 }
             } else {
                 sb.append(c);
@@ -155,13 +161,21 @@ public final class UrlNormalizer {
         return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
     }
 
-    private static void appendPercent(StringBuilder sb, char c) {
-        byte[] utf8 = String.valueOf(c).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+    /**
+     * Percent-encodes the UTF-8 of the whole code point at {@code index} and returns how many
+     * {@code char}s it consumed. Encoding char-by-char would split a surrogate pair into two
+     * unmappable halves, so every non-BMP URL would collapse onto the same {@code %3F%3F} key.
+     */
+    private static int appendPercent(StringBuilder sb, String value, int index) {
+        int codePoint = value.codePointAt(index);
+        byte[] utf8 = new String(Character.toChars(codePoint)).getBytes(StandardCharsets.UTF_8);
         for (byte b : utf8) {
-            sb.append('%');
-            sb.append(String.format(Locale.ROOT, "%02X", b & 0xff));
+            sb.append('%').append(HEX[(b >> 4) & 0xF]).append(HEX[b & 0xF]);
         }
+        return Character.charCount(codePoint);
     }
+
+    private static final char[] HEX = "0123456789ABCDEF".toCharArray();
 
     /** Build a canonical {@link NormalizedUrl} from a parsed {@link URI}. */
     private static Optional<NormalizedUrl> build(URI uri) {
@@ -186,8 +200,7 @@ public final class UrlNormalizer {
         String rawPath = uri.getRawPath();
         String path = normalizePath(rawPath == null || rawPath.isEmpty() ? "/" : rawPath);
 
-        Map<String, List<String>> query = splitQuery(uri.getRawQuery());
-        String queryString = sortAndFilter(query);
+        String queryString = sortAndFilter(splitQuery(uri.getRawQuery()));
 
         return Optional.of(new NormalizedUrl(scheme, host, authority.port(), path, queryString));
     }
@@ -280,7 +293,35 @@ public final class UrlNormalizer {
 
     private static String normalizePath(String rawPath) {
         String path = removeDotSegmentsAndCollapse(rawPath);
-        return normalizePercentEncoding(cleanAndEncode(path));
+        return reEscapeDotSegments(normalizePercentEncoding(cleanAndEncode(path)));
+    }
+
+    /**
+     * Re-escapes a segment that decoding just turned into a structural dot segment.
+     *
+     * <p>Dot-segment removal runs on the raw path, so {@code %2E%2E} is deliberately left as a
+     * literal segment. Decoding it afterwards (as an unreserved escape) would hand back a path
+     * containing {@code ..} — which normalises again to something different, so the canonical
+     * form would not be a fixed point and one resource could carry two {@code subjectKey}s
+     * depending on whether the value had been round-tripped. Re-escaping keeps
+     * {@code normalize(normalize(x)) == normalize(x)}.
+     */
+    private static String reEscapeDotSegments(String path) {
+        if (path.indexOf('.') < 0) {
+            return path;
+        }
+        String[] segments = path.split("/", -1);
+        boolean changed = false;
+        for (int i = 0; i < segments.length; i++) {
+            if (segments[i].equals(".")) {
+                segments[i] = "%2E";
+                changed = true;
+            } else if (segments[i].equals("..")) {
+                segments[i] = "%2E%2E";
+                changed = true;
+            }
+        }
+        return changed ? String.join("/", segments) : path;
     }
 
     /**
@@ -333,7 +374,7 @@ public final class UrlNormalizer {
         for (int i = 0; i < path.length(); i++) {
             char c = path.charAt(i);
             if (c <= 0x20 || c >= 0x7f || "\"<>\\^`{|}".indexOf(c) >= 0) {
-                appendPercent(sb, c);
+                i += appendPercent(sb, path, i) - 1;
             } else if (c == '%') {
                 if (i + 2 < path.length() && isHex(path.charAt(i + 1)) && isHex(path.charAt(i + 2))) {
                     sb.append(c).append(path.charAt(i + 1)).append(path.charAt(i + 2));
@@ -392,64 +433,59 @@ public final class UrlNormalizer {
      * UTF-8 sequences and {@code %2F}) stays percent-encoded. This way {@code q=über} and
      * {@code q=%C3%BCber} fingerprint identically instead of mojibake'ing apart.
      */
-    private static Map<String, List<String>> splitQuery(String rawQuery) {
-        Map<String, List<String>> map = new LinkedHashMap<>();
+    private static List<QueryParam> splitQuery(String rawQuery) {
+        List<QueryParam> params = new ArrayList<>();
         if (rawQuery == null || rawQuery.isEmpty()) {
-            return map;
+            return params;
         }
         for (String pair : rawQuery.split("&")) {
             if (pair.isEmpty()) {
                 continue;
             }
             int eq = pair.indexOf('=');
-            String key;
-            String value;
-            if (eq >= 0) {
-                key = normalizePercentEncoding(cleanAndEncode(pair.substring(0, eq)));
-                value = normalizePercentEncoding(cleanAndEncode(pair.substring(eq + 1)));
-            } else {
-                key = normalizePercentEncoding(cleanAndEncode(pair));
-                value = "";
-            }
-            map.computeIfAbsent(key, k -> new ArrayList<>()).add(value);
+            String name = eq >= 0 ? pair.substring(0, eq) : pair;
+            String value = eq >= 0 ? pair.substring(eq + 1) : "";
+            params.add(new QueryParam(
+                    normalizePercentEncoding(cleanAndEncode(name)),
+                    normalizePercentEncoding(cleanAndEncode(value)),
+                    eq >= 0));
         }
-        return map;
+        return params;
     }
 
     /**
      * Retain only the pairs that survive tracking-parameter stripping, sorted by name then value.
      * An empty result means the query has no surviving pairs and is dropped entirely.
+     *
+     * <p>{@code hadEquals} is carried through so {@code ?a=} and {@code ?a} stay distinct: they
+     * are different requests to plenty of backends, and merging them would fingerprint two
+     * different pages as one.
      */
-    private static String sortAndFilter(Map<String, List<String>> query) {
-        if (query.isEmpty()) {
-            return null;
-        }
-        List<Map.Entry<String, List<String>>> kept = new ArrayList<>();
-        for (Map.Entry<String, List<String>> entry : query.entrySet()) {
-            if (!isTracking(entry.getKey())) {
-                kept.add(entry);
+    private static String sortAndFilter(List<QueryParam> params) {
+        List<QueryParam> kept = new ArrayList<>();
+        for (QueryParam param : params) {
+            if (!isTracking(param.name())) {
+                kept.add(param);
             }
         }
         if (kept.isEmpty()) {
             return null;
         }
-        kept.sort(Comparator.comparing(Map.Entry<String, List<String>>::getKey)
-                .thenComparing(e -> String.join("\u0000", e.getValue())));
+        kept.sort(Comparator.comparing(QueryParam::name).thenComparing(QueryParam::value));
         StringBuilder sb = new StringBuilder();
-        for (Map.Entry<String, List<String>> entry : kept) {
-            List<String> values = entry.getValue();
-            values.sort(Comparator.naturalOrder());
-            for (String value : values) {
-                if (sb.length() > 0) {
-                    sb.append('&');
-                }
-                sb.append(entry.getKey());
-                if (!value.isEmpty()) {
-                    sb.append('=').append(value);
-                }
+        for (QueryParam param : kept) {
+            if (!sb.isEmpty()) {
+                sb.append('&');
+            }
+            sb.append(param.name());
+            if (param.hadEquals()) {
+                sb.append('=').append(param.value());
             }
         }
         return sb.toString();
+    }
+
+    private record QueryParam(String name, String value, boolean hadEquals) {
     }
 
     private static boolean isTracking(String key) {

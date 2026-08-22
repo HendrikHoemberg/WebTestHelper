@@ -5,6 +5,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class UrlNormalizerTest {
@@ -152,6 +154,28 @@ class UrlNormalizerTest {
             assertThat(UrlNormalizer.resolve(BASE, "  /kon\ntakt  ").orElseThrow().value())
                     .isEqualTo("https://example.com/kontakt");
         }
+
+        @Test
+        void resolvesHrefsContainingCharactersRfc3986Forbids() {
+            // <a href="mein dokument.pdf"> is ordinary on the sites this tool checks. Dropping
+            // such an href would keep the link out of the frontier and out of every report —
+            // a silent miss, which is the worst failure mode for a link checker.
+            assertThat(UrlNormalizer.resolve(BASE, "mein dokument.pdf").orElseThrow().value())
+                    .isEqualTo("https://example.com/leistungen/mein%20dokument.pdf");
+            assertThat(UrlNormalizer.resolve(BASE, "/downloads/preisliste 2026.pdf").orElseThrow().value())
+                    .isEqualTo("https://example.com/downloads/preisliste%202026.pdf");
+            assertThat(UrlNormalizer.resolve(BASE, "über-uns.html").orElseThrow().value())
+                    .isEqualTo("https://example.com/leistungen/%C3%BCber-uns.html");
+            assertThat(UrlNormalizer.resolve(BASE, "/a|b").orElseThrow().value())
+                    .isEqualTo("https://example.com/a%7Cb");
+        }
+
+        @Test
+        void resolvesAgainstABaseThatItselfNeedsEncoding() {
+            assertThat(UrlNormalizer.resolve("https://example.com/mein ordner/seite.html", "a.html")
+                    .orElseThrow().value())
+                    .isEqualTo("https://example.com/mein%20ordner/a.html");
+        }
     }
 
     @Nested
@@ -263,12 +287,58 @@ class UrlNormalizerTest {
         }
 
         @Test
-        void percentEncodedDotSegmentsAreNotResolved() {
+        void percentEncodedDotSegmentsAreNotResolvedAndStayEscaped() {
             // RFC 3986 §5.2.4 runs on the raw path, so a percent-encoded %2e%2e is a literal dot
             // segment, not a path-climbing "..". Pinned deliberately so nobody silently "fixes" it
             // into removing a segment that the server actually serves as a distinct path.
+            //
+            // It stays escaped in the output: emitting a bare ".." would produce a canonical form
+            // that normalises again to something else, so one resource could carry two subjectKeys.
             assertThat(norm("https://example.com/a/%2e%2e/b"))
-                    .isEqualTo("https://example.com/a/../b");
+                    .isEqualTo("https://example.com/a/%2E%2E/b");
+            assertThat(norm("https://example.com/a/%2e/b"))
+                    .isEqualTo("https://example.com/a/%2E/b");
+        }
+
+        @Test
+        void normalisingAnAlreadyNormalisedUrlChangesNothing() {
+            // The canonical form must be a fixed point, or a value that has been round-tripped
+            // through storage fingerprints differently from the one just extracted from markup.
+            List<String> raw = List.of(
+                    "https://example.com/a/%2e%2e/b",
+                    "https://example.com/a/%2e/b",
+                    "HTTPS://Example.COM:443/Leistungen/?utm_source=x&b=2&a=1#top",
+                    "https://example.com/über-uns",
+                    "https://example.com/mein dokument.pdf",
+                    "https://müller-bau.de/kontakt/",
+                    "https://example.com//a//b/",
+                    "https://example.com/a%2fb%7ec%41d",
+                    "https://example.com/s?q=a%2Fb",
+                    "https://example.com/s?a=",
+                    "https://example.com");
+
+            for (String value : raw) {
+                String once = norm(value);
+                assertThat(norm(once)).as("normalising %s twice", value).isEqualTo(once);
+            }
+        }
+
+        @Test
+        void keepsAnEmptyValueDistinctFromABareParameter() {
+            // ?a= and ?a are different requests to plenty of backends; merging them would
+            // fingerprint two different pages as one.
+            assertThat(norm("https://example.com/s?a=")).isEqualTo("https://example.com/s?a=");
+            assertThat(norm("https://example.com/s?a")).isEqualTo("https://example.com/s?a");
+        }
+
+        @Test
+        void encodesNonBmpCharactersAsWholeCodePoints() {
+            // Encoding a surrogate pair char-by-char yields two unmappable halves, so every
+            // non-BMP URL would collapse onto one %3F%3F key.
+            assertThat(norm("https://example.com/a😀b"))
+                    .isEqualTo("https://example.com/a%F0%9F%98%80b");
+            assertThat(norm("https://example.com/😀"))
+                    .isNotEqualTo(norm("https://example.com/🚀"));
         }
     }
 }
