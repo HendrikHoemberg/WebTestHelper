@@ -3,7 +3,9 @@ package dev.hendrikhoemberg.webtesthelper.checks;
 import dev.hendrikhoemberg.webtesthelper.model.CheckType;
 import org.junit.jupiter.api.Test;
 
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -12,9 +14,16 @@ class CheckRegistryTest {
     private final CheckRegistry registry = CheckRegistry.standard();
 
     @Test
-    void theStandardRegistryHoldsThePageChecksThatShipToday() {
-        assertThat(registry.coveredTypes())
-                .contains(CheckType.PAGE_STATUS, CheckType.PAGE_UNREACHABLE);
+    void everyCheckTypeThatShipsInPhaseOneHasExactlyOneImplementation() {
+        // Plan 3b implements these five; delete them from this set as they land, and the test
+        // starts demanding them. Spec 7.3: adding a check must not require touching the runner,
+        // and this is what makes forgetting to register one impossible to miss.
+        Set<CheckType> pendingInPlan3b = EnumSet.of(CheckType.DEAD_LINK, CheckType.FILE_DOWNLOAD,
+                CheckType.TLS_CERT, CheckType.HREFLANG, CheckType.SITEMAP_CONSISTENCY);
+        Set<CheckType> expected = EnumSet.allOf(CheckType.class);
+        expected.removeAll(pendingInPlan3b);
+
+        assertThat(registry.coveredTypes()).containsExactlyInAnyOrderElementsOf(expected);
     }
 
     @Test

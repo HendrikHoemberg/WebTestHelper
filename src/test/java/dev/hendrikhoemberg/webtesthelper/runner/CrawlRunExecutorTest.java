@@ -61,6 +61,10 @@ class CrawlRunExecutorTest extends AbstractPostgresTest {
                 .isEqualTo(200);
         assertThat(jdbc.queryForObject("SELECT soft404_simhash FROM run WHERE id = ?", Long.class, runId))
                 .isNotZero();
+        // The check pass ran: the fixture contains one of every failure mode (spec 15), so a
+        // run that found nothing means the checks were never invoked.
+        assertThat(jdbc.queryForObject("SELECT findings_total FROM run WHERE id = ?", Integer.class, runId))
+                .isGreaterThan(0);
         assertThat(jdbc.queryForObject("SELECT lease_owner FROM run WHERE id = ?", String.class, runId))
                 .isNull();
     }

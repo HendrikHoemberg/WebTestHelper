@@ -24,6 +24,7 @@ public class RunResultJdbcRepository {
             UPDATE run
                SET pages_visited       = ?,
                    pages_failed        = ?,
+                   findings_total      = ?,
                    covered_check_types = ?::jsonb,
                    covered_urls        = ?::jsonb,
                    partial_coverage    = ?,
@@ -47,11 +48,12 @@ public class RunResultJdbcRepository {
     }
 
     public void saveCrawlOutcome(long runId, CrawlResult result, List<String> coveredCheckTypes,
-            SoftNotFoundProbe probe) {
+            SoftNotFoundProbe probe, int findingsTotal) {
         try {
             jdbc.update(OUTCOME_SQL,
                     result.pagesVisited(),
                     result.pagesFailed(),
+                    findingsTotal,
                     objectMapper.writeValueAsString(coveredCheckTypes),
                     objectMapper.writeValueAsString(result.coveredUrls()),
                     result.partialCoverage(),
