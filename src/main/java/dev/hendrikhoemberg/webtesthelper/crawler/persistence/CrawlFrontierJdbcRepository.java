@@ -25,20 +25,28 @@ public class CrawlFrontierJdbcRepository {
      * Claims a batch under one statement. SKIP LOCKED lets several browser workers claim
      * simultaneously without blocking each other; ORDER BY depth makes the crawl
      * breadth-first, so a budget-capped run has covered the pages nearest the entry points.
+     *
+     * <p>The claim lives in a CTE on purpose: an {@code id IN (subquery … LIMIT … FOR UPDATE)}
+     * shape lets the planner unnest the subquery into a semi-join, after which the LIMIT is no
+     * longer reliably applied — observed as a batch of 2 claiming 4 rows once the plan changed.
      */
     private static final String CLAIM_SQL = """
+            WITH picked AS (
+                SELECT id
+                  FROM crawl_queue_item
+                 WHERE run_id = ? AND status = 'PENDING'
+                 ORDER BY depth, id
+                 LIMIT ?
+                 FOR UPDATE SKIP LOCKED
+            )
             UPDATE crawl_queue_item
                SET status     = 'CLAIMED',
                    claimed_by = ?,
                    claimed_at = now(),
                    attempts   = attempts + 1
-              WHERE id IN (SELECT id
-                            FROM crawl_queue_item
-                           WHERE run_id = ? AND status = 'PENDING'
-                           ORDER BY depth, id
-                           LIMIT ?
-                           FOR UPDATE SKIP LOCKED)
-         RETURNING id, url, depth
+              FROM picked
+             WHERE crawl_queue_item.id = picked.id
+         RETURNING crawl_queue_item.id, crawl_queue_item.url, crawl_queue_item.depth
             """;
 
     private static final String ENQUEUE_SQL = """
@@ -100,7 +108,8 @@ public class CrawlFrontierJdbcRepository {
 
     public List<CrawlTarget> claimBatch(long runId, String owner, int batchSize) {
         // PostgreSQL does not specify RETURNING order, so breadth-first order is restored here.
-        return jdbc.query(CLAIM_SQL, TARGET_MAPPER, owner, runId, batchSize).stream()
+        List<CrawlTarget> raw = jdbc.query(CLAIM_SQL, TARGET_MAPPER, runId, batchSize, owner);
+        return raw.stream()
                 .sorted(Comparator.comparingInt(CrawlTarget::depth).thenComparingLong(CrawlTarget::id))
                 .toList();
     }
