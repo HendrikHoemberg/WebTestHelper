@@ -25,6 +25,10 @@ import java.util.Set;
  * the site's own ignore list, {@code {"ignorePatterns": ["cookiebot", "gtm.js"]}}, is matched as
  * case-insensitive substrings (deviation D16): what a colleague types is a fragment of a
  * message, not a path pattern.
+ *
+ * <p>With this check enabled, a Maps billing or key failure reports twice — {@code
+ * IFRAME_EMBED.maps} names the embed, {@code CONSOLE_ERRORS.uncaught} the raw provider error.
+ * That is deliberate: the two checks answer different questions, and the second is opt-in.
  */
 public final class ConsoleErrorsCheck implements PageCheck {
 
@@ -86,8 +90,9 @@ public final class ConsoleErrorsCheck implements PageCheck {
             return "";
         }
         String collapsed = text.replaceAll("\\s+", " ").trim();
-        return collapsed.length() <= MAX_SUBJECT_LENGTH
-                ? collapsed
-                : collapsed.substring(0, MAX_SUBJECT_LENGTH);
+        if (collapsed.codePointCount(0, collapsed.length()) <= MAX_SUBJECT_LENGTH) {
+            return collapsed;
+        }
+        return collapsed.substring(0, collapsed.offsetByCodePoints(0, MAX_SUBJECT_LENGTH));
     }
 }

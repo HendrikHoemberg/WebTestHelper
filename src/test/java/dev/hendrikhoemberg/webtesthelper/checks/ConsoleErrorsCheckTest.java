@@ -66,4 +66,36 @@ class ConsoleErrorsCheckTest {
 
         assertThat(finding.subjectKey()).hasSize(200);
     }
+
+    @Test
+    void aMessageWhoseCollapsedFormIsExactly200CharactersIsNotTruncated() {
+        String message = "x".repeat(200);
+        CheckFinding finding = check.evaluate(
+                Snapshots.page("https://example.com/").consoleError(message).build(),
+                Snapshots.config(check, Snapshots.facts())).getFirst();
+
+        assertThat(finding.subjectKey()).isEqualTo(message);
+    }
+
+    @Test
+    void whitespaceCollapseCanBringALongMessageBelowTheLengthCap() {
+        String message = "Uncaught Error: a" + " ".repeat(300) + "b";
+        CheckFinding finding = check.evaluate(
+                Snapshots.page("https://example.com/").consoleError(message).build(),
+                Snapshots.config(check, Snapshots.facts())).getFirst();
+
+        assertThat(finding.subjectKey()).isEqualTo("Uncaught Error: a b");
+    }
+
+    @Test
+    void truncationDoesNotSplitASurrogatePair() {
+        // An emoji is a surrogate pair; the 200-code-point cut must not land between its halves.
+        String emoji = "\uD83D\uDE00";
+        String message = "x".repeat(199) + emoji + "y";
+        CheckFinding finding = check.evaluate(
+                Snapshots.page("https://example.com/").consoleError(message).build(),
+                Snapshots.config(check, Snapshots.facts())).getFirst();
+
+        assertThat(finding.subjectKey()).hasSize(201).endsWith(emoji);
+    }
 }

@@ -160,6 +160,11 @@ public final class Snapshots {
             return this;
         }
 
+        public Builder consoleError(String message, String location) {
+            console.add(new ConsoleMessage("error", message, location));
+            return this;
+        }
+
         /** What Chromium reports for a frame refused by X-Frame-Options or a CSP. */
         public Builder blockedDocument(String src) {
             failed.add(new FailedRequest(src, "GET", "document", null,

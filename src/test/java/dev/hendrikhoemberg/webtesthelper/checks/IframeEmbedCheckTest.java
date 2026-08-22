@@ -4,6 +4,8 @@ import dev.hendrikhoemberg.webtesthelper.model.CheckFinding;
 import dev.hendrikhoemberg.webtesthelper.support.Snapshots;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class IframeEmbedCheckTest {
@@ -49,6 +51,51 @@ class IframeEmbedCheckTest {
                 Snapshots.page("https://example.com/kontakt")
                         .frame("https://www.google.com/maps/embed/v1/place", false, 0).build(),
                 Snapshots.config(check, Snapshots.facts()))).isEmpty();
+    }
+
+    @Test
+    void aMapsErrorIsAttributedToTheFrameWhoseLocationItMatches() {
+        // A console error whose location is a frame's src must be reported for that frame, not
+        // for every maps embed on the page.
+        String frame2 = "https://www.google.com/maps/embed/v1/directions?origin=Berlin";
+        List<CheckFinding> findings = check.evaluate(
+                Snapshots.page("https://example.com/kontakt")
+                        .frame("https://www.google.com/maps/embed/v1/place", false, 0)
+                        .frame(frame2, false, 0)
+                        .consoleError(MAPS_ERROR, frame2).build(),
+                Snapshots.config(check, Snapshots.facts()));
+
+        assertThat(findings)
+                .singleElement()
+                .satisfies(finding -> {
+                    assertThat(finding.messageKey()).isEqualTo("finding.IFRAME_EMBED.maps");
+                    assertThat(finding.subjectKey()).isEqualTo(frame2);
+                });
+    }
+
+    @Test
+    void aMapsErrorFallsBackToAllMapsEmbedsWhenNoLocationMatchesAnyFrame() {
+        // The plan's fixture writes console errors with the page URL as the location, matching
+        // no frame; every maps embed is then a candidate.
+        assertThat(check.evaluate(
+                Snapshots.page("https://example.com/kontakt")
+                        .frame("https://www.google.com/maps/embed/v1/place", false, 0)
+                        .frame("https://www.google.com/maps/embed/v1/directions", false, 0)
+                        .consoleError(MAPS_ERROR).build(),
+                Snapshots.config(check, Snapshots.facts()))).hasSize(2);
+    }
+
+    @Test
+    void mapsErrorCodeIsMatchedCaseInsensitively() {
+        // Real consoles vary the case of provider codes.
+        CheckFinding finding = check.evaluate(
+                Snapshots.page("https://example.com/kontakt")
+                        .frame("https://www.google.com/maps/embed/v1/place", false, 0)
+                        .consoleError("Google Maps JavaScript API error: apinotactivatedmaperror").build(),
+                Snapshots.config(check, Snapshots.facts())).getFirst();
+
+        assertThat(finding.messageKey()).isEqualTo("finding.IFRAME_EMBED.maps");
+        assertThat(finding.messageArgs()).containsExactly("ApiNotActivatedMapError");
     }
 
     @Test
