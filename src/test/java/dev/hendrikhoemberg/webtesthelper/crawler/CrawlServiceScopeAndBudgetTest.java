@@ -2,11 +2,8 @@ package dev.hendrikhoemberg.webtesthelper.crawler;
 
 import dev.hendrikhoemberg.webtesthelper.crawler.persistence.CrawlFrontierJdbcRepository;
 import dev.hendrikhoemberg.webtesthelper.model.CrawlBudget;
-import dev.hendrikhoemberg.webtesthelper.model.PageSnapshot;
 import dev.hendrikhoemberg.webtesthelper.model.RunScope;
-import dev.hendrikhoemberg.webtesthelper.model.SimHash;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
-import dev.hendrikhoemberg.webtesthelper.model.SoftNotFoundProbe;
 import dev.hendrikhoemberg.webtesthelper.model.UrlNormalizer;
 import dev.hendrikhoemberg.webtesthelper.support.AbstractPostgresTest;
 import dev.hendrikhoemberg.webtesthelper.support.FixtureSite;
@@ -19,15 +16,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * Cases that each need their own crawl because they vary the scope, the budget or the
+ * frontier's starting state. The properties of one plain full crawl live in
+ * {@link CrawlServiceFullCrawlTest}, which pays for that crawl once.
+ */
 @Tag("browser")
-class CrawlServiceTest extends AbstractPostgresTest {
+class CrawlServiceScopeAndBudgetTest extends AbstractPostgresTest {
 
     @Autowired CrawlService crawler;
     @Autowired JdbcTemplate jdbc;
@@ -71,25 +71,6 @@ class CrawlServiceTest extends AbstractPostgresTest {
     }
 
     @Test
-    void aFullCrawlReachesEveryCrawlablePageExactlyOnce() {
-        CrawlResult result = crawl(RunScope.FULL, budget(50, 3, Duration.ofMinutes(3)), List.of());
-
-        assertThat(result.coveredUrls()).doesNotHaveDuplicates();
-        assertThat(result.coveredUrls()).anySatisfy(url -> assertThat(url).endsWith("/leistungen.html"));
-        assertThat(result.coveredUrls()).anySatisfy(url -> assertThat(url).endsWith("/kontakt.html"));
-        assertThat(result.coveredUrls()).anySatisfy(url -> assertThat(url).endsWith("/medien.html"));
-        assertThat(result.snapshots().pageCount()).isEqualTo(result.pagesVisited() + result.pagesFailed());
-        assertThat(result.partialCoverage()).isFalse();
-        assertThat(result.budgetStopReason()).isNull();
-    }
-
-    @Test
-    void theRobotsDisallowedPageIsNeverVisited() {
-        CrawlResult result = crawl(RunScope.FULL, budget(50, 3, Duration.ofMinutes(3)), List.of());
-        assertThat(result.coveredUrls()).noneSatisfy(url -> assertThat(url).contains("/geheim/"));
-    }
-
-    @Test
     void aClaimAbandonedByADeadWorkerIsReclaimedAndCrawled() {
         // Spec 14: the frontier is a table so a run survives a worker dying mid-batch. Left
         // unreclaimed the row stays CLAIMED forever — never visited, and countPending() then
@@ -104,30 +85,6 @@ class CrawlServiceTest extends AbstractPostgresTest {
 
         assertThat(result.coveredUrls()).anySatisfy(url -> assertThat(url).endsWith("/ziel.html"));
         assertThat(result.partialCoverage()).isFalse();
-    }
-
-    @Test
-    void assetsAndOffSiteLinksNeverEnterTheFrontier() {
-        crawl(RunScope.FULL, budget(50, 3, Duration.ofMinutes(3)), List.of());
-        List<String> queued = jdbc.queryForList(
-                "SELECT url FROM crawl_queue_item WHERE run_id = ?", String.class, runId);
-        assertThat(queued).noneSatisfy(url -> assertThat(url).endsWith(".pdf"));
-        assertThat(queued).allSatisfy(url -> assertThat(url).contains("127.0.0.1"));
-    }
-
-    @Test
-    void theSoftNotFoundProbeLearnsTheSitesNotFoundPage() {
-        CrawlResult result = crawl(RunScope.FULL, budget(50, 3, Duration.ofMinutes(3)), List.of());
-
-        SoftNotFoundProbe probe = result.snapshots().softNotFound();
-        assertThat(probe.usable()).isTrue();
-        assertThat(probe.httpStatus()).isEqualTo(200);        // the fixture is a soft-404 site
-        assertThat(probe.simhash()).isNotZero();
-        // …and a page that IS the not-found page fingerprints close to it.
-        PageSnapshot verirrt = result.snapshots().snapshots().stream()
-                .filter(s -> s.url().path().equals("/verirrt.html")).findFirst().orElseThrow();
-        assertThat(SimHash.hammingDistance(verirrt.textSimhash(), probe.simhash()))
-                .isLessThanOrEqualTo(6);
     }
 
     @Test
@@ -182,11 +139,4 @@ class CrawlServiceTest extends AbstractPostgresTest {
         assertThat(result.snapshots().pageCount()).isEqualTo(1);
     }
 
-    @Test
-    void progressIsReportedDuringTheCrawlNotOnlyAtTheEnd() {
-        List<Integer> reports = Collections.synchronizedList(new ArrayList<>());
-        crawler.crawl(request(RunScope.FULL, budget(50, 3, Duration.ofMinutes(3)), List.of()),
-                (visited, failed) -> reports.add(visited));
-        assertThat(reports).isNotEmpty().isSorted();
-    }
 }
