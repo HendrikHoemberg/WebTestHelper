@@ -166,7 +166,6 @@ public final class Snapshots {
             return this;
         }
 
-        /** A hreflang alternate; href is normalised through the same machinery as links/frames. */
         public Builder alternate(String hreflang, String href) {
             alternates.add(new AlternateRef(hreflang, Snapshots.url(href)));
             return this;

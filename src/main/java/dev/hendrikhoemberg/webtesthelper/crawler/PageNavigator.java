@@ -149,12 +149,12 @@ public class PageNavigator {
 
             long loadMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt);
 
-        return new PageSnapshot(pageUrl, target.url(), target.depth(), true, null,
-                response == null ? 0 : response.status(), headers, redirectChain, loadMillis,
-                extracted.title(), extracted.lang(), extracted.text(),
-                SimHash.of(extracted.text()), extracted.links(), extracted.images(),
-                extracted.media(), extracted.frames(), extracted.alternates(), extracted.forms(),
-                List.copyOf(console), List.copyOf(failed), screenshotPath);
+            return new PageSnapshot(pageUrl, target.url(), target.depth(), true, null,
+                    response == null ? 0 : response.status(), headers, redirectChain, loadMillis,
+                    extracted.title(), extracted.lang(), extracted.text(),
+                    SimHash.of(extracted.text()), extracted.links(), extracted.images(),
+                    extracted.media(), extracted.frames(), extracted.alternates(), extracted.forms(),
+                    List.copyOf(console), List.copyOf(failed), screenshotPath);
         } catch (PlaywrightException e) {
             return PageSnapshot.unreachable(requested, target.url(), target.depth(),
                     truncate(e.getMessage(), 500), List.copyOf(console), List.copyOf(failed));
