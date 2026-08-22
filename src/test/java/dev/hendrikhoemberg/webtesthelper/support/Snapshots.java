@@ -17,7 +17,10 @@ import dev.hendrikhoemberg.webtesthelper.model.RunFacts;
 import dev.hendrikhoemberg.webtesthelper.model.RunScope;
 import dev.hendrikhoemberg.webtesthelper.model.SimHash;
 import dev.hendrikhoemberg.webtesthelper.model.SoftNotFoundProbe;
+import dev.hendrikhoemberg.webtesthelper.model.TlsCertificateFact;
 import dev.hendrikhoemberg.webtesthelper.model.UrlNormalizer;
+import dev.hendrikhoemberg.webtesthelper.model.UrlVerification;
+import dev.hendrikhoemberg.webtesthelper.model.UrlVerifications;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -53,7 +56,13 @@ public final class Snapshots {
     }
 
     public static RunFacts facts(SoftNotFoundProbe probe) {
-        return new RunFacts(1L, RunScope.FULL, Instant.EPOCH, probe);
+        return new RunFacts(1L, RunScope.FULL, Instant.EPOCH, probe,
+                UrlVerifications.EMPTY, TlsCertificateFact.NONE, List.of());
+    }
+
+    public static RunFacts facts(UrlVerification... verifications) {
+        return new RunFacts(1L, RunScope.FULL, Instant.EPOCH, SoftNotFoundProbe.NONE,
+                UrlVerifications.of(List.of(verifications)), TlsCertificateFact.NONE, List.of());
     }
 
     public static CheckConfig config(PageCheck check, RunFacts facts) {

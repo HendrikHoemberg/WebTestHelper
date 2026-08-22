@@ -80,10 +80,9 @@ class CrawlRunExecutorTest extends AbstractPostgresTest {
 
         String coveredCheckTypes = jdbc.queryForObject(
                 "SELECT covered_check_types::text FROM run WHERE id = ?", String.class, runId);
-        assertThat(coveredCheckTypes).contains("PAGE_STATUS");
-        // DEAD_LINK has no implementation until Plan 3b, so a run must not claim it covered.
-        assertThat(coveredCheckTypes).doesNotContain("DEAD_LINK");
-        // Spec 7.1: these two ship disabled, so a run does not claim to have covered them.
+        assertThat(coveredCheckTypes).contains("PAGE_STATUS", "DEAD_LINK", "FILE_DOWNLOAD");
+        // Spec 7.1: these two ship disabled / are not implemented yet, so a run does not claim
+        // to have covered them.
         assertThat(coveredCheckTypes).doesNotContain("CONSOLE_ERRORS")
                 .doesNotContain("SITEMAP_CONSISTENCY");
     }

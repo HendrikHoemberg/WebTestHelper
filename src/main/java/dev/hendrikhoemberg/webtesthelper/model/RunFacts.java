@@ -1,6 +1,7 @@
 package dev.hendrikhoemberg.webtesthelper.model;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -12,15 +13,27 @@ import java.util.Objects;
  * {@code FILE_DOWNLOAD} consume.
  */
 public record RunFacts(long runId, RunScope scope, Instant startedAt,
-                       SoftNotFoundProbe softNotFound) {
+                       SoftNotFoundProbe softNotFound, UrlVerifications verifications,
+                       TlsCertificateFact tlsCertificate, List<String> sitemapUrls) {
 
     public RunFacts {
         Objects.requireNonNull(scope, "scope");
         Objects.requireNonNull(startedAt, "startedAt");
         softNotFound = softNotFound == null ? SoftNotFoundProbe.NONE : softNotFound;
+        verifications = verifications == null ? UrlVerifications.EMPTY : verifications;
+        tlsCertificate = tlsCertificate == null ? TlsCertificateFact.NONE : tlsCertificate;
+        sitemapUrls = sitemapUrls == null ? List.of() : List.copyOf(sitemapUrls);
     }
 
     public static RunFacts of(RunSnapshots snapshots, RunScope scope, Instant startedAt) {
-        return new RunFacts(snapshots.runId(), scope, startedAt, snapshots.softNotFound());
+        return new RunFacts(snapshots.runId(), scope, startedAt, snapshots.softNotFound(),
+                UrlVerifications.EMPTY, TlsCertificateFact.NONE, List.of());
+    }
+
+    public static RunFacts of(RunSnapshots snapshots, RunScope scope, Instant startedAt,
+            UrlVerifications verifications, TlsCertificateFact tlsCertificate,
+            List<String> sitemapUrls) {
+        return new RunFacts(snapshots.runId(), scope, startedAt, snapshots.softNotFound(),
+                verifications, tlsCertificate, sitemapUrls);
     }
 }

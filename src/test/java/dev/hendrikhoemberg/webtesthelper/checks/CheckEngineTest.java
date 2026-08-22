@@ -11,6 +11,8 @@ import dev.hendrikhoemberg.webtesthelper.model.RunSnapshots;
 import dev.hendrikhoemberg.webtesthelper.model.Severity;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
 import dev.hendrikhoemberg.webtesthelper.model.SoftNotFoundProbe;
+import dev.hendrikhoemberg.webtesthelper.model.TlsCertificateFact;
+import dev.hendrikhoemberg.webtesthelper.model.UrlVerifications;
 import dev.hendrikhoemberg.webtesthelper.support.Snapshots;
 import org.junit.jupiter.api.Test;
 
@@ -41,7 +43,8 @@ class CheckEngineTest {
     }
 
     private static RunFacts facts(RunScope scope) {
-        return new RunFacts(1L, scope, Instant.EPOCH, SoftNotFoundProbe.NONE);
+        return new RunFacts(1L, scope, Instant.EPOCH, SoftNotFoundProbe.NONE,
+                UrlVerifications.EMPTY, TlsCertificateFact.NONE, List.of());
     }
 
     private static PageSnapshot brokenPage() {
@@ -51,14 +54,15 @@ class CheckEngineTest {
 
     @Test
     void coveredTypesIsExactlyWhatTheRegistryImplements() {
-        // Spec 6.4: a run may only claim coverage for checks that exist. DEAD_LINK and the other
-        // Plan-3b checks have no implementation here, so the engine must not claim them.
+        // Spec 6.4: a run may only claim coverage for checks that exist. The remaining Plan-3b
+        // checks (TLS_CERT, HREFLANG, SITEMAP_CONSISTENCY) have no implementation here yet.
         assertThat(engine.coveredTypes())
                 .contains(CheckType.PAGE_STATUS, CheckType.PAGE_UNREACHABLE,
                         CheckType.REDIRECT_CHAIN, CheckType.IMAGE_BROKEN, CheckType.MEDIA_PLAYABLE,
-                        CheckType.IFRAME_EMBED, CheckType.MIXED_CONTENT, CheckType.CONSOLE_ERRORS)
-                .doesNotContain(CheckType.DEAD_LINK, CheckType.FILE_DOWNLOAD, CheckType.TLS_CERT,
-                        CheckType.HREFLANG, CheckType.SITEMAP_CONSISTENCY);
+                        CheckType.IFRAME_EMBED, CheckType.MIXED_CONTENT, CheckType.CONSOLE_ERRORS,
+                        CheckType.DEAD_LINK, CheckType.FILE_DOWNLOAD)
+                .doesNotContain(CheckType.TLS_CERT, CheckType.HREFLANG,
+                        CheckType.SITEMAP_CONSISTENCY);
     }
 
     @Test

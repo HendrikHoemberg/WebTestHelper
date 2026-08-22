@@ -35,7 +35,9 @@ public final class CheckRegistry {
                         new MediaPlayableCheck(),
                         new MixedContentCheck(),
                         new IframeEmbedCheck(),
-                        new ConsoleErrorsCheck()),
+                        new ConsoleErrorsCheck(),
+                        new DeadLinkCheck(),
+                        new FileDownloadCheck()),
                 List.of());     // Plan 3b adds TLS_CERT, HREFLANG and SITEMAP_CONSISTENCY
     }
 
