@@ -763,7 +763,46 @@ finding.SITEMAP_CONSISTENCY.missingPage=Die Seite {0} fehlt im Inhaltsverzeichni
 
 ## Execution findings fed back to Plan 4's writer
 
-*(Filled in during execution. The plan is never edited afterwards; only this section grows.)*
+Executed 2026-08-22 with subagent-driven development: six task commits plus nine
+review-fix commits on `main` (`6831708`…`6f226d5`), 297 `-Pfast` / 354 full tests green,
+browser acceptance included. Every task passed a two-stage review; the deviations and
+measurements below are the executed truth, not plan text.
+
+- **Verification candidates include `AlternateRef.target()`**, not just `LinkRef`+`FrameRef`
+  as Step 3 of Task 6 literally says. The plan's own Task 6 acceptance assertion
+  (`.deadAlternate` for the `fr` alternate) cannot pass otherwise: the alternate is a
+  `<link>`, and `HreflangCheck` resolves targets through `facts.verifications()`. Plan 4
+  inherits candidates as *all three ref kinds*.
+- **The verification count log label counts internal candidates too** ("geprüfte URLs").
+  Plan 4's end-of-run re-verification is the other consumer of `UrlVerifier`; the verifier
+  is bounded per host already, exactly as §8 needs.
+- **`UrlVerification.contentLength` from a ranged GET is the *part*, not the resource**
+  (206 answers `content-length: 1024`; the fixture ignores `Range`, so no test catches it).
+  Harmless for `FILE_DOWNLOAD.tooSmall` (1024 is never < 1024) — but if Plan 4's
+  re-verification ever needs true size, parse `Content-Range`'s total or use the HEAD pass.
+- **`FILE_DOWNLOAD` gates all three rules on `hasBody()`** (the plan's literal wording).
+  In practice the verifier fetches a body for every `DocumentTypes.isDocument` target, so
+  the gate is invisible; `tooSmall` additionally requires `contentLength > 0` so chunked
+  PDFs (no content-length header) are never flagged.
+- **Cache timestamps are truncated to microseconds at the write site**
+  (`store` truncates `checkedAt` to `ChronoUnit.MICROS`); Postgres truncates silently, and
+  a test comparing `Instant.now()` against a round-tripped row needs the same truncation.
+- **The soft-404 probe screenshot name is a shared helper** (`crawler/ScreenshotNames`,
+  used by `PageNavigator` and `CrawlService`); the `CrawlServiceFullCrawlTest` artifact
+  assertion guards the two from drifting. The artifact assertion counts *reachable*
+  snapshots — an unreachable page leaves no screenshot.
+- **`CrawlRunExecutorTest` crawls once in `@BeforeAll`** (collapsed from per-test crawls by
+  Task 6). Plan 4's pipeline assertions should extend that class or `PageCheckAcceptanceTest`
+  (also one crawl per class) — a new browser-suite class is a third Chromium sweep.
+- **The verification pass has no defensive catch**; if `UrlVerificationService` throws
+  (cache-DB hiccup), `RunWorker.executeLeased`'s existing try/catch marks the run `FAILED`
+  with the error. Deliberate: §14 wants run-level failures visible, not swallowed.
+- **`truncate(String, int)` now exists in four `crawler` classes** (`CrawlService`,
+  `PageNavigator`, `UrlVerifier`, `TlsProbe`). Flagged in final review as the one
+  duplicated logic; Plan 4 may centralise it if it adds a fifth.
+- **The fixture's new hreflang failure modes are proven only by Task 6's acceptance test**,
+  not by `PageNavigatorTest` (plan-intended). `/en/index.html` has `fr` → `localhost:9`
+  (dead) + `de` → `/`; `leistungen.html` has one-way `en` → `/en/index.html`.
 
 Open questions Plan 4 inherits however execution goes:
 
