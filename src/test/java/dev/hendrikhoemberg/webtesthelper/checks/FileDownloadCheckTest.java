@@ -72,6 +72,17 @@ class FileDownloadCheckTest {
     }
 
     @Test
+    void aChunkedPdfWithNoContentLengthAndValidPrefixProducesNoFinding() {
+        UrlVerification pdf = new UrlVerification("https://example.com/info.pdf",
+                UrlStatus.OK, 200, "application/pdf", 0, "%PDF-1.4", null, Instant.EPOCH);
+
+        assertThat(check.evaluate(
+                Snapshots.page("https://example.com/seite")
+                        .link("https://example.com/info.pdf", false).build(),
+                Snapshots.config(check, Snapshots.facts(pdf)))).isEmpty();
+    }
+
+    @Test
     void aDocxServedAsHtmlIsAWrongType() {
         UrlVerification docx = new UrlVerification("https://example.com/info.docx",
                 UrlStatus.OK, 200, "text/html", 4096, "<html>", null, Instant.EPOCH);

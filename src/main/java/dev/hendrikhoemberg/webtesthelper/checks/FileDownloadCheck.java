@@ -17,16 +17,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
-/**
- * A linked document (spec 7.1) must arrive as a file, not as an error page or a login wall.
- * The crawler verified every external URL once; this check consumes those results.
- *
- * <p>The non-PDF rule is deliberately weak: a document link that answers with {@code text/html}
- * is a wall, not a file, so it is flagged; every other wrong content type is left alone because
- * office formats are a swamp and a false positive costs more than a miss (spec 8). For a PDF the
- * body is inspected: a PDF content type wrapping HTML is not a PDF, and a real PDF shorter than
- * a kilobyte cannot hold content.
- */
 public final class FileDownloadCheck implements PageCheck {
 
     static final String WRONG_TYPE = "finding.FILE_DOWNLOAD.wrongType";
@@ -81,7 +71,7 @@ public final class FileDownloadCheck implements PageCheck {
                                     null, verification.bodyPrefix(), List.of())));
                     return;
                 }
-                if (verification.contentLength() < MIN_LENGTH) {
+                if (verification.contentLength() > 0 && verification.contentLength() < MIN_LENGTH) {
                     findings.add(new CheckFinding(type(), config.severity(), target.value(),
                             snapshot.url(), TOO_SMALL,
                             List.of(target.value(), String.valueOf(verification.contentLength())),

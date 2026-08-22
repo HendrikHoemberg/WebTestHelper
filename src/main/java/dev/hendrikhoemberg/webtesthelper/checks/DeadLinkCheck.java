@@ -16,14 +16,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-/**
- * Every link and iframe src the page references either resolves to a live target or is
- * recognised as unverifiable (spec 6.4, 7.1). The crawler already verified every external
- * URL once; this check consumes the results.
- *
- * <p>Unreachable pages are not touched: {@code PAGE_UNREACHABLE} owns them (one defect, one
- * finding). An unverified target is not a defect — the URL was outside the crawl scope.
- */
 public final class DeadLinkCheck implements PageCheck {
 
     static final String DEAD = "finding.DEAD_LINK.dead";
