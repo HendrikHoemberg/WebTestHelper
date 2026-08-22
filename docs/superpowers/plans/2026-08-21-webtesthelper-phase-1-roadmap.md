@@ -112,3 +112,26 @@ is the right place for length — each of its four tasks is ~500 lines and execu
 - **Soft-404 re-measure reminder (2a finding):** the 2b crawler tests still pass with the
   plan-authored `<=6` pairwise probe agreement because the fixture's 404 echo is an exact clone —
   this says nothing about the (12, 33) cutoff Plan 3 must pick.
+
+## Post-review fixes to plan 2 (applied after the plan-2 review)
+
+A review of plan 2 against the spec found two behavioural gaps and one documentation drift. All
+three are fixed on `main`; the 2a and 2b plan files were patched so their verbatim code matches
+the tree.
+
+- **`reclaimStale` is now wired into the crawl.** 2a built and tested it; 2b's pipeline never
+  called it. A run whose lease expires is re-queued and re-executed (§14), and the rows its dead
+  worker held stayed `CLAIMED` forever — never visited, never pending, so `partialCoverage` came
+  back `false` for a run that had silently missed pages, which is exactly the §6.4 failure the
+  flag exists to prevent. `CrawlService` now reclaims before seeding, with a 10-minute stale
+  timeout and 3 attempts before a URL is given up on.
+- **Pinned key pages go through `UrlAdmission`.** The PULSE branch seeded them raw, so a pinned
+  page bypassed robots, the exclude patterns and the asset guard — pinning is not the supported
+  robots override, `respectRobots` is (§8). The base URL stays unfiltered on purpose: a site
+  whose include patterns miss its own start page must still crawl something.
+- **Per-page browser contexts are documented, not changed.** §5.4 says contexts are fresh per
+  page *batch*; a batch fans out across every pool worker, so it cannot own one context, and
+  per-page delivers what that paragraph asks for. `PageNavigator`'s javadoc now says so.
+- **Still deferred to Plan 3, deliberately:** the four carry-overs listed above (hardcoded
+  User-Agent, the visited-and-failed double count when discovery's enqueue throws, the probe's
+  unreferenced screenshot, the soft snapshot-memory bound).

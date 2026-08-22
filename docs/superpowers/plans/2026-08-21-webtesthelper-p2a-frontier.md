@@ -139,7 +139,7 @@ the same server. That gives the crawl a real external link without leaving the m
 | `/maps/embed/v1/place` | 200 grey box + `console.error("… ApiNotActivatedMapError")` | `IFRAME_EMBED` — the Maps billing failure (§7.1) |
 | `/blockiert` | 200 + `X-Frame-Options: DENY` | `IFRAME_EMBED` — blocked embed |
 | `/hart-404` | 404 `text/html` | a true not-found |
-| `/langsam` | 200 after 5 s | navigation timeout → `PAGE_UNREACHABLE` |
+| `/langsam` | 200 after 20 s | navigation timeout → `PAGE_UNREACHABLE` (must outlast Plan 2b's 15 s budget) |
 | `/extern/ok` | 200 | a healthy external link (reached via `localhost`) |
 | `/robots.txt` `/sitemap.xml` | static | robots policy, `SITEMAP_CONSISTENCY` |
 | **anything else** | **200** + *"Seite nicht gefunden"* | **the soft 404** (§7.1) — and therefore what the `{baseUrl}/{uuid}` probe learns |
@@ -687,7 +687,9 @@ public final class FixtureSite implements AutoCloseable {
 
     private static void sleep() {
         try {
-            Thread.sleep(5000);
+            // 20 s, not 5: Plan 2b's navigation budget is 15 s, and the timeout case only
+            // fires if this outlasts it (execution finding).
+            Thread.sleep(20000);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
@@ -1307,6 +1309,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -1322,20 +1325,28 @@ public class CrawlFrontierJdbcRepository {
      * Claims a batch under one statement. SKIP LOCKED lets several browser workers claim
      * simultaneously without blocking each other; ORDER BY depth makes the crawl
      * breadth-first, so a budget-capped run has covered the pages nearest the entry points.
+     *
+     * <p>The claim lives in a CTE on purpose: an {@code id IN (subquery … LIMIT … FOR UPDATE)}
+     * shape lets the planner unnest the subquery into a semi-join, after which the LIMIT is no
+     * longer reliably applied — observed as a batch of 2 claiming 4 rows once the plan changed.
      */
     private static final String CLAIM_SQL = """
+            WITH picked AS (
+                SELECT id
+                  FROM crawl_queue_item
+                 WHERE run_id = ? AND status = 'PENDING'
+                 ORDER BY depth, id
+                 LIMIT ?
+                 FOR UPDATE SKIP LOCKED
+            )
             UPDATE crawl_queue_item
                SET status     = 'CLAIMED',
                    claimed_by = ?,
                    claimed_at = now(),
                    attempts   = attempts + 1
-             WHERE id IN (SELECT id
-                            FROM crawl_queue_item
-                           WHERE run_id = ? AND status = 'PENDING'
-                           ORDER BY depth, id
-                           LIMIT ?
-                           FOR UPDATE SKIP LOCKED)
-         RETURNING id, url, depth
+              FROM picked
+             WHERE crawl_queue_item.id = picked.id
+         RETURNING crawl_queue_item.id, crawl_queue_item.url, crawl_queue_item.depth
             """;
 
     private static final String ENQUEUE_SQL = """
@@ -1396,7 +1407,11 @@ public class CrawlFrontierJdbcRepository {
     }
 
     public List<CrawlTarget> claimBatch(long runId, String owner, int batchSize) {
-        return jdbc.query(CLAIM_SQL, TARGET_MAPPER, owner, runId, batchSize);
+        // PostgreSQL does not specify RETURNING order, so breadth-first order is restored here.
+        List<CrawlTarget> raw = jdbc.query(CLAIM_SQL, TARGET_MAPPER, runId, batchSize, owner);
+        return raw.stream()
+                .sorted(Comparator.comparingInt(CrawlTarget::depth).thenComparingLong(CrawlTarget::id))
+                .toList();
     }
 
     public void complete(Collection<CrawlOutcome> outcomes) {
@@ -1446,8 +1461,9 @@ listed in **Interfaces** above.
 
 Run: `./mvnw test -Dtest=CrawlFrontierJdbcRepositoryTest`
 Expected: PASS, all eight cases. If `twoWorkersClaimingConcurrentlyNeverGetTheSameUrl` returns
-fewer than 200 URLs, the `FOR UPDATE SKIP LOCKED` subquery was dropped — SKIP LOCKED without it
-silently claims nothing under contention.
+fewer than 200 URLs, the `FOR UPDATE SKIP LOCKED` was dropped — SKIP LOCKED without it
+silently claims nothing under contention. Do not rewrite the CTE back into an `id IN (SELECT …)`
+subquery: the planner may unnest it and stop applying the LIMIT.
 
 - [ ] **Step 6: Run the whole suite and commit**
 

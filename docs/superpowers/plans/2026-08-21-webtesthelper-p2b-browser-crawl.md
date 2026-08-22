@@ -1683,7 +1683,7 @@ left behind.
 - Modify: `src/main/java/…/runner/package-info.java` (allow `crawler`)
 - Delete: `src/main/java/…/runner/NoopRunExecutor.java`
 - Test: `src/test/java/…/crawler/CrawlServiceTest.java`
-- Test: `src/test/java/…/runner/CrawlRunExecutorIT.java`
+- Test: `src/test/java/…/runner/CrawlRunExecutorTest.java`
 
 **Interfaces:**
 - Consumes: `CrawlFrontierJdbcRepository`, `BrowserPool`, `PageNavigator`, `SiteResourceFetcher`,
@@ -1851,12 +1851,14 @@ class CrawlServiceTest extends AbstractPostgresTest {
 }
 ```
 
-`CrawlRunExecutorIT` (`@Tag("browser")`, extends `AbstractPostgresTest`) — the whole plan's
-acceptance test: enqueue a run, turn the Plan 1 worker once, read the `run` row.
+`CrawlRunExecutorTest` (`@Tag("browser")`, extends `AbstractPostgresTest`) — the whole plan's
+acceptance test: enqueue a run, turn the Plan 1 worker once, read the `run` row. It is
+named `…Test`, not `…IT`: surefire's default includes match on class name and would silently
+skip an `*IT` class, leaving the whole plan's acceptance unproven by `./mvnw test`.
 
 ```java
 @Tag("browser")
-class CrawlRunExecutorIT extends AbstractPostgresTest {
+class CrawlRunExecutorTest extends AbstractPostgresTest {
 
     @Autowired RunWorker worker;
     @Autowired RunService runs;
@@ -1951,7 +1953,7 @@ class CrawlRunExecutorIT extends AbstractPostgresTest {
 
 - [ ] **Step 2: Run the tests to verify they fail**
 
-Run: `./mvnw test -Dtest='CrawlServiceTest,CrawlRunExecutorIT'`
+Run: `./mvnw test -Dtest='CrawlServiceTest,CrawlRunExecutorTest'`
 Expected: compilation failure — `CrawlService` does not exist.
 
 - [ ] **Step 3: Write `CrawlService`**
@@ -1970,6 +1972,11 @@ RobotsRules robots = request.site().respectRobots()
             .orElse(RobotsRules.ALLOW_ALL)
         : RobotsRules.ALLOW_ALL;
 UrlAdmission admission = new UrlAdmission(request.site(), robots);
+
+// A run whose lease expired is re-queued and re-executed (spec 14) with its dead worker's
+// rows still CLAIMED: never visited, never pending, so the resumed run would claim full
+// coverage for pages it never reached (spec 6.4).
+frontier.reclaimStale(request.runId(), STALE_CLAIM_TIMEOUT, MAX_CLAIM_ATTEMPTS);
 
 SoftNotFoundProbe probe = probe(request, runArtifacts);
 seedFrontier(request, admission, robots);
@@ -2045,24 +2052,31 @@ a browser worker that dies mid-page must cost one URL, not the run (§14).
 
 ```java
 if (!request.scope().crawlsWholeSite()) {                       // PULSE (spec 9)
+    // Pinning is not a way around robots or the site's exclude patterns (spec 8), so the
+    // pinned set goes through admission too — at depth 0, these being entry points.
     List<String> pinned = request.site().pinnedKeyPages().stream()
             .map(page -> UrlNormalizer.resolve(request.site().baseUrl().value(), page))
-            .flatMap(Optional::stream).map(NormalizedUrl::value).toList();
+            .flatMap(Optional::stream)
+            .filter(page -> admission.admit(page, 0).admitted())
+            .map(NormalizedUrl::value).toList();
     frontier.seed(request.runId(), pinned, 0);
     return;
 }
+// The base URL is seeded unfiltered: a site whose include patterns miss its own start page
+// would otherwise crawl nothing at all.
 frontier.seed(request.runId(), List.of(request.site().baseUrl().value()), 0);
 
-// sitemap.xml, one level of sitemap-index following (spec 5.3)
-for (String sitemapUrl : sitemapUrls(request.site(), robots)) {
-    fetcher.fetchText(url).ifPresent(xml -> {
-        List<String> locations = SitemapReader.locations(xml);
-        if (SitemapReader.isIndex(xml)) { /* fetch each child once, collect its locations */ }
+// sitemap.xml, one level of sitemap-index following (spec 5.3). Depth 1, not 0: sitemap
+// entries sit one level below the base URL, and at depth 0 a maxDepth=0 run would crawl
+// every page the sitemap names (execution finding).
+for (NormalizedUrl sitemapUrl : sitemapUrls(request.site(), robots)) {
+    fetcher.fetchText(sitemapUrl).ifPresent(xml -> {
+        List<String> locations = sitemapLocations(sitemapUrl, xml);   // follows an index once
         List<String> admitted = locations.stream()
                 .map(UrlNormalizer::normalize).flatMap(Optional::stream)
-                .filter(candidate -> admission.admit(candidate, 0).admitted())
+                .filter(candidate -> admission.admit(candidate, 1).admitted())
                 .map(NormalizedUrl::value).toList();
-        frontier.enqueue(request.runId(), admitted, 0, "sitemap.xml");
+        frontier.enqueue(request.runId(), admitted, 1, "sitemap.xml");
     });
 }
 ```
@@ -2177,7 +2191,7 @@ counts.
 
 - [ ] **Step 5: Run the tests to verify they pass**
 
-Run: `./mvnw test -Dtest='CrawlServiceTest,CrawlRunExecutorIT'`
+Run: `./mvnw test -Dtest='CrawlServiceTest,CrawlRunExecutorTest'`
 Expected: PASS.
 
 If `aFullCrawlReachesEveryCrawlablePageExactlyOnce` reports duplicates, the discovery enqueue is
@@ -2209,16 +2223,17 @@ reach (spec 6.4). Replaces NoopRunExecutor."
 
 ## Plan 2b completion check
 
-- [ ] `./mvnw test` passes, browser tests included
-- [ ] `./mvnw test -DexcludedGroups=browser` also passes — no non-browser test grew a browser dependency
-- [ ] Four commits landed (one per task)
-- [ ] `NoopRunExecutor` is gone and `CrawlRunExecutor` is the only `RunExecutor` bean
-- [ ] `ModularityTest` proves `runner → crawler` and rejects the reverse
-- [ ] No `Page`, `BrowserContext`, `Browser` or `Playwright` reference escapes a
-      `BrowserPool.submit` block — grep the crawler package for `Playwright` and confirm the
-      only hits are in `BrowserPool`
-- [ ] No migration was added; `ddl-auto=validate` still passes
-- [ ] **Roadmap plan 2 is done.** Write `2026-08-21-webtesthelper-p3-checks.md` next, feeding
+- [x] `./mvnw test` passes, browser tests included (161 tests, 0 failures)
+- [x] `./mvnw test -DexcludedGroups=browser` also passes (129 tests) — no non-browser test grew
+      a browser dependency
+- [x] Four commits landed (one per task)
+- [x] `NoopRunExecutor` is gone and `CrawlRunExecutor` is the only `RunExecutor` bean
+- [x] `ModularityTest` proves `runner → crawler` and rejects the reverse
+- [x] No `Page`, `BrowserContext`, `Browser` or `Playwright` reference escapes a
+      `BrowserPool.submit` block — the only hit outside `BrowserPool` is `PageNavigator`
+      catching `PlaywrightException`, inside the confined call
+- [x] No migration was added; `ddl-auto=validate` still passes
+- [x] **Roadmap plan 2 is done.** Write `2026-08-21-webtesthelper-p3-checks.md` next, feeding
       back anything execution revealed.
 
 ## What Plan 3 consumes from this plan
