@@ -10,7 +10,9 @@ import dev.hendrikhoemberg.webtesthelper.model.CheckSetting;
 import dev.hendrikhoemberg.webtesthelper.model.CheckType;
 import dev.hendrikhoemberg.webtesthelper.model.RunFacts;
 import dev.hendrikhoemberg.webtesthelper.model.RunScope;
+import dev.hendrikhoemberg.webtesthelper.model.SimHash;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
+import dev.hendrikhoemberg.webtesthelper.model.SoftNotFoundProbe;
 import dev.hendrikhoemberg.webtesthelper.support.AbstractPostgresTest;
 import dev.hendrikhoemberg.webtesthelper.support.FixtureSite;
 import org.junit.jupiter.api.AfterAll;
@@ -112,6 +114,22 @@ class PageCheckAcceptanceTest extends AbstractPostgresTest {
         assertThat(of(CheckType.PAGE_UNREACHABLE))
                 .extracting(finding -> finding.observedOn().path())
                 .doesNotContain("/schleife/a");
+    }
+
+    @Test
+    void everyReachableStatusTwoHundredPageStaysWellClearOfTheSoftNotFoundProbe() {
+        // A canary for the soft-404 margin: elsewhere the measured gap is "closest real page at
+        // 27, cutoff at 16". Guarding half of it means drift that eats real pages trips this long
+        // before it reaches the cutoff, instead of silently shrinking the two-page fixture oracle.
+        SoftNotFoundProbe probe = result.snapshots().softNotFound();
+        assertThat(probe.usable()).isTrue();
+        assertThat(result.snapshots().snapshots())
+                .filteredOn(snapshot -> snapshot.reachable() && snapshot.httpStatus() == 200
+                        && !snapshot.url().path().equals("/verirrt.html")
+                        && !snapshot.url().path().equals("/nicht-vorhanden.html"))
+                .allSatisfy(snapshot -> assertThat(
+                        SimHash.hammingDistance(snapshot.textSimhash(), probe.simhash()))
+                        .isGreaterThan(20));
     }
 
     @Test

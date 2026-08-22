@@ -1,6 +1,7 @@
 package dev.hendrikhoemberg.webtesthelper.checks;
 
 import dev.hendrikhoemberg.webtesthelper.model.CheckFinding;
+import dev.hendrikhoemberg.webtesthelper.model.CheckType;
 import dev.hendrikhoemberg.webtesthelper.model.PageSnapshot;
 import dev.hendrikhoemberg.webtesthelper.model.RunFacts;
 import dev.hendrikhoemberg.webtesthelper.model.RunSnapshots;
@@ -8,6 +9,7 @@ import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Runs the applicable page checks over the snapshots a crawl produced (deviation D2: one
@@ -38,6 +40,14 @@ public final class CheckEngine {
             findings.addAll(evaluatePage(snapshot, site, facts));
         }
         return findings;
+    }
+
+    /**
+     * The check types this engine can actually run (spec 6.4): a run's coverage may not claim a
+     * check the registry does not implement, or resolving would trust checks that never ran.
+     */
+    public Set<CheckType> coveredTypes() {
+        return registry.coveredTypes();
     }
 
     public List<CheckFinding> evaluatePage(PageSnapshot snapshot, SiteContext site,

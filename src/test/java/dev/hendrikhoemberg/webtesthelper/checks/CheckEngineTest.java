@@ -50,6 +50,18 @@ class CheckEngineTest {
     }
 
     @Test
+    void coveredTypesIsExactlyWhatTheRegistryImplements() {
+        // Spec 6.4: a run may only claim coverage for checks that exist. DEAD_LINK and the other
+        // Plan-3b checks have no implementation here, so the engine must not claim them.
+        assertThat(engine.coveredTypes())
+                .contains(CheckType.PAGE_STATUS, CheckType.PAGE_UNREACHABLE,
+                        CheckType.REDIRECT_CHAIN, CheckType.IMAGE_BROKEN, CheckType.MEDIA_PLAYABLE,
+                        CheckType.IFRAME_EMBED, CheckType.MIXED_CONTENT, CheckType.CONSOLE_ERRORS)
+                .doesNotContain(CheckType.DEAD_LINK, CheckType.FILE_DOWNLOAD, CheckType.TLS_CERT,
+                        CheckType.HREFLANG, CheckType.SITEMAP_CONSISTENCY);
+    }
+
+    @Test
     void everyEnabledCheckContributesToTheSamePage() {
         List<CheckFinding> findings =
                 engine.evaluatePage(brokenPage(), site(allEnabled()), facts(RunScope.FULL));

@@ -73,6 +73,10 @@ public class CrawlRunExecutor implements RunExecutor {
                     results.updateProgress(lease.runId(), visited, failed);
                 });
 
+        // The check pass runs outside the crawl's heartbeat callback; one more extension closes
+        // the stale-lease window so the sweep cannot reclaim a run that is still working (spec 14).
+        leases.heartbeat(lease.runId(), identity.name(), LEASE_EXTENSION);
+
         RunFacts facts = RunFacts.of(result.snapshots(), lease.scope(), startedAt);
         List<CheckFinding> findings = checks.evaluateRun(result.snapshots(), site, facts);
         log.info("Lauf {}: {} Befunde auf {} Seiten", lease.runId(), findings.size(),
@@ -80,6 +84,7 @@ public class CrawlRunExecutor implements RunExecutor {
 
         List<String> coveredCheckTypes = lease.scope().checkTypes().stream()
                 .filter(site::enabled)
+                .filter(checks.coveredTypes()::contains)
                 .map(Enum::name)
                 .sorted()
                 .toList();
