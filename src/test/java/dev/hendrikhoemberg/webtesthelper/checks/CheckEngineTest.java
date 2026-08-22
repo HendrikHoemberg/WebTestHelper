@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -47,6 +48,20 @@ class CheckEngineTest {
                 UrlVerifications.EMPTY, TlsCertificateFact.NONE, List.of());
     }
 
+    private static RunFacts facts(RunScope scope, TlsCertificateFact tls) {
+        return new RunFacts(1L, scope, Instant.EPOCH, SoftNotFoundProbe.NONE,
+                UrlVerifications.EMPTY, tls, List.of());
+    }
+
+    private static RunFacts factsNow(RunScope scope, TlsCertificateFact tls) {
+        return new RunFacts(1L, scope, Instant.now(), SoftNotFoundProbe.NONE,
+                UrlVerifications.EMPTY, tls, List.of());
+    }
+
+    private static RunSnapshots snapshots() {
+        return new RunSnapshots(1L, site(allEnabled()), List.of(), SoftNotFoundProbe.NONE);
+    }
+
     private static PageSnapshot brokenPage() {
         return Snapshots.page("https://example.com/x").status(500)
                 .image("https://example.com/fehlt.png", 0).build();
@@ -54,15 +69,10 @@ class CheckEngineTest {
 
     @Test
     void coveredTypesIsExactlyWhatTheRegistryImplements() {
-        // Spec 6.4: a run may only claim coverage for checks that exist. The remaining Plan-3b
-        // checks (TLS_CERT, HREFLANG, SITEMAP_CONSISTENCY) have no implementation here yet.
+        // Spec 6.4: a run may only claim coverage for checks that exist. With Plan 3b landed the
+        // registry implements every CheckType, so coverage is the whole enum.
         assertThat(engine.coveredTypes())
-                .contains(CheckType.PAGE_STATUS, CheckType.PAGE_UNREACHABLE,
-                        CheckType.REDIRECT_CHAIN, CheckType.IMAGE_BROKEN, CheckType.MEDIA_PLAYABLE,
-                        CheckType.IFRAME_EMBED, CheckType.MIXED_CONTENT, CheckType.CONSOLE_ERRORS,
-                        CheckType.DEAD_LINK, CheckType.FILE_DOWNLOAD)
-                .doesNotContain(CheckType.TLS_CERT, CheckType.HREFLANG,
-                        CheckType.SITEMAP_CONSISTENCY);
+                .containsExactlyInAnyOrderElementsOf(EnumSet.allOf(CheckType.class));
     }
 
     @Test
@@ -138,6 +148,50 @@ class CheckEngineTest {
                 .isInstanceOf(CheckEvaluationException.class)
                 .hasMessageContaining("PAGE_STATUS")
                 .hasMessageContaining("https://example.com/x")
+                .hasRootCauseMessage("kaputt");
+    }
+
+    @Test
+    void aSiteCheckOutsideTheRunScopeDoesNotRun() {
+        TlsCertificateFact expired = new TlsCertificateFact("example.com", true, null,
+                Instant.EPOCH, Instant.now().minus(1, java.time.temporal.ChronoUnit.DAYS),
+                "CN=example.com");
+
+        assertThat(engine.evaluateSite(snapshots(), site(allEnabled()), factsNow(RunScope.FULL, expired)))
+                .extracting(CheckFinding::type).contains(CheckType.TLS_CERT);
+        assertThat(engine.evaluateSite(snapshots(), site(allEnabled()), factsNow(RunScope.PULSE, expired)))
+                .extracting(CheckFinding::type).doesNotContain(CheckType.TLS_CERT);
+    }
+
+    @Test
+    void aDisabledSiteCheckDoesNotRun() {
+        TlsCertificateFact expired = new TlsCertificateFact("example.com", true, null,
+                Instant.EPOCH, Instant.now().minus(1, java.time.temporal.ChronoUnit.DAYS),
+                "CN=example.com");
+        Map<CheckType, CheckSetting> settings = allEnabled();
+        settings.put(CheckType.TLS_CERT, CheckSetting.defaultDisabled());
+
+        assertThat(engine.evaluateSite(snapshots(), site(settings), factsNow(RunScope.FULL, expired)))
+                .extracting(CheckFinding::type).doesNotContain(CheckType.TLS_CERT);
+    }
+
+    @Test
+    void aSiteCheckThatThrowsNamesItselfInsteadOfFailingAnonymously() {
+        CheckEngine broken = new CheckEngine(new CheckRegistry(List.of(), List.of(new SiteCheck() {
+            @Override public CheckType type() { return CheckType.TLS_CERT; }
+            @Override public Severity defaultSeverity() { return Severity.ERROR; }
+            @Override public Set<String> messageKeys() { return Set.of("finding.TLS_CERT.x"); }
+            @Override public List<CheckFinding> evaluate(RunSnapshots s, SiteContext c,
+                    CheckConfig cfg) {
+                throw new IllegalStateException("kaputt");
+            }
+        })));
+
+        assertThatThrownBy(() ->
+                broken.evaluateSite(snapshots(), site(allEnabled()), facts(RunScope.FULL)))
+                .isInstanceOf(CheckEvaluationException.class)
+                .hasMessageContaining("TLS_CERT")
+                .hasMessageContaining("https://example.com/")
                 .hasRootCauseMessage("kaputt");
     }
 }

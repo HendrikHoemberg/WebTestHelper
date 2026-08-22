@@ -43,6 +43,29 @@ public final class CheckEngine {
     }
 
     /**
+     * The site pass: each registered {@link SiteCheck}, filtered by scope ∩ enabled exactly like
+     * the page pass, with the same failure wrapping. The site's base URL stands in for the page
+     * URL in the exception, because a site check has no single page it was evaluating.
+     */
+    public List<CheckFinding> evaluateSite(RunSnapshots snapshots, SiteContext site, RunFacts facts) {
+        List<CheckFinding> findings = new ArrayList<>();
+        for (SiteCheck check : registry.siteChecks()) {
+            if (!facts.scope().checkTypes().contains(check.type()) || !site.enabled(check.type())) {
+                continue;
+            }
+            CheckConfig config = new CheckConfig(
+                    site.severityFor(check.type(), check.defaultSeverity()),
+                    site.settingsFor(check.type()), facts);
+            try {
+                findings.addAll(check.evaluate(snapshots, site, config));
+            } catch (RuntimeException e) {
+                throw new CheckEvaluationException(check.type(), site.baseUrl().value(), e);
+            }
+        }
+        return findings;
+    }
+
+    /**
      * The check types this engine can actually run (spec 6.4): a run's coverage may not claim a
      * check the registry does not implement, or resolving would trust checks that never ran.
      */

@@ -61,14 +61,20 @@ public final class PageStatusCheck implements PageCheck {
                     List.of(String.valueOf(snapshot.httpStatus()))));
         }
         SoftNotFoundProbe probe = config.facts().softNotFound();
+        int maxDistance = config.option("maxDistance", DEFAULT_MAX_DISTANCE);
+        if (looksLikeNotFound(snapshot, probe, maxDistance)) {
+            return List.of(finding(snapshot, config, SOFT_404, List.of()));
+        }
+        return List.of();
+    }
+
+    static boolean looksLikeNotFound(PageSnapshot snapshot, SoftNotFoundProbe probe,
+            int maxDistance) {
         if (snapshot.httpStatus() != 200 || !probe.usable() || snapshot.textContent().isBlank()) {
-            return List.of();
+            return false;
         }
         int distance = SimHash.hammingDistance(snapshot.textSimhash(), probe.simhash());
-        if (distance > config.option("maxDistance", DEFAULT_MAX_DISTANCE)) {
-            return List.of();
-        }
-        return List.of(finding(snapshot, config, SOFT_404, List.of()));
+        return distance <= maxDistance;
     }
 
     private CheckFinding finding(PageSnapshot snapshot, CheckConfig config, String messageKey,

@@ -38,7 +38,9 @@ public final class CheckRegistry {
                         new ConsoleErrorsCheck(),
                         new DeadLinkCheck(),
                         new FileDownloadCheck()),
-                List.of());     // Plan 3b adds TLS_CERT, HREFLANG and SITEMAP_CONSISTENCY
+                List.of(new TlsCertCheck(),
+                        new HreflangCheck(),
+                        new SitemapConsistencyCheck()));
     }
 
     public List<PageCheck> pageChecks() {

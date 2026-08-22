@@ -15,15 +15,11 @@ class CheckRegistryTest {
 
     @Test
     void everyCheckTypeThatShipsInPhaseOneHasExactlyOneImplementation() {
-        // Plan 3b implements these five; delete them from this set as they land, and the test
-        // starts demanding them. Spec 7.3: adding a check must not require touching the runner,
-        // and this is what makes forgetting to register one impossible to miss.
-        Set<CheckType> pendingInPlan3b = EnumSet.of(CheckType.TLS_CERT, CheckType.HREFLANG,
-                CheckType.SITEMAP_CONSISTENCY);
-        Set<CheckType> expected = EnumSet.allOf(CheckType.class);
-        expected.removeAll(pendingInPlan3b);
-
-        assertThat(registry.coveredTypes()).containsExactlyInAnyOrderElementsOf(expected);
+        // Spec 7.3: adding a check must not require touching the runner, and this is what makes
+        // forgetting to register one impossible to miss. Plan 3b landed TLS_CERT, HREFLANG and
+        // SITEMAP_CONSISTENCY, so every CheckType now has exactly one implementation.
+        assertThat(registry.coveredTypes())
+                .containsExactlyInAnyOrderElementsOf(EnumSet.allOf(CheckType.class));
     }
 
     @Test
