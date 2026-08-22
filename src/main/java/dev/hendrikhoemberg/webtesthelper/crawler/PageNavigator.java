@@ -1,0 +1,300 @@
+package dev.hendrikhoemberg.webtesthelper.crawler;
+
+import com.microsoft.playwright.Browser;
+import com.microsoft.playwright.BrowserContext;
+import com.microsoft.playwright.Page;
+import com.microsoft.playwright.PlaywrightException;
+import com.microsoft.playwright.Request;
+import com.microsoft.playwright.Response;
+import com.microsoft.playwright.options.LoadState;
+import com.microsoft.playwright.options.WaitUntilState;
+import dev.hendrikhoemberg.webtesthelper.model.ConsoleMessage;
+import dev.hendrikhoemberg.webtesthelper.model.FailedRequest;
+import dev.hendrikhoemberg.webtesthelper.model.FormFieldRef;
+import dev.hendrikhoemberg.webtesthelper.model.FormRef;
+import dev.hendrikhoemberg.webtesthelper.model.FrameRef;
+import dev.hendrikhoemberg.webtesthelper.model.ImageOrigin;
+import dev.hendrikhoemberg.webtesthelper.model.ImageRef;
+import dev.hendrikhoemberg.webtesthelper.model.LinkRef;
+import dev.hendrikhoemberg.webtesthelper.model.MediaKind;
+import dev.hendrikhoemberg.webtesthelper.model.MediaRef;
+import dev.hendrikhoemberg.webtesthelper.model.NormalizedUrl;
+import dev.hendrikhoemberg.webtesthelper.model.PageSnapshot;
+import dev.hendrikhoemberg.webtesthelper.model.SimHash;
+import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
+import dev.hendrikhoemberg.webtesthelper.model.UrlNormalizer;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.stereotype.Component;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.HexFormat;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * One navigation, one script evaluation, one screenshot — and out comes a {@link PageSnapshot}
+ * (spec 5.2). Each round-trip to the browser costs milliseconds that multiply by page count, so
+ * the extraction script collects links, images, media, frames, forms, text and language in a
+ * single {@code page.evaluate} pass.
+ *
+ * <p>Capture is called only from inside {@link BrowserPool#submit}. Playwright objects are
+ * thread-confined: the {@code Browser} arrives from the pool's worker thread, everything derived
+ * from it stays in this method. Only the {@link PageSnapshot} crosses threads.
+ */
+@Component
+public class PageNavigator {
+
+    private static final String EXTRACT_JS;
+
+    static {
+        try {
+            EXTRACT_JS = new ClassPathResource("crawler/extract.js")
+                    .getContentAsString(StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new IllegalStateException("crawler/extract.js fehlt im Klassenpfad", e);
+        }
+    }
+
+    private final CrawlerProperties properties;
+    private final HostThrottle throttle;
+
+    public PageNavigator(CrawlerProperties properties, HostThrottle throttle) {
+        this.properties = properties;
+        this.throttle = throttle;
+    }
+
+    public PageSnapshot capture(Browser browser, CrawlTarget target, SiteContext site,
+            Path runArtifactDir) {
+        NormalizedUrl requested = UrlNormalizer.normalize(target.url()).orElse(null);
+        if (requested == null) {
+            return PageSnapshot.unreachable(fallbackUrl(target), target.url(), target.depth(),
+                    "Nicht als URL interpretierbar", List.of(), List.of());
+        }
+        throttle.await(requested.host(), properties.perHostDelay());
+
+        List<ConsoleMessage> console = Collections.synchronizedList(new ArrayList<>());
+        List<FailedRequest> failed = Collections.synchronizedList(new ArrayList<>());
+        long startedAt = System.nanoTime();
+
+        try (BrowserContext context = browser.newContext(new Browser.NewContextOptions()
+                .setUserAgent(site.effectiveUserAgent())
+                .setViewportSize(1366, 900)
+                .setIgnoreHTTPSErrors(true)
+                .setLocale("de-DE"))) {
+
+            Page page = context.newPage();
+            page.onConsoleMessage(message -> console.add(new ConsoleMessage(
+                    message.type(), truncate(message.text(), 500), message.location())));
+            page.onPageError(error -> console.add(new ConsoleMessage(
+                    "error", truncate(error, 500), target.url())));
+            page.onRequestFailed(request -> failed.add(new FailedRequest(
+                    request.url(), request.method(), request.resourceType(), null,
+                    request.failure())));
+            page.onResponse(response -> {
+                if (response.status() >= 400) {
+                    failed.add(new FailedRequest(response.url(), response.request().method(),
+                            response.request().resourceType(), response.status(), null));
+                }
+            });
+
+            Response response = page.navigate(target.url(), new Page.NavigateOptions()
+                    .setTimeout(properties.navigationTimeout().toMillis())
+                    .setWaitUntil(WaitUntilState.LOAD));
+            try {
+                page.waitForLoadState(LoadState.NETWORKIDLE,
+                        new Page.WaitForLoadStateOptions().setTimeout(5000));
+            } catch (PlaywrightException stillBusy) {
+                // A page with a poll or a live widget never goes idle. Not a failure — extract anyway.
+            }
+
+            NormalizedUrl pageUrl = UrlNormalizer.normalize(page.url()).orElse(requested);
+            Extracted extracted = map(page.evaluate(EXTRACT_JS), pageUrl, site);
+            String screenshotPath = screenshot(page, requested, runArtifactDir);
+
+            Map<String, String> headers = new HashMap<>();
+            if (response != null) {
+                for (Map.Entry<String, String> header : response.allHeaders().entrySet()) {
+                    headers.put(header.getKey().toLowerCase(Locale.ROOT), header.getValue());
+                }
+            }
+
+            List<String> redirectChain = new ArrayList<>();
+            Request current = response == null ? null : response.request();
+            while (current != null) {
+                redirectChain.add(current.url());
+                current = current.redirectedFrom();
+            }
+            Collections.reverse(redirectChain);
+            if (redirectChain.isEmpty()) {
+                redirectChain.add(pageUrl.value());
+            }
+
+            long loadMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt);
+
+            return new PageSnapshot(pageUrl, target.url(), target.depth(), true, null,
+                    response == null ? 0 : response.status(), headers, redirectChain, loadMillis,
+                    extracted.title(), extracted.lang(), extracted.text(),
+                    SimHash.of(extracted.text()), extracted.links(), extracted.images(),
+                    extracted.media(), extracted.frames(), extracted.forms(),
+                    List.copyOf(console), List.copyOf(failed), screenshotPath);
+        } catch (PlaywrightException e) {
+            return PageSnapshot.unreachable(requested, target.url(), target.depth(),
+                    truncate(e.getMessage(), 500), List.copyOf(console), List.copyOf(failed));
+        }
+    }
+
+    /**
+     * The single place where the script vocabulary (raw/abs/w/h/textLength/error…) meets the model
+     * vocabulary (rawSource/target/naturalWidth/naturalHeight/contentTextLength/errorCode).
+     */
+    private Extracted map(Object raw, NormalizedUrl pageUrl, SiteContext site) {
+        if (!(raw instanceof Map<?, ?> root)) {
+            return Extracted.EMPTY;
+        }
+        Map<String, Object> data = cast(root);
+
+        List<LinkRef> links = new ArrayList<>();
+        for (Object item : listOf(data.get("links"))) {
+            Map<String, Object> link = cast(item);
+            UrlNormalizer.normalize(asString(link.get("abs"))).ifPresent(target -> links.add(
+                    new LinkRef(asString(link.get("raw")), target, asString(link.get("text")),
+                            site.baseUrl().sameSiteAs(target), asString(link.get("rel")))));
+        }
+
+        List<ImageRef> images = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
+        for (Object item : listOf(data.get("images"))) {
+            Map<String, Object> image = cast(item);
+            String abs = asString(image.get("abs"));
+            String origin = asString(image.get("origin"));
+            UrlNormalizer.normalize(abs).ifPresent(target -> {
+                String key = target.value() + '\u0000' + origin;
+                if (seen.add(key)) {
+                    images.add(new ImageRef(asString(image.get("raw")), target,
+                            asString(image.get("alt")), intOf(image.get("w")), intOf(image.get("h")),
+                            ImageOrigin.valueOf(origin)));
+                }
+            });
+        }
+
+        List<MediaRef> media = new ArrayList<>();
+        for (Object item : listOf(data.get("media"))) {
+            Map<String, Object> entry = cast(item);
+            List<NormalizedUrl> sources = new ArrayList<>();
+            for (Object source : listOf(entry.get("sources"))) {
+                UrlNormalizer.normalize(asString(source)).ifPresent(sources::add);
+            }
+            media.add(new MediaRef(MediaKind.valueOf(asString(entry.get("kind"))), sources,
+                    intOf(entry.get("readyState")), doubleOf(entry.get("duration")),
+                    asString(entry.get("error"))));
+        }
+
+        List<FrameRef> frames = new ArrayList<>();
+        for (Object item : listOf(data.get("frames"))) {
+            Map<String, Object> frame = cast(item);
+            UrlNormalizer.normalize(asString(frame.get("src"))).ifPresent(src -> frames.add(
+                    new FrameRef(src, asString(frame.get("title")), boolOf(frame.get("loaded")),
+                            intOf(frame.get("textLength")), boolOf(frame.get("sameOrigin")))));
+        }
+
+        List<FormRef> forms = new ArrayList<>();
+        for (Object item : listOf(data.get("forms"))) {
+            Map<String, Object> form = cast(item);
+            List<FormFieldRef> fields = new ArrayList<>();
+            for (Object field : listOf(form.get("fields"))) {
+                Map<String, Object> entry = cast(field);
+                fields.add(new FormFieldRef(asString(entry.get("name")),
+                        asString(entry.get("type")), asString(entry.get("label")),
+                        asString(entry.get("autocomplete")), boolOf(entry.get("required"))));
+            }
+            forms.add(new FormRef(asString(form.get("id")), asString(form.get("action")),
+                    asString(form.get("method")), fields));
+        }
+
+        return new Extracted(asString(data.get("title")), asString(data.get("lang")),
+                asString(data.get("text")), links, images, media, frames, forms);
+    }
+
+    /** A screenshot failure downgrades to {@code screenshotPath = null}; it never fails the page. */
+    private String screenshot(Page page, NormalizedUrl requested, Path runArtifactDir) {
+        try {
+            Files.createDirectories(runArtifactDir);
+            String name = sha256Hex(requested.value()).substring(0, 32) + ".png";
+            page.screenshot(new Page.ScreenshotOptions()
+                    .setPath(runArtifactDir.resolve(name))
+                    .setFullPage(false));
+            return name;
+        } catch (IOException | RuntimeException e) {
+            return null;
+        }
+    }
+
+    private static String truncate(String value, int max) {
+        if (value == null || value.length() <= max) {
+            return value;
+        }
+        return value.substring(0, max);
+    }
+
+    private static String sha256Hex(String value) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            return HexFormat.of().formatHex(
+                    digest.digest(value.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    /** A referent for a URL that cannot even be interpreted — never points anywhere real. */
+    private static NormalizedUrl fallbackUrl(CrawlTarget target) {
+        return new NormalizedUrl("http", "ungueltig", 80, "/", null);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> cast(Object value) {
+        return (Map<String, Object>) value;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<Object> listOf(Object value) {
+        return value instanceof List<?> list ? (List<Object>) list : List.of();
+    }
+
+    private static String asString(Object value) {
+        return value == null ? null : value.toString();
+    }
+
+    private static boolean boolOf(Object value) {
+        return value instanceof Boolean b && b;
+    }
+
+    /** Playwright hands back Integer for whole numbers and Double otherwise. */
+    private static int intOf(Object value) {
+        return value instanceof Number n ? n.intValue() : 0;
+    }
+
+    private static double doubleOf(Object value) {
+        return value instanceof Number n ? n.doubleValue() : 0;
+    }
+
+    private record Extracted(String title, String lang, String text,
+                             List<LinkRef> links, List<ImageRef> images, List<MediaRef> media,
+                             List<FrameRef> frames, List<FormRef> forms) {
+
+        private static final Extracted EMPTY =
+                new Extracted("", "", "", List.of(), List.of(), List.of(), List.of(), List.of());
+    }
+}
