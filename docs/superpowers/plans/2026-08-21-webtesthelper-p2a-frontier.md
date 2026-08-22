@@ -220,7 +220,7 @@ class FixtureSiteTest {
 
         HttpResponse<byte[]> trap = get("dateien/preisliste.pdf");
         assertThat(trap.statusCode()).isEqualTo(200);
-        assertThat(trap.headers().firstValue("content-type")).contains("text/html");
+        assertThat(trap.headers().firstValue("content-type")).hasValue("text/html; charset=utf-8");
     }
 
     @Test
