@@ -178,14 +178,6 @@ public class CrawlService {
                 computeVerificationCandidates(snapshots, admission), sitemapUrls);
     }
 
-    /**
-     * The URLs worth pinging over HTTP (deviation D19): every link target, frame source and
-     * hreflang alternate the crawl saw, kept only when the verifier's politeness gate allows
-     * it, minus the pages we already navigated. First-seen order; for a given crawl the resulting
-     * set of candidates is deterministic across runs (the virtual-thread fan-out completes in
-     * nondeterministic order, so list order is not), and a verification run over the same crawl
-     * reproduces the set it checks.
-     */
     private static List<String> computeVerificationCandidates(List<PageSnapshot> snapshots,
             UrlAdmission admission) {
         Set<String> seen = new LinkedHashSet<>();
@@ -371,12 +363,6 @@ public class CrawlService {
                 : SoftNotFoundProbe.NONE;
     }
 
-    /**
-     * The probe navigates {base}/{uuid} once to fingerprint the site's not-found page, leaving a
-     * screenshot behind like any other navigation. That screenshot is not a finding's evidence and
-     * must not linger as an unreferenced artifact, so it is dropped once the probe has been read.
-     * A temp file, not evidence — failure to delete is ignored.
-     */
     private static void deleteProbeScreenshot(Path runArtifacts, NormalizedUrl probeUrl) {
         try {
             Files.deleteIfExists(runArtifacts.resolve(ScreenshotNames.screenshotName(probeUrl.value())));
