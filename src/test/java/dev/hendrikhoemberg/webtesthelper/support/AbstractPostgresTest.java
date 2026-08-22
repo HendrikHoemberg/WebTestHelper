@@ -18,8 +18,13 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  *
  * <p>Because the container (and the Spring context) is shared across the whole suite, test
  * classes must not assume a clean database. {@code @Transactional} test classes get automatic
- * rollback; any non-{@code @Transactional} subclass must clear its own tables in
- * {@code @BeforeEach}.
+ * rollback; any non-{@code @Transactional} subclass must clear its own tables — in
+ * {@code @BeforeEach}, or once in {@code @BeforeAll} for a
+ * {@code @TestInstance(PER_CLASS)} class whose tests all read one expensive fixture.
+ *
+ * <p>The {@code @BeforeAll} variant rests on surefire running test classes sequentially in a
+ * single JVM, so no other class interleaves and sees the shared rows. Enabling JUnit parallel
+ * execution would break it.
  */
 @SpringBootTest
 @ActiveProfiles("test")

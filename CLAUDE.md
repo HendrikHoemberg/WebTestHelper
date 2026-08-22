@@ -46,5 +46,8 @@ sibling top-level classes instead (`UrlNormalizerNormalisationTest`, `…EdgeCas
   `@BeforeEach` that crawls costs one Chromium sweep per test method.
 - The fixture's `/langsam` slot sleeps 8s against a 5s navigation timeout. Both numbers are
   paired; changing one alone either breaks the timeout tests or slows the suite.
+- **Do not enable JUnit parallel execution.** `CrawlServiceFullCrawlTest` and
+  `PageCheckAcceptanceTest` share one crawl across a class and clear their tables in
+  `@BeforeAll`; that is only safe while surefire runs test classes sequentially in one JVM.
 - Timing assertions need slack: `HostThrottle` schedules on `currentTimeMillis()`, so a test
   measuring with `nanoTime()` must not assert the exact theoretical bound.
