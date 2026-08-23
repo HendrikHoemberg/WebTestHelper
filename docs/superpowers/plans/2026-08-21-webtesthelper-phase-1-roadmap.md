@@ -3,8 +3,8 @@
 **Date:** 2026-08-21
 **Spec:** `docs/superpowers/specs/2026-08-21-webtesthelper-design.md` (§17 defines Phase 1)
 **Status:** Plans 1, 2a, 2b, 3a and **3b** executed and reviewed against the spec; their commits
-are on `main`. Plan 3 is split into 3a and 3b; both halves are executed. Plans 4–5 are scoped
-below and written when their predecessor is done.
+are on `main`. Plan 3 is split into 3a and 3b; both halves are executed. **Plan 4 is written and
+awaiting execution.** Plan 5 is scoped below and written when plan 4 is done.
 
 ---
 
@@ -69,11 +69,16 @@ plan is never edited.
 | D20 | Only external URLs use the shared `external_url_check` cache; a site's own pages are verified fresh every run | 3b |
 | D21 | TLS is a `crawler` probe landing in `RunFacts`, not a handshake inside `TlsCertCheck` | 3b |
 | D22 | A sitemap entry that is a soft 404 is `PAGE_STATUS`'s finding; `SITEMAP_CONSISTENCY` reports only non-2xx, unreachable or `DEAD` entries | 3b |
+| D23 | End-of-run re-verification is an HTTP re-check, and only of subjects the crawl never navigated; a finding is dropped only on a fresh `OK` | 4 |
+| D24 | The external cache's `dependent_site_ids` does not fan findings out across sites in Phase 1 — a dependent site reports the cached `DEAD` at its own next run | 4 |
+| D25 | A run's coverage is the frontier's `DONE` URLs **plus** every snapshot's final URL, so a page reached only through a redirect is inside coverage | 4 |
+| D26 | `occurrence_count` is recomputed from the occurrence rows, never accumulated, so re-materialising a reclaimed run changes nothing | 4 |
+| D27 | The site-wide threshold is global configuration in Phase 1, not a per-site column | 4 |
 
 D5–D12 were added when plan 2 was written; the help deviation moved from D5 to D13 so the
 numbering stays chronological. Nothing referenced it yet. D14–D17 were added when plan 3a was
-written, D18–D22 when 3b was — 3b's plan file carries the reasoning behind each; this table is
-the index.
+written, D18–D22 when 3b was and D23–D27 when plan 4 was — each plan file carries the reasoning
+behind its own; this table is the index.
 
 ## Execution
 
