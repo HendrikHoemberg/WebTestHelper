@@ -2,9 +2,11 @@
 
 **Date:** 2026-08-21
 **Spec:** `docs/superpowers/specs/2026-08-21-webtesthelper-design.md` (§17 defines Phase 1)
-**Status:** Plans 1, 2a, 2b, 3a and **3b** executed and reviewed against the spec; their commits
-are on `main`. Plan 3 is split into 3a and 3b; both halves are executed. **Plan 4 is written and
-awaiting execution.** Plan 5 is scoped below and written when plan 4 is done.
+**Status:** Plans 1, 2a, 2b, 3a, 3b and **4** executed and reviewed against the spec; their commits
+are on `main`. Plan 3 is split into 3a and 3b; both halves are executed. Plan 4 executed
+2026-08-23 with subagent-driven development (six task commits plus review fixes, 417 full tests
+green including the three-run browser acceptance). **Plan 5 is the only remaining plan** and is
+written next, from p4's "What Plan 5 consumes" section.
 
 ---
 
