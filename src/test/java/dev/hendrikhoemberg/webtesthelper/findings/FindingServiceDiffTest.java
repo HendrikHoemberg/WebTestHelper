@@ -1,0 +1,213 @@
+package dev.hendrikhoemberg.webtesthelper.findings;
+
+import dev.hendrikhoemberg.webtesthelper.catalog.SiteService;
+import dev.hendrikhoemberg.webtesthelper.model.CheckFinding;
+import dev.hendrikhoemberg.webtesthelper.model.CheckType;
+import dev.hendrikhoemberg.webtesthelper.model.Evidence;
+import dev.hendrikhoemberg.webtesthelper.model.NormalizedUrl;
+import dev.hendrikhoemberg.webtesthelper.model.RunCoverage;
+import dev.hendrikhoemberg.webtesthelper.model.RunScope;
+import dev.hendrikhoemberg.webtesthelper.model.Severity;
+import dev.hendrikhoemberg.webtesthelper.support.AbstractPostgresTest;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+@Transactional
+class FindingServiceDiffTest extends AbstractPostgresTest {
+
+    @Autowired
+    FindingService service;
+    @Autowired
+    JdbcTemplate jdbc;
+    @Autowired
+    SiteService sites;
+
+    private long siteId;
+    private Instant observedAt;
+
+    @BeforeEach
+    void setup() {
+        siteId = sites.create(new dev.hendrikhoemberg.webtesthelper.catalog.SiteForm(
+                "Kunde", "https://www.example.com/", 100, 3,
+                java.time.Duration.ofMinutes(10), List.of(), List.of(), true, null));
+        observedAt = Instant.now().truncatedTo(ChronoUnit.MICROS);
+    }
+
+    @Test
+    void run1ShowsThreeNewAndNothingStillOpen() {
+        RunDiff diff = service.record(1, siteId, threeFindings(), fullCoverage(List.of("/a", "/b", "/c")), observedAt);
+
+        assertThat(diff.count(ReportSection.NEW)).isEqualTo(3);
+        assertThat(diff.count(ReportSection.STILL_OPEN)).isZero();
+    }
+
+    @Test
+    void run2WithTheSameThreeIsStableNotNewEveryTime() {
+        RunDiff run1 = service.record(1, siteId, threeFindings(), fullCoverage(List.of("/a", "/b", "/c")), observedAt);
+        List<String> firstPass = fingerprints(run1, ReportSection.NEW);
+
+        RunDiff run2 = service.record(2, siteId, threeFindings(), fullCoverage(List.of("/a", "/b", "/c")), observedAt);
+        List<String> secondPass = fingerprints(run2, ReportSection.STILL_OPEN);
+
+        assertThat(run2.count(ReportSection.STILL_OPEN)).isEqualTo(3);
+        assertThat(run2.count(ReportSection.NEW)).isZero();
+        assertThat(run2.count(ReportSection.FIXED)).isZero();
+        assertThat(secondPass).containsExactlyInAnyOrderElementsOf(firstPass);
+    }
+
+    @Test
+    void run3DroppingOneWithFullCoverageFixesIt() {
+        service.record(1, siteId, threeFindings(), fullCoverage(List.of("/a", "/b", "/c")), observedAt);
+        service.record(2, siteId, threeFindings(), fullCoverage(List.of("/a", "/b", "/c")), observedAt);
+
+        List<CheckFinding> dropped = threeFindings().stream()
+                .filter(f -> !"/c".equals(f.locationKey())).toList();
+        RunDiff run3 = service.record(3, siteId, dropped, fullCoverage(List.of("/a", "/b", "/c")), observedAt);
+
+        assertThat(run3.count(ReportSection.FIXED)).isEqualTo(1);
+        Finding fixed = run3.of(ReportSection.FIXED).get(0);
+        assertThat(fixed.locationKey()).isEqualTo("/c");
+        assertThat(fixed.resolvedAtRun()).isEqualTo(3);
+        assertThat(run3.count(ReportSection.STILL_OPEN)).isEqualTo(2);
+    }
+
+    @Test
+    void run4SeeingTheDroppedOneAgainIsRegressedNotNew() {
+        service.record(1, siteId, threeFindings(), fullCoverage(List.of("/a", "/b", "/c")), observedAt);
+        service.record(2, siteId, threeFindings(), fullCoverage(List.of("/a", "/b", "/c")), observedAt);
+        List<CheckFinding> dropped = threeFindings().stream()
+                .filter(f -> !"/c".equals(f.locationKey())).toList();
+        service.record(3, siteId, dropped, fullCoverage(List.of("/a", "/b", "/c")), observedAt);
+
+        RunDiff run4 = service.record(4, siteId, threeFindings(), fullCoverage(List.of("/a", "/b", "/c")), observedAt);
+
+        assertThat(run4.count(ReportSection.REGRESSED)).isEqualTo(1);
+        assertThat(run4.count(ReportSection.NEW)).isZero();
+        Finding regressed = run4.of(ReportSection.REGRESSED).get(0);
+        assertThat(regressed.locationKey()).isEqualTo("/c");
+        assertThat(regressed.firstSeenRun()).isEqualTo(1);
+    }
+
+    @Test
+    void anAcknowledgedFindingShowsAsKnownAndRegressesBackToKnownAfterReturn() {
+        service.record(1, siteId, threeFindings(), fullCoverage(List.of("/a", "/b", "/c")), observedAt);
+        String acked = threeFindings().get(0).locationKey();
+        String fp = Fingerprint.of(siteId, CheckType.DEAD_LINK, "dead:" + acked, acked);
+        jdbc.update("UPDATE finding SET triage_status = 'ACKNOWLEDGED', triaged_at = ? WHERE fingerprint = ?",
+                java.sql.Timestamp.from(observedAt), fp);
+
+        RunDiff run2 = service.record(2, siteId, threeFindings(), fullCoverage(List.of("/a", "/b", "/c")), observedAt);
+        assertThat(run2.count(ReportSection.KNOWN)).isEqualTo(1);
+        assertThat(locationOf(run2, ReportSection.KNOWN)).containsExactly(acked);
+        assertThat(run2.count(ReportSection.STILL_OPEN)).isEqualTo(2);
+
+        List<CheckFinding> dropped = threeFindings().stream()
+                .filter(f -> !acked.equals(f.locationKey())).toList();
+        service.record(3, siteId, dropped, fullCoverage(List.of("/a", "/b", "/c")), observedAt);
+
+        RunDiff run4 = service.record(4, siteId, threeFindings(), fullCoverage(List.of("/a", "/b", "/c")), observedAt);
+        assertThat(run4.count(ReportSection.REGRESSED)).isEqualTo(1);
+        assertThat(run4.count(ReportSection.KNOWN)).isZero();
+        assertThat(locationOf(run4, ReportSection.REGRESSED)).containsExactly(acked);
+    }
+
+    @Test
+    void aPulseRunDoesNotResolveWhatAFullCrawlFound() {
+        NormalizedUrl pulsePage = page("/pulse");
+        NormalizedUrl otherPage = page("/other");
+        CheckFinding fileDownload = new CheckFinding(CheckType.FILE_DOWNLOAD, Severity.ERROR, "file:other",
+                otherPage, "m", List.of(), Evidence.NONE);
+        service.record(1, siteId, List.of(fileDownload), fullCoverage(List.of("/other")), observedAt);
+
+        RunCoverage pulse = RunCoverage.of(
+                RunScope.PULSE.checkTypes().stream().map(CheckType::name).toList(),
+                List.of("https://www.example.com/pulse"), List.of(), false);
+        CheckFinding pulseFinding = new CheckFinding(CheckType.PAGE_STATUS, Severity.WARN, "status:pulse",
+                pulsePage, "m", List.of(), Evidence.NONE);
+        RunDiff pulseDiff = service.record(2, siteId, List.of(pulseFinding), pulse, observedAt);
+
+        String fp = Fingerprint.of(siteId, CheckType.FILE_DOWNLOAD, "file:other", "/other");
+        assertThat(observedStatus(fp)).isEqualTo(dev.hendrikhoemberg.webtesthelper.model.ObservedStatus.ACTIVE);
+        assertThat(lastSeenRun(fp)).isEqualTo(1);
+        assertThat(noSectionContains(pulseDiff, fp)).isTrue();
+    }
+
+    @Test
+    void promotionBoundaryCrossingYieldsThreeNewAndOneFixed() {
+        List<CheckFinding> six = perPage(CheckType.DEAD_LINK, "dead:promo", 6);
+        service.record(1, siteId, six, fullCoverage(pageKeys(6)), observedAt);
+
+        List<CheckFinding> three = perPage(CheckType.DEAD_LINK, "dead:promo", 3);
+        RunDiff run2 = service.record(2, siteId, three, fullCoverage(pageKeys(3)), observedAt);
+
+        assertThat(run2.count(ReportSection.NEW)).isEqualTo(3);
+        assertThat(run2.count(ReportSection.FIXED)).isEqualTo(1);
+    }
+
+    private List<CheckFinding> threeFindings() {
+        return List.of(
+                new CheckFinding(CheckType.DEAD_LINK, Severity.ERROR, "dead:/a", page("/a"), "m", List.of(), Evidence.NONE),
+                new CheckFinding(CheckType.DEAD_LINK, Severity.ERROR, "dead:/b", page("/b"), "m", List.of(), Evidence.NONE),
+                new CheckFinding(CheckType.DEAD_LINK, Severity.ERROR, "dead:/c", page("/c"), "m", List.of(), Evidence.NONE));
+    }
+
+    private List<CheckFinding> perPage(CheckType type, String subject, int n) {
+        List<CheckFinding> out = new java.util.ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            out.add(new CheckFinding(type, Severity.ERROR, subject, page("/x" + i), "m", List.of(), Evidence.NONE));
+        }
+        return out;
+    }
+
+    private NormalizedUrl page(String path) {
+        return new NormalizedUrl("https", "www.example.com", 443, path, null);
+    }
+
+    private List<String> pageKeys(int n) {
+        List<String> keys = new java.util.ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            keys.add("/x" + i);
+        }
+        return keys;
+    }
+
+    private RunCoverage fullCoverage(List<String> locationKeys) {
+        List<String> urls = locationKeys.stream().map(k -> "https://www.example.com" + k).toList();
+        return RunCoverage.of(RunScope.FULL.checkTypes().stream().map(CheckType::name).toList(), urls, List.of(), false);
+    }
+
+    private List<String> fingerprints(RunDiff diff, ReportSection section) {
+        return diff.of(section).stream().map(Finding::fingerprint).toList();
+    }
+
+    private List<String> locationOf(RunDiff diff, ReportSection section) {
+        return diff.of(section).stream().map(Finding::locationKey).toList();
+    }
+
+    private boolean noSectionContains(RunDiff diff, String fp) {
+        for (ReportSection section : ReportSection.values()) {
+            if (diff.of(section).stream().anyMatch(f -> f.fingerprint().equals(fp))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private dev.hendrikhoemberg.webtesthelper.model.ObservedStatus observedStatus(String fp) {
+        return dev.hendrikhoemberg.webtesthelper.model.ObservedStatus.valueOf(jdbc.queryForObject(
+                "SELECT observed_status FROM finding WHERE fingerprint = ?", String.class, fp));
+    }
+
+    private long lastSeenRun(String fp) {
+        return jdbc.queryForObject("SELECT last_seen_run FROM finding WHERE fingerprint = ?", Long.class, fp);
+    }
+}
