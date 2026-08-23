@@ -5,8 +5,14 @@ import dev.hendrikhoemberg.webtesthelper.checks.CheckEngine;
 import dev.hendrikhoemberg.webtesthelper.crawler.CrawlRequest;
 import dev.hendrikhoemberg.webtesthelper.crawler.CrawlResult;
 import dev.hendrikhoemberg.webtesthelper.crawler.CrawlService;
+import dev.hendrikhoemberg.webtesthelper.crawler.FindingReverifier;
+import dev.hendrikhoemberg.webtesthelper.crawler.ReverificationOutcome;
 import dev.hendrikhoemberg.webtesthelper.crawler.TlsProbe;
 import dev.hendrikhoemberg.webtesthelper.crawler.UrlVerificationService;
+import dev.hendrikhoemberg.webtesthelper.findings.FindingService;
+import dev.hendrikhoemberg.webtesthelper.findings.RunDiff;
+import dev.hendrikhoemberg.webtesthelper.findings.ReportSection;
+import dev.hendrikhoemberg.webtesthelper.model.RunCoverage;
 import dev.hendrikhoemberg.webtesthelper.model.CheckFinding;
 import dev.hendrikhoemberg.webtesthelper.model.RunFacts;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
@@ -31,10 +37,12 @@ import java.util.List;
  * (spec 5.2) — it produces snapshots, which is why {@link CrawlResult} carries the whole
  * {@code RunSnapshots} rather than counts.
  *
- * <p>Plan 4 replaces {@code findings.size()} with materialisation: fingerprinting, site-wide
- * promotion, occurrences and the coverage-scoped diff (spec 6.2). Until then the findings are
- * computed, counted and dropped — which is enough to prove the pass runs and avoids inventing
- * a findings schema that materialisation would immediately replace.
+ * <p>The pipeline is crawl → verify → page checks → site checks → re-verify → materialise →
+ * diff (plan 4, task 6). Re-verification only ever drops findings (a dead link that answers
+ * {@code OK} on a later probe was a transient failure, spec 8); the survivors are materialised
+ * into fingerprints, promoted site-wide where the check so decides, and diffed against the
+ * previous run so the run row can carry {@code findings_new} and {@code findings_resolved}
+ * rather than a bare count (spec 6.4).
  */
 @Component
 public class CrawlRunExecutor implements RunExecutor {
@@ -55,11 +63,13 @@ public class CrawlRunExecutor implements RunExecutor {
     private final RunResultJdbcRepository results;
     private final RunLeaseJdbcRepository leases;
     private final WorkerIdentity identity;
+    private final FindingReverifier reverifier;
+    private final FindingService findings;
 
     public CrawlRunExecutor(CrawlService crawler, CheckEngine checks,
             UrlVerificationService verifier, TlsProbe tlsProbe, SiteService sites,
             RunResultJdbcRepository results, RunLeaseJdbcRepository leases,
-            WorkerIdentity identity) {
+            WorkerIdentity identity, FindingReverifier reverifier, FindingService findings) {
         this.crawler = crawler;
         this.checks = checks;
         this.verifier = verifier;
@@ -68,6 +78,8 @@ public class CrawlRunExecutor implements RunExecutor {
         this.results = results;
         this.leases = leases;
         this.identity = identity;
+        this.reverifier = reverifier;
+        this.findings = findings;
     }
 
     @Override
@@ -97,14 +109,17 @@ public class CrawlRunExecutor implements RunExecutor {
 
         List<CheckFinding> pageFindings = checks.evaluateRun(result.snapshots(), site, facts);
         List<CheckFinding> siteFindings = checks.evaluateSite(result.snapshots(), site, facts);
-        List<CheckFinding> findings = new ArrayList<>(pageFindings.size() + siteFindings.size());
-        findings.addAll(pageFindings);
-        findings.addAll(siteFindings);
+        List<CheckFinding> checkFindings = new ArrayList<>(pageFindings.size() + siteFindings.size());
+        checkFindings.addAll(pageFindings);
+        checkFindings.addAll(siteFindings);
 
-        log.info("Lauf {}: {} Befunde ({} Seiten, {} verifiziert, {} TLS), {} geprüfte URLs",
-                lease.runId(), findings.size(), result.snapshots().pageCount(),
-                verifications.size(), tls.host() == null ? 0 : 1,
-                result.verificationCandidates().size());
+        // A dead-link finding is a chance for a false positive: re-check every subject the first
+        // pass called DEAD and that the crawl did not itself visit. Anything that answers OK on a
+        // later probe was transient and never becomes a finding (spec 8). Nothing here swallows a
+        // verifier exception — RunWorker's catch marks the run FAILED.
+        ReverificationOutcome rechecked = reverifier.reverify(site, result.snapshots(),
+                verifications, checkFindings);
+        List<CheckFinding> surviving = rechecked.surviving();
 
         List<String> coveredCheckTypes = lease.scope().checkTypes().stream()
                 .filter(site::enabled)
@@ -112,7 +127,20 @@ public class CrawlRunExecutor implements RunExecutor {
                 .map(Enum::name)
                 .sorted()
                 .toList();
+
+        // Materialise the survivors into fingerprints, promote site-wide where the check decides,
+        // and diff against the previous run. observedAt is the run's start so every observation a
+        // run makes is stamped with one instant (spec 6.4).
+        RunCoverage coverage = RunCoverage.of(coveredCheckTypes, result.coveredUrls(),
+                result.snapshots().visitedUrls(), result.partialCoverage());
+        RunDiff diff = findings.record(lease.runId(), site.siteId(), surviving, coverage, startedAt);
+
+        log.info("Lauf {}: {} neu, {} behoben, {} weiterhin offen",
+                lease.runId(), diff.count(ReportSection.NEW), diff.count(ReportSection.FIXED),
+                diff.observedTotal() - diff.count(ReportSection.NEW) - diff.count(ReportSection.FIXED));
+
         results.saveCrawlOutcome(lease.runId(), result, coveredCheckTypes,
-                result.snapshots().softNotFound(), findings.size());
+                result.snapshots().softNotFound(), diff.observedTotal(),
+                diff.count(ReportSection.NEW), diff.count(ReportSection.FIXED));
     }
 }

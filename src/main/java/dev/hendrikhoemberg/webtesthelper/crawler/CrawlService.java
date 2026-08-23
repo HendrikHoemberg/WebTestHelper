@@ -135,10 +135,14 @@ public class CrawlService {
 
         try (ExecutorService fanOut = Executors.newVirtualThreadPerTaskExecutor()) {
             while (true) {
-                if (visited.get() >= maxPages) { stopReason = "maxPages"; break; }
+                if (visited.get() >= maxPages || snapshots.size() >= maxPages) {
+                    stopReason = "maxPages";
+                    break;
+                }
                 if (Instant.now().isAfter(deadline)) { stopReason = "maxDuration"; break; }
 
-                int room = Math.min(properties.batchSize(), maxPages - visited.get());
+                int room = Math.min(properties.batchSize(),
+                        maxPages - Math.max(visited.get(), snapshots.size()));
                 List<CrawlTarget> batch = frontier.claimBatch(request.runId(), request.owner(), room);
                 if (batch.isEmpty()) {
                     break;                       // the frontier ran dry — a complete crawl

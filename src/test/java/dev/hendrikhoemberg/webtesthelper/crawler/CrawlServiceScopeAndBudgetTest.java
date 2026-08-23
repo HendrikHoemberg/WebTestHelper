@@ -139,4 +139,17 @@ class CrawlServiceScopeAndBudgetTest extends AbstractPostgresTest {
         assertThat(result.snapshots().pageCount()).isEqualTo(1);
     }
 
+    @Test
+    void theSnapshotListIsBoundedEvenWhenEveryPageFails() {
+        // visited counts only reachable pages, so a run whose pages all fail would otherwise
+        // accumulate snapshots past maxPages (p2b's last open carry-over). The loop guard and the
+        // room calculation both bound the snapshot list, so three unreachable pages under
+        // maxPages=2 yield at most two snapshots.
+        CrawlResult result = crawl(RunScope.PULSE, budget(2, 3, Duration.ofSeconds(60)),
+                List.of("/langsam", "/langsam?q=1", "/langsam?q=2"));
+
+        assertThat(result.pagesVisited()).isZero();
+        assertThat(result.snapshots().pageCount()).isLessThanOrEqualTo(2);
+    }
+
 }
