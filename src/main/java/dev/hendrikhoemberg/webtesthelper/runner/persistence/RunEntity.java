@@ -58,6 +58,10 @@ public class RunEntity {
 
     private int findingsTotal;
 
+    private int findingsNew;
+
+    private int findingsResolved;
+
     @JdbcTypeCode(SqlTypes.JSON)
     private List<String> coveredCheckTypes = List.of();
 

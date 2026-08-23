@@ -19,6 +19,8 @@ public record RunSummary(
         int pagesVisited,
         int pagesFailed,
         int findingsTotal,
+        int findingsNew,
+        int findingsResolved,
         boolean partialCoverage,
         String budgetStopReason,
         boolean baselineAccepted,

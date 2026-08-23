@@ -101,6 +101,8 @@ public class RunService {
                 run.getPagesVisited(),
                 run.getPagesFailed(),
                 run.getFindingsTotal(),
+                run.getFindingsNew(),
+                run.getFindingsResolved(),
                 run.isPartialCoverage(),
                 run.getBudgetStopReason(),
                 run.isBaselineAccepted(),
