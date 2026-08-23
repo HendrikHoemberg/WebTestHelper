@@ -190,6 +190,37 @@ class FindingMaterializerTest {
     }
 
     @Test
+    void mixedSiteAndPageScopedErrorsPromoteAndKeepNullPageUrlOccurrence() {
+        List<CheckFinding> input = List.of(
+                siteFinding(CheckType.CONSOLE_ERRORS, "https://e.com", Severity.ERROR, "site-headline"),
+                finding(CheckType.CONSOLE_ERRORS, "https://e.com", "/a", Severity.ERROR, "page-headline"),
+                finding(CheckType.CONSOLE_ERRORS, "https://e.com", "/b", Severity.ERROR, "page-headline"),
+                finding(CheckType.CONSOLE_ERRORS, "https://e.com", "/c", Severity.ERROR, "page-headline"),
+                finding(CheckType.CONSOLE_ERRORS, "https://e.com", "/d", Severity.ERROR, "page-headline"),
+                finding(CheckType.CONSOLE_ERRORS, "https://e.com", "/e", Severity.ERROR, "page-headline"),
+                finding(CheckType.CONSOLE_ERRORS, "https://e.com", "/f", Severity.ERROR, "page-headline"));
+
+        List<MaterialisedFinding> result = FindingMaterializer.materialise(SITE_ID, input, THRESHOLD);
+
+        assertThat(result).hasSize(1);
+        MaterialisedFinding f = result.get(0);
+        assertThat(f.locationKey()).isEqualTo("*");
+        assertThat(f.pageCount()).isEqualTo(7);
+        assertThat(f.occurrences()).extracting(FindingOccurrence::pageUrl)
+                .containsExactly(null, "https://example.com/a", "https://example.com/b",
+                        "https://example.com/c", "https://example.com/d", "https://example.com/e",
+                        "https://example.com/f");
+        assertThat(f.occurrences()).filteredOn(o -> o.pageUrl() == null)
+                .singleElement()
+                .extracting(FindingOccurrence::severity)
+                .isEqualTo(Severity.ERROR);
+        assertThat(f.severity()).isEqualTo(Severity.ERROR);
+        assertThat(f.messageKey()).isEqualTo("site-headline");
+        assertThat(f.fingerprint()).isEqualTo(
+                Fingerprint.of(SITE_ID, CheckType.CONSOLE_ERRORS, "https://e.com", "*"));
+    }
+
+    @Test
     void emptyInputYieldsEmptyList() {
         List<MaterialisedFinding> result =
                 FindingMaterializer.materialise(SITE_ID, List.of(), THRESHOLD);
