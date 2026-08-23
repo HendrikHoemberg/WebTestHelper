@@ -159,6 +159,51 @@ the tree.
   User-Agent, the visited-and-failed double count when discovery's enqueue throws, the probe's
   unreferenced screenshot, the soft snapshot-memory bound).
 
+## Post-review fixes to plan 3 (applied after the plan-3 review)
+
+A review of 3a and 3b against the spec found one run-killing bug and two silent gaps in what the
+catalog actually covers. The bug is fixed on `main`; the two gaps are **open**, and Plan 4 or 5
+has to either close them or add them to the deviation table as decisions.
+
+- **A run died whenever two crawled pages shared a final URL.** `UrlVerificationService` seeded
+  its result map with `Collectors.toMap`, which throws on a duplicate key. `PageSnapshot.url` is
+  the URL that *answered*; the frontier dedupes on the URL that was *requested*
+  (`ux_crawl_queue_run_url`). So `/kontakt` redirecting to `/kontakt.html`, or D4's preserved path
+  case giving `/Kontakt.html` and `/kontakt.html`, is two crawl items and one page — and the
+  `IllegalStateException` reached `RunWorker`, which marked the whole run `FAILED`. The fixture
+  never triggered it because its one redirect chain ends on a page nothing else links to. First
+  snapshot now wins, in `UrlVerificationService` and in the new `RunSnapshots.byUrlIndex()` alike.
+- **`IFRAME_EMBED` never checks that the map canvas painted.** §7.1 asks for two signals — "it
+  asserts the map canvas painted **and** scans the console for the provider's error codes" — and
+  only the console half exists. The superseded plan measured `FrameRef.canvasArea` through
+  `frame.evaluate`; plans 2a/2b dropped that component and nothing re-added it. A grey *for
+  development purposes only* map that logs nothing therefore passes, which is the exact failure
+  §7.1 singles out as the one the obvious implementation misses.
+- **`MIXED_CONTENT` cannot see scripts or stylesheets.** `extract.js` collects links, images,
+  media, frames and alternates, so the check reads three subresource kinds and the two that
+  browsers *hard-block* on an https page — `<script src="http://…">` and
+  `<link rel="stylesheet" href="http://…">` — are invisible to it. Closing this needs a
+  `PageSnapshot` component, so it is a plan task, not a patch.
+
+Both gaps cost a `PageSnapshot` component and an `extract.js` change, which is why neither was
+fixed under review: they cross the browser boundary and change a value type Plan 4 consumes.
+
+- **Also fixed, non-behavioural:** the doubled lease heartbeat in `CrawlRunExecutor`, two unused
+  imports, `UrlVerificationService`'s wildcard import and its four-fold re-normalisation of every
+  candidate, `TlsProbe`'s inline fully-qualified names, and the `O(n·m)` `byUrl` scans in
+  `HreflangCheck` and `SitemapConsistencyCheck` (now one shared index). `UrlVerificationServiceTest`
+  leaked a `FixtureSite` per test method; it closes it now.
+- **Left alone deliberately:** `truncate` in four `crawler` classes, which 3b's own review already
+  deferred to "if a fifth appears".
+
+**Open for Plan 5, recorded here because the enforcement test cannot see it:** several findings
+render an internal identifier through their *message arguments* — `PAGE_UNREACHABLE.navigation`
+carries Chromium's `net::ERR_…`, `DEAD_LINK.dead` and `TLS_CERT.handshakeFailed` carry
+`e.toString()` (`java.net.ConnectException: …`). §13.1 says no internal identifier reaches the
+screen. `CheckDocumentationTest.noExplanationLeaksAnInternalIdentifier` only scans the static
+German, so it passes. 3b sanctioned these args; the UI that renders them has to translate or
+demote them to evidence.
+
 ## Measurements taken while writing plan 3a
 
 Plan 2a and 2b both left open questions that could only be answered by running Chromium against
