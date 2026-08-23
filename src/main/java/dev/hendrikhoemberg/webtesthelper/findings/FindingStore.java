@@ -81,6 +81,16 @@ public class FindingStore {
                     OR (location_key = '*' AND ?))
             """;
 
+    private static final String ACCEPT_BASELINE_SQL = """
+            UPDATE finding
+               SET triage_status = 'ACKNOWLEDGED',
+                   triage_reason = ?,
+                   triaged_at = ?
+             WHERE site_id = ?
+               AND triage_status = 'UNTRIAGED'
+               AND id IN (SELECT finding_id FROM finding_occurrence WHERE run_id = ?)
+            """;
+
     private static final String DIFF_SQL = """
             SELECT f.*, CASE
                 WHEN f.observed_status = 'RESOLVED' AND f.resolved_at_run = ? THEN 'FIXED'
@@ -208,6 +218,11 @@ public class FindingStore {
         String[] locationKeys = coverage.locationKeys().toArray(String[]::new);
         return jdbc.update(RESOLVE_SQL, runId, siteId, runId, checkTypes, locationKeys,
                 coverage.complete());
+    }
+
+    /** Move every UNTRIAGED finding observed in the run to ACKNOWLEDGED. */
+    public int acceptBaseline(long siteId, long runId, String reason, Instant now) {
+        return jdbc.update(ACCEPT_BASELINE_SQL, reason, ts(now), siteId, runId);
     }
 
     /** Read the run's diff straight out of the database. */

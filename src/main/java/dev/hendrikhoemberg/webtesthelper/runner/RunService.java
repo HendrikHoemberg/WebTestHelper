@@ -1,6 +1,7 @@
 package dev.hendrikhoemberg.webtesthelper.runner;
 
 import dev.hendrikhoemberg.webtesthelper.catalog.SiteService;
+import dev.hendrikhoemberg.webtesthelper.findings.FindingService;
 import dev.hendrikhoemberg.webtesthelper.model.CheckType;
 import dev.hendrikhoemberg.webtesthelper.model.RunScope;
 import dev.hendrikhoemberg.webtesthelper.model.RunStatus;
@@ -31,10 +32,12 @@ public class RunService {
 
     private final RunRepository runs;
     private final SiteService sites;
+    private final FindingService findings;
 
-    public RunService(RunRepository runs, SiteService sites) {
+    public RunService(RunRepository runs, SiteService sites, FindingService findings) {
         this.runs = runs;
         this.sites = sites;
+        this.findings = findings;
     }
 
     /**
@@ -83,6 +86,19 @@ public class RunService {
     public RunSummary summary(long runId) {
         return runs.findById(runId).map(this::toSummary)
                 .orElseThrow(() -> new IllegalArgumentException("Lauf " + runId + " existiert nicht"));
+    }
+
+    /**
+     * Accepts the run as the baseline: acknowledges every {@code UNTRIAGED} finding the run
+     * observed, then stamps {@code baseline_accepted_at}. Returns how many findings moved.
+     */
+    public int acceptBaseline(long runId) {
+        RunEntity run = runs.findById(runId)
+                .orElseThrow(() -> new IllegalArgumentException("Lauf " + runId + " existiert nicht"));
+        int moved = findings.acceptBaseline(run.getSiteId(), runId);
+        run.setBaselineAcceptedAt(java.time.Instant.now());
+        runs.save(run);
+        return moved;
     }
 
     private RunSummary toSummary(RunEntity run) {

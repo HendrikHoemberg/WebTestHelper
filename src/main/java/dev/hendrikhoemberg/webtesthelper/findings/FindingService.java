@@ -17,6 +17,12 @@ import java.util.List;
 @Transactional
 public class FindingService {
 
+    /**
+     * The triage reason stamped when a baseline is accepted: a plain-German sentence a colleague
+     * reads (spec 13.1), carrying no internal identifier.
+     */
+    private static final String BASELINE_TRIAGE_REASON = "Als Ausgangsbestand übernommen.";
+
     private final FindingStore store;
     private final FindingProperties properties;
 
@@ -45,5 +51,16 @@ public class FindingService {
 
     public RunDiff diffOf(long siteId, long runId) {
         return store.diffOf(siteId, runId);
+    }
+
+    /**
+     * Marks every {@code UNTRIAGED} finding the run observed as {@code ACKNOWLEDGED}, recording
+     * the baseline reason and now. Only what that run actually saw is acknowledged — a finding
+     * with no occurrence in the run is left alone. Idempotent: the {@code UNTRIAGED} guard makes
+     * a repeat call move nothing.
+     */
+    @Transactional
+    public int acceptBaseline(long siteId, long runId) {
+        return store.acceptBaseline(siteId, runId, BASELINE_TRIAGE_REASON, Instant.now());
     }
 }
