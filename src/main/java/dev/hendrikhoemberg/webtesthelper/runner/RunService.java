@@ -16,6 +16,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.time.Instant;
 import java.util.stream.Collectors;
 
 /**
@@ -96,7 +97,7 @@ public class RunService {
         RunEntity run = runs.findById(runId)
                 .orElseThrow(() -> new IllegalArgumentException("Lauf " + runId + " existiert nicht"));
         int moved = findings.acceptBaseline(run.getSiteId(), runId);
-        run.setBaselineAcceptedAt(java.time.Instant.now());
+        run.setBaselineAcceptedAt(Instant.now());
         runs.save(run);
         return moved;
     }
