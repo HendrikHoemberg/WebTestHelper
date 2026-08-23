@@ -1,18 +1,36 @@
 package dev.hendrikhoemberg.webtesthelper.crawler;
 
 import dev.hendrikhoemberg.webtesthelper.crawler.persistence.ExternalUrlCacheJdbcRepository;
-import dev.hendrikhoemberg.webtesthelper.model.*;
+import dev.hendrikhoemberg.webtesthelper.model.DocumentTypes;
+import dev.hendrikhoemberg.webtesthelper.model.NormalizedUrl;
+import dev.hendrikhoemberg.webtesthelper.model.PageSnapshot;
+import dev.hendrikhoemberg.webtesthelper.model.RunSnapshots;
+import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
+import dev.hendrikhoemberg.webtesthelper.model.UrlNormalizer;
+import dev.hendrikhoemberg.webtesthelper.model.UrlStatus;
+import dev.hendrikhoemberg.webtesthelper.model.UrlVerification;
+import dev.hendrikhoemberg.webtesthelper.model.UrlVerifications;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
+/**
+ * Answers "does this URL resolve" for everything the crawl saw but did not navigate (deviation
+ * D19), reusing what the crawl already knows and the shared cache before touching the network.
+ *
+ * <p>Three sources, cheapest first: a page the crawl visited answers from its own snapshot at no
+ * cost; an external URL another site checked within the TTL answers from {@code
+ * external_url_check} (spec 8.1); everything else is fetched. Only external results are cached —
+ * a site's own pages are where a day-old answer would be wrong, and they sit on the host we are
+ * already crawling (deviation D20).
+ */
 @Component
 public class UrlVerificationService {
 
@@ -29,115 +47,105 @@ public class UrlVerificationService {
     public UrlVerifications verify(SiteContext site, RunSnapshots snapshots,
                                    List<String> candidates) {
         Instant now = Instant.now();
+        Map<String, UrlVerification> results = seedFromSnapshots(snapshots);
+        int snapshotSeeded = 0;
 
-        // Seed from snapshots: no HTTP request needed for already-visited pages.
-        Map<String, UrlVerification> results = snapshots.snapshots().stream()
-                .collect(Collectors.toMap(
-                        s -> s.url().value(),
-                        UrlVerification::ofSnapshot));
-
-        // Drop candidates already seeded from snapshots.
-        List<String> unvisited = candidates.stream()
-                .filter(c -> {
-                    Optional<NormalizedUrl> norm = UrlNormalizer.normalize(c);
-                    return norm.isPresent() && !results.containsKey(norm.get().value());
-                })
-                .toList();
-        int snapshotSeeded = candidates.size() - unvisited.size();
-
-        // Split on internal vs external.
-        NormalizedUrl siteBaseUrl = site.baseUrl();
-        List<String> internal = new ArrayList<>();
-        List<String> external = new ArrayList<>();
-        for (String c : unvisited) {
-            Optional<NormalizedUrl> norm = UrlNormalizer.normalize(c);
-            if (norm.isEmpty()) {
+        // Every candidate is normalised exactly once, here: a candidate that does not normalise is
+        // not a defect, it is a mailto: or a javascript: href, and it simply drops out.
+        Map<String, NormalizedUrl> unvisited = new LinkedHashMap<>();
+        for (String candidate : candidates) {
+            NormalizedUrl url = UrlNormalizer.normalize(candidate).orElse(null);
+            if (url == null) {
                 continue;
             }
-            if (siteBaseUrl.sameSiteAs(norm.get())) {
-                internal.add(c);
+            if (results.containsKey(url.value())) {
+                snapshotSeeded++;
             } else {
-                external.add(c);
+                unvisited.putIfAbsent(url.value(), url);
             }
         }
 
-        // External: cache-first, then fetch misses and store.
-        int cacheHits = 0;
-        int fetched = 0;
-        List<UrlVerification> toStore = new ArrayList<>();
-        if (!external.isEmpty()) {
-            List<String> externalKeys = external.stream()
-                    .map(c -> UrlNormalizer.normalize(c).map(NormalizedUrl::value).orElse(null))
-                    .filter(java.util.Objects::nonNull)
-                    .toList();
-            Map<String, UrlVerification> fresh = cache.fresh(externalKeys, now);
-
-            // Separate cache hits into those we can use as-is and those that need re-fetch.
-            List<UrlVerification> hitsToStore = new ArrayList<>();
-            for (String key : externalKeys) {
-                UrlVerification v = fresh.get(key);
-                if (v == null) {
-                    continue;
-                }
-                // Document candidate with no body_prefix: must re-fetch to get the body.
-                Optional<NormalizedUrl> norm = UrlNormalizer.normalize(key);
-                if (norm.isPresent() && DocumentTypes.isDocument(norm.get()) && v.bodyPrefix() == null) {
-                    // Treat as miss — will be re-fetched below.
-                    continue;
-                }
-                cacheHits++;
-                results.put(key, v);
-                hitsToStore.add(v);
-            }
-
-            // Store cache hits to merge the current site id into dependent_site_ids.
-            if (!hitsToStore.isEmpty()) {
-                cache.store(hitsToStore, site.siteId());
-            }
-
-            List<String> misses = external.stream()
-                    .filter(c -> UrlNormalizer.normalize(c)
-                            .map(n -> !results.containsKey(n.value()))
-                            .orElse(true))
-                    .toList();
-            if (!misses.isEmpty()) {
-                List<NormalizedUrl> missNorms = misses.stream()
-                        .map(c -> UrlNormalizer.normalize(c).orElse(null))
-                        .filter(java.util.Objects::nonNull)
-                        .toList();
-                Map<String, UrlVerification> fetchedResults = verifier.verifyAll(missNorms,
-                        site.effectiveUserAgent(), DocumentTypes::isDocument);
-                results.putAll(fetchedResults);
-                toStore.addAll(fetchedResults.values());
-                fetched = fetchedResults.size();
-            }
+        List<NormalizedUrl> internal = new ArrayList<>();
+        List<NormalizedUrl> external = new ArrayList<>();
+        for (NormalizedUrl url : unvisited.values()) {
+            (site.baseUrl().sameSiteAs(url) ? internal : external).add(url);
         }
 
-        // Internal: always fetch.
-        if (!internal.isEmpty()) {
-            List<NormalizedUrl> internalNorms = internal.stream()
-                    .map(c -> UrlNormalizer.normalize(c).orElse(null))
-                    .filter(java.util.Objects::nonNull)
-                    .toList();
-            Map<String, UrlVerification> internalResults = verifier.verifyAll(internalNorms,
-                    site.effectiveUserAgent(), DocumentTypes::isDocument);
-            results.putAll(internalResults);
+        int cacheHits = takeFromCache(external, results, site.siteId(), now);
+        List<NormalizedUrl> misses = external.stream()
+                .filter(url -> !results.containsKey(url.value()))
+                .toList();
+
+        Map<String, UrlVerification> fetched = fetch(misses, site);
+        results.putAll(fetched);
+        if (!fetched.isEmpty()) {
+            cache.store(fetched.values(), site.siteId());
         }
+        results.putAll(fetch(internal, site));
 
-        // Store newly fetched external results in cache.
-        if (!toStore.isEmpty()) {
-            cache.store(toStore, site.siteId());
-        }
-
-        // Log summary.
-        long okCount = results.values().stream().filter(UrlVerification::ok).count();
-        long deadCount = results.values().stream()
-                .filter(v -> v.status() == UrlStatus.DEAD).count();
-        long unverifiableCount = results.values().stream()
-                .filter(v -> v.status() == UrlStatus.UNVERIFIABLE).count();
-        log.info("URL verification run: candidates={}, snapshotSeeded={}, cacheHits={}, fetched={}, ok={}, dead={}, unverifiable={}",
-                candidates.size(), snapshotSeeded, cacheHits, fetched, okCount, deadCount, unverifiableCount);
-
+        logSummary(candidates.size(), snapshotSeeded, cacheHits, fetched.size(), results.values());
         return new UrlVerifications(results);
+    }
+
+    /**
+     * A page the crawl navigated needs no request at all. Two snapshots can share one key: the
+     * frontier dedupes on the URL that was <em>requested</em> while a snapshot carries the one
+     * that finally answered, so {@code /kontakt} and {@code /kontakt.html} are two crawl items and
+     * one page. First snapshot wins — they describe the same response.
+     */
+    private static Map<String, UrlVerification> seedFromSnapshots(RunSnapshots snapshots) {
+        Map<String, UrlVerification> results = new LinkedHashMap<>();
+        for (PageSnapshot snapshot : snapshots.snapshots()) {
+            results.putIfAbsent(snapshot.url().value(), UrlVerification.ofSnapshot(snapshot));
+        }
+        return results;
+    }
+
+    /**
+     * Fills {@code results} from the shared cache and returns how many entries came from it.
+     * A hit is re-stored so this site joins the row's {@code dependent_site_ids} (spec 8.1).
+     */
+    private int takeFromCache(List<NormalizedUrl> external, Map<String, UrlVerification> results,
+            long siteId, Instant now) {
+        if (external.isEmpty()) {
+            return 0;
+        }
+        Map<String, UrlVerification> fresh = cache.fresh(
+                external.stream().map(NormalizedUrl::value).toList(), now);
+        List<UrlVerification> hits = new ArrayList<>();
+        for (NormalizedUrl url : external) {
+            UrlVerification cached = fresh.get(url.value());
+            // A document cached from a HEAD carries no body, and FILE_DOWNLOAD cannot judge a PDF
+            // without one — so that row is a miss and the URL is fetched again.
+            if (cached == null
+                    || (DocumentTypes.isDocument(url) && cached.bodyPrefix() == null)) {
+                continue;
+            }
+            results.put(url.value(), cached);
+            hits.add(cached);
+        }
+        if (!hits.isEmpty()) {
+            cache.store(hits, siteId);
+        }
+        return hits.size();
+    }
+
+    private Map<String, UrlVerification> fetch(List<NormalizedUrl> urls, SiteContext site) {
+        if (urls.isEmpty()) {
+            return Map.of();
+        }
+        return verifier.verifyAll(urls, site.effectiveUserAgent(), DocumentTypes::isDocument);
+    }
+
+    /** A pass that silently fetched nothing is otherwise invisible. */
+    private static void logSummary(int candidates, int snapshotSeeded, int cacheHits, int fetched,
+            Collection<UrlVerification> results) {
+        long ok = results.stream().filter(UrlVerification::ok).count();
+        long dead = results.stream().filter(v -> v.status() == UrlStatus.DEAD).count();
+        long unverifiable = results.stream()
+                .filter(v -> v.status() == UrlStatus.UNVERIFIABLE).count();
+        log.info("URL verification run: candidates={}, snapshotSeeded={}, cacheHits={}, "
+                        + "fetched={}, ok={}, dead={}, unverifiable={}",
+                candidates, snapshotSeeded, cacheHits, fetched, ok, dead, unverifiable);
     }
 }

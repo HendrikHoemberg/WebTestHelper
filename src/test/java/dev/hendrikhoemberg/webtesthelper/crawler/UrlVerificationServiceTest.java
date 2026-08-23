@@ -3,6 +3,8 @@ package dev.hendrikhoemberg.webtesthelper.crawler;
 import dev.hendrikhoemberg.webtesthelper.model.*;
 import dev.hendrikhoemberg.webtesthelper.support.AbstractPostgresTest;
 import dev.hendrikhoemberg.webtesthelper.support.FixtureSite;
+import dev.hendrikhoemberg.webtesthelper.support.Snapshots;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +36,11 @@ class UrlVerificationServiceTest extends AbstractPostgresTest {
         site = FixtureSite.start();
     }
 
+    @AfterEach
+    void tearDown() {
+        site.close();
+    }
+
     private SiteContext siteContext(long siteId, String base) {
         NormalizedUrl baseUrl = UrlNormalizer.normalize(base).orElseThrow();
         return new SiteContext(siteId, "Site-" + siteId, baseUrl,
@@ -49,8 +56,7 @@ class UrlVerificationServiceTest extends AbstractPostgresTest {
     void aPageTheCrawlVisitedAppearsWithNoHttpRequestAndCorrectStatus() {
         SiteContext ctx = siteContext(1L, site.baseUrl());
         NormalizedUrl pageUrl = UrlNormalizer.normalize(site.url("extern/ok")).orElseThrow();
-        PageSnapshot snapshot = dev.hendrikhoemberg.webtesthelper.support.Snapshots
-                .page(site.url("extern/ok")).build();
+        PageSnapshot snapshot = Snapshots.page(site.url("extern/ok")).build();
         RunSnapshots run = snapshots(ctx, snapshot);
 
         UrlVerifications result = service.verify(ctx, run, List.of(site.url("extern/ok")));
@@ -152,6 +158,26 @@ class UrlVerificationServiceTest extends AbstractPostgresTest {
         assertThat(result.of(pdfNorm).get().bodyPrefix()).isNotNull();
         assertThat(result.of(pdfNorm).get().bodyPrefix()).startsWith("%PDF");
         assertThat(site.requestCount("/dateien/handbuch.pdf")).isEqualTo(1);
+    }
+
+    @Test
+    void twoSnapshotsThatRedirectedToTheSamePageDoNotCollide() {
+        // The frontier dedupes on the *requested* URL, PageSnapshot.url is the *final* one, so
+        // /kontakt and /kontakt.html are two queue entries and two snapshots of one page. Seeding
+        // the result map used to throw IllegalStateException and fail the whole run.
+        SiteContext ctx = siteContext(1L, site.baseUrl());
+        NormalizedUrl shared = UrlNormalizer.normalize(site.url("kontakt.html")).orElseThrow();
+        PageSnapshot viaRedirect = Snapshots.page(site.url("kontakt.html"))
+                .redirectChain(site.url("kontakt"), site.url("kontakt.html"))
+                .build();
+        PageSnapshot direct = Snapshots.page(site.url("kontakt.html")).build();
+
+        UrlVerifications result = service.verify(ctx, snapshots(ctx, viaRedirect, direct),
+                List.of());
+
+        assertThat(result.of(shared)).isPresent();
+        assertThat(result.of(shared).get().status()).isEqualTo(UrlStatus.OK);
+        assertThat(site.requestCount("/kontakt.html")).isZero();
     }
 
     @Test
