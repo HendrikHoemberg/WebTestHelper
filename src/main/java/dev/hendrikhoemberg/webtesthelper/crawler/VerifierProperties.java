@@ -6,5 +6,6 @@ import java.time.Duration;
 
 @ConfigurationProperties("webtesthelper.verifier")
 public record VerifierProperties(int perHostPermits, Duration requestTimeout,
-                                 Duration successTtl, Duration failureTtl) {
+                                 Duration successTtl, Duration failureTtl,
+                                 int reverifyAttempts, Duration reverifyDelay) {
 }

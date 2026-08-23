@@ -18,7 +18,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 class TlsProbeTest {
 
     private final TlsProbe probe = new TlsProbe(
-            new VerifierProperties(4, Duration.ofSeconds(10), Duration.ZERO, Duration.ZERO));
+            new VerifierProperties(4, Duration.ofSeconds(10), Duration.ZERO, Duration.ZERO, 2,
+                    Duration.ofSeconds(2)));
 
     @Test
     void aReachableHttpsSiteReportsItsLeafCertificate() {
@@ -71,7 +72,8 @@ class TlsProbeTest {
             acceptor.start();
 
             TlsProbe quick = new TlsProbe(
-                    new VerifierProperties(4, Duration.ofSeconds(2), Duration.ZERO, Duration.ZERO));
+                    new VerifierProperties(4, Duration.ofSeconds(2), Duration.ZERO, Duration.ZERO,
+                            2, Duration.ofSeconds(2)));
             NormalizedUrl baseUrl = UrlNormalizer.normalize(
                     "https://127.0.0.1:" + server.getLocalPort() + "/").orElseThrow();
 

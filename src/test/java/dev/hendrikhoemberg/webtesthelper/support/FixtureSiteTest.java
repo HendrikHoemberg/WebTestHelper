@@ -132,6 +132,15 @@ class FixtureSiteTest {
         assertThat(external.statusCode()).isEqualTo(200);
     }
 
+    @Test
+    void theFlatterhaftSlotAnswers503FirstThen200() throws Exception {
+        HttpResponse<byte[]> first = get("extern/flatterhaft");
+        assertThat(first.statusCode()).isEqualTo(503);
+
+        HttpResponse<byte[]> second = get("extern/flatterhaft");
+        assertThat(second.statusCode()).isEqualTo(200);
+    }
+
     private HttpResponse<byte[]> head(String path) throws Exception {
         return client.send(HttpRequest.newBuilder(URI.create(site.url(path)))
                         .method("HEAD", HttpRequest.BodyPublishers.noBody()).build(),

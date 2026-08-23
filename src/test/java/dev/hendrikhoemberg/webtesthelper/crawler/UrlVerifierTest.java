@@ -33,7 +33,8 @@ class UrlVerifierTest {
     static void start() {
         site = FixtureSite.start();
         verifier = new UrlVerifier(new VerifierProperties(4, Duration.ofSeconds(10),
-                Duration.ofHours(24), Duration.ofHours(1)), new HostThrottle(), CRAWLER);
+                Duration.ofHours(24), Duration.ofHours(1), 2, Duration.ofSeconds(2)),
+                new HostThrottle(), CRAWLER);
     }
 
     @AfterAll
@@ -136,7 +137,8 @@ class UrlVerifierTest {
     @Test
     void verifyAllBoundsConcurrencyPerRegistrableHost() {
         UrlVerifier twoPermits = new UrlVerifier(new VerifierProperties(2, Duration.ofSeconds(10),
-                Duration.ofHours(24), Duration.ofHours(1)), new HostThrottle(), CRAWLER);
+                Duration.ofHours(24), Duration.ofHours(1), 2, Duration.ofSeconds(2)),
+                new HostThrottle(), CRAWLER);
         NormalizedUrl echo = url(site.url("echo"));
         twoPermits.verifyAll(Collections.nCopies(20, echo), AGENT, ignored -> false);
         assertThat(site.maxConcurrent()).isLessThanOrEqualTo(2);

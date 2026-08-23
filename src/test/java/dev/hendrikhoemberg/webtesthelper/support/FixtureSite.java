@@ -159,6 +159,18 @@ public final class FixtureSite implements AutoCloseable {
                 }
                 case "/extern/ok" -> sendHtml(exchange, 200,
                         "<!doctype html><html lang=\"de\"><body><h1>Partnerseite</h1></body></html>");
+                case "/extern/flatterhaft" -> {
+                    // A partner that answers 503 on the very first request and 200 on every
+                    // later one, so a dead-link finding against it can heal on re-verification.
+                    int seen = requestCounts.get(path).get();
+                    if (seen == 1) {
+                        sendHtml(exchange, 503,
+                                "<!doctype html><html lang=\"de\"><body><h1>Zeitweise gestört</h1></body></html>");
+                    } else {
+                        sendHtml(exchange, 200,
+                                "<!doctype html><html lang=\"de\"><body><h1>Partnerseite wieder da</h1></body></html>");
+                    }
+                }
                 case "/langsam" -> {
                     sleep();
                     sendHtml(exchange, 200, "<!doctype html><html lang=\"de\"><body><h1>Endlich</h1></body></html>");
