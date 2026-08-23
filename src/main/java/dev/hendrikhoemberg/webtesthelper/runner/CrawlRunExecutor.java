@@ -137,7 +137,7 @@ public class CrawlRunExecutor implements RunExecutor {
 
         log.info("Lauf {}: {} neu, {} behoben, {} weiterhin offen",
                 lease.runId(), diff.count(ReportSection.NEW), diff.count(ReportSection.FIXED),
-                diff.observedTotal() - diff.count(ReportSection.NEW) - diff.count(ReportSection.FIXED));
+                diff.observedTotal() - diff.count(ReportSection.NEW));
 
         results.saveCrawlOutcome(lease.runId(), result, coveredCheckTypes,
                 result.snapshots().softNotFound(), diff.observedTotal(),
