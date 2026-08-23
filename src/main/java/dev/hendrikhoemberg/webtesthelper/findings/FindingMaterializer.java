@@ -22,6 +22,11 @@ import java.util.Map;
  * of its occurrences, and its message, args and evidence come from the highest-severity occurrence
  * (ties broken by the lowest page URL) so the headline never contradicts the severity beside it.
  *
+ * <p>Occurrences are deduped by the page's canonical URL ({@code observedOn.value()}), while the
+ * group-split key is the location key ({@code locationKey()}); this is intentional — the crawler
+ * already dedupes frontier and cache entries on the canonical URL, so two findings on the same
+ * canonical URL are the same page.
+ *
  * <p>{@link LinkedHashMap}/{@link LinkedHashSet} are used throughout so output order follows input
  * order and materialisation is deterministic — the diff (plan 4, task 4) depends on it.
  */
@@ -94,11 +99,22 @@ public final class FindingMaterializer {
         return REPRESENTATIVE_ORDER.compare(a, b) <= 0 ? a : b;
     }
 
-    /** Highest severity first, then lowest page URL (null first), then message key. */
+    /** Highest severity first (via {@link Severity#max}), then lowest page URL (null first), then message key. */
     private static final Comparator<CheckFinding> REPRESENTATIVE_ORDER = Comparator
-            .comparingInt((CheckFinding f) -> f.severity().ordinal())
+            .comparing(CheckFinding::severity, FindingMaterializer::compareSeverity)
             .thenComparing(FindingMaterializer::pageUrlOf, Comparator.nullsFirst(Comparator.naturalOrder()))
             .thenComparing(CheckFinding::messageKey, Comparator.nullsFirst(Comparator.naturalOrder()));
+
+    private static int compareSeverity(Severity a, Severity b) {
+        Severity max = a.max(b);
+        if (max == a && max != b) {
+            return -1;
+        }
+        if (max == b && max != a) {
+            return 1;
+        }
+        return 0;
+    }
 
     private record GroupKey(CheckType type, String subjectKey) {
     }

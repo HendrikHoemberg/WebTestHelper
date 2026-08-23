@@ -4,7 +4,13 @@ package dev.hendrikhoemberg.webtesthelper.model;
 public enum Severity {
     ERROR, WARN, INFO;
 
-    /** Highest severity of two, used when occurrences of one subject disagree. */
+    /**
+     * Returns the more severe of the two.
+     *
+     * <p>{@code Severity} is declared most-severe-first, so a lower ordinal means a higher
+     * severity; this method relies on that ordering. Do not reorder the constants without
+     * revisiting this contract (and every caller that depends on it).
+     */
     public Severity max(Severity other) {
         return this.ordinal() <= other.ordinal() ? this : other;
     }
