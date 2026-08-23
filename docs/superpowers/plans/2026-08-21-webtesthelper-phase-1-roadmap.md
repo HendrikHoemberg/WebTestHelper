@@ -162,8 +162,8 @@ the tree.
 ## Post-review fixes to plan 3 (applied after the plan-3 review)
 
 A review of 3a and 3b against the spec found one run-killing bug and two silent gaps in what the
-catalog actually covers. The bug is fixed on `main`; the two gaps are **open**, and Plan 4 or 5
-has to either close them or add them to the deviation table as decisions.
+catalog actually covers. The bug and the first gap are fixed on `main`; the Maps gap is **open**
+and needs a measurement before it can be planned.
 
 - **A run died whenever two crawled pages shared a final URL.** `UrlVerificationService` seeded
   its result map with `Collectors.toMap`, which throws on a duplicate key. `PageSnapshot.url` is
@@ -179,14 +179,30 @@ has to either close them or add them to the deviation table as decisions.
   `frame.evaluate`; plans 2a/2b dropped that component and nothing re-added it. A grey *for
   development purposes only* map that logs nothing therefore passes, which is the exact failure
   §7.1 singles out as the one the obvious implementation misses.
-- **`MIXED_CONTENT` cannot see scripts or stylesheets.** `extract.js` collects links, images,
-  media, frames and alternates, so the check reads three subresource kinds and the two that
-  browsers *hard-block* on an https page — `<script src="http://…">` and
-  `<link rel="stylesheet" href="http://…">` — are invisible to it. Closing this needs a
-  `PageSnapshot` component, so it is a plan task, not a patch.
+- **`MIXED_CONTENT` could not see scripts or stylesheets — fixed.** `extract.js` collected links,
+  images, media, frames and alternates, so the check read three subresource kinds and the two a
+  browser *hard-blocks* on an https page — `<script src="http://…">` and
+  `<link rel="stylesheet" href="http://…">` — were invisible to it, which is the check's most
+  severe case. Closed the same way 3b closed hreflang (its Task 4 is the template): a
+  `SubresourceRef(SubresourceKind, NormalizedUrl)` in `model`, a `subresources` component on
+  `PageSnapshot` after `alternates`, an `extract.js` pass over `script[src]` and
+  `link[rel~="stylesheet"][href]`, and the mapping in `PageNavigator`. Inline `<script>` and
+  `<style>` are excluded on purpose — they fetch nothing, so they have no scheme to be insecure
+  in, and `PageNavigatorTest` pins that with a count rather than trusting the selector.
 
-Both gaps cost a `PageSnapshot` component and an `extract.js` change, which is why neither was
-fixed under review: they cross the browser boundary and change a value type Plan 4 consumes.
+**`PageSnapshot` is now at twenty-three components, and this was the moment to add one.** It was
+done before Plan 4 is written for the reason 3b gave for `RunFacts` ("settled at seven
+components; Plan 4 should not need an eighth"): a value type that changes shape mid-plan is how
+a plan acquires patches. Plan 4 should not need a twenty-fourth. Note that the fixture has
+**four** construction sites for `PageSnapshot`, not the three 3b's findings list —
+`CrawlServiceEnqueueTest` is the fourth.
+
+The Maps gap was deliberately *not* closed under review. It is not mechanical: `canvasArea > 0`,
+what the superseded plan measured, does not prove the map painted — a grey *for development
+purposes only* placeholder has a canvas of full size too. Proving paint means pixel sampling or
+watermark detection, and §15 forbids reaching a real Google Maps from a test, so the fixture needs
+a hand-built grey-map page first. That is measurement work of the kind that produced 3a's
+soft-404 cutoff of 16, and it belongs in front of a plan rather than inside one.
 
 - **Also fixed, non-behavioural:** the doubled lease heartbeat in `CrawlRunExecutor`, two unused
   imports, `UrlVerificationService`'s wildcard import and its four-fold re-normalisation of every
