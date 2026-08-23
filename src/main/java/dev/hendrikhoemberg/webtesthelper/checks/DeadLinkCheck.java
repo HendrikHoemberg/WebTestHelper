@@ -9,7 +9,6 @@ import dev.hendrikhoemberg.webtesthelper.model.NormalizedUrl;
 import dev.hendrikhoemberg.webtesthelper.model.PageSnapshot;
 import dev.hendrikhoemberg.webtesthelper.model.Severity;
 import dev.hendrikhoemberg.webtesthelper.model.UrlStatus;
-import dev.hendrikhoemberg.webtesthelper.model.UrlVerification;
 
 import java.util.ArrayList;
 import java.util.HashSet;

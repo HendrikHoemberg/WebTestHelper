@@ -5,15 +5,20 @@ import dev.hendrikhoemberg.webtesthelper.model.TlsCertificateFact;
 
 import org.springframework.stereotype.Component;
 
+import javax.net.ssl.SNIHostName;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.security.GeneralSecurityException;
+import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 import java.time.Duration;
+import java.util.List;
 
 @Component
 public class TlsProbe {
@@ -36,14 +41,14 @@ public class TlsProbe {
                     (int) CONNECT_TIMEOUT.toMillis());
             socket.setSoTimeout((int) requestTimeout.toMillis());
             SSLParameters parameters = socket.getSSLParameters();
-            parameters.setServerNames(java.util.List.of(new javax.net.ssl.SNIHostName(baseUrl.host())));
+            parameters.setServerNames(List.of(new SNIHostName(baseUrl.host())));
             socket.setSSLParameters(parameters);
             socket.startHandshake();
             X509Certificate leaf = (X509Certificate) socket.getSession().getPeerCertificates()[0];
             return new TlsCertificateFact(baseUrl.host(), true, null,
                     leaf.getNotBefore().toInstant(), leaf.getNotAfter().toInstant(),
                     leaf.getIssuerX500Principal().getName());
-        } catch (java.io.IOException | RuntimeException e) {
+        } catch (IOException | RuntimeException e) {
             return new TlsCertificateFact(baseUrl.host(), false, truncate(e.toString(), 500),
                     null, null, null);
         }
@@ -57,7 +62,7 @@ public class TlsProbe {
     private static SSLContext permissiveContext() {
         try {
             SSLContext context = SSLContext.getInstance("TLS");
-            context.init(null, new javax.net.ssl.TrustManager[]{
+            context.init(null, new TrustManager[]{
                     new X509TrustManager() {
                         @Override
                         public void checkClientTrusted(X509Certificate[] chain, String authType) {
@@ -72,7 +77,7 @@ public class TlsProbe {
                             return new X509Certificate[0];
                         }
                     }
-            }, new java.security.SecureRandom());
+            }, new SecureRandom());
             return context;
         } catch (GeneralSecurityException e) {
             throw new IllegalStateException(e);

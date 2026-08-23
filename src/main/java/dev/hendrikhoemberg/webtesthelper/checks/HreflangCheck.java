@@ -13,6 +13,7 @@ import dev.hendrikhoemberg.webtesthelper.model.UrlStatus;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -48,10 +49,11 @@ public final class HreflangCheck implements SiteCheck {
 
     @Override
     public List<CheckFinding> evaluate(RunSnapshots snapshots, SiteContext site, CheckConfig config) {
+        Map<String, PageSnapshot> crawled = snapshots.byUrlIndex();
         List<CheckFinding> findings = new ArrayList<>();
         for (PageSnapshot page : snapshots.snapshots()) {
             for (AlternateRef alternate : page.alternates()) {
-                CheckFinding finding = checkAlternate(page, alternate, snapshots, config);
+                CheckFinding finding = checkAlternate(page, alternate, crawled, config);
                 if (finding != null) {
                     findings.add(finding);
                 }
@@ -61,7 +63,7 @@ public final class HreflangCheck implements SiteCheck {
     }
 
     private CheckFinding checkAlternate(PageSnapshot page, AlternateRef alternate,
-            RunSnapshots snapshots, CheckConfig config) {
+            Map<String, PageSnapshot> crawled, CheckConfig config) {
         String hreflang = alternate.hreflang();
         NormalizedUrl target = alternate.target();
 
@@ -70,7 +72,7 @@ public final class HreflangCheck implements SiteCheck {
                     List.of(hreflang, page.url().value()), page.url());
         }
 
-        Optional<PageSnapshot> targetSnap = snapshots.byUrl(target.value());
+        Optional<PageSnapshot> targetSnap = Optional.ofNullable(crawled.get(target.value()));
         boolean dead = targetSnap.map(s -> !s.reachable() || s.httpStatus() >= 400).orElse(false);
         if (!dead) {
             dead = config.facts().verifications().of(target)

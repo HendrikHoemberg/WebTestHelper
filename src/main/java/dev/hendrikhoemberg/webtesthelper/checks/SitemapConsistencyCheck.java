@@ -15,7 +15,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -54,9 +53,10 @@ public final class SitemapConsistencyCheck implements SiteCheck {
             UrlNormalizer.normalize(raw).ifPresent(url -> sitemap.put(url.value(), url));
         }
 
+        Map<String, PageSnapshot> crawled = snapshots.byUrlIndex();
         List<CheckFinding> findings = new ArrayList<>();
         for (NormalizedUrl entry : sitemap.values()) {
-            if (isDeadEntry(entry, snapshots, config)) {
+            if (isDeadEntry(entry, crawled, config)) {
                 findings.add(new CheckFinding(type(), config.severity(), entry.value(), null,
                         DEAD_ENTRY, List.of(entry.value()), Evidence.NONE));
             }
@@ -73,10 +73,10 @@ public final class SitemapConsistencyCheck implements SiteCheck {
         return findings;
     }
 
-    private boolean isDeadEntry(NormalizedUrl entry, RunSnapshots snapshots, CheckConfig config) {
-        Optional<PageSnapshot> snapshot = snapshots.byUrl(entry.value());
-        if (snapshot.isPresent()) {
-            PageSnapshot page = snapshot.get();
+    private boolean isDeadEntry(NormalizedUrl entry, Map<String, PageSnapshot> crawled,
+            CheckConfig config) {
+        PageSnapshot page = crawled.get(entry.value());
+        if (page != null) {
             return !page.reachable() || page.httpStatus() >= 400;
         }
         return config.facts().verifications().of(entry)

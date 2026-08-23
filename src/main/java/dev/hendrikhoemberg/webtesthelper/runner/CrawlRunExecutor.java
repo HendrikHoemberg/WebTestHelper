@@ -83,14 +83,12 @@ public class CrawlRunExecutor implements RunExecutor {
                     results.updateProgress(lease.runId(), visited, failed);
                 });
 
-        // The check pass runs outside the crawl's heartbeat callback; one more extension closes
-        // the stale-lease window so the sweep cannot reclaim a run that is still working (spec 14).
+        // Verification and the check pass both run outside the crawl's heartbeat callback, and a
+        // large site's verification pass is minutes of blocking I/O. One extension here closes the
+        // stale-lease window so the sweep cannot reclaim a run that is still working (spec 14).
         leases.heartbeat(lease.runId(), identity.name(), LEASE_EXTENSION);
 
-        // Verification: ping every link the crawl did not itself navigate, and probe the base URL's
-        // certificate. A large site's verification pass is minutes of blocking I/O, so the lease is
-        // extended once more before it starts — a healthy run must not be reclaimed mid-verify (§14).
-        leases.heartbeat(lease.runId(), identity.name(), LEASE_EXTENSION);
+        // Ping every link the crawl did not itself navigate, and probe the base URL's certificate.
         UrlVerifications verifications = verifier.verify(site, result.snapshots(),
                 result.verificationCandidates());
         TlsCertificateFact tls = tlsProbe.probe(site.baseUrl());
