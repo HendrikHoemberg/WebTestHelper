@@ -15,11 +15,11 @@ import org.springframework.stereotype.Component;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
@@ -73,12 +73,14 @@ public class FindingReverifier {
                 .toList();
 
         Set<String> recovered = new HashSet<>();
-        Map<String, UrlVerification> latest = new ConcurrentHashMap<>();
+        Map<String, UrlVerification> latest = new HashMap<>();
         Duration delay = properties.reverifyDelay();
         for (int attempt = 0;
              attempt < properties.reverifyAttempts() && recovered.size() < suspects.size();
              attempt++) {
             if (attempt > 0) {
+                // With the default reverify-attempts=2 only one sleep happens, so the doubling
+                // only engages once attempts reach 3 or more.
                 sleep(delay);
                 delay = delay.multipliedBy(2);
             }
@@ -104,7 +106,7 @@ public class FindingReverifier {
         surviving.removeIf(finding -> recovered.contains(finding.subjectKey()));
 
         return new ReverificationOutcome(List.copyOf(surviving), Set.copyOf(recovered),
-                suspects.size());
+                urls.size());
     }
 
     private void sleep(Duration delay) {
