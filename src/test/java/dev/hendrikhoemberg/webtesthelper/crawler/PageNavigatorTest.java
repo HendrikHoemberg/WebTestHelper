@@ -181,6 +181,38 @@ class PageNavigatorTest {
     }
 
     @Test
+    void scriptsAndStylesheetsAreExtractedWithTheirKind() {
+        PageSnapshot snapshot = capture("mixed-content.html", 1);
+
+        assertThat(snapshot.subresources())
+                .filteredOn(subresource -> subresource.kind() == SubresourceKind.SCRIPT)
+                .extracting(subresource -> subresource.target().value())
+                .anySatisfy(url -> assertThat(url).endsWith("/assets/skript.js"))
+                .anySatisfy(url -> assertThat(url).isEqualTo("http://localhost:9/unsicher.js"));
+        assertThat(snapshot.subresources())
+                .filteredOn(subresource -> subresource.kind() == SubresourceKind.STYLESHEET)
+                .extracting(subresource -> subresource.target().value())
+                .anySatisfy(url -> assertThat(url).endsWith("/assets/stil.css"))
+                .anySatisfy(url -> assertThat(url).isEqualTo("http://localhost:9/unsicher.css"));
+    }
+
+    @Test
+    void anInlineScriptIsNotASubresourceBecauseItLoadsNothing() {
+        // mixed-content.html carries an inline <script> alongside its two src'd ones. Nothing is
+        // fetched for it, so it has no scheme and cannot be insecure.
+        PageSnapshot snapshot = capture("mixed-content.html", 1);
+
+        assertThat(snapshot.subresources()).hasSize(4);
+    }
+
+    @Test
+    void aPageWithoutSubresourcesReturnsAnEmptyListRatherThanNull() {
+        PageSnapshot snapshot = capture("", 0);
+
+        assertThat(snapshot.subresources()).isNotNull().isEmpty();
+    }
+
+    @Test
     void aPageWithoutAlternatesReturnsAnEmptyListRatherThanNull() {
         PageSnapshot snapshot = capture("kontakt.html", 1);
 

@@ -16,6 +16,11 @@ import java.util.Set;
  * No http subresources on an https page (spec 7.1). The browser either blocks them, which
  * leaves a visible hole, or downgrades the padlock — both are defects a client notices.
  *
+ * <p>Scripts and stylesheets are the pair that matters most, and the pair a browser does not
+ * merely downgrade but <em>refuses outright</em>: an http {@code <script>} on an https page never
+ * runs and an http stylesheet never applies, so the page arrives unstyled or inert. Images, media
+ * and frames are the passive half — usually blocked too, always at least a broken padlock.
+ *
  * <p>Links are deliberately not subresources. A link is a destination; nothing is loaded into
  * this page and the padlock survives, so reporting one would be a false positive on every
  * partner link that has not moved to https yet.
@@ -51,6 +56,7 @@ public final class MixedContentCheck implements PageCheck {
         snapshot.images().forEach(image -> collect(image.target(), insecure));
         snapshot.media().forEach(media -> media.sources().forEach(source -> collect(source, insecure)));
         snapshot.frames().forEach(frame -> collect(frame.src(), insecure));
+        snapshot.subresources().forEach(subresource -> collect(subresource.target(), insecure));
 
         List<CheckFinding> findings = new ArrayList<>();
         for (String subject : insecure) {

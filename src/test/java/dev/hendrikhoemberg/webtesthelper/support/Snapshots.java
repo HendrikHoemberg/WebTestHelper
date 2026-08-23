@@ -18,6 +18,8 @@ import dev.hendrikhoemberg.webtesthelper.model.RunFacts;
 import dev.hendrikhoemberg.webtesthelper.model.RunScope;
 import dev.hendrikhoemberg.webtesthelper.model.SimHash;
 import dev.hendrikhoemberg.webtesthelper.model.SoftNotFoundProbe;
+import dev.hendrikhoemberg.webtesthelper.model.SubresourceKind;
+import dev.hendrikhoemberg.webtesthelper.model.SubresourceRef;
 import dev.hendrikhoemberg.webtesthelper.model.TlsCertificateFact;
 import dev.hendrikhoemberg.webtesthelper.model.UrlNormalizer;
 import dev.hendrikhoemberg.webtesthelper.model.UrlVerification;
@@ -88,6 +90,7 @@ public final class Snapshots {
         private final List<MediaRef> media = new ArrayList<>();
         private final List<FrameRef> frames = new ArrayList<>();
         private final List<AlternateRef> alternates = new ArrayList<>();
+        private final List<SubresourceRef> subresources = new ArrayList<>();
         private final List<ConsoleMessage> console = new ArrayList<>();
         private final List<FailedRequest> failed = new ArrayList<>();
 
@@ -171,6 +174,18 @@ public final class Snapshots {
             return this;
         }
 
+        /** A {@code <script src>} the page loads into itself. */
+        public Builder script(String src) {
+            subresources.add(new SubresourceRef(SubresourceKind.SCRIPT, Snapshots.url(src)));
+            return this;
+        }
+
+        /** A {@code <link rel="stylesheet">} the page loads into itself. */
+        public Builder stylesheet(String href) {
+            subresources.add(new SubresourceRef(SubresourceKind.STYLESHEET, Snapshots.url(href)));
+            return this;
+        }
+
         public Builder consoleError(String message) {
             console.add(new ConsoleMessage("error", message, url.value()));
             return this;
@@ -199,7 +214,7 @@ public final class Snapshots {
                     Map.copyOf(headers),
                     redirectChain == null ? List.of(url.value()) : redirectChain,
                     120L, "Titel", "de", text, SimHash.of(text), links, images, media, frames,
-                    alternates, List.<FormRef>of(), console, failed, "seite.png");
+                    alternates, subresources, List.<FormRef>of(), console, failed, "seite.png");
         }
 
         public PageSnapshot unreachable(String reason) {

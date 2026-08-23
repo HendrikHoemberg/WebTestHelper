@@ -13,6 +13,8 @@ import dev.hendrikhoemberg.webtesthelper.model.FailedRequest;
 import dev.hendrikhoemberg.webtesthelper.model.FormFieldRef;
 import dev.hendrikhoemberg.webtesthelper.model.FormRef;
 import dev.hendrikhoemberg.webtesthelper.model.AlternateRef;
+import dev.hendrikhoemberg.webtesthelper.model.SubresourceKind;
+import dev.hendrikhoemberg.webtesthelper.model.SubresourceRef;
 import dev.hendrikhoemberg.webtesthelper.model.FrameRef;
 import dev.hendrikhoemberg.webtesthelper.model.ImageOrigin;
 import dev.hendrikhoemberg.webtesthelper.model.ImageRef;
@@ -150,7 +152,8 @@ public class PageNavigator {
                     response == null ? 0 : response.status(), headers, redirectChain, loadMillis,
                     extracted.title(), extracted.lang(), extracted.text(),
                     SimHash.of(extracted.text()), extracted.links(), extracted.images(),
-                    extracted.media(), extracted.frames(), extracted.alternates(), extracted.forms(),
+                    extracted.media(), extracted.frames(), extracted.alternates(),
+                    extracted.subresources(), extracted.forms(),
                     List.copyOf(console), List.copyOf(failed), screenshotPath);
         } catch (PlaywrightException e) {
             return PageSnapshot.unreachable(requested, target.url(), target.depth(),
@@ -219,6 +222,16 @@ public class PageNavigator {
                     alternates.add(new AlternateRef(asString(alternate.get("lang")), target)));
         }
 
+        List<SubresourceRef> subresources = new ArrayList<>();
+        for (Object item : listOf(data.get("subresources"))) {
+            Map<String, Object> subresource = cast(item);
+            SubresourceKind kind = "script".equals(asString(subresource.get("kind")))
+                    ? SubresourceKind.SCRIPT
+                    : SubresourceKind.STYLESHEET;
+            UrlNormalizer.normalize(asString(subresource.get("abs"))).ifPresent(target ->
+                    subresources.add(new SubresourceRef(kind, target)));
+        }
+
         List<FormRef> forms = new ArrayList<>();
         for (Object item : listOf(data.get("forms"))) {
             Map<String, Object> form = cast(item);
@@ -234,7 +247,8 @@ public class PageNavigator {
         }
 
         return new Extracted(asString(data.get("title")), asString(data.get("lang")),
-                asString(data.get("text")), links, images, media, frames, alternates, forms);
+                asString(data.get("text")), links, images, media, frames, alternates,
+                subresources, forms);
     }
 
     /** A screenshot failure downgrades to {@code screenshotPath = null}; it never fails the page. */
@@ -293,10 +307,10 @@ public class PageNavigator {
     private record Extracted(String title, String lang, String text,
                              List<LinkRef> links, List<ImageRef> images, List<MediaRef> media,
                              List<FrameRef> frames, List<AlternateRef> alternates,
-                             List<FormRef> forms) {
+                             List<SubresourceRef> subresources, List<FormRef> forms) {
 
         private static final Extracted EMPTY =
                 new Extracted("", "", "", List.of(), List.of(), List.of(), List.of(),
-                        List.of(), List.of());
+                        List.of(), List.of(), List.of());
     }
 }

@@ -38,7 +38,7 @@ class CrawlServiceEnqueueTest {
         PageSnapshot snapshot = new PageSnapshot(base, base.value(), 0, true, null, 200, Map.of(),
                 List.of(base.value()), 0L, "", "", "", 0L,
                 List.of(new LinkRef("/a", link, "x", true, "")), List.of(), List.of(), List.of(),
-                List.of(), List.of(), List.of(), List.of(), null);
+                List.of(), List.of(), List.of(), List.of(), List.of(), null);
         CrawlTarget target = new CrawlTarget(1L, base.value(), 0);
 
         assertThatCode(() -> service.enqueueDiscovered(request, target, admission, snapshot))

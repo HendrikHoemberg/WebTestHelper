@@ -113,6 +113,10 @@ public final class FixtureSite implements AutoCloseable {
             switch (path) {
                 case "/assets/logo.png" -> send(exchange, 200, "image/png", PNG_1X1);
                 case "/assets/fehlt.png" -> send(exchange, 404, "text/plain", "nicht gefunden".getBytes(StandardCharsets.UTF_8));
+                case "/assets/stil.css" -> send(exchange, 200, "text/css",
+                        "body { font-family: sans-serif; }".getBytes(StandardCharsets.UTF_8));
+                case "/assets/skript.js" -> send(exchange, 200, "text/javascript",
+                        "window.fixtureGeladen = true;".getBytes(StandardCharsets.UTF_8));
                 case "/dateien/handbuch.pdf" -> send(exchange, 200, "application/pdf", pdf());
                 case "/dateien/preisliste.pdf" -> sendHtml(exchange, 200,
                         "<!doctype html><html lang=\"de\"><body><h1>Bitte anmelden</h1></body></html>");

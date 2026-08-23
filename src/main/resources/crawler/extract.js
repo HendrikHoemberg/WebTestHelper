@@ -130,10 +130,20 @@ async () => {
                     abs: absolute(link.getAttribute('href') || '') }))
     .filter(alternate => alternate.abs);
 
+  // The two subresource kinds a browser hard-blocks over http on an https page, which is the
+  // failure MIXED_CONTENT exists for. Only the src/href form: an inline <script> or <style>
+  // loads nothing, so it cannot be insecure.
+  const subresources = [
+    ...[...document.querySelectorAll('script[src]')]
+      .map(script => ({ kind: 'script', abs: absolute(script.getAttribute('src')) })),
+    ...[...document.querySelectorAll('link[rel~="stylesheet"][href]')]
+      .map(link => ({ kind: 'stylesheet', abs: absolute(link.getAttribute('href')) }))
+  ].filter(subresource => subresource.abs);
+
   return {
     title: document.title || '',
     lang: document.documentElement.getAttribute('lang') || '',
     text: (document.body && document.body.innerText) || '',
-    links, images, media, frames, forms, alternates
+    links, images, media, frames, forms, alternates, subresources
   };
 };

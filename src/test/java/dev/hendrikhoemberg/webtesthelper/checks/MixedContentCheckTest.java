@@ -20,11 +20,38 @@ class MixedContentCheckTest {
                         .image("http://example.com/logo.png", 40)
                         .image("https://example.com/ok.png", 40)
                         .media(MediaKind.VIDEO, "http://example.com/film.mp4", 1, 9.0, null)
-                        .frame("http://example.com/karte", false, 0).build(),
+                        .frame("http://example.com/karte", false, 0)
+                        .script("http://example.com/app.js")
+                        .stylesheet("http://example.com/stil.css").build(),
                 Snapshots.config(check, Snapshots.facts())))
                 .extracting(CheckFinding::subjectKey)
                 .containsExactly("http://example.com/logo.png", "http://example.com/film.mp4",
-                        "http://example.com/karte");
+                        "http://example.com/karte", "http://example.com/app.js",
+                        "http://example.com/stil.css");
+    }
+
+    @Test
+    void anInsecureScriptIsReported() {
+        // The severe case, and the one the check was blind to: a browser hard-blocks an http
+        // script on an https page, so the page's behaviour is simply gone.
+        assertThat(check.evaluate(
+                Snapshots.page("https://example.com/")
+                        .script("http://cdn.example/analytics.js")
+                        .script("https://cdn.example/ok.js").build(),
+                Snapshots.config(check, Snapshots.facts())))
+                .extracting(CheckFinding::subjectKey)
+                .containsExactly("http://cdn.example/analytics.js");
+    }
+
+    @Test
+    void anInsecureStylesheetIsReported() {
+        assertThat(check.evaluate(
+                Snapshots.page("https://example.com/")
+                        .stylesheet("http://cdn.example/theme.css")
+                        .stylesheet("https://cdn.example/ok.css").build(),
+                Snapshots.config(check, Snapshots.facts())))
+                .extracting(CheckFinding::subjectKey)
+                .containsExactly("http://cdn.example/theme.css");
     }
 
     @Test

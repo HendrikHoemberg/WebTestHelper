@@ -1,6 +1,17 @@
 <!doctype html>
 <html lang="de">
-<head><meta charset="utf-8"><title>Gemischte Inhalte — Fixture</title></head>
+<head><meta charset="utf-8"><title>Gemischte Inhalte — Fixture</title>
+  <!-- Two working same-origin subresources, one of each kind, so PageNavigatorTest can prove
+       extraction; plus the insecure pair this page is named for. The fixture is served over
+       plain HTTP (deviation D6), so MIXED_CONTENT itself stays silent here and is proven from
+       hand-built snapshots — these tags exist to be *extracted*, not to be reported. Neither
+       adds a link, so every page-count assertion holds. -->
+  <link rel="stylesheet" href="/assets/stil.css">
+  <link rel="stylesheet" href="http://localhost:9/unsicher.css">
+  <script src="/assets/skript.js"></script>
+  <script src="http://localhost:9/unsicher.js"></script>
+  <script>window.fixtureInline = true;</script>
+</head>
 <body>
 <h1>Gemischte Inhalte</h1>
 <p><a href="/">Zurück zur Startseite</a></p>
