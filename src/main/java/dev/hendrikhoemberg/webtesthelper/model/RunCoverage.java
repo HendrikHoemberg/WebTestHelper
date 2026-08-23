@@ -24,6 +24,9 @@ public record RunCoverage(Set<CheckType> checkTypes, Set<String> locationKeys, b
         Set<CheckType> checkTypes = new LinkedHashSet<>();
         if (checkTypeNames != null) {
             for (String name : checkTypeNames) {
+                if (name == null) {
+                    continue;
+                }
                 try {
                     checkTypes.add(CheckType.valueOf(name));
                 } catch (IllegalArgumentException ignored) {

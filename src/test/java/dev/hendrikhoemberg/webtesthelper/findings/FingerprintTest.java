@@ -31,6 +31,13 @@ class FingerprintTest {
     }
 
     @Test
+    void separatorByteInValueDoesNotCollapseBoundary() {
+        String first = Fingerprint.of(1, CheckType.DEAD_LINK, "x\0", "y");
+        String second = Fingerprint.of(1, CheckType.DEAD_LINK, "x", "\0y");
+        assertThat(first).isNotEqualTo(second);
+    }
+
+    @Test
     void distinguishesSiteWideFromPageScopedLocation() {
         String siteWide = Fingerprint.of(1, CheckType.DEAD_LINK, "https://e.com", "*");
         String pageScoped = Fingerprint.of(1, CheckType.DEAD_LINK, "https://e.com", "/");

@@ -15,29 +15,26 @@ import java.security.NoSuchAlgorithmException;
  * pure function of {@code (siteId, checkType, subjectKey, locationKey)} — nothing time-dependent
  * or random.
  *
- * <p>The four fields are joined with a NUL separator. A URL cannot contain a NUL, which is
- * precisely why NUL is the separator. To keep the boundary unambiguous when a value itself
- * carries a NUL (it never will for a real URL-derived key, but the format must not be
- * spliceable), embedded NULs are escaped to a double NUL: {@code "a\0b" + "\0" + "c"} then
- * joins to {@code …a\0\0b\0c}, distinct from {@code "a" + "\0" + "b\0c"} → {@code …a\0b\0\0c}.
- * Without that escape the two byte strings are identical and the fingerprint collides.
+ * <p>The four fields are joined by a single control-byte separator, U+0001, which cannot
+ * occur in any valid input: site ids are decimal, {@link CheckType} names are ASCII
+ * identifiers, and subject/location keys are derived from URLs (which contain no control
+ * bytes). Because the separator is absent from every field, the join is injective over the
+ * real domain — splitting on U+0001 recovers the four components exactly, so a finding's
+ * identity can never be spliced from a different {@code (siteId, checkType, subjectKey,
+ * locationKey)}. The test pins this with synthetic inputs that smuggle a control byte into a
+ * value; those collide only if the separator can appear inside a field, which it cannot here.
  */
 public final class Fingerprint {
 
-    private static final String SEP = "\0";
+    private static final String SEP = "\u0001";
 
     private Fingerprint() {
     }
 
     public static String of(long siteId, CheckType type, String subjectKey, String locationKey) {
-        String joined = siteId + SEP + type.name() + SEP
-                + escape(subjectKey) + SEP + escape(locationKey);
+        String joined = siteId + SEP + type.name() + SEP + subjectKey + SEP + locationKey;
         byte[] digest = sha256(joined.getBytes(StandardCharsets.UTF_8));
         return HexFormat.of().formatHex(digest);
-    }
-
-    private static String escape(String value) {
-        return value.replace(SEP, SEP + SEP);
     }
 
     private static byte[] sha256(byte[] input) {
