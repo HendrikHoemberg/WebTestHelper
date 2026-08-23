@@ -6,6 +6,17 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * Tests for {@link Fingerprint}.
+ *
+ * <p>The production join in {@link Fingerprint} separates its four fields with U+0001, which by
+ * its domain contract never occurs in any valid input (site ids are decimal, CheckType names are
+ * ASCII identifiers, subject/location keys are URL-derived). These tests therefore pin the
+ * injective-join guarantee from the value side: bytes that ARE allowed inside a field — including
+ * the NUL byte — must not be mistaken for a field boundary. The separator byte (U+0001) itself is
+ * deliberately never smuggled in here; doing so would collide, because the join is only injective
+ * while the separator stays outside the key domain (see Fingerprint's class javadoc).
+ */
 class FingerprintTest {
 
     @Test
@@ -24,14 +35,14 @@ class FingerprintTest {
     }
 
     @Test
-    void separatorIsNotSpliceable() {
+    void nonSeparatorBytesInValueDoNotSpliceFieldBoundaries() {
         String first = Fingerprint.of(1, CheckType.DEAD_LINK, "a\0b", "c");
         String second = Fingerprint.of(1, CheckType.DEAD_LINK, "a", "b\0c");
         assertThat(first).isNotEqualTo(second);
     }
 
     @Test
-    void separatorByteInValueDoesNotCollapseBoundary() {
+    void nonSeparatorByteInValueDoesNotCollapseBoundary() {
         String first = Fingerprint.of(1, CheckType.DEAD_LINK, "x\0", "y");
         String second = Fingerprint.of(1, CheckType.DEAD_LINK, "x", "\0y");
         assertThat(first).isNotEqualTo(second);
