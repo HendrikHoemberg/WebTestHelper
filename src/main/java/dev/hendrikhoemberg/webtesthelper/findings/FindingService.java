@@ -25,6 +25,13 @@ public class FindingService {
         this.properties = properties;
     }
 
+    /**
+     * Records one run as a single transaction. {@code findings} must be the COMPLETE set of
+     * findings the run produced — the crawl pipeline guarantees this. A partial replay under the
+     * same {@code runId} would leave the unmentioned findings' {@code last_seen_run} stale, so
+     * {@link FindingStore#resolveOutsideRun} could not tell they were absent and would never
+     * resolve them (spec 6.4); the caller contract for tasks 4–6 depends on this.
+     */
     public RunDiff record(long runId, long siteId, List<CheckFinding> findings, RunCoverage coverage,
             Instant observedAt) {
         List<MaterialisedFinding> materialised =

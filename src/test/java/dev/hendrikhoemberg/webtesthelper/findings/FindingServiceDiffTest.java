@@ -98,7 +98,7 @@ class FindingServiceDiffTest extends AbstractPostgresTest {
     }
 
     @Test
-    void anAcknowledgedFindingShowsAsKnownAndRegressesBackToKnownAfterReturn() {
+    void anAcknowledgedFindingShowsAsKnownAndAReturningOneAsRegressed() {
         service.record(1, siteId, threeFindings(), fullCoverage(List.of("/a", "/b", "/c")), observedAt);
         String acked = threeFindings().get(0).locationKey();
         String fp = Fingerprint.of(siteId, CheckType.DEAD_LINK, "dead:" + acked, acked);
@@ -151,6 +151,18 @@ class FindingServiceDiffTest extends AbstractPostgresTest {
 
         assertThat(run2.count(ReportSection.NEW)).isEqualTo(3);
         assertThat(run2.count(ReportSection.FIXED)).isEqualTo(1);
+    }
+
+    @Test
+    void anEmptyRecordWithFullCoverageResolvesEverythingPreviouslyActive() {
+        service.record(1, siteId, threeFindings(), fullCoverage(List.of("/a", "/b", "/c")), observedAt);
+
+        RunDiff empty = service.record(2, siteId, List.of(), fullCoverage(List.of("/a", "/b", "/c")), observedAt);
+
+        assertThat(empty.count(ReportSection.NEW)).isZero();
+        assertThat(empty.count(ReportSection.STILL_OPEN)).isZero();
+        assertThat(empty.count(ReportSection.FIXED)).isEqualTo(3);
+        assertThat(locationOf(empty, ReportSection.FIXED)).containsExactlyInAnyOrder("/a", "/b", "/c");
     }
 
     private List<CheckFinding> threeFindings() {
