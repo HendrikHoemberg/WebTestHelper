@@ -120,6 +120,13 @@ public class CrawlRunExecutor implements RunExecutor {
         ReverificationOutcome rechecked = reverifier.reverify(site, result.snapshots(),
                 verifications, checkFindings);
         List<CheckFinding> surviving = rechecked.surviving();
+        if (rechecked.rechecked() > 0) {
+            // Trust is the product (spec 8): a run that quietly discarded findings has to say
+            // how many it dropped and out of how many, or the filter cannot be audited at all.
+            log.info("Lauf {}: {} Ziele erneut geprüft, {} wieder erreichbar, {} von {} Befunden verworfen",
+                    lease.runId(), rechecked.rechecked(), rechecked.recoveredSubjects().size(),
+                    checkFindings.size() - surviving.size(), checkFindings.size());
+        }
 
         List<String> coveredCheckTypes = lease.scope().checkTypes().stream()
                 .filter(site::enabled)
