@@ -48,8 +48,8 @@ that mattered, raise it and say what.
 
 ## Tests
 
-- `./mvnw test` runs everything (251 tests, ~1m40s). **This is what CI and pre-merge use.**
-- `./mvnw test -Pfast` skips `@Tag("browser")` (208 tests, ~8s) — edit-test loop only. It
+- `./mvnw test` runs everything (427 tests, ~1m20s). **This is what CI and pre-merge use.**
+- `./mvnw test -Pfast` skips `@Tag("browser")` (360 tests, ~10s) — edit-test loop only. It
   does not prove the crawler, the browser pool, or the page-check acceptance suite.
 
 **Never use JUnit `@Nested`.** Surefire's directory scanner skips inner classes, so nested

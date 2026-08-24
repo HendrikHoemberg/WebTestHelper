@@ -76,6 +76,12 @@ plan is never edited.
 | D25 | A run's coverage is the frontier's `DONE` URLs **plus** every snapshot's final URL, so a page reached only through a redirect is inside coverage | 4 |
 | D26 | `occurrence_count` is recomputed from the occurrence rows, never accumulated, so re-materialising a reclaimed run changes nothing | 4 |
 | D27 | The site-wide threshold is global configuration in Phase 1, not a per-site column | 4 |
+| D28 | A regression is reported in the run that revives the finding and in that run alone, via its own `regressed_at_run` column; `resolved_at_run` stays as history | 4 (post-execution) |
+
+D28 was added after plan 4 executed, from the review of its result: branching the report on
+`resolved_at_run IS NOT NULL` made "Regressed" permanent, so one unfixed regression would mail on
+every run forever (§11.1) and an `ACKNOWLEDGED` finding that had ever regressed could never return
+to the quiet Known section. The plan itself is not edited — the code and this row are the record.
 
 D5–D12 were added when plan 2 was written; the help deviation moved from D5 to D13 so the
 numbering stays chronological. Nothing referenced it yet. D14–D17 were added when plan 3a was
