@@ -16,14 +16,19 @@ import java.util.List;
  *
  * @param observed        whether the finding is currently observable on the site.
  * @param triage          the human disposition of the finding.
- * @param resolvedAtRun   the run that resolved the finding; stays set after a regression so the
- *                       regression can be distinguished from a brand-new finding.
+ * @param resolvedAtRun   the run that last resolved the finding; kept as history after a
+ *                       regression, so a row still tells the whole fix/regression cycle.
+ * @param regressedAtRun  the run that revived the finding from {@code RESOLVED}. A regression is
+ *                       news in that run alone — reporting it in every later run would mail on
+ *                       every run forever (spec 11.1) and would keep an acknowledged finding out
+ *                       of the quiet Known section for good.
  */
 public record Finding(long id, long siteId, String fingerprint, CheckType type, String subjectKey,
                       String locationKey, Severity severity, String messageKey, List<String> messageArgs,
                       Evidence evidence, ObservedStatus observed, TriageStatus triage,
                       String triageReason, long firstSeenRun, long lastSeenRun, Long resolvedAtRun,
-                      int occurrenceCount, int pageCount, Instant firstSeenAt, Instant lastSeenAt) {
+                      Long regressedAtRun, int occurrenceCount, int pageCount, Instant firstSeenAt,
+                      Instant lastSeenAt) {
 
     public Finding {
         messageArgs = messageArgs == null ? List.of() : List.copyOf(messageArgs);

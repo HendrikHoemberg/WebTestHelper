@@ -20,7 +20,6 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +39,12 @@ public class FindingStore {
             VALUES (?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?::jsonb, 'ACTIVE', 'UNTRIAGED', ?, ?, ?, ?, ?)
             ON CONFLICT (fingerprint) DO UPDATE SET
                 observed_status = 'ACTIVE',
+                -- The revival IS the regression, and it is news in this run only. Every SET
+                -- expression sees the pre-update row, so this reads the status the finding had
+                -- when the run found it again. resolved_at_run stays untouched as history.
+                regressed_at_run = CASE WHEN finding.observed_status = 'RESOLVED'
+                                        THEN excluded.last_seen_run
+                                        ELSE finding.regressed_at_run END,
                 severity        = excluded.severity,
                 message_key     = excluded.message_key,
                 message_args    = excluded.message_args,
@@ -95,7 +100,7 @@ public class FindingStore {
             SELECT f.*, CASE
                 WHEN f.observed_status = 'RESOLVED' AND f.resolved_at_run = ? THEN 'FIXED'
                 WHEN f.first_seen_run = ?                                     THEN 'NEW'
-                WHEN f.resolved_at_run IS NOT NULL                            THEN 'REGRESSED'
+                WHEN f.regressed_at_run = ?                                   THEN 'REGRESSED'
                 WHEN f.triage_status <> 'UNTRIAGED'                           THEN 'KNOWN'
                 ELSE 'STILL_OPEN' END AS section
               FROM finding f
@@ -119,6 +124,8 @@ public class FindingStore {
         this.findingRow = (rs, row) -> {
             long resolved = rs.getLong("resolved_at_run");
             Long resolvedAtRun = rs.wasNull() ? null : resolved;
+            long regressed = rs.getLong("regressed_at_run");
+            Long regressedAtRun = rs.wasNull() ? null : regressed;
             String evidenceJson = rs.getString("evidence");
             Evidence evidence = evidenceJson == null ? Evidence.NONE
                     : readJson(evidenceJson, Evidence.class);
@@ -139,6 +146,7 @@ public class FindingStore {
                     rs.getLong("first_seen_run"),
                     rs.getLong("last_seen_run"),
                     resolvedAtRun,
+                    regressedAtRun,
                     rs.getInt("occurrence_count"),
                     rs.getInt("page_count"),
                     rs.getTimestamp("first_seen_at").toInstant(),
@@ -230,7 +238,7 @@ public class FindingStore {
         List<SectionedFinding> rows = jdbc.query(DIFF_SQL, (rs, rn) -> {
             Finding f = findingRow.mapRow(rs, rn);
             return new SectionedFinding(f, ReportSection.valueOf(rs.getString("section")));
-        }, runId, runId, siteId, runId, runId);
+        }, runId, runId, runId, siteId, runId, runId);
 
         Map<ReportSection, List<Finding>> bySection = new LinkedHashMap<>();
         for (ReportSection section : ReportSection.values()) {

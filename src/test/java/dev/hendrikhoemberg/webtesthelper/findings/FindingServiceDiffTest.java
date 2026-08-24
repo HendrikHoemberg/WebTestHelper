@@ -165,6 +165,60 @@ class FindingServiceDiffTest extends AbstractPostgresTest {
         assertThat(locationOf(empty, ReportSection.FIXED)).containsExactlyInAnyOrder("/a", "/b", "/c");
     }
 
+    @Test
+    void aRegressionIsReportedOnceAndSettlesBackToStillOpen() {
+        // A regression is news in the run that brings it back — and only in that run. Leaving it
+        // REGRESSED forever is spec 6.4's "every week, forever" failure arriving through the
+        // section rule, and it would mail on every run under spec 11.1.
+        service.record(1, siteId, threeFindings(), fullCoverage(List.of("/a", "/b", "/c")), observedAt);
+        List<CheckFinding> dropped = threeFindings().stream()
+                .filter(f -> !"/c".equals(f.locationKey())).toList();
+        service.record(2, siteId, dropped, fullCoverage(List.of("/a", "/b", "/c")), observedAt);
+        RunDiff run3 = service.record(3, siteId, threeFindings(), fullCoverage(List.of("/a", "/b", "/c")), observedAt);
+        assertThat(run3.count(ReportSection.REGRESSED)).isEqualTo(1);
+
+        RunDiff run4 = service.record(4, siteId, threeFindings(), fullCoverage(List.of("/a", "/b", "/c")), observedAt);
+
+        assertThat(run4.count(ReportSection.REGRESSED)).isZero();
+        assertThat(run4.count(ReportSection.STILL_OPEN)).isEqualTo(3);
+    }
+
+    @Test
+    void anAcknowledgedFindingReturnsToKnownTheRunAfterItsRegression() {
+        // Triage is human-owned: once the regression has been reported, an acknowledged finding
+        // must go back to being quiet, or acknowledging it can never take effect again.
+        service.record(1, siteId, threeFindings(), fullCoverage(List.of("/a", "/b", "/c")), observedAt);
+        String acked = "/a";
+        String fp = Fingerprint.of(siteId, CheckType.DEAD_LINK, "dead:" + acked, acked);
+        jdbc.update("UPDATE finding SET triage_status = 'ACKNOWLEDGED', triaged_at = ? WHERE fingerprint = ?",
+                java.sql.Timestamp.from(observedAt), fp);
+        List<CheckFinding> dropped = threeFindings().stream()
+                .filter(f -> !acked.equals(f.locationKey())).toList();
+        service.record(2, siteId, dropped, fullCoverage(List.of("/a", "/b", "/c")), observedAt);
+        service.record(3, siteId, threeFindings(), fullCoverage(List.of("/a", "/b", "/c")), observedAt);
+
+        RunDiff run4 = service.record(4, siteId, threeFindings(), fullCoverage(List.of("/a", "/b", "/c")), observedAt);
+
+        assertThat(run4.count(ReportSection.REGRESSED)).isZero();
+        assertThat(locationOf(run4, ReportSection.KNOWN)).containsExactly(acked);
+    }
+
+    @Test
+    void resolvedAtRunSurvivesTheRegressionAsHistory() {
+        // The regression flag moves to its own column; resolved_at_run stays as the record of when
+        // the finding was last believed fixed.
+        service.record(1, siteId, threeFindings(), fullCoverage(List.of("/a", "/b", "/c")), observedAt);
+        List<CheckFinding> dropped = threeFindings().stream()
+                .filter(f -> !"/c".equals(f.locationKey())).toList();
+        service.record(2, siteId, dropped, fullCoverage(List.of("/a", "/b", "/c")), observedAt);
+
+        RunDiff run3 = service.record(3, siteId, threeFindings(), fullCoverage(List.of("/a", "/b", "/c")), observedAt);
+
+        Finding regressed = run3.of(ReportSection.REGRESSED).get(0);
+        assertThat(regressed.resolvedAtRun()).isEqualTo(2);
+        assertThat(regressed.regressedAtRun()).isEqualTo(3);
+    }
+
     private List<CheckFinding> threeFindings() {
         return List.of(
                 new CheckFinding(CheckType.DEAD_LINK, Severity.ERROR, "dead:/a", page("/a"), "m", List.of(), Evidence.NONE),
