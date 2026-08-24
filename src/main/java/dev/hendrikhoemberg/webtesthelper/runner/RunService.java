@@ -11,6 +11,7 @@ import dev.hendrikhoemberg.webtesthelper.runner.persistence.RunRepository;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.EnumSet;
 import java.util.List;
@@ -23,7 +24,8 @@ import java.util.stream.Collectors;
  * Run creation, listing and summary. Lease mechanics live in the Jdbc repository; this
  * service owns the JPA-backed lifecycle and read side.
  *
- * <p>Deliberately not {@code @Transactional} at the type level: each Spring Data repository
+ * <p>Deliberately not {@code @Transactional} at the type level (only {@link #acceptBaseline}
+ * is, and it says why): each Spring Data repository
  * call is its own transaction anyway, and {@link #enqueue} must re-query with a fresh
  * persistence context after a failed insert (a transaction whose save hit the unique index
  * is rollback-only and poisoned for further queries).
@@ -92,7 +94,13 @@ public class RunService {
     /**
      * Accepts the run as the baseline: acknowledges every {@code UNTRIAGED} finding the run
      * observed, then stamps {@code baseline_accepted_at}. Returns how many findings moved.
+     *
+     * <p>The one method on this service that <em>is</em> transactional. The acknowledgement and
+     * the stamp are one decision: committing the first without the second would leave a run that
+     * offers its baseline button again while every finding behind it is already acknowledged, so
+     * the second press would report nothing moved.
      */
+    @Transactional
     public int acceptBaseline(long runId) {
         RunEntity run = runs.findById(runId)
                 .orElseThrow(() -> new IllegalArgumentException("Lauf " + runId + " existiert nicht"));
