@@ -24,14 +24,20 @@ tree. Plans 1–3a cost 21,227 lines of documents against 9,266 lines of code.
   This is the real limit — length was only ever a symptom of duplicating the implementation
   into the document. Check it, don't estimate it:
   ``awk '/^```/{f=!f;next} f{n++} END{print n}' <plan>``.
-- **Total length: ~800 lines is a tripwire, not a wall.** Over it, state in one line what
-  makes this plan legitimately long, then carry on. Do not hit the number by cutting prose:
-  a plan that is 79% code at 800 lines has failed the rule above while satisfying this one.
+- **Length: ~120 lines per task is the tripwire — there is no per-plan total.** Plans 3b, 4
+  and 5 land at 139, 115 and 107 lines per task with no effort spent on hitting it, so a
+  task much fatter than that is one carrying two deliverables and should be split. A
+  per-plan cap only punishes the plan with more screens: p5 is 964 lines because it has
+  nine tasks, and that is the right size for it. Do not hit this number by cutting prose —
+  a task that is 79% code at 120 lines has failed the rule above while satisfying this one.
 - **Preamble is a pointer, not a copy.** Link the roadmap's global constraints and deviation
   table; restate nothing. Plans 1–3a spend 46, 87, 110 and 124 lines re-importing them, and
   that duplication — not splitting itself — is what made splitting expensive. Splitting a
   plan is fine once its preamble is a reference.
-- **A step is one action.** If a step exceeds ~40 lines it is a task, not a step.
+- **A step is one action, unless splitting it adds no review gate.** ~40 lines is the
+  warning sign. The test is whether a reviewer could accept one half and reject the other:
+  "write the failing test" and "make it pass" are two steps; "build the outbox screen, its
+  banner and its button" is one, because no one would take two of those three.
 - **Never edit a plan after it has executed.** The code is the truth. Keep only the
   "Execution findings" section; delete superseded verbatim code rather than syncing it.
 
@@ -42,9 +48,18 @@ loop arrives as `reachable=false`. Under a length budget the pressure lands on p
 because `writing-plans` makes code blocks mandatory and says nothing about reasoning. That
 is backwards: cut the code, keep the knowledge.
 
-These numbers are untested. Plan 3b is the first written under them; if it comes in far
-under 150 lines of code with nothing lost, tighten them, and if the cap forces out something
-that mattered, raise it and say what.
+**Verbatim code is the riskiest content in a plan, not the safest.** It reads as
+authoritative and no compiler ever sees it. The only thing that failed outright in plan 4
+was its verbatim `Fingerprint` join — wrong twice — while the prose around it was right. A
+code block earns its place by carrying an algorithm a reader would otherwise re-invent
+differently; it never earns it by being reassuring.
+
+**The numbers are measured now, not guessed.** Plans 3b, 4 and 5 were written under them and
+used 130, 108 and 84 lines against the 150 cap: it has never bound, and no plan has yet
+dropped something that mattered to satisfy it. Leave it at 150 — it costs nothing while
+unbinding and is a real ceiling for a migration-heavy plan. The ratio is what the rules
+actually changed: 73–78% code in plans 1–3a, 8–15% in 3b, 4 and 5. Re-check when a plan
+first reports that the cap forced out something real, and say what it was.
 
 ## Tests
 

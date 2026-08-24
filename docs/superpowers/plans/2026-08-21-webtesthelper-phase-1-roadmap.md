@@ -5,8 +5,9 @@
 **Status:** Plans 1, 2a, 2b, 3a, 3b and **4** executed and reviewed against the spec; their commits
 are on `main`. Plan 3 is split into 3a and 3b; both halves are executed. Plan 4 executed
 2026-08-23 with subagent-driven development (six task commits plus review fixes, 417 full tests
-green including the three-run browser acceptance). **Plan 5 is the only remaining plan** and is
-written next, from p4's "What Plan 5 consumes" section.
+green including the three-run browser acceptance). **Plan 5 is written and awaiting execution** —
+`2026-08-21-webtesthelper-p5-web-smtp.md`, nine tasks, written from p4's "What Plan 5 consumes"
+section. It is the last plan of Phase 1.
 
 ---
 
@@ -77,6 +78,14 @@ plan is never edited.
 | D26 | `occurrence_count` is recomputed from the occurrence rows, never accumulated, so re-materialising a reclaimed run changes nothing | 4 |
 | D27 | The site-wide threshold is global configuration in Phase 1, not a per-site column | 4 |
 | D28 | A regression is reported in the run that revives the finding and in that run alone, via its own `regressed_at_run` column; `resolved_at_run` stays as history | 4 (post-execution) |
+| D29 | Live run progress is an HTMX poll every 3 s, not SSE; SSE arrives with the Phase-2 dashboard | 5 |
+| D30 | Global settings and the AES-GCM key live in `catalog`, beside the credentials §11.4 shares the key with; `reporting` depends on `{model, catalog}` | 5 |
+| D31 | User accounts live in `web`; the admin is bootstrapped from the environment and Phase 1 ships no user-management screen | 5 |
+| D32 | Technical strings in a finding's message args are translated at render time; the original appears only under *Technische Details* | 5 |
+| D33 | The run poller is a dedicated daemon thread, the outbox dispatcher is `@Scheduled`, and both are disabled by property in tests | 5 |
+| D34 | Phase 1's only mail is the test mail — the outbox and `Notifier` are built and proven, the notification policy is Phase 2 | 5 |
+| D35 | The mail-health banner lives in the shared layout, because the dashboard §11.5 puts it on is Phase 2 | 5 |
+| D36 | `org.commonmark:commonmark` is the plan's one new dependency, because §13.6 specifies Markdown | 5 |
 
 D28 was added after plan 4 executed, from the review of its result: branching the report on
 `resolved_at_run IS NOT NULL` made "Regressed" permanent, so one unfixed regression would mail on
@@ -85,8 +94,8 @@ to the quiet Known section. The plan itself is not edited — the code and this 
 
 D5–D12 were added when plan 2 was written; the help deviation moved from D5 to D13 so the
 numbering stays chronological. Nothing referenced it yet. D14–D17 were added when plan 3a was
-written, D18–D22 when 3b was and D23–D27 when plan 4 was — each plan file carries the reasoning
-behind its own; this table is the index.
+written, D18–D22 when 3b was, D23–D27 when plan 4 was and D29–D36 when plan 5 was — each plan
+file carries the reasoning behind its own; this table is the index.
 
 ## Execution
 
