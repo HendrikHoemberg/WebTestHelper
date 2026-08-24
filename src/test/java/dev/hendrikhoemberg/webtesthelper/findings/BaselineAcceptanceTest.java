@@ -19,12 +19,19 @@ import org.springframework.transaction.annotation.Transactional;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * Spec 6.3's baseline acceptance: one action turns run one's whole finding list into an
+ * acknowledged block, so run two shows only genuine change.
+ */
 @Transactional
 class BaselineAcceptanceTest extends AbstractPostgresTest {
+
+    private static final long RUN_ONE = 1L;
 
     @Autowired
     FindingService service;
@@ -45,62 +52,87 @@ class BaselineAcceptanceTest extends AbstractPostgresTest {
     }
 
     @Test
-    void acceptBaselineTriagesOnlyTheFindingsThatRunObserved() {
-        // Run 1 carries three UNTRIAGED findings, plus one already triaged as WONT_FIX.
-        List<CheckFinding> run1 = new java.util.ArrayList<>(threeFindings());
-        run1.add(wontFixFinding());
-        service.record(1, siteId, run1, fullCoverage(run1), observedAt);
+    void acknowledgesTheUntriagedFindingsTheRunObserved() {
+        recordRunOne();
 
-        // A finding of the same site that run 1 never observed — accepting a baseline is a
-        // statement about what that run saw, so it must stay untouched.
-        String orphanFp = insertOrphanFinding();
+        int moved = service.acceptBaseline(siteId, RUN_ONE);
 
-        // Pre-dispose the fourth run-1 finding as WONT_FIX with its own reason.
-        String wontFixFp = Fingerprint.of(siteId, CheckType.DEAD_LINK, "dead:/w", "/w");
-        jdbc.update("UPDATE finding SET triage_status = 'WONT_FIX', triage_reason = ? WHERE fingerprint = ?",
-                "Eigenes Risiko.", wontFixFp);
-
-        int moved = service.acceptBaseline(siteId, 1);
-
-        // Group 1: the three UNTRIAGED findings move to ACKNOWLEDGED with a plain-German reason.
         assertThat(moved).isEqualTo(3);
-        for (String fp : List.of(
-                Fingerprint.of(siteId, CheckType.DEAD_LINK, "dead:/a", "/a"),
-                Fingerprint.of(siteId, CheckType.DEAD_LINK, "dead:/b", "/b"),
-                Fingerprint.of(siteId, CheckType.DEAD_LINK, "dead:/c", "/c"))) {
+        for (String fp : threeFingerprints()) {
             assertThat(triageStatus(fp)).isEqualTo(TriageStatus.ACKNOWLEDGED);
-            String reason = triageReason(fp);
-            assertThat(reason).isNotBlank();
-            assertNoInternalIdentifier(reason);
             assertThat(triagedAt(fp)).isNotNull();
         }
-
-        // Group 2: the WONT_FIX finding keeps its status and its own reason.
-        assertThat(triageStatus(wontFixFp)).isEqualTo(TriageStatus.WONT_FIX);
-        assertThat(triageReason(wontFixFp)).isEqualTo("Eigenes Risiko.");
-
-        // Group 3: the orphan (no occurrence in run 1) is untouched.
-        assertThat(triageStatus(orphanFp)).isEqualTo(TriageStatus.UNTRIAGED);
-        assertThat(triageReason(orphanFp)).isNull();
-
-        // Group 4: a second call is a no-op.
-        int second = service.acceptBaseline(siteId, 1);
-        assertThat(second).isZero();
-        assertThat(triageStatus(Fingerprint.of(siteId, CheckType.DEAD_LINK, "dead:/a", "/a")))
-                .isEqualTo(TriageStatus.ACKNOWLEDGED);
-
-        // Group 5: the next run's diff lists them under KNOWN, not STILL_OPEN — the whole point.
-        RunDiff run2 = service.record(2, siteId, threeFindings(), fullCoverage(threeFindings()), observedAt);
-        assertThat(run2.count(ReportSection.KNOWN)).isEqualTo(3);
-        assertThat(run2.count(ReportSection.STILL_OPEN)).isZero();
     }
 
-    private void assertNoInternalIdentifier(String reason) {
-        // Spec 13.1: a colleague reads the reason, so no check type name or run/site id leaks.
+    @Test
+    void stampsAPlainGermanReasonCarryingNoInternalIdentifier() {
+        // Spec 13.1: a colleague reads the reason, so no check type name and no run or site id.
+        recordRunOne();
+
+        service.acceptBaseline(siteId, RUN_ONE);
+
+        String reason = triageReason(threeFingerprints().get(0));
+        assertThat(reason).isNotBlank();
         for (CheckType type : CheckType.values()) {
             assertThat(reason).doesNotContain(type.name());
         }
         assertThat(reason).doesNotContainPattern("\\d");
+    }
+
+    @Test
+    void leavesAFindingThatAlreadyCarriesAHumanDisposition() {
+        List<CheckFinding> run1 = new ArrayList<>(threeFindings());
+        run1.add(new CheckFinding(CheckType.DEAD_LINK, Severity.ERROR, "dead:/w", page("/w"), "m",
+                List.of(), Evidence.NONE));
+        service.record(RUN_ONE, siteId, run1, fullCoverage(run1), observedAt);
+        String wontFixFp = Fingerprint.of(siteId, CheckType.DEAD_LINK, "dead:/w", "/w");
+        jdbc.update("UPDATE finding SET triage_status = 'WONT_FIX', triage_reason = ? WHERE fingerprint = ?",
+                "Eigenes Risiko.", wontFixFp);
+
+        service.acceptBaseline(siteId, RUN_ONE);
+
+        assertThat(triageStatus(wontFixFp)).isEqualTo(TriageStatus.WONT_FIX);
+        assertThat(triageReason(wontFixFp)).isEqualTo("Eigenes Risiko.");
+    }
+
+    @Test
+    void leavesAFindingTheRunNeverObserved() {
+        // Accepting a baseline is a statement about what that run saw, nothing more.
+        recordRunOne();
+        String orphanFp = insertOrphanFinding();
+
+        service.acceptBaseline(siteId, RUN_ONE);
+
+        assertThat(triageStatus(orphanFp)).isEqualTo(TriageStatus.UNTRIAGED);
+        assertThat(triageReason(orphanFp)).isNull();
+    }
+
+    @Test
+    void isIdempotentSoASecondAcceptanceMovesNothing() {
+        recordRunOne();
+        service.acceptBaseline(siteId, RUN_ONE);
+
+        int second = service.acceptBaseline(siteId, RUN_ONE);
+
+        assertThat(second).isZero();
+        assertThat(triageStatus(threeFingerprints().get(0))).isEqualTo(TriageStatus.ACKNOWLEDGED);
+    }
+
+    @Test
+    void theNextRunListsTheAcknowledgedFindingsAsKnownRatherThanStillOpen() {
+        // The whole point of the feature: run two shows only genuine change (spec 6.3).
+        recordRunOne();
+        service.acceptBaseline(siteId, RUN_ONE);
+
+        RunDiff run2 = service.record(2, siteId, threeFindings(), fullCoverage(threeFindings()), observedAt);
+
+        assertThat(run2.count(ReportSection.KNOWN)).isEqualTo(3);
+        assertThat(run2.count(ReportSection.STILL_OPEN)).isZero();
+    }
+
+    /** Run one: the three untriaged findings a first run against an existing site would produce. */
+    private void recordRunOne() {
+        service.record(RUN_ONE, siteId, threeFindings(), fullCoverage(threeFindings()), observedAt);
     }
 
     private List<CheckFinding> threeFindings() {
@@ -110,10 +142,14 @@ class BaselineAcceptanceTest extends AbstractPostgresTest {
                 new CheckFinding(CheckType.DEAD_LINK, Severity.ERROR, "dead:/c", page("/c"), "m", List.of(), Evidence.NONE));
     }
 
-    private CheckFinding wontFixFinding() {
-        return new CheckFinding(CheckType.DEAD_LINK, Severity.ERROR, "dead:/w", page("/w"), "m", List.of(), Evidence.NONE);
+    private List<String> threeFingerprints() {
+        return List.of(
+                Fingerprint.of(siteId, CheckType.DEAD_LINK, "dead:/a", "/a"),
+                Fingerprint.of(siteId, CheckType.DEAD_LINK, "dead:/b", "/b"),
+                Fingerprint.of(siteId, CheckType.DEAD_LINK, "dead:/c", "/c"));
     }
 
+    /** A finding of the same site whose only occurrence belongs to some other run. */
     private String insertOrphanFinding() {
         String fp = Fingerprint.of(siteId, CheckType.DEAD_LINK, "dead:/orphan", "/orphan");
         long id = jdbc.queryForObject("""
