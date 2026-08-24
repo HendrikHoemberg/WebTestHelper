@@ -186,10 +186,10 @@ class FindingReverifierTest extends AbstractPostgresTest {
                         Instant.now())));
 
         CheckFinding finding = deadFinding(subject, site.url("index.html"));
-        int before = site.requestCount("leistungen.html");
+        int before = site.requestCount("/leistungen.html");
         ReverificationOutcome outcome = reverter.reverify(ctx, run, firstPass, List.of(finding));
 
-        assertThat(site.requestCount("leistungen.html")).isEqualTo(before);
+        assertThat(site.requestCount("/leistungen.html")).isEqualTo(before);
         assertThat(outcome.surviving()).containsExactly(finding);
     }
 
@@ -203,11 +203,11 @@ class FindingReverifierTest extends AbstractPostgresTest {
         assertThat(firstPass.byUrl().get(subject).status()).isEqualTo(UrlStatus.OK);
 
         CheckFinding finding = wrongTypeFinding(subject, site.url("index.html"));
-        int before = site.requestCount("dateien/preisliste.pdf");
+        int before = site.requestCount("/dateien/preisliste.pdf");
         ReverificationOutcome outcome = reverter.reverify(ctx, noSnapshots(ctx), firstPass,
                 List.of(finding));
 
-        assertThat(site.requestCount("dateien/preisliste.pdf")).isEqualTo(before);
+        assertThat(site.requestCount("/dateien/preisliste.pdf")).isEqualTo(before);
         assertThat(outcome.surviving()).containsExactly(finding);
     }
 
