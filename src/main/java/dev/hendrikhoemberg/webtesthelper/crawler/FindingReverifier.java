@@ -75,8 +75,12 @@ public class FindingReverifier {
         Set<String> recovered = new HashSet<>();
         Map<String, UrlVerification> latest = new HashMap<>();
         Duration delay = properties.reverifyDelay();
+        // Only the subjects still believed dead go into the next attempt. Recovery is final —
+        // there is nothing more to learn about a subject that answered OK — and re-probing it
+        // would be a request the site never needed to serve (spec 8's politeness).
+        List<NormalizedUrl> pending = new ArrayList<>(urls);
         for (int attempt = 0;
-             attempt < properties.reverifyAttempts() && recovered.size() < suspects.size();
+             attempt < properties.reverifyAttempts() && !pending.isEmpty();
              attempt++) {
             if (attempt > 0) {
                 // With the default reverify-attempts=2 only one sleep happens, so the doubling
@@ -85,13 +89,14 @@ public class FindingReverifier {
                 delay = delay.multipliedBy(2);
             }
             Map<String, UrlVerification> results = verifier.verifyAll(
-                    urls, site.effectiveUserAgent(), DocumentTypes::isDocument);
+                    pending, site.effectiveUserAgent(), DocumentTypes::isDocument);
             for (UrlVerification result : results.values()) {
                 latest.put(result.url(), result);
                 if (result.status() == UrlStatus.OK) {
                     recovered.add(result.url());
                 }
             }
+            pending.removeIf(url -> recovered.contains(url.value()));
         }
 
         List<UrlVerification> toStore = latest.values().stream()

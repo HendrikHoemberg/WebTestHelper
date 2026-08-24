@@ -48,6 +48,9 @@ class FindingReverifierTest extends AbstractPostgresTest {
     @Autowired
     JdbcTemplate jdbc;
 
+    @Autowired
+    VerifierProperties properties;
+
     private FixtureSite site;
 
     @BeforeEach
@@ -131,6 +134,32 @@ class FindingReverifierTest extends AbstractPostgresTest {
         assertThat(outcome.recoveredSubjects()).containsExactly(subject);
         assertThat(outcome.rechecked()).isEqualTo(1);
         assertThat(statusOf(subjUrl)).isEqualTo("OK");
+    }
+
+    @Test
+    void aSubjectThatHealedIsNotProbedAgainByTheRemainingAttempts() {
+        // Recovery is final: once a subject answers OK there is nothing left to learn about it,
+        // and probing it again is a request the site did not need to serve (spec 8, politeness).
+        // Three attempts, so a subject that stays dead keeps the loop running to the last one.
+        SiteContext ctx = ctx();
+        String healing = site.externalBase() + "extern/flatterhaft";
+        String dead = "http://localhost:9/tot";
+        UrlVerifications firstPass = firstPass(ctx, healing, dead);
+
+        FindingReverifier threeAttempts = new FindingReverifier(verifier, cache,
+                new VerifierProperties(properties.perHostPermits(), properties.requestTimeout(),
+                        properties.successTtl(), properties.failureTtl(), 3,
+                        Duration.ofMillis(10)));
+        int afterFirstPass = site.requestCount("/extern/flatterhaft");
+
+        ReverificationOutcome outcome = threeAttempts.reverify(ctx, noSnapshots(ctx), firstPass,
+                List.of(deadFinding(healing, site.url("index.html")),
+                        deadFinding(dead, site.url("index.html"))));
+
+        // Exactly one further probe: attempt 1 healed it, attempts 2 and 3 must skip it.
+        assertThat(site.requestCount("/extern/flatterhaft")).isEqualTo(afterFirstPass + 1);
+        assertThat(outcome.recoveredSubjects()).containsExactly(healing);
+        assertThat(outcome.surviving()).hasSize(1);
     }
 
     @Test
