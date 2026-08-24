@@ -46,4 +46,19 @@ class RunCoverageTest {
                 List.of("PAGE_STATUS", "NOT_A_REAL_CHECK"), List.of(), List.of(), false);
         assertThat(coverage.checkTypes()).containsExactly(CheckType.PAGE_STATUS);
     }
+
+    @Test
+    void doesNotAliasTheSetsItWasConstructedWith() {
+        // Coverage decides what a run may resolve (spec 6.4). A caller that keeps hold of the
+        // collections it passed must not be able to widen that scope afterwards.
+        java.util.Set<CheckType> types = new java.util.LinkedHashSet<>(java.util.Set.of(CheckType.PAGE_STATUS));
+        java.util.Set<String> keys = new java.util.LinkedHashSet<>(java.util.Set.of("/a"));
+
+        RunCoverage coverage = new RunCoverage(types, keys, true);
+        types.add(CheckType.DEAD_LINK);
+        keys.add("/b");
+
+        assertThat(coverage.checkTypes()).containsExactly(CheckType.PAGE_STATUS);
+        assertThat(coverage.locationKeys()).containsExactly("/a");
+    }
 }

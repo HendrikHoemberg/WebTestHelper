@@ -17,6 +17,15 @@ import java.util.Set;
  */
 public record RunCoverage(Set<CheckType> checkTypes, Set<String> locationKeys, boolean complete) {
 
+    /**
+     * Copies both sets: coverage decides what a run is allowed to resolve, so a caller holding
+     * on to the collections it passed must not be able to widen that scope afterwards.
+     */
+    public RunCoverage {
+        checkTypes = Set.copyOf(checkTypes);
+        locationKeys = Set.copyOf(locationKeys);
+    }
+
     public static RunCoverage of(Collection<String> checkTypeNames,
                                  Collection<String> coveredUrls,
                                  Collection<String> snapshotUrls,
