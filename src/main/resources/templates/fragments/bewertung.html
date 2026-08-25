@@ -2,14 +2,30 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 <div th:fragment="bewertung(actionUrl, isBulk, findingId)"
+     th:data-default-action="${triageDefaultAction}"
+     th:data-expiry-actions="${triageExpiryActions}"
+     th:data-mandatory-reason-actions="${triageMandatoryReasonActions}"
+     th:data-reason-actions="${triageReasonActions}"
      x-data="{
-         aktion: 'ACKNOWLEDGED',
+         aktion: $el.dataset.defaultAction,
+         expiryActions: ($el.dataset.expiryActions || '').split(','),
+         mandatoryReasonActions: ($el.dataset.mandatoryReasonActions || '').split(','),
+         reasonActions: ($el.dataset.reasonActions || '').split(','),
          grund: '',
          stummBis: (function() {
              const d = new Date();
              d.setDate(d.getDate() + 90);
              return d.toISOString().split('T')[0];
          })(),
+         requiresExpiry() {
+             return this.expiryActions.includes(this.aktion);
+         },
+         requiresReason() {
+             return this.mandatoryReasonActions.includes(this.aktion);
+         },
+         allowsReason() {
+             return this.reasonActions.includes(this.aktion);
+         },
          formatDate(dStr) {
              if (!dStr) return '';
              const parts = dStr.split('-');
@@ -31,22 +47,21 @@
             <div class="form-gruppe">
                 <label for="triage-aktion" th:text="#{ui.befunde.triage.aktion}">Aktion</label>
                 <select id="triage-aktion" name="aktion" x-model="aktion" class="form-select">
-                    <option value="ACKNOWLEDGED" th:text="#{ui.triagestatus.ACKNOWLEDGED}">Zur Kenntnis genommen</option>
-                    <option value="MUTED" th:text="#{ui.triagestatus.MUTED}">Stummgeschaltet</option>
-                    <option value="WONT_FIX" th:text="#{ui.triagestatus.WONT_FIX}">Wird nicht behoben</option>
-                    <option value="UNTRIAGED" th:text="#{ui.triagestatus.UNTRIAGED}">Ungeprüft</option>
+                    <option th:each="st : ${triageFormActions}"
+                            th:value="${st.name()}"
+                            th:text="#{${'ui.triagestatus.' + st.name()}}">Zur Kenntnis genommen</option>
                 </select>
             </div>
 
-            <div class="form-gruppe" x-show="aktion === 'MUTED'" style="display: none;">
+            <div class="form-gruppe" x-show="requiresExpiry()" style="display: none;">
                 <label for="triage-stumm-bis" th:text="#{ui.befunde.triage.stumm_bis}">Stumm bis</label>
                 <input type="date" id="triage-stumm-bis" name="stummBis" x-model="stummBis" class="form-input">
             </div>
 
-            <div class="form-gruppe form-gruppe-breit" x-show="aktion === 'MUTED' || aktion === 'WONT_FIX' || aktion === 'ACKNOWLEDGED'">
+            <div class="form-gruppe form-gruppe-breit" x-show="allowsReason()">
                 <label for="triage-grund">
                     <span th:text="#{ui.befunde.triage.grund}">Begründung</span>
-                    <span x-show="aktion === 'MUTED' || aktion === 'WONT_FIX'" class="text-pflicht" style="color: var(--danger-color, #dc2626);">*</span>
+                    <span x-show="requiresReason()" class="text-pflicht" style="color: var(--danger-color, #dc2626);">*</span>
                 </label>
                 <input type="text" id="triage-grund" name="grund" x-model="grund"
                        th:placeholder="#{ui.befunde.triage.grund.placeholder}"
@@ -55,7 +70,7 @@
         </div>
 
         <!-- §13.4 Consequence text stated before the click -->
-        <div x-show="aktion === 'MUTED'" class="hinweis-folge" style="display: none; margin-top: 0.75rem; margin-bottom: 0.75rem;">
+        <div x-show="requiresExpiry()" class="hinweis-folge" style="display: none; margin-top: 0.75rem; margin-bottom: 0.75rem;">
             <p th:if="${!isBulk}" class="text-gedaempft" style="font-size: 0.9rem; margin: 0;">
                 Dieser Befund erscheint bis zum <strong x-text="formatDate(stummBis)"></strong> nicht mehr in Berichten oder E-Mails. Danach wird er automatisch wieder angezeigt.
             </p>

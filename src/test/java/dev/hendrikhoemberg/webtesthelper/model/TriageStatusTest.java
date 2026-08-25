@@ -39,4 +39,30 @@ class TriageStatusTest {
                     .isEqualTo(TriageStatus.SILENCING.contains(status));
         }
     }
+
+    @Test
+    void helperPredicatesAndFormMetadata() {
+        assertThat(TriageStatus.MUTED.requiresExpiry()).isTrue();
+        assertThat(TriageStatus.WONT_FIX.requiresExpiry()).isFalse();
+        assertThat(TriageStatus.ACKNOWLEDGED.requiresExpiry()).isFalse();
+        assertThat(TriageStatus.UNTRIAGED.requiresExpiry()).isFalse();
+
+        assertThat(TriageStatus.MUTED.requiresReason()).isTrue();
+        assertThat(TriageStatus.WONT_FIX.requiresReason()).isTrue();
+        assertThat(TriageStatus.ACKNOWLEDGED.requiresReason()).isFalse();
+        assertThat(TriageStatus.UNTRIAGED.requiresReason()).isFalse();
+
+        assertThat(TriageStatus.MUTED.allowsReason()).isTrue();
+        assertThat(TriageStatus.WONT_FIX.allowsReason()).isTrue();
+        assertThat(TriageStatus.ACKNOWLEDGED.allowsReason()).isTrue();
+        assertThat(TriageStatus.UNTRIAGED.allowsReason()).isFalse();
+
+        assertThat(TriageStatus.defaultFormAction()).isEqualTo(TriageStatus.ACKNOWLEDGED);
+        assertThat(TriageStatus.formActions())
+                .containsExactly(TriageStatus.ACKNOWLEDGED, TriageStatus.MUTED, TriageStatus.WONT_FIX, TriageStatus.UNTRIAGED);
+
+        assertThat(TriageStatus.expiryActionNames()).isEqualTo("MUTED");
+        assertThat(TriageStatus.mandatoryReasonActionNames()).isEqualTo("MUTED,WONT_FIX");
+        assertThat(TriageStatus.reasonActionNames()).isEqualTo("ACKNOWLEDGED,MUTED,WONT_FIX");
+    }
 }
