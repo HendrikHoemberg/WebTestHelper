@@ -462,3 +462,118 @@ main {
     color: var(--text-muted);
     line-height: 1.4;
 }
+
+/* Prüflauf-Detail & Befunde */
+.fortschritt-kasten {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.fortschritt-kopf {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.technischer-block {
+    background-color: #0f172a;
+    color: #f8fafc;
+    padding: 1rem;
+    border-radius: 4px;
+    overflow-x: auto;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.ausgangsbestand-panel {
+    background-color: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 4px;
+    padding: 1rem;
+}
+
+.ausgangsbestand-panel p {
+    margin: 0 0 0.75rem 0;
+    color: #92400e;
+    font-size: 0.9rem;
+}
+
+.befunde-liste {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.befund-karte {
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 1rem 1.25rem;
+}
+
+.befund-kopf {
+    margin-bottom: 0.75rem;
+}
+
+.befund-titel-zeile {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.35rem;
+}
+
+.befund-titel-link {
+    color: var(--text-color);
+    text-decoration: none;
+    font-size: 1rem;
+}
+
+.befund-titel-link:hover {
+    color: var(--primary-color);
+    text-decoration: underline;
+}
+
+.siteweit-badge {
+    display: inline-block;
+    padding: 0.15rem 0.45rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background-color: #e0e7ff;
+    color: #3730a3;
+    border: 1px solid #c7d2fe;
+}
+
+.befund-ort {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.befund-ort code {
+    background-color: #f1f5f9;
+    padding: 0.15rem 0.35rem;
+    border-radius: 3px;
+    font-size: 0.85rem;
+}
+
+.befund-koerper {
+    font-size: 0.9rem;
+}
+
+.befund-meldung {
+    margin: 0 0 0.5rem 0;
+}
+
+.befund-behebung {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+

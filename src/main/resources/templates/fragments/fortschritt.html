@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="fortschritt" id="fortschritt"
+     th:attr="hx-get=@{/laeufe/{id}/fortschritt(id=${run.id})}"
+     hx-trigger="every 3s"
+     hx-swap="outerHTML"
+     class="fortschritt-kasten">
+    <div class="fortschritt-kopf">
+        <span class="status-badge"
+              th:classappend="${run.status.name() == 'COMPLETED' ? 'status-aktiv' : (run.status.name() == 'FAILED' ? 'severity-CRITICAL' : 'status-inaktiv')}"
+              th:text="#{${'ui.runstatus.' + run.status}}">Läuft</span>
+        <span th:text="#{ui.lauf.fortschritt.seiten(${run.pagesVisited})}">0 Seiten geprüft</span>
+    </div>
+    <p th:if="${run.status.name() == 'QUEUED'}" th:text="#{ui.lauf.fortschritt.wartet}">Wartet auf Ausführung...</p>
+    <p th:if="${run.status.name() == 'RUNNING'}" th:text="#{ui.lauf.fortschritt.laeuft}">Prüflauf wird ausgeführt...</p>
+</div>
+</body>
+</html>

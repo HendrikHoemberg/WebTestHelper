@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="befundzeile(befund)" class="befund-karte">
+    <div class="befund-kopf">
+        <div class="befund-titel-zeile">
+            <span class="status-badge" th:classappend="${'severity-' + befund.severity}" th:text="#{${'ui.severity.' + befund.severity}}">Fehler</span>
+            <a th:href="@{/befunde/{id}(id=${befund.id})}" class="befund-titel-link">
+                <strong th:text="${befund.title}">Tote Links</strong>
+            </a>
+            <span th:if="${befund.siteWide}" class="siteweit-badge" th:text="#{ui.befund.siteweit}">Website-weit</span>
+            <span class="status-badge status-inaktiv" th:text="#{${'ui.triagestatus.' + befund.triage}}">Ungeprüft</span>
+        </div>
+        <div class="befund-ort">
+            <code th:text="${befund.locationText}">https://example.com/seite1</code>
+        </div>
+    </div>
+    <div class="befund-koerper">
+        <p class="befund-meldung" th:text="${befund.message}">Meldung</p>
+        <p class="befund-behebung">
+            <strong th:text="#{ui.befund.behebung.label}">Abhilfe:</strong>
+            <span th:text="${befund.remediation}">Abhilfe-Text</span>
+        </p>
+    </div>
+</div>
+</body>
+</html>

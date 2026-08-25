@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html th:replace="~{layout :: seite(${site.name} + ' – ' + #{ui.lauf.detail.titel(${run.id})}, ~{::main})}"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title th:text="${site.name} + ' – ' + #{ui.lauf.detail.titel(${run.id})}">Prüflauf</title>
+</head>
+<body>
+<main>
+    <div th:if="${flashMessage}" class="hinweis" th:text="${flashMessage}">Erfolgsmeldung</div>
+
+    <header class="seiten-kopf">
+        <div>
+            <h1 th:text="#{ui.lauf.detail.titel(${run.id})}">Prüflauf #101</h1>
+            <a th:href="@{/websites/{id}(id=${site.siteId})}" th:text="${site.name}" class="basis-url-link">Website Name</a>
+            <span class="text-gedaempft">·</span>
+            <a th:href="${site.baseUrl.value}" th:text="${site.baseUrl.value}" target="_blank" rel="noopener noreferrer" class="basis-url-link">https://example.com/</a>
+        </div>
+        <div class="seiten-kopf-aktionen">
+            <a th:href="@{/websites/{id}(id=${site.siteId})}" class="button sekundär" th:text="#{ui.lauf.zurueck_zur_website}">Zurück zur Website</a>
+        </div>
+    </header>
+
+    <!-- Live-Fortschritt bei laufenden Läufen -->
+    <div th:if="${run.status.name() == 'QUEUED' or run.status.name() == 'RUNNING'}"
+         th:replace="~{fragments/fortschritt :: fortschritt}"></div>
+
+    <!-- Übersicht / Metadaten -->
+    <section class="detail-bereich">
+        <h2 th:text="#{ui.lauf.uebersicht}">Übersicht</h2>
+        <dl class="schluessel-werte">
+            <div>
+                <dt th:text="#{ui.lauf.tabelle.status}">Status</dt>
+                <dd>
+                    <span class="status-badge"
+                          th:classappend="${run.status.name() == 'COMPLETED' ? 'status-aktiv' : (run.status.name() == 'FAILED' ? 'severity-CRITICAL' : 'status-inaktiv')}"
+                          th:text="#{${'ui.runstatus.' + run.status}}">Abgeschlossen</span>
+                </dd>
+            </div>
+            <div>
+                <dt th:text="#{ui.lauf.tabelle.ausloeser}">Auslöser</dt>
+                <dd th:text="#{${'ui.runtrigger.' + run.trigger}}">Manuell</dd>
+            </div>
+            <div>
+                <dt th:text="#{ui.lauf.tabelle.umfang}">Umfang</dt>
+                <dd th:text="#{${'ui.runscope.' + run.scope}}">Vollständig</dd>
+            </div>
+            <div th:if="${run.startedAt != null}">
+                <dt th:text="#{ui.lauf.tabelle.gestartet}">Gestartet</dt>
+                <dd th:text="${run.startedAt}">2026-08-25T10:00:05Z</dd>
+            </div>
+            <div th:if="${run.finishedAt != null}">
+                <dt th:text="#{ui.lauf.tabelle.beendet}">Beendet</dt>
+                <dd th:text="${run.finishedAt}">2026-08-25T10:02:30Z</dd>
+            </div>
+        </dl>
+    </section>
+
+    <!-- Abdeckung -->
+    <section th:if="${run.status.name() == 'COMPLETED' or run.status.name() == 'FAILED'}" class="detail-bereich">
+        <h2 th:text="#{ui.lauf.abdeckung.titel}">Abdeckung</h2>
+        <p class="abdeckung-zeile">
+            <span th:text="#{ui.lauf.abdeckung.seiten_besucht(${run.pagesVisited})}">85 Seiten besucht</span>,
+            <span th:text="#{ui.lauf.abdeckung.seiten_fehlgeschlagen(${run.pagesFailed})}">2 fehlgeschlagen</span>.
+        </p>
+        <p th:if="${run.partialCoverage}" class="fehler" th:text="#{ui.lauf.abdeckung.teilweise}">
+            Der Prüflauf hat das Seiten- oder Zeitlimit erreicht und nicht alle Seiten geprüft. Nicht besuchte Seiten wurden nicht ausgewertet und darin liegende Feststellungen nicht als behoben markiert.
+        </p>
+    </section>
+
+    <!-- Technische Fehlermeldung bei FAILED -->
+    <section th:if="${run.errorMessage != null and not #strings.isEmpty(run.errorMessage)}" class="detail-bereich">
+        <h2 th:text="#{ui.lauf.technische_details.titel}">Technische Details</h2>
+        <pre class="technischer-block" th:text="${run.errorMessage}">Fehlermeldung...</pre>
+    </section>
+
+    <!-- Ausgangsbestand-Aktion -->
+    <section th:if="${run.status.name() == 'COMPLETED'}" class="detail-bereich">
+        <h2 th:text="#{ui.lauf.ausgangsbestand.titel}">Ausgangsbestand</h2>
+        <div th:if="${!run.baselineAccepted}" x-data="{ offen: false }" class="ausgangsbestand-block">
+            <button type="button" @click="offen = !offen" class="button sekundär" th:text="#{ui.lauf.ausgangsbestand.button}">Als Ausgangsbestand übernehmen</button>
+            <div x-show="offen" class="ausgangsbestand-panel" style="display: none; margin-top: 1rem;">
+                <p th:text="#{ui.lauf.ausgangsbestand.folge(${diff != null ? diff.observedTotal() : run.findingsTotal})}">
+                    Hiermit werden alle noch ungeprüften Feststellungen...
+                </p>
+                <form th:action="@{/laeufe/{id}/ausgangsbestand(id=${run.id})}" method="post" class="inline-form">
+                    <button type="submit" class="button primär" th:text="#{ui.lauf.ausgangsbestand.bestaetigen}">Ausgangsbestand jetzt festlegen</button>
+                    <button type="button" @click="offen = false" class="button sekundär" th:text="#{ui.lauf.ausgangsbestand.abbrechen}">Abbrechen</button>
+                </form>
+            </div>
+        </div>
+        <div th:if="${run.baselineAccepted}" class="ausgangsbestand-uebernommen">
+            <span class="status-badge status-inaktiv" th:text="#{ui.lauf.ausgangsbestand.bereits_uebernommen}">Ausgangsbestand wurde übernommen</span>
+        </div>
+    </section>
+
+    <!-- Die fünf Berichtsabschnitte (nur Abschnitte mit Befunden haben Überschriften) -->
+    <div th:if="${sections != null and not #maps.isEmpty(sections)}" class="bericht-abschnitte">
+        <section th:each="entry : ${sections}" th:if="${not #lists.isEmpty(entry.value)}" class="detail-bereich">
+            <h2 th:text="#{${'ui.reportsection.' + entry.key}} + ' (' + ${#lists.size(entry.value)} + ')'">Neu aufgetreten (2)</h2>
+            <div class="befunde-liste">
+                <div th:each="befundItem : ${entry.value}">
+                    <div th:replace="~{fragments/befundzeile :: befundzeile(${befundItem})}"></div>
+                </div>
+            </div>
+        </section>
+    </div>
+</main>
+</body>
+</html>
