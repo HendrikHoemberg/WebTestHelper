@@ -36,13 +36,16 @@ class KeyPageSelectorTest {
     @Test
     void aTargetLinkedFromFivePagesOutranksOneLinkedFiveTimesFromOnePage() {
         // D45: the metric is distinct sourcing pages, not raw link count. Five pages linking a
-        // target once each beats one page linking it five times — the naive count ties them.
+        // target once each beat one page linking it six times — the two metrics must disagree on
+        // ORDER for the test to discriminate. A naive link count ranks eng (6) above breit (5);
+        // distinct sources rank breit (5) above eng (1).
         List<PageSnapshot> pages = new ArrayList<>();
         pages.add(Snapshots.page(BASE).build());
         for (String source : List.of("/a.html", "/b.html", "/c.html", "/d.html", "/e.html")) {
             pages.add(Snapshots.page(ORIGIN + source).link(ORIGIN + "/breit.html", true).build());
         }
         pages.add(Snapshots.page(ORIGIN + "/p.html")
+                .link(ORIGIN + "/eng.html", true)
                 .link(ORIGIN + "/eng.html", true)
                 .link(ORIGIN + "/eng.html", true)
                 .link(ORIGIN + "/eng.html", true)

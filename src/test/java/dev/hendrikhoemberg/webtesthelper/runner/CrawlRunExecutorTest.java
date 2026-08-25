@@ -71,6 +71,8 @@ class CrawlRunExecutorTest extends AbstractPostgresTest {
         runId2 = runs.enqueue(siteId, RunTrigger.MANUAL, RunScope.FULL);
         assertThat(worker.workOnce()).isTrue();
         pinsAfterSecondFullCrawl = sites.contextFor(siteId).pinnedKeyPages();
+        // The 10-arg SiteForm carries no pins, so applyForm overwrites the hand-edited set with
+        // empty (form overwrite is deliberate); run 3 is partial, so it re-pins nothing.
         sites.update(siteId, new SiteForm("Fixture", site.baseUrl(), 2, 3,
                 Duration.ofMinutes(3), List.of(), List.of(), true, null, true));
         runId3 = runs.enqueue(siteId, RunTrigger.MANUAL, RunScope.FULL);
