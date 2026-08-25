@@ -81,6 +81,10 @@ public class FindingService {
         return store.byId(id);
     }
 
+    public FindingPage search(FindingQuery query) {
+        return store.search(query);
+    }
+
     public List<FindingOccurrence> occurrencesOfLastRun(long findingId, int limit) {
         return store.occurrencesOfLastRun(findingId, limit);
     }

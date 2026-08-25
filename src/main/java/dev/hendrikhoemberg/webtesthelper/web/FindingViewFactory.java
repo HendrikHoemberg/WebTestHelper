@@ -61,7 +61,10 @@ public class FindingViewFactory {
                 siteWide,
                 finding.pageCount(),
                 finding.severity(),
-                finding.triage()
+                finding.triage(),
+                finding.mutedUntil(),
+                finding.muteExpiredAt(),
+                finding.triageReason()
         );
     }
 

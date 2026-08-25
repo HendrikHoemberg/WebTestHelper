@@ -17,6 +17,7 @@
             <a th:href="${site.baseUrl.value}" th:text="${site.baseUrl.value}" target="_blank" rel="noopener noreferrer" class="basis-url-link">https://example.com/</a>
         </div>
         <div class="seiten-kopf-aktionen">
+            <a th:href="@{/websites/{id}/befunde(id=${site.siteId})}" class="button sekundär" th:text="#{ui.lauf.alle_befunde}">Alle Feststellungen</a>
             <a th:href="@{/websites/{id}(id=${site.siteId})}" class="button sekundär" th:text="#{ui.lauf.zurueck_zur_website}">Zurück zur Website</a>
         </div>
     </header>

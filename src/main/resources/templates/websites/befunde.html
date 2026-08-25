@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html th:replace="~{layout :: seite(${site.name} + ' – ' + #{ui.websites.befunde.titel}, ~{::main})}"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title th:text="${site.name} + ' – ' + #{ui.websites.befunde.titel}">Feststellungen</title>
+</head>
+<body>
+<main x-data="findingsSelection()">
+    <header class="seiten-kopf">
+        <div>
+            <h1 th:text="#{ui.websites.befunde.titel}">Feststellungen</h1>
+            <a th:href="@{/websites/{id}(id=${site.siteId})}" th:text="${site.name}" class="basis-url-link">Website Name</a>
+            <span class="text-gedaempft">·</span>
+            <a th:href="${site.baseUrl.value}" th:text="${site.baseUrl.value}" target="_blank" rel="noopener noreferrer" class="basis-url-link">https://example.com/</a>
+        </div>
+        <div class="seiten-kopf-aktionen">
+            <a th:href="@{/websites/{id}(id=${site.siteId})}" class="button sekundär" th:text="#{ui.lauf.zurueck_zur_website}">Zurück zur Website</a>
+        </div>
+    </header>
+
+    <div class="befunde-layout">
+        <!-- Filter-Seitenleiste -->
+        <aside class="befunde-filter-bereich">
+            <div th:replace="~{fragments/befundfilter :: befundfilter}"></div>
+        </aside>
+
+        <!-- Befundliste -->
+        <section class="befunde-ergebnis-bereich" id="befunde-liste-container">
+            <div th:fragment="befundListe" class="befunde-liste-inhalt">
+                <div class="befunde-liste-kopf">
+                    <div class="befunde-auswahl-kopf">
+                        <label class="form-gruppe-checkbox befund-auswahl-alle">
+                            <input type="checkbox" @change="toggleAll($event)" :checked="isAllSelected()" :indeterminate="isIndeterminate()">
+                            <span th:text="#{ui.befunde.liste.alle_auswaehlen}">Alle auswählen</span>
+                        </label>
+                    </div>
+                    <div class="befunde-anzahl" th:text="#{ui.befunde.liste.gesamt(${page.total})}">
+                        120 Feststellungen gefunden
+                    </div>
+                </div>
+
+                <div th:if="${#lists.isEmpty(findings)}" class="leer-zustand">
+                    <p th:text="#{ui.befunde.liste.keine}">Keine Feststellungen für die gewählten Filter vorhanden.</p>
+                </div>
+
+                <div th:if="${not #lists.isEmpty(findings)}" class="befunde-liste">
+                    <div th:each="befund : ${findings}">
+                        <div th:replace="~{fragments/befundzeile :: befundzeile(${befund})}"></div>
+                    </div>
+                </div>
+
+                <!-- Paginierung -->
+                <div th:if="${page.pageCount() > 1}" class="pagination-zeile">
+                    <a th:if="${page.page() > 1}"
+                       th:href="@{/websites/{id}/befunde(id=${site.siteId}, severities=${filter.severities}, triageStatuses=${filter.triageStatuses}, observed=${filter.observed}, checkTypes=${filter.checkTypes}, page=${page.page() - 1}, size=${page.size()})}"
+                       th:attr="data-hx-get=@{/websites/{id}/befunde(id=${site.siteId}, severities=${filter.severities}, triageStatuses=${filter.triageStatuses}, observed=${filter.observed}, checkTypes=${filter.checkTypes}, page=${page.page() - 1}, size=${page.size()})}"
+                       data-hx-target="#befunde-liste-container" data-hx-swap="innerHTML" data-hx-push-url="true"
+                       class="button sekundär klein" th:text="#{ui.befunde.pagination.vorherige}">Vorherige</a>
+                    <span class="pagination-info" th:text="#{ui.befunde.pagination.seite(${page.page()}, ${page.pageCount()})}">Seite 1 von 3</span>
+                    <a th:if="${page.page() < page.pageCount()}"
+                       th:href="@{/websites/{id}/befunde(id=${site.siteId}, severities=${filter.severities}, triageStatuses=${filter.triageStatuses}, observed=${filter.observed}, checkTypes=${filter.checkTypes}, page=${page.page() + 1}, size=${page.size()})}"
+                       th:attr="data-hx-get=@{/websites/{id}/befunde(id=${site.siteId}, severities=${filter.severities}, triageStatuses=${filter.triageStatuses}, observed=${filter.observed}, checkTypes=${filter.checkTypes}, page=${page.page() + 1}, size=${page.size()})}"
+                       data-hx-target="#befunde-liste-container" data-hx-swap="innerHTML" data-hx-push-url="true"
+                       class="button sekundär klein" th:text="#{ui.befunde.pagination.naechste}">Nächste</a>
+                </div>
+            </div>
+        </section>
+    </div>
+</main>
+
+<script>
+function findingsSelection() {
+    return {
+        selected: [],
+        toggle(id) {
+            const index = this.selected.indexOf(id);
+            if (index > -1) {
+                this.selected.splice(index, 1);
+            } else {
+                this.selected.push(id);
+            }
+        },
+        isSelected(id) {
+            return this.selected.includes(String(id));
+        },
+        toggleAll(event) {
+            const checkboxes = document.querySelectorAll('.befund-checkbox');
+            if (event.target.checked) {
+                this.selected = Array.from(checkboxes).map(cb => cb.value);
+            } else {
+                this.selected = [];
+            }
+        },
+        isAllSelected() {
+            const checkboxes = document.querySelectorAll('.befund-checkbox');
+            if (checkboxes.length === 0) return false;
+            return Array.from(checkboxes).every(cb => this.selected.includes(cb.value));
+        },
+        isIndeterminate() {
+            const checkboxes = document.querySelectorAll('.befund-checkbox');
+            if (checkboxes.length === 0) return false;
+            const checkedCount = Array.from(checkboxes).filter(cb => this.selected.includes(cb.value)).length;
+            return checkedCount > 0 && checkedCount < checkboxes.length;
+        }
+    }
+}
+</script>
+</body>
+</html>

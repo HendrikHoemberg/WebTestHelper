@@ -4,6 +4,10 @@
 <div th:fragment="befundzeile(befund)" class="befund-karte">
     <div class="befund-kopf">
         <div class="befund-titel-zeile">
+            <label class="befund-checkbox-label">
+                <input type="checkbox" name="ids" th:value="${befund.id}" class="befund-checkbox"
+                       @change="toggle($el.value)" :checked="isSelected($el.value)">
+            </label>
             <span class="status-badge" th:classappend="${'severity-' + befund.severity}" th:text="#{${'ui.severity.' + befund.severity}}">Fehler</span>
             <a th:href="@{/befunde/{id}(id=${befund.id})}" class="befund-titel-link">
                 <strong th:text="${befund.title}">Tote Links</strong>
@@ -20,6 +24,18 @@
         <p class="befund-behebung">
             <strong th:text="#{ui.befund.behebung.label}">Abhilfe:</strong>
             <span th:text="${befund.remediation}">Abhilfe-Text</span>
+        </p>
+        <p th:if="${befund.mutedUntil != null}" class="befund-leise-zeile befund-stumm">
+            <span th:if="${befund.triageReason != null and !#strings.isEmpty(befund.triageReason)}"
+                  th:text="#{ui.befund.stumm_bis_mit_grund(${#temporals.format(befund.mutedUntil, 'dd.MM.yyyy')}, ${befund.triageReason})}">Stumm bis 24.11.2026 · Grund: ...</span>
+            <span th:if="${befund.triageReason == null or #strings.isEmpty(befund.triageReason)}"
+                  th:text="#{ui.befund.stumm_bis_ohne_grund(${#temporals.format(befund.mutedUntil, 'dd.MM.yyyy')})}">Stumm bis 24.11.2026</span>
+        </p>
+        <p th:if="${befund.muteExpired != null}" class="befund-leise-zeile befund-abgelaufen">
+            <span th:if="${befund.triageReason != null and !#strings.isEmpty(befund.triageReason)}"
+                  th:text="#{ui.befund.mute_abgelaufen_mit_grund(${#temporals.format(befund.muteExpired, 'dd.MM.yyyy')}, ${befund.triageReason})}">Stummschaltung abgelaufen am ... · Damalige Begründung: ...</span>
+            <span th:if="${befund.triageReason == null or #strings.isEmpty(befund.triageReason)}"
+                  th:text="#{ui.befund.mute_abgelaufen_ohne_grund(${#temporals.format(befund.muteExpired, 'dd.MM.yyyy')})}">Stummschaltung abgelaufen am ...</span>
         </p>
     </div>
 </div>

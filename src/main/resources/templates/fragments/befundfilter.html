@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="befundfilter" class="befund-filter-panel">
+    <h2 th:text="#{ui.befunde.filter.titel}">Filter</h2>
+    <form th:action="@{/websites/{id}/befunde(id=${site.siteId})}" method="get"
+          th:attr="data-hx-get=@{/websites/{id}/befunde(id=${site.siteId})}"
+          data-hx-target="#befunde-liste-container"
+          data-hx-swap="innerHTML"
+          data-hx-push-url="true"
+          data-hx-trigger="change"
+          class="filter-form">
+        
+        <!-- Schweregrad -->
+        <fieldset class="filter-gruppe">
+            <legend th:text="#{ui.befunde.filter.schweregrad}">Schweregrad</legend>
+            <div class="chip-gruppe">
+                <label th:each="sev : ${allSeverities}" class="filter-chip" th:classappend="${filter.severities.contains(sev)} ? 'aktiv' : ''">
+                    <input type="checkbox" name="severities" th:value="${sev}" th:checked="${filter.severities.contains(sev)}">
+                    <span th:text="#{${'ui.severity.' + sev}}">Fehler</span>
+                </label>
+            </div>
+        </fieldset>
+
+        <!-- Bewertungsstatus -->
+        <fieldset class="filter-gruppe">
+            <legend th:text="#{ui.befunde.filter.bewertung}">Bewertung</legend>
+            <div class="chip-gruppe">
+                <label th:each="ts : ${allTriageStatuses}" class="filter-chip" th:classappend="${filter.triageStatuses.contains(ts)} ? 'aktiv' : ''">
+                    <input type="checkbox" name="triageStatuses" th:value="${ts}" th:checked="${filter.triageStatuses.contains(ts)}">
+                    <span th:text="#{${'ui.triagestatus.' + ts}}">Ungeprüft</span>
+                </label>
+            </div>
+        </fieldset>
+
+        <!-- Beobachtungsstatus -->
+        <fieldset class="filter-gruppe">
+            <legend th:text="#{ui.befunde.filter.beobachtung}">Status</legend>
+            <div class="chip-gruppe">
+                <label class="filter-chip" th:classappend="${filter.observed == null} ? 'aktiv' : ''">
+                    <input type="radio" name="observed" value="" th:checked="${filter.observed == null}">
+                    <span th:text="#{ui.befunde.filter.alle_beobachtungen}">Alle Status</span>
+                </label>
+                <label th:each="obs : ${allObservedStatuses}" class="filter-chip" th:classappend="${filter.observed == obs} ? 'aktiv' : ''">
+                    <input type="radio" name="observed" th:value="${obs}" th:checked="${filter.observed == obs}">
+                    <span th:text="#{${'ui.observedstatus.' + obs}}">Aktiv</span>
+                </label>
+            </div>
+        </fieldset>
+
+        <!-- Prüfungsarten -->
+        <fieldset class="filter-gruppe">
+            <legend th:text="#{ui.befunde.filter.pruefungen}">Prüfungsarten</legend>
+            <div class="chip-gruppe">
+                <label th:each="check : ${allCheckDescriptors}" class="filter-chip" th:classappend="${filter.checkTypes.contains(check.type)} ? 'aktiv' : ''">
+                    <input type="checkbox" name="checkTypes" th:value="${check.type}" th:checked="${filter.checkTypes.contains(check.type)}">
+                    <span th:text="#{${check.titleKey}}">Tote Links</span>
+                </label>
+            </div>
+        </fieldset>
+
+        <div class="filter-aktionen">
+            <a th:href="@{/websites/{id}/befunde(id=${site.siteId})}"
+               th:attr="data-hx-get=@{/websites/{id}/befunde(id=${site.siteId})}"
+               data-hx-target="#befunde-liste-container"
+               data-hx-swap="innerHTML"
+               data-hx-push-url="true"
+               class="button sekundär klein" th:text="#{ui.befunde.filter.zuruecksetzen}">Filter zurücksetzen</a>
+        </div>
+    </form>
+</div>
+</body>
+</html>

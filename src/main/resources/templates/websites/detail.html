@@ -11,6 +11,7 @@
             <a th:href="${site.baseUrl.value}" th:text="${site.baseUrl.value}" target="_blank" rel="noopener noreferrer" class="basis-url-link">https://example.com/</a>
         </div>
         <div class="seiten-kopf-aktionen">
+            <a th:href="@{/websites/{id}/befunde(id=${site.siteId})}" class="button sekundär" th:text="#{ui.websites.detail.befunde}">Feststellungen</a>
             <form th:action="@{/websites/{id}/pruefen(id=${site.siteId})}" method="post" class="inline-form">
                 <button type="submit" class="button primär" th:text="#{ui.websites.detail.pruefen}">Jetzt prüfen</button>
             </form>

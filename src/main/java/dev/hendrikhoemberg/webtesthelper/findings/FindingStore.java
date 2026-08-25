@@ -170,6 +170,28 @@ public class FindingStore {
                       f.check_type, f.location_key, f.subject_key
             """, SILENCING_IN_CLAUSE);
 
+    private static final String COUNT_SQL = """
+            SELECT count(*) FROM finding
+             WHERE site_id = ?
+               AND (?::varchar[] IS NULL OR severity = ANY(?))
+               AND (?::varchar[] IS NULL OR triage_status = ANY(?))
+               AND (?::varchar IS NULL OR observed_status = ?)
+               AND (?::varchar[] IS NULL OR check_type = ANY(?))
+            """;
+
+    private static final String SEARCH_SQL = """
+            SELECT * FROM finding
+             WHERE site_id = ?
+               AND (?::varchar[] IS NULL OR severity = ANY(?))
+               AND (?::varchar[] IS NULL OR triage_status = ANY(?))
+               AND (?::varchar IS NULL OR observed_status = ?)
+               AND (?::varchar[] IS NULL OR check_type = ANY(?))
+             ORDER BY CASE severity WHEN 'ERROR' THEN 0 WHEN 'WARN' THEN 1 ELSE 2 END,
+                      last_seen_at DESC,
+                      id ASC
+             LIMIT ? OFFSET ?
+            """;
+
     private static final String BY_ID_SQL = """
             SELECT * FROM finding WHERE id = ?
             """;
@@ -251,6 +273,107 @@ public class FindingStore {
     public java.util.Optional<Finding> byId(long id) {
         List<Finding> list = jdbc.query(BY_ID_SQL, findingRow, id);
         return list.isEmpty() ? java.util.Optional.empty() : java.util.Optional.of(list.get(0));
+    }
+
+    public long count(FindingQuery query) {
+        return jdbc.execute((java.sql.Connection conn) -> {
+            List<Array> arrays = new ArrayList<>();
+            try (PreparedStatement ps = conn.prepareStatement(COUNT_SQL)) {
+                bindFilterParams(ps, conn, query, arrays);
+                try (var rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getLong(1);
+                    }
+                    return 0L;
+                }
+            } finally {
+                for (Array arr : arrays) {
+                    try {
+                        arr.free();
+                    } catch (SQLException ignored) {
+                    }
+                }
+            }
+        });
+    }
+
+    public FindingPage search(FindingQuery query) {
+        long total = count(query);
+        if (total == 0) {
+            return new FindingPage(List.of(), query.page(), query.size(), 0);
+        }
+        List<Finding> findings = jdbc.execute((java.sql.Connection conn) -> {
+            List<Array> arrays = new ArrayList<>();
+            try (PreparedStatement ps = conn.prepareStatement(SEARCH_SQL)) {
+                bindFilterParams(ps, conn, query, arrays);
+                ps.setInt(10, query.size());
+                ps.setInt(11, (query.page() - 1) * query.size());
+                try (var rs = ps.executeQuery()) {
+                    List<Finding> list = new ArrayList<>();
+                    int rowNum = 0;
+                    while (rs.next()) {
+                        list.add(findingRow.mapRow(rs, rowNum++));
+                    }
+                    return list;
+                }
+            } finally {
+                for (Array arr : arrays) {
+                    try {
+                        arr.free();
+                    } catch (SQLException ignored) {
+                    }
+                }
+            }
+        });
+        return new FindingPage(findings, query.page(), query.size(), total);
+    }
+
+    private void bindFilterParams(PreparedStatement ps, java.sql.Connection conn, FindingQuery query, List<Array> arraysToFree) throws SQLException {
+        ps.setLong(1, query.siteId());
+
+        String[] severities = query.severities().isEmpty() ? null
+                : query.severities().stream().map(Severity::name).toArray(String[]::new);
+        if (severities == null) {
+            ps.setNull(2, java.sql.Types.ARRAY);
+            ps.setNull(3, java.sql.Types.ARRAY);
+        } else {
+            Array arr = conn.createArrayOf("varchar", severities);
+            arraysToFree.add(arr);
+            ps.setArray(2, arr);
+            ps.setArray(3, arr);
+        }
+
+        String[] triageStatuses = query.triageStatuses().isEmpty() ? null
+                : query.triageStatuses().stream().map(TriageStatus::name).toArray(String[]::new);
+        if (triageStatuses == null) {
+            ps.setNull(4, java.sql.Types.ARRAY);
+            ps.setNull(5, java.sql.Types.ARRAY);
+        } else {
+            Array arr = conn.createArrayOf("varchar", triageStatuses);
+            arraysToFree.add(arr);
+            ps.setArray(4, arr);
+            ps.setArray(5, arr);
+        }
+
+        if (query.observed() == null) {
+            ps.setNull(6, java.sql.Types.VARCHAR);
+            ps.setNull(7, java.sql.Types.VARCHAR);
+        } else {
+            ps.setString(6, query.observed().name());
+            ps.setString(7, query.observed().name());
+        }
+
+        String[] checkTypes = query.checkTypes().isEmpty() ? null
+                : query.checkTypes().stream().map(CheckType::name).toArray(String[]::new);
+        if (checkTypes == null) {
+            ps.setNull(8, java.sql.Types.ARRAY);
+            ps.setNull(9, java.sql.Types.ARRAY);
+        } else {
+            Array arr = conn.createArrayOf("varchar", checkTypes);
+            arraysToFree.add(arr);
+            ps.setArray(8, arr);
+            ps.setArray(9, arr);
+        }
     }
 
     public List<FindingOccurrence> occurrencesOfLastRun(long findingId, int limit) {

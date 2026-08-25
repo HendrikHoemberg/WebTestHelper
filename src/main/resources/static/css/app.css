@@ -735,4 +735,156 @@ main {
     font-size: 0.9em;
 }
 
+/* Befundeliste & Filter (§6.3) */
+.befunde-layout {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 1.5rem;
+    align-items: start;
+}
+
+@media (max-width: 900px) {
+    .befunde-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+.befunde-filter-bereich {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 1.25rem;
+    position: sticky;
+    top: 1rem;
+}
+
+.befund-filter-panel h2 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-size: 1.15rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.5rem;
+}
+
+.filter-gruppe {
+    border: none;
+    padding: 0;
+    margin: 0 0 1.25rem 0;
+}
+
+.filter-gruppe legend {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-color);
+    margin-bottom: 0.5rem;
+    padding: 0;
+}
+
+.chip-gruppe {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.filter-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.6rem;
+    border-radius: 9999px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    background-color: #f1f5f9;
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.15s ease;
+}
+
+.filter-chip input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    margin: 0;
+    pointer-events: none;
+}
+
+.filter-chip:hover {
+    background-color: #e2e8f0;
+    border-color: #cbd5e1;
+}
+
+.filter-chip.aktiv,
+.filter-chip:has(input:checked) {
+    background-color: var(--primary-color);
+    color: #ffffff;
+    border-color: var(--primary-color);
+}
+
+.filter-aktionen {
+    margin-top: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.befunde-ergebnis-bereich {
+    min-width: 0;
+}
+
+.befunde-liste-kopf {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.befunde-anzahl {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.befund-checkbox-label {
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    margin-right: 0.25rem;
+}
+
+.befund-checkbox {
+    width: 1rem;
+    height: 1rem;
+    cursor: pointer;
+}
+
+.befund-leise-zeile {
+    margin: 0.5rem 0 0 0;
+    font-size: 0.825rem;
+    line-height: 1.4;
+}
+
+.befund-stumm {
+    color: #64748b;
+}
+
+.befund-abgelaufen {
+    color: #b45309;
+}
+
+.pagination-zeile {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+}
+
+.pagination-info {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
 
