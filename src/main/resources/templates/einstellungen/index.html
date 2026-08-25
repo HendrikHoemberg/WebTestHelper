@@ -37,6 +37,15 @@
                 <p class="hinweis-text" th:text="#{ui.einstellungen.redirectAllMailTo.hinweis}">Wenn hier eine Adresse hinterlegt ist, werden alle Benachrichtigungen ausschliesslich an diese Adresse gesendet statt an die eigentlichen Empfänger.</p>
                 <span th:if="${#fields.hasErrors('redirectAllMailTo')}" th:errors="*{redirectAllMailTo}" class="feld-fehler">Fehler</span>
             </div>
+
+            <div class="form-gruppe form-gruppe-checkbox">
+                <label>
+                    <input type="checkbox" th:field="*{schedulingPaused}">
+                    <span th:text="#{ui.einstellungen.schedulingPaused}">Planung anhalten</span>
+                </label>
+                <p class="hinweis-text" th:text="#{ui.einstellungen.schedulingPaused.hinweis}">Solange die Planung angehalten ist, startet kein Prüflauf von selbst — auf keiner Website.</p>
+                <span th:if="${#fields.hasErrors('schedulingPaused')}" th:errors="*{schedulingPaused}" class="feld-fehler">Fehler</span>
+            </div>
         </section>
 
         <section class="form-bereich">

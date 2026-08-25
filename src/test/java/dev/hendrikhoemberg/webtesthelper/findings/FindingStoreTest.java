@@ -36,7 +36,7 @@ class FindingStoreTest extends AbstractPostgresTest {
     void setup() {
         siteId = sites.create(new dev.hendrikhoemberg.webtesthelper.catalog.SiteForm(
                 "Kunde", "https://www.example.com/", 100, 3,
-                java.time.Duration.ofMinutes(10), List.of(), List.of(), true, null));
+                java.time.Duration.ofMinutes(10), List.of(), List.of(), true, null, true));
         observedAt = Instant.now().truncatedTo(ChronoUnit.MICROS);
     }
 

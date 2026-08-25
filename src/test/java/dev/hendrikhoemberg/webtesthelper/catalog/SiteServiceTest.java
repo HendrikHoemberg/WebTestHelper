@@ -22,7 +22,7 @@ class SiteServiceTest extends AbstractPostgresTest {
 
     private static SiteForm form() {
         return new SiteForm("Kunde Müller", "https://www.kunde-mueller.de/", 300, 5,
-                Duration.ofMinutes(30), List.of(), List.of("/intern/*"), true, null);
+                Duration.ofMinutes(30), List.of(), List.of("/intern/*"), true, null, true);
     }
 
     @Test
@@ -59,7 +59,7 @@ class SiteServiceTest extends AbstractPostgresTest {
     @Test
     void aRejectedBaseUrlIsReportedAsAValidationFailure() {
         SiteForm bad = new SiteForm("Kaputt", "nicht-mal-eine-url", 300, 5,
-                Duration.ofMinutes(30), List.of(), List.of(), true, null);
+                Duration.ofMinutes(30), List.of(), List.of(), true, null, true);
 
         assertThatThrownBy(() -> sites.create(bad))
                 .isInstanceOf(IllegalArgumentException.class)

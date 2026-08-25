@@ -303,4 +303,68 @@ class SettingsControllerTest {
         verify(outboxService).enqueue(mail);
         verify(outboxService).sendNow(100L);
     }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void postSettingsWithSchedulingPausedCheckedPersistsTrue() throws Exception {
+        mvc.perform(post("/einstellungen")
+                        .with(csrf())
+                        .param("host", "smtp.example.com")
+                        .param("port", "587")
+                        .param("tls", "STARTTLS")
+                        .param("password", "secret")
+                        .param("fromAddress", "alerts@example.com")
+                        .param("baseUrl", "https://webtesthelper.example.com")
+                        .param("schedulingPaused", "true"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/einstellungen"));
+
+        verify(appSettings).saveSchedulingPaused(true);
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void postSettingsWithSchedulingPausedUncheckedPersistsFalse() throws Exception {
+        mvc.perform(post("/einstellungen")
+                        .with(csrf())
+                        .param("host", "smtp.example.com")
+                        .param("port", "587")
+                        .param("tls", "STARTTLS")
+                        .param("password", "secret")
+                        .param("fromAddress", "alerts@example.com")
+                        .param("baseUrl", "https://webtesthelper.example.com"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/einstellungen"));
+
+        // An unchecked checkbox binds null, which must come out as not-paused.
+        verify(appSettings).saveSchedulingPaused(false);
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void getSettingsRendersPauseBannerWhenPaused() throws Exception {
+        when(appSettings.smtp()).thenReturn(new SmtpSettings(
+                "smtp.example.com", 587, TlsMode.STARTTLS, "admin-smtp", "", "alerts@example.com"));
+        when(appSettings.baseUrl()).thenReturn("https://webtesthelper.example.com");
+        when(appSettings.redirectAllMailTo()).thenReturn(Optional.empty());
+        when(appSettings.schedulingPaused()).thenReturn(true);
+
+        mvc.perform(get("/einstellungen"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Die Planung ist angehalten")));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void getSettingsDoesNotRenderPauseBannerWhenNotPaused() throws Exception {
+        when(appSettings.smtp()).thenReturn(new SmtpSettings(
+                "smtp.example.com", 587, TlsMode.STARTTLS, "admin-smtp", "", "alerts@example.com"));
+        when(appSettings.baseUrl()).thenReturn("https://webtesthelper.example.com");
+        when(appSettings.redirectAllMailTo()).thenReturn(Optional.empty());
+        when(appSettings.schedulingPaused()).thenReturn(false);
+
+        mvc.perform(get("/einstellungen"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("Die Planung ist angehalten"))));
+    }
 }

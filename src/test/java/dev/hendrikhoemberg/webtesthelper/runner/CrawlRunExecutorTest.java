@@ -57,13 +57,13 @@ class CrawlRunExecutorTest extends AbstractPostgresTest {
         jdbc.update("DELETE FROM site_check_setting");
         jdbc.update("DELETE FROM site");
         siteId = sites.create(new SiteForm("Fixture", site.baseUrl(), 30, 3,
-                Duration.ofMinutes(3), List.of(), List.of(), true, null));
+                Duration.ofMinutes(3), List.of(), List.of(), true, null, true));
         runId1 = runs.enqueue(siteId, RunTrigger.MANUAL, RunScope.FULL);
         assertThat(worker.workOnce()).isTrue();
         runId2 = runs.enqueue(siteId, RunTrigger.MANUAL, RunScope.FULL);
         assertThat(worker.workOnce()).isTrue();
         sites.update(siteId, new SiteForm("Fixture", site.baseUrl(), 2, 3,
-                Duration.ofMinutes(3), List.of(), List.of(), true, null));
+                Duration.ofMinutes(3), List.of(), List.of(), true, null, true));
         runId3 = runs.enqueue(siteId, RunTrigger.MANUAL, RunScope.FULL);
         assertThat(worker.workOnce()).isTrue();
     }
@@ -125,7 +125,7 @@ class CrawlRunExecutorTest extends AbstractPostgresTest {
     @Test
     void aSiteThatCannotBeReachedFailsTheRunRatherThanHangingIt() {
         long deadSiteId = sites.create(new SiteForm("Tot", "http://localhost:9/", 10, 2,
-                Duration.ofSeconds(30), List.of(), List.of(), true, null));
+                Duration.ofSeconds(30), List.of(), List.of(), true, null, true));
         long deadRunId = runs.enqueue(deadSiteId, RunTrigger.MANUAL, RunScope.FULL);
 
         assertThat(worker.workOnce()).isTrue();

@@ -13,5 +13,6 @@ public record SiteForm(
         List<String> includePatterns,
         List<String> excludePatterns,
         boolean respectRobots,
-        String userAgent) {
+        String userAgent,
+        boolean enabled) {
 }

@@ -28,6 +28,10 @@
         <span th:text="#{ui.banner.mail_fehler(${mailFailures})}">Beim E-Mail-Versand sind Fehler aufgetreten.</span>
         <a th:href="@{/postausgang}" th:text="#{ui.banner.postausgang_link}">Zum Postausgang</a>
     </div>
+    <div th:if="${schedulingPaused}" class="gesundheits-banner info" role="status">
+        <span th:text="#{ui.banner.planung_pausiert}">Die Planung ist angehalten. Es startet kein Prüflauf von selbst.</span>
+        <a th:href="@{/einstellungen}" th:text="#{ui.banner.planung_oeffnen}">Zu den Einstellungen</a>
+    </div>
     <main th:replace="${inhalt}"></main>
 </body>
 </html>

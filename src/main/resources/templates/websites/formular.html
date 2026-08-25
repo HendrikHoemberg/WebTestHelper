@@ -64,6 +64,15 @@
             <span th:if="${#fields.hasErrors('respectRobots')}" th:errors="*{respectRobots}" class="feld-fehler">Fehler</span>
         </div>
 
+        <div class="form-gruppe form-gruppe-checkbox">
+            <label>
+                <input type="checkbox" th:field="*{enabled}">
+                <span th:text="#{ui.websites.formular.enabled}">Website aktiviert</span>
+            </label>
+            <p class="hinweis-text" th:text="#{ui.websites.formular.enabled.hinweis}">Deaktivierte Websites werden nicht mehr automatisch geprüft. Ein Lauf über „Jetzt prüfen" ist weiterhin möglich.</p>
+            <span th:if="${#fields.hasErrors('enabled')}" th:errors="*{enabled}" class="feld-fehler">Fehler</span>
+        </div>
+
         <div class="form-gruppe">
             <label for="userAgent" th:text="#{ui.websites.formular.userAgent}">Eigener User-Agent (optional)</label>
             <input type="text" id="userAgent" th:field="*{userAgent}" placeholder="Standard: WebTestHelper/1.0 (+internes Website-Monitoring)">

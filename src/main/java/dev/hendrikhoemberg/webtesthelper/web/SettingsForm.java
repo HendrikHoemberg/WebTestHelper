@@ -21,8 +21,10 @@ public class SettingsForm {
     private String fromAddress;
     private String baseUrl;
     private String redirectAllMailTo;
+    private Boolean schedulingPaused;
 
-    public static SettingsForm from(SmtpSettings smtp, String baseUrl, Optional<String> redirectAllMailTo) {
+    public static SettingsForm from(SmtpSettings smtp, String baseUrl, Optional<String> redirectAllMailTo,
+                                    boolean schedulingPaused) {
         SettingsForm form = new SettingsForm();
         if (smtp != null) {
             form.setHost(smtp.host());
@@ -35,6 +37,7 @@ public class SettingsForm {
         }
         form.setBaseUrl(baseUrl);
         form.setRedirectAllMailTo(redirectAllMailTo.orElse(""));
+        form.setSchedulingPaused(schedulingPaused);
         return form;
     }
 }

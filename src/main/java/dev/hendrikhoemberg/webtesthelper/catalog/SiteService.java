@@ -152,6 +152,7 @@ public class SiteService {
         site.setExcludePatterns(form.excludePatterns() == null ? List.of() : form.excludePatterns());
         site.setRespectRobots(form.respectRobots());
         site.setUserAgent(form.userAgent());
+        site.setEnabled(form.enabled());
     }
 
     private SiteEntity requireSite(long id) {

@@ -55,7 +55,7 @@ class ScheduleDispatcherTest extends AbstractPostgresTest {
         jdbc.update("DELETE FROM site_check_setting");
         jdbc.update("DELETE FROM site");
         siteId = sites.create(new SiteForm("Kunde", "https://tick.example.com/", 300, 5,
-                Duration.ofMinutes(30), List.of(), List.of(), true, null));
+                Duration.ofMinutes(30), List.of(), List.of(), true, null, true));
     }
 
     @Test

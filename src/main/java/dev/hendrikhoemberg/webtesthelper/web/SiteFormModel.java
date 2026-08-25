@@ -36,18 +36,22 @@ public record SiteFormModel(
 
         Boolean respectRobots,
 
-        String userAgent) {
+        String userAgent,
+
+        Boolean enabled) {
 
     public SiteFormModel(String name, String baseUrl, int maxPages, int maxDepth, int maxDurationMinutes,
-                         String includePatterns, String excludePatterns, boolean respectRobots, String userAgent) {
-        this(name, baseUrl, maxPages, maxDepth, maxDurationMinutes, includePatterns, excludePatterns, (Boolean) respectRobots, userAgent);
+                         String includePatterns, String excludePatterns, boolean respectRobots, String userAgent,
+                         boolean enabled) {
+        this(name, baseUrl, maxPages, maxDepth, maxDurationMinutes, includePatterns, excludePatterns,
+                (Boolean) respectRobots, userAgent, (Boolean) enabled);
     }
 
     public static SiteFormModel empty() {
-        return new SiteFormModel("", "", 300, 5, 30, "", "", true, null);
+        return new SiteFormModel("", "", 300, 5, 30, "", "", true, null, true);
     }
 
-    public static SiteFormModel of(SiteContext context) {
+    public static SiteFormModel of(SiteContext context, boolean enabled) {
         return new SiteFormModel(
                 context.name(),
                 context.baseUrl().value(),
@@ -57,8 +61,8 @@ public record SiteFormModel(
                 context.includePatterns() != null ? String.join("\n", context.includePatterns()) : "",
                 context.excludePatterns() != null ? String.join("\n", context.excludePatterns()) : "",
                 context.respectRobots(),
-                context.userAgent()
-        );
+                context.userAgent(),
+                enabled);
     }
 
     public SiteForm toForm() {
@@ -71,8 +75,8 @@ public record SiteFormModel(
                 splitPatterns(includePatterns),
                 splitPatterns(excludePatterns),
                 Boolean.TRUE.equals(respectRobots),
-                userAgent != null && !userAgent.isBlank() ? userAgent.trim() : null
-        );
+                userAgent != null && !userAgent.isBlank() ? userAgent.trim() : null,
+                Boolean.TRUE.equals(enabled));
     }
 
     private static List<String> splitPatterns(String patterns) {

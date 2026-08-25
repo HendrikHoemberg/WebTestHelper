@@ -20,6 +20,7 @@ public class AppSettings {
     public static final String KEY_SMTP_FROM = "smtp.from";
     public static final String KEY_MAIL_BASE_URL = "mail.base-url";
     public static final String KEY_MAIL_REDIRECT_ALL_TO = "mail.redirect-all-to";
+    public static final String KEY_SCHEDULING_PAUSED = "scheduling.paused";
 
     private final AppSettingRepository repository;
     private final SecretBox secretBox;
@@ -106,6 +107,15 @@ public class AppSettings {
     public void saveRedirectAllMailTo(String address) {
         String val = (address != null && !address.isBlank()) ? address.strip() : "";
         saveSetting(KEY_MAIL_REDIRECT_ALL_TO, val, false);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean schedulingPaused() {
+        return getSetting(KEY_SCHEDULING_PAUSED).map(Boolean::parseBoolean).orElse(false);
+    }
+
+    public void saveSchedulingPaused(boolean paused) {
+        saveSetting(KEY_SCHEDULING_PAUSED, Boolean.toString(paused), false);
     }
 
     private Optional<String> getSetting(String key) {

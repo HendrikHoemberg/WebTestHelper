@@ -127,7 +127,8 @@ class SiteControllerTest {
                         .param("includePatterns", "  /blog/* \n\n /news/* \n ")
                         .param("excludePatterns", "/intern/*\n/admin/*")
                         .param("respectRobots", "true")
-                        .param("userAgent", "CustomBot/1.0"))
+                        .param("userAgent", "CustomBot/1.0")
+                        .param("enabled", "true"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/websites/42"));
 
@@ -169,6 +170,7 @@ class SiteControllerTest {
                 Map.of()
         );
         when(siteService.contextFor(42L)).thenReturn(context);
+        when(siteService.summary(42L)).thenReturn(new SiteSummary(42L, "Bestehender Kunde", "https://example.com/", true, 2));
 
         mvc.perform(get("/websites/42/bearbeiten"))
                 .andExpect(status().isOk())
@@ -200,5 +202,26 @@ class SiteControllerTest {
         assertThat(updated.name()).isEqualTo("Kunde Aktualisiert");
         assertThat(updated.includePatterns()).isEmpty();
         assertThat(updated.excludePatterns()).isEmpty();
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void postWebsitesEditWithEnabledUncheckedDisablesTheSite() throws Exception {
+        mvc.perform(post("/websites/42")
+                        .with(csrf())
+                        .param("name", "Kunde Pause")
+                        .param("baseUrl", "https://example.com/")
+                        .param("maxPages", "100")
+                        .param("maxDepth", "3")
+                        .param("maxDurationMinutes", "10"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/websites/42"));
+
+        ArgumentCaptor<SiteForm> captor = ArgumentCaptor.forClass(SiteForm.class);
+        verify(siteService).update(eq(42L), captor.capture());
+
+        // An unchecked checkbox binds null; the site form must end up disabled, not left
+        // whatever the previous state was.
+        assertThat(captor.getValue().enabled()).isFalse();
     }
 }

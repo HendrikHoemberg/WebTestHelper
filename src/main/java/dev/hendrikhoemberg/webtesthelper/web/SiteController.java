@@ -81,7 +81,7 @@ public class SiteController {
     public String bearbeiten(@PathVariable("id") long id, Model model) {
         SiteContext context = siteService.contextFor(id);
         model.addAttribute("siteId", id);
-        model.addAttribute("form", SiteFormModel.of(context));
+        model.addAttribute("form", SiteFormModel.of(context, siteService.summary(id).enabled()));
         return "websites/formular";
     }
 

@@ -38,7 +38,7 @@ class FindingStoreReadTest extends AbstractPostgresTest {
     void setup() {
         siteId = sites.create(new SiteForm(
                 "Kunde Read", "https://www.example.com/", 100, 3,
-                Duration.ofMinutes(10), List.of(), List.of(), true, null));
+                Duration.ofMinutes(10), List.of(), List.of(), true, null, true));
         observedAt = Instant.now().truncatedTo(ChronoUnit.MICROS);
     }
 

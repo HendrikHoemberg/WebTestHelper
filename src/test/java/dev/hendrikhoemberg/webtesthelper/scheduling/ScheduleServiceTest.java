@@ -154,6 +154,6 @@ class ScheduleServiceTest extends AbstractPostgresTest {
 
     private long newSite(String host) {
         return sites.create(new SiteForm("Kunde", "https://" + host + "/", 300, 5,
-                Duration.ofMinutes(30), List.of(), List.of(), true, null));
+                Duration.ofMinutes(30), List.of(), List.of(), true, null, true));
     }
 }

@@ -46,7 +46,7 @@ class ScheduleSeedRaceTest extends AbstractPostgresTest {
         jdbc.update("DELETE FROM site_check_setting");
         jdbc.update("DELETE FROM site");
         siteId = sites.create(new SiteForm("Kunde", "https://seed-race.example.com/", 300, 5,
-                Duration.ofMinutes(30), List.of(), List.of(), true, null));
+                Duration.ofMinutes(30), List.of(), List.of(), true, null, true));
         now = Instant.now();
     }
 

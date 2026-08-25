@@ -41,7 +41,8 @@ public class SettingsController {
         SettingsForm form = SettingsForm.from(
                 smtp,
                 appSettings.baseUrl(),
-                appSettings.redirectAllMailTo()
+                appSettings.redirectAllMailTo(),
+                appSettings.schedulingPaused()
         );
         model.addAttribute("form", form);
         model.addAttribute("tlsModes", TlsMode.values());
@@ -88,6 +89,7 @@ public class SettingsController {
         appSettings.saveSmtp(smtp);
         appSettings.saveBaseUrl(form.getBaseUrl());
         appSettings.saveRedirectAllMailTo(form.getRedirectAllMailTo());
+        appSettings.saveSchedulingPaused(Boolean.TRUE.equals(form.getSchedulingPaused()));
 
         redirectAttributes.addFlashAttribute("gespeichert", true);
         return "redirect:/einstellungen";

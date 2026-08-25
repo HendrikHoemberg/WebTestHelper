@@ -76,7 +76,7 @@ class PageCheckAcceptanceTest extends AbstractPostgresTest {
         jdbc.update("DELETE FROM site_check_setting");
         jdbc.update("DELETE FROM site");
         long siteId = sites.create(new SiteForm("Fixture", site.baseUrl(), 30, 3,
-                Duration.ofMinutes(3), List.of(), List.of(), true, null));
+                Duration.ofMinutes(3), List.of(), List.of(), true, null, true));
         long runId = jdbc.queryForObject("INSERT INTO run (site_id, trigger_type, scope, status) "
                 + "VALUES (?, 'MANUAL', 'FULL', 'RUNNING') RETURNING id", Long.class, siteId);
 

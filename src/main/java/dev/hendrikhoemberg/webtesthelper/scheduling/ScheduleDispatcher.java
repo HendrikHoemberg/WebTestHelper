@@ -1,5 +1,6 @@
 package dev.hendrikhoemberg.webtesthelper.scheduling;
 
+import dev.hendrikhoemberg.webtesthelper.catalog.AppSettings;
 import dev.hendrikhoemberg.webtesthelper.model.RunTrigger;
 import dev.hendrikhoemberg.webtesthelper.runner.RunService;
 import dev.hendrikhoemberg.webtesthelper.scheduling.persistence.ScheduleClaimJdbcRepository;
@@ -31,13 +32,16 @@ public class ScheduleDispatcher {
     private final RunService runs;
     private final ScheduleClaimJdbcRepository claims;
     private final SchedulingProperties properties;
+    private final AppSettings appSettings;
 
     public ScheduleDispatcher(ScheduleService schedules, RunService runs,
-                              ScheduleClaimJdbcRepository claims, SchedulingProperties properties) {
+                              ScheduleClaimJdbcRepository claims, SchedulingProperties properties,
+                              AppSettings appSettings) {
         this.schedules = schedules;
         this.runs = runs;
         this.claims = claims;
         this.properties = properties;
+        this.appSettings = appSettings;
     }
 
     /**
@@ -50,6 +54,12 @@ public class ScheduleDispatcher {
      * silently advancing past a fault.
      */
     public int tick(Instant now) {
+        if (appSettings.schedulingPaused()) {
+            // DEBUG, not INFO: a paused instance ticks 2880 times a day and an INFO line each
+            // time would bury everything else in the log.
+            log.debug("Planung angehalten — Tick zum Zeitpunkt {} übersprungen", now);
+            return 0;
+        }
         schedules.seedMissingDefaults(now);
         List<Schedule> due = schedules.due(now, properties.batchSize());
         int queued = 0;
