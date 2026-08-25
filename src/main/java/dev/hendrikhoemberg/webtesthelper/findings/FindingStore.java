@@ -108,9 +108,18 @@ public class FindingStore {
                AND id = ANY(?)
             """;
 
-    private static final String DIFF_SQL = """
+    private static final String SILENCING_IN_CLAUSE = TriageStatus.SILENCING.stream()
+            .map(s -> "'" + s.name() + "'")
+            .sorted()
+            .collect(java.util.stream.Collectors.joining(", "));
+
+    private static final String DIFF_SQL = String.format("""
             SELECT f.*, CASE
                 WHEN f.observed_status = 'RESOLVED' AND f.resolved_at_run = ? THEN 'FIXED'
+                -- D47: a mute that stops applying the moment the thing flaps is not a mute. Placed above
+                -- NEW and REGRESSED, below FIXED. The IN list is built from TriageStatus.SILENCING so the
+                -- enum and this string cannot drift apart.
+                WHEN f.triage_status IN (%s)                                  THEN 'KNOWN'
                 WHEN f.first_seen_run = ?                                     THEN 'NEW'
                 WHEN f.regressed_at_run = ?                                   THEN 'REGRESSED'
                 WHEN f.triage_status <> 'UNTRIAGED'                           THEN 'KNOWN'
@@ -120,7 +129,7 @@ public class FindingStore {
                AND (f.last_seen_run = ? OR (f.observed_status = 'RESOLVED' AND f.resolved_at_run = ?))
              ORDER BY CASE f.severity WHEN 'ERROR' THEN 0 WHEN 'WARN' THEN 1 ELSE 2 END,
                       f.check_type, f.location_key, f.subject_key
-            """;
+            """, SILENCING_IN_CLAUSE);
 
     private static final String BY_ID_SQL = """
             SELECT * FROM finding WHERE id = ?
