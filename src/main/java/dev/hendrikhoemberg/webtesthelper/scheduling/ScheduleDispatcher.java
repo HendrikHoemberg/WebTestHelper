@@ -41,10 +41,13 @@ public class ScheduleDispatcher {
     }
 
     /**
-     * One tick: seed missing defaults, then fire every due schedule. Returns how many runs were
-     * enqueued. A schedule that cannot be parsed, or whose cron has no further occurrence, is
-     * skipped with one WARN and its {@code next_fire_at} is left alone — the row stays visibly
-     * stuck rather than silently advancing past a fault.
+     * One tick: seed missing defaults, then fire every due schedule. Returns how many due
+     * occurrences were drained — the number of claims won whose enqueue call succeeded. That is
+     * <em>not</em> the number of new runs: an already-QUEUED run of the same scope collapses the
+     * enqueue into the existing row (deduped), yet the occurrence still counts as drained. A
+     * schedule that cannot be parsed, or whose cron has no further occurrence, is skipped with one
+     * WARN and its {@code next_fire_at} is left alone — the row stays visibly stuck rather than
+     * silently advancing past a fault.
      */
     public int tick(Instant now) {
         schedules.seedMissingDefaults(now);
@@ -78,9 +81,12 @@ public class ScheduleDispatcher {
             runs.enqueue(row.siteId(), RunTrigger.SCHEDULED, row.scope());
             return true;
         } catch (RuntimeException missedRun) {
-            // The claim already committed, so this occurrence is gone. Retrying it would repeat
-            // forever for an enqueue that no retry fixes (the realistic one is a site deleted
-            // between the due query and this call). Say so, rather than silently drop it.
+            // Any enqueue failure here consumes the occurrence: the claim is already committed.
+            // A consumed occurrence is never retried — retrying would re-enqueue after the row
+            // has advanced past the occurrence (nothing left to fire), so the run is quietly lost.
+            // The realistic cause (a site deleted between the due query and this call) is not
+            // fixed by retrying either. Deliberately broad catch: whatever fails, the tick must
+            // not abort the rest of the due set. Report it — including type and stack — and move on.
             log.error("Zeitplan {} verpasste den Lauf für Site {} (Scope {}): Enqueue schlug fehl",
                     row.id(), row.siteId(), row.scope(), missedRun);
             return false;

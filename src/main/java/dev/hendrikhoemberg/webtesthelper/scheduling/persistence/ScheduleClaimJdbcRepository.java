@@ -43,6 +43,10 @@ public class ScheduleClaimJdbcRepository {
         return jdbc.update(CLAIM_SQL, ts(newNextFire), ts(firedAt), scheduleId, ts(expectedNextFire)) == 1;
     }
 
+    // Truncating to microseconds keeps the CAS predicate like-for-like with the value the JPA
+    // read-back stores: Postgres TIMESTAMPTZ holds microseconds, so expectedNextFire re-read from
+    // the entity is already micro-truncated. Without this the WHERE next_fire_at = ? compare could
+    // miss its own row on a nanosecond boundary. Not noise — it is what makes the predicate exact.
     private Timestamp ts(Instant instant) {
         return Timestamp.from(instant.truncatedTo(ChronoUnit.MICROS));
     }
