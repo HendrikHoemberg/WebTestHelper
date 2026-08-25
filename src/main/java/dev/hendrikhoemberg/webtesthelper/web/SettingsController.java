@@ -3,6 +3,10 @@ package dev.hendrikhoemberg.webtesthelper.web;
 import dev.hendrikhoemberg.webtesthelper.catalog.AppSettings;
 import dev.hendrikhoemberg.webtesthelper.catalog.SmtpSettings;
 import dev.hendrikhoemberg.webtesthelper.catalog.TlsMode;
+import dev.hendrikhoemberg.webtesthelper.reporting.DeliveryResult;
+import dev.hendrikhoemberg.webtesthelper.reporting.MailRenderer;
+import dev.hendrikhoemberg.webtesthelper.reporting.OutboundMail;
+import dev.hendrikhoemberg.webtesthelper.reporting.OutboxService;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -18,9 +22,17 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class SettingsController {
 
     private final AppSettings appSettings;
+    private final MailRenderer mailRenderer;
+    private final OutboxService outboxService;
 
-    public SettingsController(AppSettings appSettings) {
+    public SettingsController(
+            AppSettings appSettings,
+            MailRenderer mailRenderer,
+            OutboxService outboxService
+    ) {
         this.appSettings = appSettings;
+        this.mailRenderer = mailRenderer;
+        this.outboxService = outboxService;
     }
 
     @GetMapping
@@ -78,6 +90,29 @@ public class SettingsController {
         appSettings.saveRedirectAllMailTo(form.getRedirectAllMailTo());
 
         redirectAttributes.addFlashAttribute("gespeichert", true);
+        return "redirect:/einstellungen";
+    }
+
+    @PostMapping("/testmail")
+    public String sendTestMail(RedirectAttributes redirectAttributes) {
+        SmtpSettings smtp = appSettings.smtp();
+        if (smtp == null || !smtp.configured()) {
+            redirectAttributes.addFlashAttribute("testmailFehler", "Der SMTP-Server ist nicht konfiguriert.");
+            return "redirect:/einstellungen";
+        }
+
+        String recipient = smtp.fromAddress();
+        String baseUrl = appSettings.baseUrl();
+        OutboundMail mail = mailRenderer.testMail(recipient, baseUrl);
+        long id = outboxService.enqueue(mail);
+        DeliveryResult result = outboxService.sendNow(id);
+
+        if (result.success()) {
+            redirectAttributes.addFlashAttribute("testmailErfolg", true);
+        } else {
+            redirectAttributes.addFlashAttribute("testmailFehler", result.error());
+        }
+
         return "redirect:/einstellungen";
     }
 }

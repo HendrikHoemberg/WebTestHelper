@@ -15,6 +15,7 @@
             <a th:href="@{/}" th:text="#{ui.nav.websites}">Websites</a>
             <a th:href="@{/hilfe}" th:text="#{ui.nav.hilfe}">Hilfe</a>
             <a sec:authorize="hasRole('ADMIN')" th:href="@{/einstellungen}" th:text="#{ui.nav.einstellungen}">Einstellungen</a>
+            <a sec:authorize="hasRole('ADMIN')" th:href="@{/postausgang}" th:text="#{ui.nav.postausgang}">Postausgang</a>
         </div>
         <div class="nav-user">
             <span sec:authentication="name" class="benutzername">Benutzer</span>
@@ -23,6 +24,10 @@
             </form>
         </div>
     </nav>
+    <div th:if="${mailFailures != null && mailFailures > 0}" class="gesundheits-banner warnung" role="alert">
+        <span th:text="#{ui.banner.mail_fehler(${mailFailures})}">Beim E-Mail-Versand sind Fehler aufgetreten.</span>
+        <a th:href="@{/postausgang}" th:text="#{ui.banner.postausgang_link}">Zum Postausgang</a>
+    </div>
     <main th:replace="${inhalt}"></main>
 </body>
 </html>

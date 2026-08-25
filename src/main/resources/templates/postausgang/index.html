@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html th:replace="~{layout :: seite(#{ui.titel.postausgang}, ~{::main})}" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title th:text="#{ui.titel.postausgang}">Postausgang</title>
+</head>
+<body>
+<main>
+    <header class="seiten-kopf">
+        <h1 th:text="#{ui.postausgang.titel}">Postausgang</h1>
+    </header>
+
+    <div th:if="${#lists.isEmpty(eintraege)}" class="leer-zustand">
+        <p th:text="#{ui.postausgang.leer}">Keine Benachrichtigungen vorhanden.</p>
+    </div>
+
+    <div th:if="${!#lists.isEmpty(eintraege)}" class="tabelle-container">
+        <table class="tabelle">
+            <thead>
+                <tr>
+                    <th th:text="#{ui.postausgang.tabelle.id}">ID</th>
+                    <th th:text="#{ui.postausgang.tabelle.empfaenger}">Empfänger</th>
+                    <th th:text="#{ui.postausgang.tabelle.betreff}">Betreff</th>
+                    <th th:text="#{ui.postausgang.tabelle.status}">Status</th>
+                    <th th:text="#{ui.postausgang.tabelle.versuche}">Versuche</th>
+                    <th th:text="#{ui.postausgang.tabelle.erstellt}">Erstellt</th>
+                    <th th:text="#{ui.postausgang.tabelle.gesendet}">Zugestellt</th>
+                    <th th:text="#{ui.postausgang.tabelle.naechster_versuch}">Nächster Versuch</th>
+                    <th th:text="#{ui.postausgang.tabelle.fehler}">Fehlermeldung</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="eintrag : ${eintraege}" th:class="${'status-' + eintrag.state}">
+                    <td th:text="${eintrag.id}">1</td>
+                    <td th:text="${eintrag.recipient}">user@example.com</td>
+                    <td th:text="${eintrag.subject}">Betreff</td>
+                    <td>
+                        <span th:class="${'status-badge status-' + eintrag.state}"
+                              th:text="#{${'ui.notificationstate.' + eintrag.state}}">Ausstehend</span>
+                    </td>
+                    <td th:text="${eintrag.attempts}">0</td>
+                    <td th:text="${#temporals.format(eintrag.createdAt, 'dd.MM.yyyy HH:mm:ss')}">01.01.2026 12:00:00</td>
+                    <td th:text="${eintrag.sentAt != null ? #temporals.format(eintrag.sentAt, 'dd.MM.yyyy HH:mm:ss') : '-'}">-</td>
+                    <td th:text="${eintrag.nextAttemptAt != null ? #temporals.format(eintrag.nextAttemptAt, 'dd.MM.yyyy HH:mm:ss') : '-'}">-</td>
+                    <td class="fehler-text" th:text="${eintrag.lastError != null ? eintrag.lastError : '-'}">-</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</body>
+</html>

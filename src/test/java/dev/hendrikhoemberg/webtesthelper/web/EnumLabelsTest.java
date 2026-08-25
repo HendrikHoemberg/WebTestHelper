@@ -32,7 +32,8 @@ class EnumLabelsTest {
                 ReportSection.class,
                 Severity.class,
                 TriageStatus.class,
-                dev.hendrikhoemberg.webtesthelper.catalog.TlsMode.class
+                dev.hendrikhoemberg.webtesthelper.catalog.TlsMode.class,
+                dev.hendrikhoemberg.webtesthelper.reporting.NotificationState.class
         );
 
         for (Class<? extends Enum<?>> enumClass : enumClasses) {

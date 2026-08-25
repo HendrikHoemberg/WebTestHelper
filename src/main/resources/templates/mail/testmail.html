@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="de" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="#{ui.mail.testmail.titel}">Testnachricht</title>
+</head>
+<body>
+    <h1 th:text="#{ui.mail.testmail.ueberschrift}">WebTestHelper: Testnachricht</h1>
+    <p th:text="#{ui.mail.testmail.text}">Dies ist eine Testnachricht von WebTestHelper zur Überprüfung der E-Mail-Konfiguration.</p>
+    <p>
+        <span th:text="#{ui.mail.testmail.link_label}">WebTestHelper öffnen:</span>
+        <a th:href="${baseUrl}" th:text="${baseUrl}">https://example.com</a>
+    </p>
+</body>
+</html>

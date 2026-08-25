@@ -3,6 +3,10 @@ package dev.hendrikhoemberg.webtesthelper.web;
 import dev.hendrikhoemberg.webtesthelper.catalog.AppSettings;
 import dev.hendrikhoemberg.webtesthelper.catalog.SmtpSettings;
 import dev.hendrikhoemberg.webtesthelper.catalog.TlsMode;
+import dev.hendrikhoemberg.webtesthelper.reporting.DeliveryResult;
+import dev.hendrikhoemberg.webtesthelper.reporting.MailRenderer;
+import dev.hendrikhoemberg.webtesthelper.reporting.OutboundMail;
+import dev.hendrikhoemberg.webtesthelper.reporting.OutboxService;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,12 +22,12 @@ import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -37,6 +41,12 @@ class SettingsControllerTest {
 
     @MockitoBean
     AppSettings appSettings;
+
+    @MockitoBean
+    MailRenderer mailRenderer;
+
+    @MockitoBean
+    OutboxService outboxService;
 
     @MockitoBean
     AppUserService appUserService;
@@ -207,5 +217,66 @@ class SettingsControllerTest {
         verify(appSettings, never()).saveSmtp(any());
         verify(appSettings, never()).saveBaseUrl(any());
         verify(appSettings, never()).saveRedirectAllMailTo(any());
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void postTestMailAsUserIsForbidden() throws Exception {
+        mvc.perform(post("/einstellungen/testmail").with(csrf()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void postTestMailAsAdminSuccessFlashesSuccess() throws Exception {
+        when(appSettings.smtp()).thenReturn(new SmtpSettings(
+                "smtp.example.com",
+                587,
+                TlsMode.STARTTLS,
+                "admin",
+                "secret",
+                "alerts@example.com"
+        ));
+        when(appSettings.baseUrl()).thenReturn("https://webtesthelper.example.com");
+
+        OutboundMail mail = new OutboundMail("alerts@example.com", "Test Subject", "<p>HTML</p>", "Text");
+        when(mailRenderer.testMail("alerts@example.com", "https://webtesthelper.example.com")).thenReturn(mail);
+        when(outboxService.enqueue(mail)).thenReturn(99L);
+        when(outboxService.sendNow(99L)).thenReturn(DeliveryResult.successful());
+
+        mvc.perform(post("/einstellungen/testmail").with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/einstellungen"))
+                .andExpect(flash().attribute("testmailErfolg", true));
+
+        verify(outboxService).enqueue(mail);
+        verify(outboxService).sendNow(99L);
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void postTestMailAsAdminFailureFlashesError() throws Exception {
+        when(appSettings.smtp()).thenReturn(new SmtpSettings(
+                "smtp.example.com",
+                587,
+                TlsMode.STARTTLS,
+                "admin",
+                "secret",
+                "alerts@example.com"
+        ));
+        when(appSettings.baseUrl()).thenReturn("https://webtesthelper.example.com");
+
+        OutboundMail mail = new OutboundMail("alerts@example.com", "Test Subject", "<p>HTML</p>", "Text");
+        when(mailRenderer.testMail("alerts@example.com", "https://webtesthelper.example.com")).thenReturn(mail);
+        when(outboxService.enqueue(mail)).thenReturn(100L);
+        when(outboxService.sendNow(100L)).thenReturn(DeliveryResult.failed("Connection timeout on smtp.example.com:587"));
+
+        mvc.perform(post("/einstellungen/testmail").with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/einstellungen"))
+                .andExpect(flash().attribute("testmailFehler", "Connection timeout on smtp.example.com:587"));
+
+        verify(outboxService).enqueue(mail);
+        verify(outboxService).sendNow(100L);
     }
 }

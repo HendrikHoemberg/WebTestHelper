@@ -1,0 +1,5 @@
+WebTestHelper: Testnachricht
+
+Dies ist eine Testnachricht von WebTestHelper zur Überprüfung der E-Mail-Konfiguration.
+
+WebTestHelper öffnen: [(${baseUrl})]

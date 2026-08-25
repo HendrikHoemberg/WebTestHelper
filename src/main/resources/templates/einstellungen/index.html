@@ -6,6 +6,8 @@
 <body>
 <main>
     <div th:if="${gespeichert}" class="hinweis" th:text="#{ui.einstellungen.gespeichert}">Einstellungen wurden erfolgreich gespeichert.</div>
+    <div th:if="${testmailErfolg}" class="hinweis erfolg" th:text="#{ui.einstellungen.testmail.erfolg}">Testnachricht zugestellt.</div>
+    <div th:if="${testmailFehler}" class="hinweis fehler" th:text="#{ui.einstellungen.testmail.fehler(${testmailFehler})}">E-Mail-Versand fehlgeschlagen: Fehler</div>
 
     <header class="seiten-kopf">
         <h1 th:text="#{ui.einstellungen.titel}">Einstellungen</h1>
@@ -91,6 +93,12 @@
             <a th:href="@{/}" class="button sekundär" th:text="#{ui.einstellungen.abbrechen}">Abbrechen</a>
         </div>
     </form>
+
+    <div th:if="${smtpConfigured}" class="testmail-bereich">
+        <form th:action="@{/einstellungen/testmail}" method="post" class="inline-form">
+            <button type="submit" class="button sekundär" th:text="#{ui.einstellungen.testmail.senden}">Test-E-Mail senden</button>
+        </form>
+    </div>
 </main>
 </body>
 </html>
