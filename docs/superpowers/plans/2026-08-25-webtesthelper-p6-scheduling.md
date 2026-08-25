@@ -844,7 +844,8 @@ Run before declaring the plan done:
 ## Execution findings
 
 Plan 6 executed 2026-08-25 with subagent-driven development: eight task commits plus four
-review-fix commits (`8b17779`…`72a9a25`, 63 files, +6,164 −172). **628 full tests green**
+review-fix commits (`8b17779`…`72a9a25`, 65 files, +3,125 −42, measured with
+`git diff --shortstat`). **628 full tests green**
 (Phase 1's 558 + 70 new), all but two browser-free. The plan's "no browser test" claim held:
 Task 5's crawl-side assertions extended `CrawlRunExecutorTest`'s existing `@BeforeAll` crawl
 rather than adding a class.
@@ -883,6 +884,34 @@ rather than adding a class.
 - **`zeitplaene.md` landed in Task 5, not Task 7.** The pinned-pages `?` affordance needs the
   topic to exist in the same commit as the link; a real stub shipped with Task 5 and Task 7
   expanded it. HelpTopicsTest moved to 4 topics at Task 5, not Task 7.
+
+**Post-review fixes, 2026-08-25 (after the plan was declared done). 632 full tests green.**
+
+- **`sec:authorize` had never worked, anywhere in the app.**
+  `thymeleaf-extras-springsecurity6` was not on the classpath, so Thymeleaf did not recognise the
+  `sec:` namespace and copied those attributes into the HTML verbatim — the admin nav links,
+  `detail.html`'s Bearbeiten button and this plan's schedule form all rendered for every `USER`,
+  and `sec:authentication="name"` showed the placeholder instead of the username. Nothing failed,
+  because no test had ever asserted that a gate *hides* anything. Predates plan 6; found while
+  gating the schedules form. The routes were never exposed — `SecurityConfig` and
+  `SecurityRulesTest` were correct throughout — so this was an affordance leak, not an
+  authorization hole. Fixed by adding the (Boot-managed) dependency, which supersedes the
+  preamble's "No new dependency". The regression test asserts a rendered page contains no literal
+  `sec:` string: a dropped jar is invisible in behaviour but obvious in the markup.
+- **The `partialCoverage` guard on key-page pinning had no assertion.** `CrawlRunExecutorTest`'s
+  `@BeforeAll` already built the case — run 3 is budget-capped and the pins were cleared before it
+  — and a comment claimed the outcome, but nothing checked it. A comment is not a test. Now
+  `aPartialFullCrawlPinsNothing`.
+- **`ScheduleRepository`'s `@Query` reaches into `catalog.persistence.SiteEntity`, and
+  `ModularityTest` cannot see it.** JPQL names entities as text, so the reference compiles to no
+  bytecode and ArchUnit passes on it rather than approving it. The dependency is intended (D41's
+  site-enabled predicate belongs in the query, not in Java) but it is on `catalog`'s internals,
+  which modulith would reject if it could see it. Documented on the interface; the unused import is
+  kept deliberately so the coupling is greppable. Hibernate's startup JPQL validation is what
+  actually guards a rename.
+- **This section's diffstat was wrong** — it read "63 files, +6,164 −172" against an actual
+  65 / +3,125 / −42. Numbers in findings are load-bearing precisely because they cannot be
+  regenerated; this one was never measured.
 
 **What the plan got right and is worth reusing:** specifying *assertions* rather than test
 bodies again produced tests that match the plan nearly line for line, and the "one method per
