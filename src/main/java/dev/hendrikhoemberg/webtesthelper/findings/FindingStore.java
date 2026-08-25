@@ -96,6 +96,18 @@ public class FindingStore {
                AND id IN (SELECT finding_id FROM finding_occurrence WHERE run_id = ?)
             """;
 
+    private static final String TRIAGE_SQL = """
+            UPDATE finding
+               SET triage_status = ?,
+                   triage_reason = ?,
+                   muted_until = ?,
+                   triaged_by = ?,
+                   triaged_at = ?,
+                   version = version + 1
+             WHERE site_id = ?
+               AND id = ANY(?)
+            """;
+
     private static final String DIFF_SQL = """
             SELECT f.*, CASE
                 WHEN f.observed_status = 'RESOLVED' AND f.resolved_at_run = ? THEN 'FIXED'
@@ -151,6 +163,11 @@ public class FindingStore {
             Long resolvedAtRun = rs.wasNull() ? null : resolved;
             long regressed = rs.getLong("regressed_at_run");
             Long regressedAtRun = rs.wasNull() ? null : regressed;
+            Timestamp mutedUntilTs = rs.getTimestamp("muted_until");
+            Instant mutedUntil = mutedUntilTs == null ? null : mutedUntilTs.toInstant();
+            Timestamp muteExpiredAtTs = rs.getTimestamp("mute_expired_at");
+            Instant muteExpiredAt = muteExpiredAtTs == null ? null : muteExpiredAtTs.toInstant();
+            Long mutedByRuleId = getLongOrNull(rs, "muted_by_rule_id");
             String evidenceJson = rs.getString("evidence");
             Evidence evidence = evidenceJson == null ? Evidence.NONE
                     : readJson(evidenceJson, Evidence.class);
@@ -168,6 +185,10 @@ public class FindingStore {
                     ObservedStatus.valueOf(rs.getString("observed_status")),
                     TriageStatus.valueOf(rs.getString("triage_status")),
                     rs.getString("triage_reason"),
+                    rs.getString("triaged_by"),
+                    mutedUntil,
+                    muteExpiredAt,
+                    mutedByRuleId,
                     rs.getLong("first_seen_run"),
                     rs.getLong("last_seen_run"),
                     resolvedAtRun,
@@ -265,6 +286,44 @@ public class FindingStore {
     /** Move every UNTRIAGED finding observed in the run to ACKNOWLEDGED. */
     public int acceptBaseline(long siteId, long runId, String reason, Instant now) {
         return jdbc.update(ACCEPT_BASELINE_SQL, reason, ts(now), siteId, runId);
+    }
+
+    /** Apply a triage action to the specified findings within the site scope. */
+    public int triage(long siteId, List<Long> ids, TriageAction action, String actor, Instant now) {
+        if (ids == null || ids.isEmpty()) {
+            return 0;
+        }
+        boolean isUntriaged = action.target() == TriageStatus.UNTRIAGED;
+        String triageStatus = action.target().name();
+        String triageReason = isUntriaged ? null : action.reason();
+        Timestamp mutedUntil = (isUntriaged || action.mutedUntil() == null) ? null : ts(action.mutedUntil());
+        String triagedBy = isUntriaged ? null : actor;
+        Timestamp triagedAt = isUntriaged ? null : ts(now);
+
+        return jdbc.execute((java.sql.Connection c) -> {
+            Array idArray = c.createArrayOf("bigint", ids.toArray());
+            try (PreparedStatement ps = c.prepareStatement(TRIAGE_SQL)) {
+                ps.setString(1, triageStatus);
+                ps.setString(2, triageReason);
+                ps.setTimestamp(3, mutedUntil);
+                ps.setString(4, triagedBy);
+                ps.setTimestamp(5, triagedAt);
+                ps.setLong(6, siteId);
+                ps.setArray(7, idArray);
+                return ps.executeUpdate();
+            } finally {
+                idArray.free();
+            }
+        });
+    }
+
+    private static Long getLongOrNull(java.sql.ResultSet rs, String column) {
+        try {
+            long val = rs.getLong(column);
+            return rs.wasNull() ? null : val;
+        } catch (SQLException e) {
+            return null;
+        }
     }
 
     /** Read the run's diff straight out of the database. */

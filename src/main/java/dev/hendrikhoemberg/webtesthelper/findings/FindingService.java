@@ -64,6 +64,15 @@ public class FindingService {
         return store.acceptBaseline(siteId, runId, BASELINE_TRIAGE_REASON, Instant.now());
     }
 
+    /**
+     * Triages a list of findings for a site using the given validated action and actor.
+     * Returns the number of findings modified.
+     */
+    @Transactional
+    public int triage(long siteId, List<Long> ids, TriageAction action, String actor, Instant now) {
+        return store.triage(siteId, ids, action, actor, now);
+    }
+
     public java.util.Optional<Finding> byId(long id) {
         return store.byId(id);
     }
