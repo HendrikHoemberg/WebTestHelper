@@ -133,6 +133,14 @@ public class FindingStore {
              WHERE muted_by_rule_id = ?
             """;
 
+    private static final String COUNT_MATCHING_SQL = """
+            SELECT COUNT(*) FROM finding
+             WHERE (? IS NULL OR site_id = ?)
+               AND (? IS NULL OR check_type = ?)
+               AND (? IS NULL OR lower(subject_key) LIKE ? ESCAPE '\\')
+               AND (? IS NULL OR lower(location_key) LIKE ? ESCAPE '\\')
+            """;
+
     private static final String EXPIRE_MUTES_SQL = """
             UPDATE finding
                SET triage_status = 'UNTRIAGED',
@@ -569,6 +577,59 @@ public class FindingStore {
             ps.setTimestamp(2, ts(now));
         });
     }
+
+    /**
+     * Counts currently existing findings matching the given criteria (for rule preview).
+     * If all criteria (checkType, subjectPattern, locationPattern) are empty/blank, returns 0.
+     */
+    public int countMatching(Long siteId, CheckType checkType, String subjectPattern, String locationPattern) {
+        if (checkType == null && MutePattern.isBlank(subjectPattern) && MutePattern.isBlank(locationPattern)) {
+            return 0;
+        }
+        String subjectLike = MutePattern.isBlank(subjectPattern) ? null
+                : MutePattern.toLikePattern(subjectPattern).toLowerCase(java.util.Locale.ROOT);
+        String locationLike = MutePattern.isBlank(locationPattern) ? null
+                : MutePattern.toLikePattern(locationPattern).toLowerCase(java.util.Locale.ROOT);
+        String checkTypeName = checkType == null ? null : checkType.name();
+
+        return jdbc.query(COUNT_MATCHING_SQL, ps -> {
+            if (siteId == null) {
+                ps.setNull(1, java.sql.Types.BIGINT);
+                ps.setNull(2, java.sql.Types.BIGINT);
+            } else {
+                ps.setLong(1, siteId);
+                ps.setLong(2, siteId);
+            }
+
+            if (checkTypeName == null) {
+                ps.setNull(3, java.sql.Types.VARCHAR);
+                ps.setNull(4, java.sql.Types.VARCHAR);
+            } else {
+                ps.setString(3, checkTypeName);
+                ps.setString(4, checkTypeName);
+            }
+
+            if (subjectLike == null) {
+                ps.setNull(5, java.sql.Types.VARCHAR);
+                ps.setNull(6, java.sql.Types.VARCHAR);
+            } else {
+                ps.setString(5, subjectLike);
+                ps.setString(6, subjectLike);
+            }
+
+            if (locationLike == null) {
+                ps.setNull(7, java.sql.Types.VARCHAR);
+                ps.setNull(8, java.sql.Types.VARCHAR);
+            } else {
+                ps.setString(7, locationLike);
+                ps.setString(8, locationLike);
+            }
+        }, rs -> {
+            rs.next();
+            return rs.getInt(1);
+        });
+    }
+
 
     private static Long getLongOrNull(java.sql.ResultSet rs, String column) {
         try {

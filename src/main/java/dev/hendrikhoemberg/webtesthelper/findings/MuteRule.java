@@ -20,4 +20,13 @@ import java.time.Instant;
 public record MuteRule(long id, Long siteId, CheckType checkType, String subjectPattern,
                        String locationPattern, String reason, String createdBy,
                        Instant expiresAt, Instant createdAt) {
+
+    public boolean isExpired() {
+        return isExpired(Instant.now());
+    }
+
+    public boolean isExpired(Instant now) {
+        return expiresAt != null && !expiresAt.isAfter(now);
+    }
 }
+

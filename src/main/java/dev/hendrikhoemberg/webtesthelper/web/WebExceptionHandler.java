@@ -46,6 +46,8 @@ public class WebExceptionHandler {
         } else if (uri != null && uri.matches(".*/websites/\\d+/befunde/bewerten.*")) {
             String siteId = uri.replaceAll(".*/websites/(\\d+)/befunde/bewerten.*", "$1");
             return "redirect:/websites/" + siteId + "/befunde";
+        } else if (uri != null && uri.contains("/stummschaltungen")) {
+            return "redirect:/stummschaltungen";
         }
         return "redirect:/";
     }

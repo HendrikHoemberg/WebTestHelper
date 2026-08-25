@@ -81,4 +81,18 @@ class SecurityRulesTest {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/anmelden?abgemeldet"));
     }
+
+    @Test
+    void anonymousStummschaltungenRedirectsToAnmelden() throws Exception {
+        mvc.perform(get("/stummschaltungen"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/anmelden"));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void userCanAccessStummschaltungen() throws Exception {
+        mvc.perform(get("/stummschaltungen"))
+                .andExpect(status().isNotFound());
+    }
 }
