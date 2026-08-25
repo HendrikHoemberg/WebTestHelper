@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html th:replace="~{layout :: seite(#{ui.einstellungen.titel}, ~{::main})}" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title th:text="#{ui.einstellungen.titel}">Einstellungen</title>
+</head>
+<body>
+<main>
+    <div th:if="${gespeichert}" class="hinweis" th:text="#{ui.einstellungen.gespeichert}">Einstellungen wurden erfolgreich gespeichert.</div>
+
+    <header class="seiten-kopf">
+        <h1 th:text="#{ui.einstellungen.titel}">Einstellungen</h1>
+    </header>
+
+    <form th:action="@{/einstellungen}"
+          th:object="${form}"
+          method="post"
+          class="formular"
+          th:attr="x-data='{ tls: \'' + *{tls} + '\', username: \'' + (*{username != null} ? *{username} : '') + '\' }'">
+
+        <section class="form-bereich">
+            <h2 th:text="#{ui.einstellungen.allgemein.titel}">Allgemeine Einstellungen</h2>
+
+            <div class="form-gruppe">
+                <label for="baseUrl" th:text="#{ui.einstellungen.baseUrl}">Basis-URL dieser Anwendung</label>
+                <input type="text" id="baseUrl" th:field="*{baseUrl}" placeholder="https://webtesthelper.example.com" required>
+                <span class="feld-hinweis" th:text="#{ui.einstellungen.baseUrl.hinweis}">Wird für Links in Benachrichtigungs-E-Mails verwendet.</span>
+                <span th:if="${#fields.hasErrors('baseUrl')}" th:errors="*{baseUrl}" class="feld-fehler">Fehler</span>
+            </div>
+
+            <div class="form-gruppe">
+                <label for="redirectAllMailTo" th:text="#{ui.einstellungen.redirectAllMailTo}">Alle E-Mails umleiten an (optional)</label>
+                <input type="text" id="redirectAllMailTo" th:field="*{redirectAllMailTo}" placeholder="staging-catchall@example.com">
+                <p class="hinweis-text" th:text="#{ui.einstellungen.redirectAllMailTo.hinweis}">Wenn hier eine Adresse hinterlegt ist, werden alle Benachrichtigungen ausschliesslich an diese Adresse gesendet statt an die eigentlichen Empfänger.</p>
+                <span th:if="${#fields.hasErrors('redirectAllMailTo')}" th:errors="*{redirectAllMailTo}" class="feld-fehler">Fehler</span>
+            </div>
+        </section>
+
+        <section class="form-bereich">
+            <div class="abschnitt-ueberschrift-zeile">
+                <h2 th:text="#{ui.einstellungen.smtp.titel}">E-Mail-Versand (SMTP)</h2>
+                <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
+                        th:data-hx-get="@{/hilfe/hinweis/{id}(id='smtp-einrichten')}"
+                        data-hx-target="next .hinweis" data-hx-swap="innerHTML">?</button>
+                <div class="hinweis" aria-live="polite"></div>
+            </div>
+
+            <div class="form-gruppe form-gruppe-inline">
+                <div>
+                    <label for="host" th:text="#{ui.einstellungen.smtp.host}">SMTP-Server (Host)</label>
+                    <input type="text" id="host" th:field="*{host}" placeholder="smtp.example.com">
+                    <span th:if="${#fields.hasErrors('host')}" th:errors="*{host}" class="feld-fehler">Fehler</span>
+                </div>
+                <div>
+                    <label for="port" th:text="#{ui.einstellungen.smtp.port}">Port</label>
+                    <input type="number" id="port" th:field="*{port}" min="1" max="65535">
+                    <span th:if="${#fields.hasErrors('port')}" th:errors="*{port}" class="feld-fehler">Fehler</span>
+                </div>
+                <div>
+                    <label for="tls" th:text="#{ui.einstellungen.smtp.tls}">Verschlüsselung (TLS)</label>
+                    <select id="tls" th:field="*{tls}" x-model="tls">
+                        <option th:each="mode : ${tlsModes}" th:value="${mode}" th:text="#{${'ui.tlsmode.' + mode}}">STARTTLS</option>
+                    </select>
+                    <span th:if="${#fields.hasErrors('tls')}" th:errors="*{tls}" class="feld-fehler">Fehler</span>
+                </div>
+            </div>
+
+            <div x-show="tls !== 'NONE' || (username && username.trim().length > 0)" class="form-gruppe-zugangsdaten">
+                <div class="form-gruppe">
+                    <label for="username" th:text="#{ui.einstellungen.smtp.username}">Benutzername</label>
+                    <input type="text" id="username" th:field="*{username}" x-model="username" placeholder="benutzer@example.com">
+                    <span th:if="${#fields.hasErrors('username')}" th:errors="*{username}" class="feld-fehler">Fehler</span>
+                </div>
+
+                <div class="form-gruppe">
+                    <label for="password" th:text="#{ui.einstellungen.smtp.password}">Passwort</label>
+                    <input type="password" id="password" th:field="*{password}" th:placeholder="#{ui.einstellungen.smtp.password.platzhalter}" autocomplete="new-password">
+                    <span class="feld-hinweis" th:text="#{ui.einstellungen.smtp.password.hinweis}">Leer lassen, um das bestehende Passwort beizubehalten.</span>
+                    <span th:if="${#fields.hasErrors('password')}" th:errors="*{password}" class="feld-fehler">Fehler</span>
+                </div>
+            </div>
+
+            <div class="form-gruppe">
+                <label for="fromAddress" th:text="#{ui.einstellungen.smtp.fromAddress}">Absenderadresse (From)</label>
+                <input type="text" id="fromAddress" th:field="*{fromAddress}" placeholder="webtesthelper@example.com">
+                <span th:if="${#fields.hasErrors('fromAddress')}" th:errors="*{fromAddress}" class="feld-fehler">Fehler</span>
+            </div>
+        </section>
+
+        <div class="form-aktionen">
+            <button type="submit" class="button primär" th:text="#{ui.einstellungen.speichern}">Einstellungen speichern</button>
+            <a th:href="@{/}" class="button sekundär" th:text="#{ui.einstellungen.abbrechen}">Abbrechen</a>
+        </div>
+    </form>
+</main>
+</body>
+</html>

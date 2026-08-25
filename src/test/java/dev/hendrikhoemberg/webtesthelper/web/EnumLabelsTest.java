@@ -31,7 +31,8 @@ class EnumLabelsTest {
                 RunTrigger.class,
                 ReportSection.class,
                 Severity.class,
-                TriageStatus.class
+                TriageStatus.class,
+                dev.hendrikhoemberg.webtesthelper.catalog.TlsMode.class
         );
 
         for (Class<? extends Enum<?>> enumClass : enumClasses) {
