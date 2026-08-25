@@ -133,6 +133,20 @@ public class FindingStore {
              WHERE muted_by_rule_id = ?
             """;
 
+    private static final String EXPIRE_MUTES_SQL = """
+            UPDATE finding
+               SET triage_status = 'UNTRIAGED',
+                   muted_until = NULL,
+                   muted_by_rule_id = NULL,
+                   mute_expired_at = ?,
+                   -- triage_reason and triaged_at are conspicuously absent on purpose (D50):
+                   -- an expired mute keeps its reason and triaged_at so un-muting is visible
+                   -- next to a live occurrence count.
+                   version = version + 1
+             WHERE triage_status = 'MUTED'
+               AND muted_until <= ?
+            """;
+
     private static final String SILENCING_IN_CLAUSE = TriageStatus.SILENCING.stream()
             .map(s -> "'" + s.name() + "'")
             .sorted()
@@ -419,6 +433,17 @@ public class FindingStore {
         return jdbc.update(UNMUTE_RULE_SQL, ps -> {
             ps.setTimestamp(1, ts(now));
             ps.setLong(2, ruleId);
+        });
+    }
+
+    /**
+     * Expire mutes whose muted_until has passed.
+     * D50: Keeps triage_reason and triaged_at intact on purpose so the old reason remains visible.
+     */
+    public int expireMutes(Instant now) {
+        return jdbc.update(EXPIRE_MUTES_SQL, ps -> {
+            ps.setTimestamp(1, ts(now));
+            ps.setTimestamp(2, ts(now));
         });
     }
 
