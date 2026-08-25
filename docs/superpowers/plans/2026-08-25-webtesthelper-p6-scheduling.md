@@ -838,3 +838,58 @@ Run before declaring the plan done:
   precondition for §6.4's coverage-scoped resolution to behave across tiers. Plan 7's mute
   semantics interact with it: a mute scoped to a URL outside the pulse set must not appear to
   "expire" merely because no pulse run ever visits it.
+
+---
+
+## Execution findings
+
+Plan 6 executed 2026-08-25 with subagent-driven development: eight task commits plus four
+review-fix commits (`8b17779`…`72a9a25`, 63 files, +6,164 −172). **628 full tests green**
+(Phase 1's 558 + 70 new), all but two browser-free. The plan's "no browser test" claim held:
+Task 5's crawl-side assertions extended `CrawlRunExecutorTest`'s existing `@BeforeAll` crawl
+rather than adding a class.
+
+**Measured corrections to plan constants, decided by runtime evidence:**
+
+- **The DST assertion on 2026-10-24 → 01:00Z is wrong; the runtime says 02:00Z.** Berlin's
+  fall-back on 25 Oct 2026 happens *at* 03:00, so 03:00 local that day is CET (02:00Z) — a
+  CEST 03:00 never exists. Spring 7.0.9's `CronExpression.next` resolves it to `03:00+01:00`.
+  The test asserts 02:00Z, and the DST-drift argument survives via the summer (Aug 26 → 01:00Z)
+  vs winter (Oct 27 → 02:00Z) pair. Same family of finding as plan 4's `Fingerprint` join:
+  a concrete instant in prose is measured, not trusted.
+- **`next_fire_at TIMESTAMPTZ NOT NULL` contradicted Task 1's own "never again" contract**
+  (`nextAfter` returns null for a cron with no future occurrence, and the row is then meant to
+  "stay put and stop matching"). V13's NOT NULL was dropped in a review-fix commit; the column
+  is nullable and `findDue`'s `<= :now` predicate excludes NULL rows, which is what the
+  Task-1 comment meant by "the partial index stops matching it". The dispatcher guards the null
+  path with a WARN-and-continue, tested with `0 0 3 31 2 *` (parses, never fires — verified
+  against the actual Spring version).
+
+**Review-driven fixes worth knowing about:**
+
+- **Task 7's all-or-nothing save had a hole: a blank timezone.** `validate` accepted it, then
+  `update` threw mid-loop *after* earlier tiers had already committed per-row (the service is
+  deliberately non-@Transactional) — the exact "worst outcome" the plan forbids, delivered as
+  a 500. Fixed by rejecting a blank zone as a field error before any write.
+- **The plan's own D45 example does not discriminate.** "Five of five pages" vs "five times
+  from one page" both score 5 under raw counting *and* under distinct sources — a tie the URL
+  tie-break resolves the same way, so a naive link-counting implementation passes the test.
+  The committed test uses six links from one page so the two metrics disagree on *order*.
+- **Task 8's step 4 ("one more run") is literally false against the queue dedupe.** A second
+  backdated occurrence of the same scope collapses into the still-`QUEUED` first run via
+  `ux_run_single_queued_per_site_scope`. The acceptance test completes the first run before
+  re-backdating — the minimal stitch that keeps "one more run" meaningful, and the same stitch
+  step 9 needs for the D41 manual run.
+- **`zeitplaene.md` landed in Task 5, not Task 7.** The pinned-pages `?` affordance needs the
+  topic to exist in the same commit as the link; a real stub shipped with Task 5 and Task 7
+  expanded it. HelpTopicsTest moved to 4 topics at Task 5, not Task 7.
+
+**What the plan got right and is worth reusing:** specifying *assertions* rather than test
+bodies again produced tests that match the plan nearly line for line, and the "one method per
+module concern" architecture held under review with zero module-boundary violations — the
+runner→crawler retention split and the scheduling→catalog→runner triangle passed
+`ModularityTest` untouched. The claim-repository CAS shape (copied from the two Phase-1
+leases) needed no revision; two reviews checked its concurrency argument and found it sound.
+The one thing to watch: with the D43 pool of three fully spoken for (outbox, tick, retention),
+plan 7's mute-expiry sweep genuinely needs a fourth thread or a shared job — the roadmap's
+note is confirmed, not hypothetical.
