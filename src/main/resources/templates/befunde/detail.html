@@ -7,6 +7,9 @@
 </head>
 <body>
 <main>
+    <div th:if="${flashMessage}" class="hinweis" style="margin-bottom: 1.5rem;" th:text="${flashMessage}">Erfolgsmeldung</div>
+    <div th:if="${flashError}" class="fehler" style="margin-bottom: 1.5rem;" th:text="${flashError}">Fehlermeldung</div>
+
     <header class="seiten-kopf">
         <div>
             <h1 th:text="#{ui.befund.detail.titel(${detail.summary.id})} + ': ' + ${detail.summary.title}">Befund #1: Tote Links</h1>
@@ -19,6 +22,19 @@
             <a th:href="@{/laeufe/{id}(id=${finding.lastSeenRun})}" class="button sekundär" th:text="#{ui.befund.detail.zurueck_zum_lauf(${finding.lastSeenRun})}">Zurück zum Prüflauf</a>
         </div>
     </header>
+
+    <!-- Feststellung bewerten (§13.4) -->
+    <section class="detail-bereich triage-bereich">
+        <div class="abschnitt-ueberschrift-zeile">
+            <h2 th:text="#{ui.befunde.triage.titel}">Feststellung bewerten</h2>
+            <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
+                    th:data-hx-get="@{/hilfe/hinweis/{id}(id='stummschaltungen')}"
+                    data-hx-target="next .hinweis" data-hx-swap="innerHTML">?</button>
+            <div class="hinweis" aria-live="polite"></div>
+        </div>
+        <div th:replace="~{fragments/bewertung :: bewertung(@{/befunde/{id}/bewerten(id=${finding.id})}, false, ${finding.id})}"></div>
+    </section>
+
 
     <!-- Die drei Absätze der Befunderklärung (§13.2) in fester Reihenfolge -->
     <!-- 1. Was wir geprüft haben (description) -->

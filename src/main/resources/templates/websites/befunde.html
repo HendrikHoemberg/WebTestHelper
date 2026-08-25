@@ -7,9 +7,18 @@
 </head>
 <body>
 <main x-data="findingsSelection()">
+    <div th:if="${flashMessage}" class="hinweis" style="margin-bottom: 1.5rem;" th:text="${flashMessage}">Erfolgsmeldung</div>
+    <div th:if="${flashError}" class="fehler" style="margin-bottom: 1.5rem;" th:text="${flashError}">Fehlermeldung</div>
+
     <header class="seiten-kopf">
         <div>
-            <h1 th:text="#{ui.websites.befunde.titel}">Feststellungen</h1>
+            <div class="abschnitt-ueberschrift-zeile">
+                <h1 th:text="#{ui.websites.befunde.titel}">Feststellungen</h1>
+                <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
+                        th:data-hx-get="@{/hilfe/hinweis/{id}(id='stummschaltungen')}"
+                        data-hx-target="next .hinweis" data-hx-swap="innerHTML">?</button>
+                <div class="hinweis" aria-live="polite"></div>
+            </div>
             <a th:href="@{/websites/{id}(id=${site.siteId})}" th:text="${site.name}" class="basis-url-link">Website Name</a>
             <span class="text-gedaempft">·</span>
             <a th:href="${site.baseUrl.value}" th:text="${site.baseUrl.value}" target="_blank" rel="noopener noreferrer" class="basis-url-link">https://example.com/</a>
@@ -28,7 +37,13 @@
         <!-- Befundliste -->
         <section class="befunde-ergebnis-bereich" id="befunde-liste-container">
             <div th:fragment="befundListe" class="befunde-liste-inhalt">
+                <!-- Sammel-Bewertungsleiste (§13.4) -->
+                <div class="bulk-triage-leiste" style="background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 6px; padding: 1rem; margin-bottom: 1rem;">
+                    <div th:replace="~{fragments/bewertung :: bewertung(@{/websites/{id}/befunde/bewerten(id=${site.siteId})}, true, null)}"></div>
+                </div>
+
                 <div class="befunde-liste-kopf">
+
                     <div class="befunde-auswahl-kopf">
                         <label class="form-gruppe-checkbox befund-auswahl-alle">
                             <input type="checkbox" @change="toggleAll($event)" :checked="isAllSelected()" :indeterminate="isIndeterminate()">

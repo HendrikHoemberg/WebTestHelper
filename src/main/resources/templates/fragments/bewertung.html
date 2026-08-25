@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="bewertung(actionUrl, isBulk, findingId)"
+     x-data="{
+         aktion: 'ACKNOWLEDGED',
+         grund: '',
+         stummBis: (function() {
+             const d = new Date();
+             d.setDate(d.getDate() + 90);
+             return d.toISOString().split('T')[0];
+         })(),
+         formatDate(dStr) {
+             if (!dStr) return '';
+             const parts = dStr.split('-');
+             if (parts.length === 3) {
+                 return parts[2] + '.' + parts[1] + '.' + parts[0];
+             }
+             return dStr;
+         }
+     }"
+     class="triage-form-container">
+    <form th:action="${actionUrl}" method="post" class="triage-form">
+        <div th:if="${isBulk}">
+            <template x-for="id in selected" :key="id">
+                <input type="hidden" name="ids" :value="id">
+            </template>
+        </div>
+
+        <div class="triage-form-raster">
+            <div class="form-gruppe">
+                <label for="triage-aktion" th:text="#{ui.befunde.triage.aktion}">Aktion</label>
+                <select id="triage-aktion" name="aktion" x-model="aktion" class="form-select">
+                    <option value="ACKNOWLEDGED" th:text="#{ui.triagestatus.ACKNOWLEDGED}">Zur Kenntnis genommen</option>
+                    <option value="MUTED" th:text="#{ui.triagestatus.MUTED}">Stummgeschaltet</option>
+                    <option value="WONT_FIX" th:text="#{ui.triagestatus.WONT_FIX}">Wird nicht behoben</option>
+                    <option value="UNTRIAGED" th:text="#{ui.triagestatus.UNTRIAGED}">Ungeprüft</option>
+                </select>
+            </div>
+
+            <div class="form-gruppe" x-show="aktion === 'MUTED'" style="display: none;">
+                <label for="triage-stumm-bis" th:text="#{ui.befunde.triage.stumm_bis}">Stumm bis</label>
+                <input type="date" id="triage-stumm-bis" name="stummBis" x-model="stummBis" class="form-input">
+            </div>
+
+            <div class="form-gruppe form-gruppe-breit" x-show="aktion === 'MUTED' || aktion === 'WONT_FIX' || aktion === 'ACKNOWLEDGED'">
+                <label for="triage-grund">
+                    <span th:text="#{ui.befunde.triage.grund}">Begründung</span>
+                    <span x-show="aktion === 'MUTED' || aktion === 'WONT_FIX'" class="text-pflicht" style="color: var(--danger-color, #dc2626);">*</span>
+                </label>
+                <input type="text" id="triage-grund" name="grund" x-model="grund"
+                       th:placeholder="#{ui.befunde.triage.grund.placeholder}"
+                       class="form-input">
+            </div>
+        </div>
+
+        <!-- §13.4 Consequence text stated before the click -->
+        <div x-show="aktion === 'MUTED'" class="hinweis-folge" style="display: none; margin-top: 0.75rem; margin-bottom: 0.75rem;">
+            <p th:if="${!isBulk}" class="text-gedaempft" style="font-size: 0.9rem; margin: 0;">
+                Dieser Befund erscheint bis zum <strong x-text="formatDate(stummBis)"></strong> nicht mehr in Berichten oder E-Mails. Danach wird er automatisch wieder angezeigt.
+            </p>
+            <p th:if="${isBulk}" class="text-gedaempft" style="font-size: 0.9rem; margin: 0;">
+                Die ausgewählten Feststellungen erscheinen bis zum <strong x-text="formatDate(stummBis)"></strong> nicht mehr in Berichten oder E-Mails. Danach werden sie automatisch wieder angezeigt.
+            </p>
+        </div>
+
+        <div class="form-aktionen" style="margin-top: 0.75rem;">
+            <button type="submit" class="button primär"
+                    th:text="${isBulk ? #messages.msg('ui.befunde.triage.anwenden') : #messages.msg('ui.befunde.triage.speichern')}">
+                Speichern
+            </button>
+            <span th:if="${isBulk}" x-show="selected.length > 0" class="text-gedaempft" style="align-self: center; font-size: 0.85rem;"
+                  x-text="selected.length + ' ausgewählt'"></span>
+        </div>
+    </form>
+</div>
+</body>
+</html>

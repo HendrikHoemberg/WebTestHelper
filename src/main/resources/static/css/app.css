@@ -887,4 +887,52 @@ main {
     color: var(--text-muted);
 }
 
+/* Triage-Formular & Sammel-Aktionen (§13.4) */
+.triage-form-raster {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.triage-form-raster .form-gruppe {
+    margin-bottom: 0;
+}
+
+.triage-form-raster .form-gruppe-breit {
+    flex: 1;
+    min-width: 250px;
+}
+
+.form-select,
+.form-input {
+    width: 100%;
+    padding: 0.45rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    background-color: var(--card-bg);
+}
+
+.form-select:focus,
+.form-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+.text-pflicht {
+    color: var(--danger-color);
+    font-weight: bold;
+}
+
+.hinweis-folge {
+    background-color: #f8fafc;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 0.6rem 0.85rem;
+}
+
+
 
