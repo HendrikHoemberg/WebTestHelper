@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="de" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="#{ui.anmelden.titel}">Anmelden</title>
+</head>
+<body>
+    <main>
+        <h1 th:text="#{ui.anmelden.titel}">Anmelden</h1>
+        <div th:if="${param.error}" class="fehler" th:text="#{ui.anmelden.fehler}">Benutzername oder Passwort ist nicht korrekt.</div>
+        <div th:if="${param.abgemeldet}" class="hinweis" th:text="#{ui.anmelden.abgemeldet}">Sie wurden erfolgreich abgemeldet.</div>
+        <form th:action="@{/anmelden}" method="post">
+            <div>
+                <label for="username" th:text="#{ui.anmelden.benutzer}">Benutzername</label>
+                <input type="text" id="username" name="username" required autofocus>
+            </div>
+            <div>
+                <label for="password" th:text="#{ui.anmelden.passwort}">Passwort</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <div>
+                <button type="submit" th:text="#{ui.anmelden.absenden}">Anmelden</button>
+            </div>
+        </form>
+    </main>
+</body>
+</html>

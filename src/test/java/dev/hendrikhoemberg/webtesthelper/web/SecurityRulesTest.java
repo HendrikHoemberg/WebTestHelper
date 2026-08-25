@@ -1,0 +1,84 @@
+package dev.hendrikhoemberg.webtesthelper.web;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@WebMvcTest(SecurityConfig.class)
+class SecurityRulesTest {
+
+    @Autowired
+    MockMvc mvc;
+
+    @MockitoBean
+    AppUserService appUserService;
+
+    @Test
+    void anonymousRootRedirectsToAnmelden() throws Exception {
+        mvc.perform(get("/"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/anmelden"));
+    }
+
+    @Test
+    void anonymousAnmeldenReturnsOk() throws Exception {
+        mvc.perform(get("/anmelden"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void anonymousStaticAssetsAreNotRedirectedToLogin() throws Exception {
+        mvc.perform(get("/vendor/htmx.min.js"))
+                .andExpect(status().is(org.hamcrest.Matchers.in(java.util.List.of(200, 404))))
+                .andExpect(header().doesNotExist("Location"));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void userCannotAccessSettingsOrOutboxButCanAccessRun() throws Exception {
+        mvc.perform(get("/einstellungen"))
+                .andExpect(status().isForbidden());
+
+        mvc.perform(get("/postausgang"))
+                .andExpect(status().isForbidden());
+
+        mvc.perform(get("/laeufe/1"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void adminCanAccessSettings() throws Exception {
+        mvc.perform(get("/einstellungen"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void mutatingActionRequiresCsrf() throws Exception {
+        mvc.perform(post("/websites/1/pruefen"))
+                .andExpect(status().isForbidden());
+
+        mvc.perform(post("/websites/1/pruefen").with(csrf()))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void logoutRedirectsToAnmeldenWithParam() throws Exception {
+        mvc.perform(post("/abmelden").with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/anmelden?abgemeldet"));
+    }
+}
