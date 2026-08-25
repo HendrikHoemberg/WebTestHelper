@@ -23,7 +23,7 @@ class RunPollerTest {
             return false;
         });
 
-        RunnerProperties properties = new RunnerProperties(Duration.ofMillis(20), true, 10);
+        RunnerProperties properties = new RunnerProperties(Duration.ofMillis(20), true, 10, 12, true);
         RunPoller poller = new RunPoller(worker, properties);
 
         poller.start();
@@ -47,7 +47,7 @@ class RunPollerTest {
         });
 
         // Set a long poll interval to prove that consecutive runs do not wait for the interval
-        RunnerProperties properties = new RunnerProperties(Duration.ofSeconds(10), true, 10);
+        RunnerProperties properties = new RunnerProperties(Duration.ofSeconds(10), true, 10, 12, true);
         RunPoller poller = new RunPoller(worker, properties);
 
         poller.start();
@@ -73,7 +73,7 @@ class RunPollerTest {
             return false;
         });
 
-        RunnerProperties properties = new RunnerProperties(Duration.ofMillis(20), true, 10);
+        RunnerProperties properties = new RunnerProperties(Duration.ofMillis(20), true, 10, 12, true);
         RunPoller poller = new RunPoller(worker, properties);
 
         poller.start();
@@ -98,7 +98,7 @@ class RunPollerTest {
             throw new IllegalStateException("Datenbank nicht erreichbar");
         });
 
-        RunnerProperties properties = new RunnerProperties(Duration.ofSeconds(10), true, 10);
+        RunnerProperties properties = new RunnerProperties(Duration.ofSeconds(10), true, 10, 12, true);
         RunPoller poller = new RunPoller(worker, properties);
 
         poller.start();
@@ -123,7 +123,7 @@ class RunPollerTest {
             return false;
         });
 
-        RunnerProperties properties = new RunnerProperties(Duration.ofMillis(10), true, 10);
+        RunnerProperties properties = new RunnerProperties(Duration.ofMillis(10), true, 10, 12, true);
         RunPoller poller = new RunPoller(worker, properties);
 
         poller.start();

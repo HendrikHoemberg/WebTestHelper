@@ -5,5 +5,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import java.time.Duration;
 
 @ConfigurationProperties("webtesthelper.runner")
-public record RunnerProperties(Duration pollInterval, boolean pollerEnabled, int keyPages) {
+public record RunnerProperties(Duration pollInterval, boolean pollerEnabled, int keyPages,
+                               int artifactRetentionRuns, boolean retentionEnabled) {
 }

@@ -37,6 +37,15 @@ public class RunResultJdbcRepository {
              WHERE id = ?
             """;
 
+    private static final String RETENTION_DELETE_SQL = """
+            SELECT id FROM (
+                SELECT id, row_number() OVER (PARTITION BY site_id ORDER BY queued_at DESC) AS rn
+                  FROM run
+                 WHERE status IN ('COMPLETED', 'FAILED', 'CANCELLED')
+            ) ranked
+             WHERE rn > ?
+            """;
+
     private final JdbcTemplate jdbc;
     private final ObjectMapper objectMapper;
 
@@ -71,5 +80,15 @@ public class RunResultJdbcRepository {
             throw new IllegalStateException("Lauf-" + runId + "-Ergebnis nicht als JSON serialisierbar",
                     e);
         }
+    }
+
+    /**
+     * The runs whose artifact directories are due for removal: every terminal run per site past
+     * the newest {@code keepPerSite}. Only terminal runs are ranked, so a still-QUEUED or
+     * RUNNING run is never a candidate — deleting a run currently writing its screenshots would
+     * corrupt the report it is producing.
+     */
+    public List<Long> findExpiredArtifactRunIds(int keepPerSite) {
+        return jdbc.queryForList(RETENTION_DELETE_SQL, Long.class, keepPerSite);
     }
 }
