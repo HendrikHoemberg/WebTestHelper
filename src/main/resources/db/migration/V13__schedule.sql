@@ -13,8 +13,10 @@ CREATE TABLE schedule (
     enabled BOOLEAN NOT NULL DEFAULT TRUE,
     last_fired_at TIMESTAMPTZ,
     -- Stored rather than derived (D39): the tick is then one index scan instead of parsing every
-    -- site's three cron expressions to find out that none of them is due.
-    next_fire_at TIMESTAMPTZ NOT NULL,
+    -- site's three cron expressions to find out that none of them is due. Null means the cron
+    -- has no further occurrence ("never fires again"): the row stays put and the partial index
+    -- stops matching it.
+    next_fire_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     version BIGINT NOT NULL DEFAULT 0
