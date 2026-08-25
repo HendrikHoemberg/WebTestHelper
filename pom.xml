@@ -59,6 +59,14 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-thymeleaf</artifactId>
 		</dependency>
+		<!-- Registers Thymeleaf's SpringSecurityDialect, which is what makes sec:authorize and
+		     sec:authentication in the templates do anything. Without this jar Thymeleaf does not
+		     recognise the sec: namespace and emits those attributes into the HTML verbatim, so
+		     every gated element renders for everybody. Version is managed by Boot. -->
+		<dependency>
+			<groupId>org.thymeleaf.extras</groupId>
+			<artifactId>thymeleaf-extras-springsecurity6</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-validation</artifactId>

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <body>
 <section class="detail-bereich" th:fragment="zeitplaene">
     <div class="abschnitt-ueberschrift-zeile">
@@ -38,19 +38,26 @@
                       th:text="#{ui.zeitplan.nie}">noch nie</span>
             </div>
 
-            <label class="form-gruppe-checkbox">
+            <!-- Reading a schedule is a USER right; changing one is not (spec 12 — a schedule puts
+                 load on a customer's hosting, so it is a site-level decision). POST
+                 /websites/*/zeitplaene is ADMIN-only, so a USER gets the tier state as prose and no
+                 controls at all, rather than a form that answers 403. -->
+            <p sec:authorize="!hasRole('ADMIN')" class="zeitplan-status"
+               th:text="${row.enabled} ? #{ui.zeitplan.status.aktiv} : #{ui.zeitplan.status.inaktiv}">Automatische Prüfung eingeschaltet</p>
+
+            <label sec:authorize="hasRole('ADMIN')" class="form-gruppe-checkbox">
                 <input type="checkbox" th:field="*{zeitplaene[__${status.index}__].enabled}">
                 <span th:text="#{ui.zeitplan.aktiviert}">Zeitplan aktiviert</span>
             </label>
 
-            <div class="form-gruppe">
+            <div sec:authorize="hasRole('ADMIN')" class="form-gruppe">
                 <label th:for="${'zeit-' + status.index}" th:text="#{ui.zeitplan.zeit}">Uhrzeit</label>
                 <input type="time" th:id="'zeit-' + ${status.index}" th:field="*{zeitplaene[__${status.index}__].zeit}">
                 <span th:if="${#fields.hasErrors('zeitplaene[' + status.index + '].zeit')}"
                       th:errors="*{zeitplaene[__${status.index}__].zeit}" class="feld-fehler">Fehler</span>
             </div>
 
-            <div x-data="{ offen: false }" class="zeitplan-erweitert">
+            <div sec:authorize="hasRole('ADMIN')" x-data="{ offen: false }" class="zeitplan-erweitert">
                 <button type="button" @click="offen = !offen" class="button sekundär klein"
                         th:text="#{ui.zeitplan.erweitert}">Erweitert</button>
                 <div x-show="offen" class="zeitplan-erweitert-panel" style="display: none;">
@@ -70,10 +77,10 @@
                 </div>
             </div>
 
-            <input type="hidden" th:field="*{zeitplaene[__${status.index}__].scope}">
+            <input sec:authorize="hasRole('ADMIN')" type="hidden" th:field="*{zeitplaene[__${status.index}__].scope}">
         </div>
 
-        <div class="form-aktionen">
+        <div sec:authorize="hasRole('ADMIN')" class="form-aktionen">
             <button type="submit" class="button primär" th:text="#{ui.zeitplan.speichern}">Zeitpläne speichern</button>
         </div>
     </form>

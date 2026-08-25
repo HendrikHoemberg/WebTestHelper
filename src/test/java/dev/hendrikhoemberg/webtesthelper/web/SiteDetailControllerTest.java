@@ -165,7 +165,100 @@ class SiteDetailControllerTest {
                 // prose. The common case is a time of day, so no cron literal appears anywhere.
                 .andExpect(content().string(not(containsString("0 0 3 * *"))))
                 .andExpect(content().string(not(containsString("0 0 3 * * SUN"))))
-                .andExpect(content().string(not(containsString("0 0 3 1 * *"))));
+                .andExpect(content().string(not(containsString("0 0 3 1 * *"))))
+                // A USER may read the schedule but not change it: POST /websites/*/zeitplaene is
+                // ADMIN-only, so offering the controls would be a form that answers 403. The tier
+                // state stays visible as prose instead.
+                .andExpect(content().string(not(containsString("Zeitpläne speichern"))))
+                .andExpect(content().string(not(containsString("Erweitert"))))
+                .andExpect(content().string(containsString("Automatische Prüfung eingeschaltet")));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void aDisabledTierReadsAsSwitchedOffForAUser() throws Exception {
+        SiteContext context = new SiteContext(
+                42L,
+                "Acme Shop",
+                UrlNormalizer.normalize("https://acme.example.com/").orElseThrow(),
+                new CrawlBudget(120, 3, Duration.ofMinutes(15)),
+                List.of(), List.of(), List.of(),
+                true, "AcmeBot/2.0", Map.of()
+        );
+        when(siteService.contextFor(42L)).thenReturn(context);
+        when(runService.recentForSite(42L, 20)).thenReturn(List.of());
+        when(checkRegistry.all()).thenReturn(CheckRegistry.standard().all());
+        when(scheduleService.forSite(42L)).thenReturn(List.of(
+                new Schedule(13L, 42L, RunScope.DEEP, "0 0 3 1 * *", "Europe/Berlin",
+                        false, null, Instant.parse("2026-09-01T01:00:00Z"))));
+
+        // Without the controls, this sentence is the only thing telling a USER that the tier is off.
+        mvc.perform(get("/websites/42"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Automatische Prüfung ausgeschaltet")))
+                .andExpect(content().string(not(containsString("Automatische Prüfung eingeschaltet"))));
+    }
+
+    /**
+     * Guards the Thymeleaf SpringSecurityDialect itself, not one screen's markup. Thymeleaf only
+     * understands the {@code sec:} namespace when {@code thymeleaf-extras-springsecurity6} is on
+     * the classpath; without that jar it treats {@code sec:authorize} as an unknown attribute and
+     * copies it into the output, so every gated element renders for everybody and nothing fails.
+     * That is exactly how the admin nav links, the Bearbeiten button and the schedule controls were
+     * silently visible to a USER. A literal {@code sec:} in the response body is the tell.
+     */
+    @Test
+    @WithMockUser(roles = "USER")
+    void adminOnlyAffordancesAreHiddenFromAUserAndTheSecNamespaceIsNeverEmitted() throws Exception {
+        SiteContext context = new SiteContext(
+                42L,
+                "Acme Shop",
+                UrlNormalizer.normalize("https://acme.example.com/").orElseThrow(),
+                new CrawlBudget(120, 3, Duration.ofMinutes(15)),
+                List.of(), List.of(), List.of(),
+                true, "AcmeBot/2.0", Map.of()
+        );
+        when(siteService.contextFor(42L)).thenReturn(context);
+        when(runService.recentForSite(42L, 20)).thenReturn(List.of());
+        when(checkRegistry.all()).thenReturn(CheckRegistry.standard().all());
+        when(scheduleService.forSite(42L)).thenReturn(defaultSchedules());
+
+        mvc.perform(get("/websites/42"))
+                .andExpect(status().isOk())
+                // The dialect processed the attributes rather than passing them through.
+                .andExpect(content().string(not(containsString("sec:authorize"))))
+                .andExpect(content().string(not(containsString("sec:authentication"))))
+                // The routes behind these are already ADMIN-only in SecurityConfig; the point here
+                // is that a USER is not offered a door that answers 403.
+                .andExpect(content().string(not(containsString("/einstellungen"))))
+                .andExpect(content().string(not(containsString("/postausgang"))))
+                .andExpect(content().string(not(containsString("/websites/42/bearbeiten"))));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void getSiteDetailOffersTheScheduleControlsToAnAdmin() throws Exception {
+        SiteContext context = new SiteContext(
+                42L,
+                "Acme Shop",
+                UrlNormalizer.normalize("https://acme.example.com/").orElseThrow(),
+                new CrawlBudget(120, 3, Duration.ofMinutes(15)),
+                List.of(), List.of(), List.of(),
+                true, "AcmeBot/2.0", Map.of()
+        );
+        when(siteService.contextFor(42L)).thenReturn(context);
+        when(runService.recentForSite(42L, 20)).thenReturn(List.of());
+        when(checkRegistry.all()).thenReturn(CheckRegistry.standard().all());
+        when(scheduleService.forSite(42L)).thenReturn(defaultSchedules());
+
+        mvc.perform(get("/websites/42"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Zeitpläne speichern")))
+                .andExpect(content().string(containsString("Erweitert")))
+                .andExpect(content().string(containsString("Zeitplan aktiviert")))
+                // Even for the admin the raw cron stays out of the prose: it is pre-filled only in
+                // the Erweitert input, and only when the stored expression does not fit the tier.
+                .andExpect(content().string(not(containsString("0 0 3 * * SUN"))));
     }
 
     @Test
