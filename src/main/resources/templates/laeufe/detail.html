@@ -58,7 +58,13 @@
 
     <!-- Abdeckung -->
     <section th:if="${run.status.name() == 'COMPLETED' or run.status.name() == 'FAILED'}" class="detail-bereich">
-        <h2 th:text="#{ui.lauf.abdeckung.titel}">Abdeckung</h2>
+        <div class="abschnitt-ueberschrift-zeile">
+            <h2 th:text="#{ui.lauf.abdeckung.titel}">Abdeckung</h2>
+            <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
+                    th:data-hx-get="@{/hilfe/hinweis/{id}(id='bericht-lesen')}"
+                    data-hx-target="next .hinweis" data-hx-swap="innerHTML">?</button>
+            <div class="hinweis" aria-live="polite"></div>
+        </div>
         <p class="abdeckung-zeile">
             <span th:text="#{ui.lauf.abdeckung.seiten_besucht(${run.pagesVisited})}">85 Seiten besucht</span>,
             <span th:text="#{ui.lauf.abdeckung.seiten_fehlgeschlagen(${run.pagesFailed})}">2 fehlgeschlagen</span>.
@@ -78,7 +84,13 @@
     <section th:if="${run.status.name() == 'COMPLETED'}" class="detail-bereich">
         <h2 th:text="#{ui.lauf.ausgangsbestand.titel}">Ausgangsbestand</h2>
         <div th:if="${!run.baselineAccepted}" x-data="{ offen: false }" class="ausgangsbestand-block">
-            <button type="button" @click="offen = !offen" class="button sekundär" th:text="#{ui.lauf.ausgangsbestand.button}">Als Ausgangsbestand übernehmen</button>
+            <div class="ausgangsbestand-zeile">
+                <button type="button" @click="offen = !offen" class="button sekundär" th:text="#{ui.lauf.ausgangsbestand.button}">Als Ausgangsbestand übernehmen</button>
+                <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
+                        th:data-hx-get="@{/hilfe/hinweis/{id}(id='ausgangsbestand')}"
+                        data-hx-target="next .hinweis" data-hx-swap="innerHTML">?</button>
+                <div class="hinweis" aria-live="polite"></div>
+            </div>
             <div x-show="offen" class="ausgangsbestand-panel" style="display: none; margin-top: 1rem;">
                 <p th:text="#{ui.lauf.ausgangsbestand.folge(${diff != null ? diff.observedTotal() : run.findingsTotal})}">
                     Hiermit werden alle noch ungeprüften Feststellungen...
@@ -91,13 +103,23 @@
         </div>
         <div th:if="${run.baselineAccepted}" class="ausgangsbestand-uebernommen">
             <span class="status-badge status-inaktiv" th:text="#{ui.lauf.ausgangsbestand.bereits_uebernommen}">Ausgangsbestand wurde übernommen</span>
+            <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
+                    th:data-hx-get="@{/hilfe/hinweis/{id}(id='ausgangsbestand')}"
+                    data-hx-target="next .hinweis" data-hx-swap="innerHTML">?</button>
+            <div class="hinweis" aria-live="polite"></div>
         </div>
     </section>
 
     <!-- Die fünf Berichtsabschnitte (nur Abschnitte mit Befunden haben Überschriften) -->
     <div th:if="${sections != null and not #maps.isEmpty(sections)}" class="bericht-abschnitte">
         <section th:each="entry : ${sections}" th:if="${not #lists.isEmpty(entry.value)}" class="detail-bereich">
-            <h2 th:text="#{${'ui.reportsection.' + entry.key}} + ' (' + ${#lists.size(entry.value)} + ')'">Neu aufgetreten (2)</h2>
+            <div class="abschnitt-ueberschrift-zeile">
+                <h2 th:text="#{${'ui.reportsection.' + entry.key}} + ' (' + ${#lists.size(entry.value)} + ')'">Neu aufgetreten (2)</h2>
+                <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
+                        th:data-hx-get="@{/hilfe/hinweis/{id}(id='bericht-lesen')}"
+                        data-hx-target="next .hinweis" data-hx-swap="innerHTML">?</button>
+                <div class="hinweis" aria-live="polite"></div>
+            </div>
             <div class="befunde-liste">
                 <div th:each="befundItem : ${entry.value}">
                     <div th:replace="~{fragments/befundzeile :: befundzeile(${befundItem})}"></div>

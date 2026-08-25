@@ -577,3 +577,162 @@ main {
     font-size: 0.85rem;
 }
 
+/* Hilfe & Inline-Hinweise */
+.hinweis-schalter {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.35rem;
+    height: 1.35rem;
+    border-radius: 50%;
+    border: 1px solid var(--border-color);
+    background-color: var(--card-bg);
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    margin-left: 0.5rem;
+    vertical-align: middle;
+    line-height: 1;
+    padding: 0;
+    transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.hinweis-schalter:hover {
+    background-color: #f1f5f9;
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.hinweis-kasten {
+    background-color: #f8fafc;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 0.75rem 1rem;
+    margin-top: 0.5rem;
+    margin-bottom: 0.75rem;
+    font-size: 0.9rem;
+    color: var(--text-color);
+}
+
+.hinweis-teaser p {
+    margin: 0 0 0.5rem 0;
+}
+
+.hinweis-teaser p:last-child {
+    margin-bottom: 0.5rem;
+}
+
+.hinweis-link {
+    display: inline-block;
+    font-size: 0.85rem;
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.hinweis-link:hover {
+    text-decoration: underline;
+}
+
+.abschnitt-ueberschrift-zeile {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.abschnitt-ueberschrift-zeile h2 {
+    margin: 0;
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.abschnitt-ueberschrift-zeile .hinweis {
+    width: 100%;
+}
+
+.ausgangsbestand-zeile {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.ausgangsbestand-zeile .hinweis {
+    width: 100%;
+}
+
+.ausgangsbestand-uebernommen {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.ausgangsbestand-uebernommen .hinweis {
+    width: 100%;
+}
+
+.hilfe-themen-liste {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.hilfe-thema-karte h2 {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+}
+
+.hilfe-titel-link {
+    color: var(--text-color);
+    text-decoration: none;
+}
+
+.hilfe-titel-link:hover {
+    color: var(--primary-color);
+    text-decoration: underline;
+}
+
+.hilfe-teaser {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    margin-bottom: 1rem;
+}
+
+.hilfe-artikel .markdown-inhalt {
+    font-size: 1rem;
+    line-height: 1.7;
+    color: var(--text-color);
+}
+
+.hilfe-artikel .markdown-inhalt h2 {
+    margin-top: 1.75rem;
+    margin-bottom: 0.75rem;
+    font-size: 1.25rem;
+}
+
+.hilfe-artikel .markdown-inhalt p {
+    margin-top: 0;
+    margin-bottom: 1rem;
+}
+
+.hilfe-artikel .markdown-inhalt ul {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    padding-left: 1.5rem;
+}
+
+.hilfe-artikel .markdown-inhalt li {
+    margin-bottom: 0.35rem;
+}
+
+.hilfe-artikel .markdown-inhalt code {
+    background-color: #f1f5f9;
+    padding: 0.15rem 0.35rem;
+    border-radius: 3px;
+    font-size: 0.9em;
+}
+
+

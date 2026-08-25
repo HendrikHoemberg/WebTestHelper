@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html th:replace="~{layout :: seite(${topic.title} + ' – ' + #{ui.hilfe.titel}, ~{::main})}"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title th:text="${topic.title} + ' – ' + #{ui.hilfe.titel}">Hilfethema</title>
+</head>
+<body>
+<main>
+    <header class="seiten-kopf">
+        <div>
+            <h1 th:text="${topic.title}">Thementitel</h1>
+        </div>
+        <div class="seiten-kopf-aktionen">
+            <a th:href="@{/hilfe}" class="button sekundär" th:text="#{ui.hilfe.zurueck}">Zurück zur Übersicht</a>
+        </div>
+    </header>
+
+    <article class="detail-bereich hilfe-artikel">
+        <div class="markdown-inhalt" th:utext="${topic.html}">
+            Vollständiger Hilfetext...
+        </div>
+    </article>
+</main>
+</body>
+</html>

@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="hinweis" class="hinweis-kasten">
+    <div class="hinweis-teaser" th:utext="${thema.teaserHtml}">Teaser-Text</div>
+    <a th:href="@{/hilfe/{id}(id=${thema.id})}" class="hinweis-link" th:text="#{ui.hilfe.mehr_dazu}">Mehr dazu im Handbuch</a>
+</div>
+</body>
+</html>

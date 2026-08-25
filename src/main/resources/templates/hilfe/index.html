@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html th:replace="~{layout :: seite(#{ui.hilfe.titel}, ~{::main})}"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title th:text="#{ui.hilfe.titel}">Hilfe &amp; Handbuch</title>
+</head>
+<body>
+<main>
+    <header class="seiten-kopf">
+        <div>
+            <h1 th:text="#{ui.hilfe.titel}">Hilfe &amp; Handbuch</h1>
+        </div>
+    </header>
+
+    <div th:if="${#lists.isEmpty(topics)}" class="leer-zustand">
+        <p th:text="#{ui.hilfe.leer}">Noch keine Hilfethemen vorhanden.</p>
+    </div>
+
+    <div th:if="${not #lists.isEmpty(topics)}" class="hilfe-themen-liste">
+        <article th:each="topic : ${topics}" class="detail-bereich hilfe-thema-karte">
+            <h2>
+                <a th:href="@{/hilfe/{id}(id=${topic.id})}" th:text="${topic.title}" class="hilfe-titel-link">Thementitel</a>
+            </h2>
+            <div class="hilfe-teaser" th:utext="${topic.teaserHtml}">Teaser-Text...</div>
+            <p>
+                <a th:href="@{/hilfe/{id}(id=${topic.id})}" class="button sekundär" th:text="#{ui.hilfe.mehr_dazu}">Mehr dazu im Handbuch</a>
+            </p>
+        </article>
+    </div>
+</main>
+</body>
+</html>
