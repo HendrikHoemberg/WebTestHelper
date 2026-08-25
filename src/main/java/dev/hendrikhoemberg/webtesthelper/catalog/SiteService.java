@@ -49,7 +49,6 @@ public class SiteService {
 
         SiteEntity site = new SiteEntity();
         applyForm(site, form, normalized);
-        site.setPinnedKeyPages(List.of());
         SiteEntity saved = sites.save(site);
 
         for (CheckType type : CheckType.values()) {
@@ -133,6 +132,16 @@ public class SiteService {
         return sites.existsById(siteId);
     }
 
+    /**
+     * A plain setter for the pulse set. The only-if-empty rule lives in the caller who needs it
+     * (the executor, which must not overwrite hand-edited pins); the form overwrites deliberately.
+     */
+    public void pinKeyPages(long siteId, List<String> pages) {
+        SiteEntity site = requireSite(siteId);
+        site.setPinnedKeyPages(pages == null ? List.of() : pages);
+        sites.save(site);
+    }
+
     private SiteCheckSettingEntity newSetting(long siteId, CheckType type) {
         SiteCheckSettingEntity setting = new SiteCheckSettingEntity();
         setting.setSiteId(siteId);
@@ -150,6 +159,7 @@ public class SiteService {
         site.setMaxDurationSeconds((int) form.maxDuration().toSeconds());
         site.setIncludePatterns(form.includePatterns() == null ? List.of() : form.includePatterns());
         site.setExcludePatterns(form.excludePatterns() == null ? List.of() : form.excludePatterns());
+        site.setPinnedKeyPages(form.pinnedKeyPages() == null ? List.of() : form.pinnedKeyPages());
         site.setRespectRobots(form.respectRobots());
         site.setUserAgent(form.userAgent());
         site.setEnabled(form.enabled());

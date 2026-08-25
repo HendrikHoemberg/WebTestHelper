@@ -79,6 +79,11 @@
             <span th:if="${#fields.hasErrors('userAgent')}" th:errors="*{userAgent}" class="feld-fehler">Fehler</span>
         </div>
 
+        <div class="form-gruppe">
+            <label for="pinnedKeyPages" th:text="#{ui.websites.formular.pinnedKeyPages}">Schlüsselseiten (ein URL pro Zeile)</label>
+            <textarea id="pinnedKeyPages" th:field="*{pinnedKeyPages}" rows="4" placeholder="https://example.com/leistungen.html"></textarea>
+        </div>
+
         <div class="form-aktionen">
             <button type="submit" class="button primär" th:text="#{ui.websites.formular.speichern}">Speichern</button>
             <a th:href="@{/}" class="button sekundär" th:text="#{ui.websites.formular.abbrechen}">Abbrechen</a>

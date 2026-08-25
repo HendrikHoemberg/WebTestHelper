@@ -15,6 +15,7 @@ import dev.hendrikhoemberg.webtesthelper.findings.ReportSection;
 import dev.hendrikhoemberg.webtesthelper.model.RunCoverage;
 import dev.hendrikhoemberg.webtesthelper.model.CheckFinding;
 import dev.hendrikhoemberg.webtesthelper.model.RunFacts;
+import dev.hendrikhoemberg.webtesthelper.model.RunScope;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
 import dev.hendrikhoemberg.webtesthelper.model.TlsCertificateFact;
 import dev.hendrikhoemberg.webtesthelper.model.UrlVerifications;
@@ -65,11 +66,13 @@ public class CrawlRunExecutor implements RunExecutor {
     private final WorkerIdentity identity;
     private final FindingReverifier reverifier;
     private final FindingService findings;
+    private final RunnerProperties properties;
 
     public CrawlRunExecutor(CrawlService crawler, CheckEngine checks,
             UrlVerificationService verifier, TlsProbe tlsProbe, SiteService sites,
             RunResultJdbcRepository results, RunLeaseJdbcRepository leases,
-            WorkerIdentity identity, FindingReverifier reverifier, FindingService findings) {
+            WorkerIdentity identity, FindingReverifier reverifier, FindingService findings,
+            RunnerProperties properties) {
         this.crawler = crawler;
         this.checks = checks;
         this.verifier = verifier;
@@ -80,6 +83,7 @@ public class CrawlRunExecutor implements RunExecutor {
         this.identity = identity;
         this.reverifier = reverifier;
         this.findings = findings;
+        this.properties = properties;
     }
 
     @Override
@@ -149,5 +153,34 @@ public class CrawlRunExecutor implements RunExecutor {
         results.saveCrawlOutcome(lease.runId(), result, coveredCheckTypes,
                 result.snapshots().softNotFound(), diff.observedTotal(),
                 diff.count(ReportSection.NEW), diff.count(ReportSection.FIXED));
+
+        pinKeyPagesAfterFullCrawl(lease, site, result);
+    }
+
+    /**
+     * Pins the pulse set after the first full crawl. Coverage-scoped resolution compares a run's
+     * visited URLs against a finding's location (§6.4), so a set recomputed each run would make
+     * findings flicker between resolved and regressed. Only a FULL scope with no pins yet and a
+     * crawl that was not partial may freeze the set: a budget-capped crawl saw an arbitrary slice
+     * of the site, and freezing that slice is precisely the drift §9 exists to prevent.
+     *
+     * <p>A pinning failure must not fail the run — the crawl, the checks and the materialised
+     * findings are already on the run row. Same spirit as {@code CrawlService.enqueueDiscovered}.
+     */
+    private void pinKeyPagesAfterFullCrawl(RunLease lease, SiteContext site, CrawlResult result) {
+        if (lease.scope() != RunScope.FULL || !site.pinnedKeyPages().isEmpty()
+                || result.partialCoverage()) {
+            return;
+        }
+        try {
+            List<String> pages = KeyPageSelector.select(result.snapshots(), site.baseUrl(),
+                    properties.keyPages());
+            sites.pinKeyPages(site.siteId(), pages);
+            log.info("Lauf {}: Schlüsselseiten für Website {} festgehalten: {}", lease.runId(),
+                    site.siteId(), pages.size());
+        } catch (RuntimeException e) {
+            log.warn("Lauf {}: Schlüsselseiten für Website {} nicht festgehalten: {}", lease.runId(),
+                    site.siteId(), e.getMessage());
+        }
     }
 }

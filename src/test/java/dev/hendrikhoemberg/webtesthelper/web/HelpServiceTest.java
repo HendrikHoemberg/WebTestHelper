@@ -12,17 +12,18 @@ class HelpServiceTest {
     private final HelpService helpService = new HelpService();
 
     @Test
-    void allFindsAllThreeTopicsSortedByTitle() {
+    void allFindsAllBundledTopicsSortedByTitle() {
         List<HelpTopic> topics = helpService.all();
 
         assertThat(topics)
-                .hasSize(3)
+                .hasSize(4)
                 .extracting(HelpTopic::title)
                 .isSorted();
 
         assertThat(topics)
                 .extracting(HelpTopic::id)
-                .containsExactlyInAnyOrder("bericht-lesen", "ausgangsbestand", "smtp-einrichten");
+                .containsExactlyInAnyOrder("bericht-lesen", "ausgangsbestand", "smtp-einrichten",
+                        "zeitplaene");
     }
 
     @Test

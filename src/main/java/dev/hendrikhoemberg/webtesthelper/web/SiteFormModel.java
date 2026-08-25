@@ -38,13 +38,15 @@ public record SiteFormModel(
 
         String userAgent,
 
-        Boolean enabled) {
+        Boolean enabled,
+
+        String pinnedKeyPages) {
 
     public SiteFormModel(String name, String baseUrl, int maxPages, int maxDepth, int maxDurationMinutes,
                          String includePatterns, String excludePatterns, boolean respectRobots, String userAgent,
                          boolean enabled) {
         this(name, baseUrl, maxPages, maxDepth, maxDurationMinutes, includePatterns, excludePatterns,
-                (Boolean) respectRobots, userAgent, (Boolean) enabled);
+                (Boolean) respectRobots, userAgent, (Boolean) enabled, "");
     }
 
     public static SiteFormModel empty() {
@@ -62,7 +64,8 @@ public record SiteFormModel(
                 context.excludePatterns() != null ? String.join("\n", context.excludePatterns()) : "",
                 context.respectRobots(),
                 context.userAgent(),
-                enabled);
+                enabled,
+                context.pinnedKeyPages() != null ? String.join("\n", context.pinnedKeyPages()) : "");
     }
 
     public SiteForm toForm() {
@@ -76,7 +79,8 @@ public record SiteFormModel(
                 splitPatterns(excludePatterns),
                 Boolean.TRUE.equals(respectRobots),
                 userAgent != null && !userAgent.isBlank() ? userAgent.trim() : null,
-                Boolean.TRUE.equals(enabled));
+                Boolean.TRUE.equals(enabled),
+                splitPatterns(pinnedKeyPages));
     }
 
     private static List<String> splitPatterns(String patterns) {

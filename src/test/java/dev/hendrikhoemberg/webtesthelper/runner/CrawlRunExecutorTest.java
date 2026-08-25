@@ -32,12 +32,15 @@ class CrawlRunExecutorTest extends AbstractPostgresTest {
     @Autowired SiteService sites;
     @Autowired JdbcTemplate jdbc;
     @Autowired CrawlerProperties properties;
+    @Autowired RunnerProperties runnerProperties;
 
     private static FixtureSite site;
     private long siteId;
     private long runId1;
     private long runId2;
     private long runId3;
+    private List<String> pinsAfterFirstFullCrawl;
+    private List<String> pinsAfterSecondFullCrawl;
 
     @BeforeAll static void startSite() { site = FixtureSite.start(); }
     @AfterAll static void stopSite() { site.close(); }
@@ -60,8 +63,14 @@ class CrawlRunExecutorTest extends AbstractPostgresTest {
                 Duration.ofMinutes(3), List.of(), List.of(), true, null, true));
         runId1 = runs.enqueue(siteId, RunTrigger.MANUAL, RunScope.FULL);
         assertThat(worker.workOnce()).isTrue();
+        pinsAfterFirstFullCrawl = sites.contextFor(siteId).pinnedKeyPages();
+        // Hand-edit the pins so run 2 — a full crawl of an already-pinned site — can prove it does
+        // not overwrite a manually curated set (the executor's only-if-empty rule).
+        String handEdited = site.baseUrl() + "handbearbeitet.html";
+        sites.pinKeyPages(siteId, List.of(handEdited));
         runId2 = runs.enqueue(siteId, RunTrigger.MANUAL, RunScope.FULL);
         assertThat(worker.workOnce()).isTrue();
+        pinsAfterSecondFullCrawl = sites.contextFor(siteId).pinnedKeyPages();
         sites.update(siteId, new SiteForm("Fixture", site.baseUrl(), 2, 3,
                 Duration.ofMinutes(3), List.of(), List.of(), true, null, true));
         runId3 = runs.enqueue(siteId, RunTrigger.MANUAL, RunScope.FULL);
@@ -235,5 +244,29 @@ class CrawlRunExecutorTest extends AbstractPostgresTest {
                 "SELECT subject_key FROM finding WHERE site_id = ? AND subject_key LIKE ?",
                 String.class, siteId, "%flatterhaft%");
         assertThat(flaky).isEmpty();
+    }
+
+    // ---- Plan 6, task 5: the pulse set is pinned from the first full crawl ----
+
+    @Test
+    void theFirstFullCrawlPinsTheKeyPages() {
+        assertThat(pinsAfterFirstFullCrawl).isNotEmpty();
+        assertThat(pinsAfterFirstFullCrawl).element(0).isEqualTo(site.baseUrl());
+        assertThat(pinsAfterFirstFullCrawl)
+                .hasSizeLessThanOrEqualTo(runnerProperties.keyPages() + 1);
+        // A page the crawl failed on must never be pinned — it would regenerate the same finding
+        // on every pulse run.
+        List<String> failed = jdbc.queryForList(
+                "SELECT url FROM crawl_queue_item WHERE run_id = ? AND status = 'FAILED'",
+                String.class, runId1);
+        assertThat(pinsAfterFirstFullCrawl).doesNotContainAnyElementsOf(failed);
+    }
+
+    @Test
+    void aFullCrawlDoesNotOverwriteHandEditedPins() {
+        // Run 2 was a full crawl against a site that already had pins, so the executor must have
+        // skipped re-pinning (only-if-empty). The hand-edited list survives unchanged.
+        assertThat(pinsAfterSecondFullCrawl)
+                .containsExactly(site.baseUrl() + "handbearbeitet.html");
     }
 }

@@ -126,6 +126,7 @@ class SiteControllerTest {
                         .param("maxDurationMinutes", "15")
                         .param("includePatterns", "  /blog/* \n\n /news/* \n ")
                         .param("excludePatterns", "/intern/*\n/admin/*")
+                        .param("pinnedKeyPages", " https://example.com/leistungen.html \n\n/kontakt.html\n ")
                         .param("respectRobots", "true")
                         .param("userAgent", "CustomBot/1.0")
                         .param("enabled", "true"))
@@ -143,6 +144,8 @@ class SiteControllerTest {
         assertThat(created.maxDuration()).isEqualTo(Duration.ofMinutes(15));
         assertThat(created.includePatterns()).containsExactly("/blog/*", "/news/*");
         assertThat(created.excludePatterns()).containsExactly("/intern/*", "/admin/*");
+        assertThat(created.pinnedKeyPages())
+                .containsExactly("https://example.com/leistungen.html", "/kontakt.html");
         assertThat(created.respectRobots()).isTrue();
         assertThat(created.userAgent()).isEqualTo("CustomBot/1.0");
     }

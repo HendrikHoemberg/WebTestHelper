@@ -67,6 +67,21 @@
                 <p th:if="${#lists.isEmpty(site.excludePatterns)}" class="text-gedaempft" th:text="#{ui.websites.detail.muster.keine}">(keine Einschränkung)</p>
             </div>
         </section>
+
+        <!-- Schlüsselseiten der Pulse-Prüfung -->
+        <section class="detail-bereich">
+            <div class="abschnitt-ueberschrift-zeile">
+                <h2 th:text="#{ui.websites.detail.pins.titel}">Schlüsselseiten (Pulse-Prüfung)</h2>
+                <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
+                        th:data-hx-get="@{/hilfe/hinweis/{id}(id='zeitplaene')}"
+                        data-hx-target="next .hinweis" data-hx-swap="innerHTML">?</button>
+                <div class="hinweis" aria-live="polite"></div>
+            </div>
+            <ul th:if="${not #lists.isEmpty(site.pinnedKeyPages)}" class="muster-liste">
+                <li th:each="page : ${site.pinnedKeyPages}"><code th:text="${page}">https://example.com/</code></li>
+            </ul>
+            <p th:if="${#lists.isEmpty(site.pinnedKeyPages)}" class="text-gedaempft" th:text="#{ui.websites.detail.pins.leer}">(noch keine festgehalten)</p>
+        </section>
     </div>
 
     <!-- Aktive Prüfungen -->

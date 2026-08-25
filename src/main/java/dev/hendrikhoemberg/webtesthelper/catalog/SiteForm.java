@@ -14,5 +14,21 @@ public record SiteForm(
         List<String> excludePatterns,
         boolean respectRobots,
         String userAgent,
-        boolean enabled) {
+        boolean enabled,
+        List<String> pinnedKeyPages) {
+
+    public SiteForm(
+            String name,
+            String baseUrl,
+            int maxPages,
+            int maxDepth,
+            Duration maxDuration,
+            List<String> includePatterns,
+            List<String> excludePatterns,
+            boolean respectRobots,
+            String userAgent,
+            boolean enabled) {
+        this(name, baseUrl, maxPages, maxDepth, maxDuration, includePatterns, excludePatterns,
+                respectRobots, userAgent, enabled, List.of());
+    }
 }
