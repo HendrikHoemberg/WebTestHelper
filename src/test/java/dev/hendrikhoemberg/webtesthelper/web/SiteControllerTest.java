@@ -8,6 +8,8 @@ import dev.hendrikhoemberg.webtesthelper.model.CrawlBudget;
 import dev.hendrikhoemberg.webtesthelper.model.NormalizedUrl;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
 import dev.hendrikhoemberg.webtesthelper.model.UrlNormalizer;
+import dev.hendrikhoemberg.webtesthelper.checks.CheckRegistry;
+import dev.hendrikhoemberg.webtesthelper.runner.RunService;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +44,12 @@ class SiteControllerTest {
 
     @MockitoBean
     SiteService siteService;
+
+    @MockitoBean
+    RunService runService;
+
+    @MockitoBean
+    CheckRegistry checkRegistry;
 
     @MockitoBean
     AppUserService appUserService;

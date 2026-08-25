@@ -2,7 +2,13 @@ package dev.hendrikhoemberg.webtesthelper.web;
 
 import dev.hendrikhoemberg.webtesthelper.catalog.SiteService;
 import dev.hendrikhoemberg.webtesthelper.catalog.SiteSummary;
+import dev.hendrikhoemberg.webtesthelper.checks.CheckDescriptor;
+import dev.hendrikhoemberg.webtesthelper.checks.CheckRegistry;
+import dev.hendrikhoemberg.webtesthelper.model.RunScope;
+import dev.hendrikhoemberg.webtesthelper.model.RunTrigger;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
+import dev.hendrikhoemberg.webtesthelper.runner.RunService;
+import dev.hendrikhoemberg.webtesthelper.runner.RunSummary;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -18,9 +24,13 @@ import java.util.List;
 public class SiteController {
 
     private final SiteService siteService;
+    private final RunService runService;
+    private final CheckRegistry checkRegistry;
 
-    public SiteController(SiteService siteService) {
+    public SiteController(SiteService siteService, RunService runService, CheckRegistry checkRegistry) {
         this.siteService = siteService;
+        this.runService = runService;
+        this.checkRegistry = checkRegistry;
     }
 
     @GetMapping("/")
@@ -45,6 +55,26 @@ public class SiteController {
         }
         long id = siteService.create(form.toForm());
         return "redirect:/websites/" + id;
+    }
+
+    @GetMapping("/websites/{id}")
+    public String detail(@PathVariable("id") long id, Model model) {
+        SiteContext site = siteService.contextFor(id);
+        List<RunSummary> recentRuns = runService.recentForSite(id, 20);
+        List<CheckDescriptor> activeChecks = checkRegistry.all().stream()
+                .filter(check -> site.enabled(check.type()))
+                .toList();
+
+        model.addAttribute("site", site);
+        model.addAttribute("recentRuns", recentRuns);
+        model.addAttribute("activeChecks", activeChecks);
+        return "websites/detail";
+    }
+
+    @PostMapping("/websites/{id}/pruefen")
+    public String pruefen(@PathVariable("id") long id) {
+        long runId = runService.enqueue(id, RunTrigger.MANUAL, RunScope.FULL);
+        return "redirect:/laeufe/" + runId;
     }
 
     @GetMapping("/websites/{id}/bearbeiten")

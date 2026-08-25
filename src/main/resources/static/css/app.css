@@ -335,3 +335,130 @@ main {
     border-radius: 4px;
     margin-bottom: 1rem;
 }
+
+/* Detailansicht */
+.seiten-kopf-aktionen {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.basis-url-link {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    text-decoration: none;
+}
+
+.basis-url-link:hover {
+    color: var(--primary-color);
+    text-decoration: underline;
+}
+
+.detail-raster {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+@media (max-width: 768px) {
+    .detail-raster {
+        grid-template-columns: 1fr;
+    }
+}
+
+.detail-bereich {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.detail-bereich h2 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.5rem;
+}
+
+.schluessel-werte {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.5rem 1.5rem;
+    margin: 0;
+}
+
+.schluessel-werte dt {
+    font-weight: 600;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.schluessel-werte dd {
+    margin: 0;
+}
+
+.muster-block {
+    margin-bottom: 1rem;
+}
+
+.muster-block:last-child {
+    margin-bottom: 0;
+}
+
+.muster-block h3 {
+    margin: 0 0 0.35rem 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.muster-liste {
+    margin: 0;
+    padding-left: 1.25rem;
+}
+
+.muster-liste li {
+    margin-bottom: 0.2rem;
+}
+
+.text-gedaempft {
+    color: var(--text-muted);
+    font-style: italic;
+    margin: 0;
+}
+
+.hinweis-text {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-top: -0.5rem;
+    margin-bottom: 1rem;
+}
+
+.pruefungen-gitter {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+.pruefung-karte {
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 0.85rem 1rem;
+}
+
+.pruefung-karte h3 {
+    margin: 0 0 0.35rem 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.pruefung-karte p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+}
