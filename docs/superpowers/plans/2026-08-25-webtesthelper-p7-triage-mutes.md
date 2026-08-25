@@ -801,5 +801,6 @@ Run before declaring the plan done:
 
 ## Execution findings
 
-*(To be filled in after execution. Per `CLAUDE.md`, this section is the only part of the plan
-that may be edited afterwards; superseded verbatim code is deleted rather than synced.)*
+- **Template enum encapsulation:** To fulfill §13.1 and ensure zero occurrences of `MUTED` or `WONT_FIX` in templates, `TriageStatus` was extended with UI helper predicates (`requiresExpiry()`, `requiresReason()`, `allowsReason()`, `formActions()`, `defaultFormAction()`) and exposed via `@ControllerAdvice` (`TriageUiAdvice`), allowing `bewertung.html` to render options dynamically and drive Alpine visibility without string matching on enum literals.
+- **Whole suite execution:** 711 tests passed (0 failures, 0 skipped), including full browser acceptance suite and ModularityTest.
+
