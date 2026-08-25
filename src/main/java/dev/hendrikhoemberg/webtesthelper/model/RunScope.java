@@ -22,4 +22,13 @@ public enum RunScope {
     public boolean crawlsWholeSite() {
         return this != PULSE;
     }
+
+    /** The tier's default cron, evaluated in the site's timezone (spec 9). */
+    public String defaultCron() {
+        return switch (this) {
+            case PULSE -> "0 0 3 * * *";
+            case FULL -> "0 0 3 * * SUN";
+            case DEEP -> "0 0 3 1 * *";
+        };
+    }
 }
