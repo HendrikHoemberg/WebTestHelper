@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html th:replace="~{layout :: seite(${siteId != null} ? #{ui.websites.formular.titel.bearbeiten} : #{ui.websites.formular.titel.neu}, ~{::main})}" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title th:text="${siteId != null} ? #{ui.websites.formular.titel.bearbeiten} : #{ui.websites.formular.titel.neu}">Website</title>
+</head>
+<body>
+<main>
+    <header class="seiten-kopf">
+        <h1 th:text="${siteId != null} ? #{ui.websites.formular.titel.bearbeiten} : #{ui.websites.formular.titel.neu}">Website</h1>
+    </header>
+
+    <form th:action="${siteId != null} ? @{/websites/{id}(id=${siteId})} : @{/websites}"
+          th:object="${form}"
+          method="post"
+          class="formular">
+
+        <div class="form-gruppe">
+            <label for="name" th:text="#{ui.websites.formular.name}">Name</label>
+            <input type="text" id="name" th:field="*{name}" required>
+            <span th:if="${#fields.hasErrors('name')}" th:errors="*{name}" class="feld-fehler">Fehler</span>
+        </div>
+
+        <div class="form-gruppe">
+            <label for="baseUrl" th:text="#{ui.websites.formular.baseUrl}">Basis-URL</label>
+            <input type="text" id="baseUrl" th:field="*{baseUrl}" placeholder="https://www.example.com/" required>
+            <span th:if="${#fields.hasErrors('baseUrl')}" th:errors="*{baseUrl}" class="feld-fehler">Fehler</span>
+        </div>
+
+        <div class="form-gruppe form-gruppe-inline">
+            <div>
+                <label for="maxPages" th:text="#{ui.websites.formular.maxPages}">Seitenlimit</label>
+                <input type="number" id="maxPages" th:field="*{maxPages}" min="1" required>
+                <span th:if="${#fields.hasErrors('maxPages')}" th:errors="*{maxPages}" class="feld-fehler">Fehler</span>
+            </div>
+            <div>
+                <label for="maxDepth" th:text="#{ui.websites.formular.maxDepth}">Maximale Tiefe</label>
+                <input type="number" id="maxDepth" th:field="*{maxDepth}" min="0" required>
+                <span th:if="${#fields.hasErrors('maxDepth')}" th:errors="*{maxDepth}" class="feld-fehler">Fehler</span>
+            </div>
+            <div>
+                <label for="maxDurationMinutes" th:text="#{ui.websites.formular.maxDurationMinutes}">Zeitlimit (Minuten)</label>
+                <input type="number" id="maxDurationMinutes" th:field="*{maxDurationMinutes}" min="1" required>
+                <span th:if="${#fields.hasErrors('maxDurationMinutes')}" th:errors="*{maxDurationMinutes}" class="feld-fehler">Fehler</span>
+            </div>
+        </div>
+
+        <div class="form-gruppe">
+            <label for="includePatterns" th:text="#{ui.websites.formular.includePatterns}">Eingeschlossene Pfade (ein Muster pro Zeile)</label>
+            <textarea id="includePatterns" th:field="*{includePatterns}" rows="4" placeholder="/blog/*"></textarea>
+            <span th:if="${#fields.hasErrors('includePatterns')}" th:errors="*{includePatterns}" class="feld-fehler">Fehler</span>
+        </div>
+
+        <div class="form-gruppe">
+            <label for="excludePatterns" th:text="#{ui.websites.formular.excludePatterns}">Ausgeschlossene Pfade (ein Muster pro Zeile)</label>
+            <textarea id="excludePatterns" th:field="*{excludePatterns}" rows="4" placeholder="/intern/*"></textarea>
+            <span th:if="${#fields.hasErrors('excludePatterns')}" th:errors="*{excludePatterns}" class="feld-fehler">Fehler</span>
+        </div>
+
+        <div class="form-gruppe form-gruppe-checkbox">
+            <label>
+                <input type="checkbox" th:field="*{respectRobots}">
+                <span th:text="#{ui.websites.formular.respectRobots}">robots.txt beachten</span>
+            </label>
+            <span th:if="${#fields.hasErrors('respectRobots')}" th:errors="*{respectRobots}" class="feld-fehler">Fehler</span>
+        </div>
+
+        <div class="form-gruppe">
+            <label for="userAgent" th:text="#{ui.websites.formular.userAgent}">Eigener User-Agent (optional)</label>
+            <input type="text" id="userAgent" th:field="*{userAgent}" placeholder="Standard: WebTestHelper/1.0 (+internes Website-Monitoring)">
+            <span th:if="${#fields.hasErrors('userAgent')}" th:errors="*{userAgent}" class="feld-fehler">Fehler</span>
+        </div>
+
+        <div class="form-aktionen">
+            <button type="submit" class="button primär" th:text="#{ui.websites.formular.speichern}">Speichern</button>
+            <a th:href="@{/}" class="button sekundär" th:text="#{ui.websites.formular.abbrechen}">Abbrechen</a>
+        </div>
+    </form>
+</main>
+</body>
+</html>

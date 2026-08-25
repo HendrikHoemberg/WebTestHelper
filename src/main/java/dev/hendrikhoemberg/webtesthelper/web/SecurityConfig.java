@@ -26,7 +26,7 @@ public class SecurityConfig implements WebMvcConfigurer {
                 .requestMatchers("/anmelden", "/vendor/**", "/css/**", "/favicon.ico").permitAll()
                 .requestMatchers("/einstellungen/**", "/postausgang", "/actuator/**",
                         "/websites/neu", "/websites/*/bearbeiten").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.POST, "/websites").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/websites", "/websites/*").hasRole("ADMIN")
                 .anyRequest().authenticated())
             .formLogin(login -> login.loginPage("/anmelden").defaultSuccessUrl("/", false).permitAll())
             .logout(out -> out.logoutUrl("/abmelden").logoutSuccessUrl("/anmelden?abgemeldet"));

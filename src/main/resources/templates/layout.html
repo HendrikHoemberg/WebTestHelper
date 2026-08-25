@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html th:fragment="seite(titel, inhalt)" lang="de" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${titel}">WebTestHelper</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <script defer th:src="@{/vendor/alpine.min.js}"></script>
+    <script th:src="@{/vendor/htmx.min.js}"></script>
+</head>
+<body>
+    <nav class="hauptnavigation">
+        <div class="nav-links">
+            <a th:href="@{/}" class="brand-link">WebTestHelper</a>
+            <a th:href="@{/}" th:text="#{ui.nav.websites}">Websites</a>
+            <a th:href="@{/hilfe}" th:text="#{ui.nav.hilfe}">Hilfe</a>
+            <a sec:authorize="hasRole('ADMIN')" th:href="@{/einstellungen}" th:text="#{ui.nav.einstellungen}">Einstellungen</a>
+        </div>
+        <div class="nav-user">
+            <span sec:authentication="name" class="benutzername">Benutzer</span>
+            <form th:action="@{/abmelden}" method="post" class="inline-form">
+                <button type="submit" class="logout-button" th:text="#{ui.nav.abmelden}">Abmelden</button>
+            </form>
+        </div>
+    </nav>
+    <main th:replace="${inhalt}"></main>
+</body>
+</html>
