@@ -110,6 +110,19 @@ public class FindingStore {
                       f.check_type, f.location_key, f.subject_key
             """;
 
+    private static final String BY_ID_SQL = """
+            SELECT * FROM finding WHERE id = ?
+            """;
+
+    private static final String OCCURRENCES_OF_LAST_RUN_SQL = """
+            SELECT o.page_url, o.severity, o.message_key, o.message_args, o.evidence
+              FROM finding_occurrence o
+              JOIN finding f ON f.id = o.finding_id AND f.last_seen_run = o.run_id
+             WHERE o.finding_id = ?
+             ORDER BY o.page_url ASC NULLS FIRST
+             LIMIT ?
+            """;
+
     private static final tools.jackson.core.type.TypeReference<List<String>> LIST_STRING =
             new tools.jackson.core.type.TypeReference<>() {
             };
@@ -117,10 +130,22 @@ public class FindingStore {
     private final JdbcTemplate jdbc;
     private final ObjectMapper objectMapper;
     private final RowMapper<Finding> findingRow;
+    private final RowMapper<FindingOccurrence> occurrenceRow;
 
     public FindingStore(JdbcTemplate jdbc, ObjectMapper objectMapper) {
         this.jdbc = jdbc;
         this.objectMapper = objectMapper;
+        this.occurrenceRow = (rs, row) -> {
+            String evidenceJson = rs.getString("evidence");
+            Evidence evidence = evidenceJson == null ? Evidence.NONE
+                    : readJson(evidenceJson, Evidence.class);
+            return new FindingOccurrence(
+                    rs.getString("page_url"),
+                    Severity.valueOf(rs.getString("severity")),
+                    rs.getString("message_key"),
+                    readJson(rs.getString("message_args"), LIST_STRING),
+                    evidence);
+        };
         this.findingRow = (rs, row) -> {
             long resolved = rs.getLong("resolved_at_run");
             Long resolvedAtRun = rs.wasNull() ? null : resolved;
@@ -152,6 +177,15 @@ public class FindingStore {
                     rs.getTimestamp("first_seen_at").toInstant(),
                     rs.getTimestamp("last_seen_at").toInstant());
         };
+    }
+
+    public java.util.Optional<Finding> byId(long id) {
+        List<Finding> list = jdbc.query(BY_ID_SQL, findingRow, id);
+        return list.isEmpty() ? java.util.Optional.empty() : java.util.Optional.of(list.get(0));
+    }
+
+    public List<FindingOccurrence> occurrencesOfLastRun(long findingId, int limit) {
+        return jdbc.query(OCCURRENCES_OF_LAST_RUN_SQL, occurrenceRow, findingId, limit);
     }
 
     /** Insert-or-revive each finding, returning its id in input order. */

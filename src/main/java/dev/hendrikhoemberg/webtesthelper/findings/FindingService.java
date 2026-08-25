@@ -63,4 +63,13 @@ public class FindingService {
     public int acceptBaseline(long siteId, long runId) {
         return store.acceptBaseline(siteId, runId, BASELINE_TRIAGE_REASON, Instant.now());
     }
+
+    public java.util.Optional<Finding> byId(long id) {
+        return store.byId(id);
+    }
+
+    public List<FindingOccurrence> occurrencesOfLastRun(long findingId, int limit) {
+        return store.occurrencesOfLastRun(findingId, limit);
+    }
 }
+

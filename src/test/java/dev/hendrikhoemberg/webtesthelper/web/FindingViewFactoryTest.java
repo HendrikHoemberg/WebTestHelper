@@ -174,4 +174,83 @@ class FindingViewFactoryTest {
             }
         }
     }
+
+    @Test
+    void pageUnreachableWithChromiumErrorHumanisesWithoutInternalIdentifier() {
+        Finding finding = new Finding(
+                101L, 42L, "fp-unreachable",
+                CheckType.PAGE_UNREACHABLE,
+                "https://example.com/unreachable",
+                "https://example.com/unreachable",
+                Severity.ERROR,
+                "finding.PAGE_UNREACHABLE.navigation",
+                List.of("net::ERR_TOO_MANY_REDIRECTS"),
+                Evidence.NONE,
+                ObservedStatus.ACTIVE,
+                TriageStatus.UNTRIAGED,
+                null,
+                10L, 10L, null, null,
+                1, 1,
+                Instant.parse("2026-08-25T10:00:00Z"),
+                Instant.parse("2026-08-25T10:00:00Z")
+        );
+
+        FindingView view = factory.of(finding, Locale.GERMAN);
+
+        assertThat(view.message()).doesNotContain("net::");
+        assertThat(view.message()).doesNotContain("ERR_");
+        assertThat(view.message()).doesNotContain("PAGE_UNREACHABLE");
+        assertThat(view.message()).contains("Die Seite liess sich nicht laden");
+        assertThat(view.message()).contains("Weiterleitung");
+    }
+
+    @Test
+    void detailOfCreatesCompleteFindingDetailView() {
+        Evidence evidence = new Evidence(
+                "abcdef0123456789abcdef0123456789.png",
+                500,
+                "GET /test",
+                "Internal Server Error",
+                List.of("uncaught exception in app.js")
+        );
+        Finding finding = new Finding(
+                102L, 42L, "fp-detail",
+                CheckType.PAGE_UNREACHABLE,
+                "https://example.com/item",
+                "*",
+                Severity.ERROR,
+                "finding.PAGE_UNREACHABLE.navigation",
+                List.of("net::ERR_CONNECTION_REFUSED"),
+                evidence,
+                ObservedStatus.ACTIVE,
+                TriageStatus.ACKNOWLEDGED,
+                "Bekanntes Wartungsfenster",
+                5L, 10L, null, null,
+                312, 312,
+                Instant.parse("2026-08-25T08:00:00Z"),
+                Instant.parse("2026-08-25T10:00:00Z")
+        );
+
+        dev.hendrikhoemberg.webtesthelper.findings.FindingOccurrence occ1 =
+                new dev.hendrikhoemberg.webtesthelper.findings.FindingOccurrence("https://example.com/p1", Severity.ERROR, "m", List.of(), Evidence.NONE);
+        dev.hendrikhoemberg.webtesthelper.findings.FindingOccurrence occ2 =
+                new dev.hendrikhoemberg.webtesthelper.findings.FindingOccurrence("https://example.com/p2", Severity.ERROR, "m", List.of(), Evidence.NONE);
+
+        FindingDetailView detail = factory.detailOf(finding, List.of(occ1, occ2), Locale.GERMAN);
+
+        assertThat(detail.summary().id()).isEqualTo(102L);
+        assertThat(detail.summary().siteWide()).isTrue();
+        assertThat(detail.description()).isEqualTo("Prüft, ob sich eine Seite überhaupt laden lässt.");
+        assertThat(detail.rawTechnicalDetail()).isEqualTo("net::ERR_CONNECTION_REFUSED");
+        assertThat(detail.technicalDetail()).contains("abgelehnt");
+        assertThat(detail.httpStatus()).isEqualTo(500);
+        assertThat(detail.requestDetail()).isEqualTo("GET /test");
+        assertThat(detail.responseDetail()).isEqualTo("Internal Server Error");
+        assertThat(detail.consoleExcerpt()).containsExactly("uncaught exception in app.js");
+        assertThat(detail.screenshotUrl()).isEqualTo("/artefakte/10/abcdef0123456789abcdef0123456789.png");
+        assertThat(detail.pages()).containsExactly("https://example.com/p1", "https://example.com/p2");
+        assertThat(detail.pageTotal()).isEqualTo(312);
+        assertThat(detail.triageReason()).isEqualTo("Bekanntes Wartungsfenster");
+    }
 }
+

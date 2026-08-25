@@ -38,4 +38,10 @@ public class SecurityConfig implements WebMvcConfigurer {
     public PasswordEncoder passwordEncoder() {
         return PasswordEncoderFactories.createDelegatingPasswordEncoder();
     }
+
+    @Bean
+    public org.springframework.security.web.firewall.RequestRejectedHandler requestRejectedHandler() {
+        return new org.springframework.security.web.firewall.HttpStatusRequestRejectedHandler(org.springframework.http.HttpStatus.NOT_FOUND.value());
+    }
 }
+
