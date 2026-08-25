@@ -108,6 +108,31 @@ public class FindingStore {
                AND id = ANY(?)
             """;
 
+    private static final String APPLY_RULE_SQL = """
+            UPDATE finding SET triage_status = 'MUTED', triage_reason = ?, triaged_by = ?, triaged_at = ?,
+                               muted_until = ?, muted_by_rule_id = ?, mute_expired_at = NULL,
+                               version = version + 1
+             WHERE (? IS NULL OR site_id = ?)
+               AND triage_status = 'UNTRIAGED'
+               AND (? IS NULL OR check_type = ?)
+               AND (? IS NULL OR lower(subject_key)  LIKE ? ESCAPE '\\')
+               AND (? IS NULL OR lower(location_key) LIKE ? ESCAPE '\\')
+               AND (? IS NULL OR last_seen_run = ?)
+            """;
+
+    private static final String UNMUTE_RULE_SQL = """
+            UPDATE finding
+               SET triage_status = 'UNTRIAGED',
+                   triage_reason = NULL,
+                   triaged_by = NULL,
+                   triaged_at = NULL,
+                   muted_until = NULL,
+                   muted_by_rule_id = NULL,
+                   mute_expired_at = ?,
+                   version = version + 1
+             WHERE muted_by_rule_id = ?
+            """;
+
     private static final String SILENCING_IN_CLAUSE = TriageStatus.SILENCING.stream()
             .map(s -> "'" + s.name() + "'")
             .sorted()
@@ -323,6 +348,77 @@ public class FindingStore {
             } finally {
                 idArray.free();
             }
+        });
+    }
+
+    /**
+     * Applies a mute rule to UNTRIAGED findings matching the rule's criteria.
+     * If siteId is non-null, matches only findings for that site.
+     * If runId is non-null, matches only findings seen in that run (applyToRun); otherwise applies retroactively.
+     */
+    public int applyMuteRule(Long siteId, Long runId, MuteRule rule, Instant now) {
+        String subjectLike = MutePattern.isBlank(rule.subjectPattern()) ? null
+                : MutePattern.toLikePattern(rule.subjectPattern()).toLowerCase(java.util.Locale.ROOT);
+        String locationLike = MutePattern.isBlank(rule.locationPattern()) ? null
+                : MutePattern.toLikePattern(rule.locationPattern()).toLowerCase(java.util.Locale.ROOT);
+        String checkType = rule.checkType() == null ? null : rule.checkType().name();
+
+        return jdbc.update(APPLY_RULE_SQL, ps -> {
+            ps.setString(1, rule.reason());
+            ps.setString(2, rule.createdBy());
+            ps.setTimestamp(3, ts(now));
+            ps.setTimestamp(4, ts(rule.expiresAt()));
+            ps.setLong(5, rule.id());
+
+            if (siteId == null) {
+                ps.setNull(6, java.sql.Types.BIGINT);
+                ps.setNull(7, java.sql.Types.BIGINT);
+            } else {
+                ps.setLong(6, siteId);
+                ps.setLong(7, siteId);
+            }
+
+            if (checkType == null) {
+                ps.setNull(8, java.sql.Types.VARCHAR);
+                ps.setNull(9, java.sql.Types.VARCHAR);
+            } else {
+                ps.setString(8, checkType);
+                ps.setString(9, checkType);
+            }
+
+            if (subjectLike == null) {
+                ps.setNull(10, java.sql.Types.VARCHAR);
+                ps.setNull(11, java.sql.Types.VARCHAR);
+            } else {
+                ps.setString(10, subjectLike);
+                ps.setString(11, subjectLike);
+            }
+
+            if (locationLike == null) {
+                ps.setNull(12, java.sql.Types.VARCHAR);
+                ps.setNull(13, java.sql.Types.VARCHAR);
+            } else {
+                ps.setString(12, locationLike);
+                ps.setString(13, locationLike);
+            }
+
+            if (runId == null) {
+                ps.setNull(14, java.sql.Types.BIGINT);
+                ps.setNull(15, java.sql.Types.BIGINT);
+            } else {
+                ps.setLong(14, runId);
+                ps.setLong(15, runId);
+            }
+        });
+    }
+
+    /**
+     * Unmutes findings previously muted by the given ruleId, returning them to UNTRIAGED.
+     */
+    public int unmuteRule(long ruleId, Instant now) {
+        return jdbc.update(UNMUTE_RULE_SQL, ps -> {
+            ps.setTimestamp(1, ts(now));
+            ps.setLong(2, ruleId);
         });
     }
 

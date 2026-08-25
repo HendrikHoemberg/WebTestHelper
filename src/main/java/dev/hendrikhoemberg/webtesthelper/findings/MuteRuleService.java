@@ -21,10 +21,12 @@ public class MuteRuleService {
 
     private final MuteRuleRepository repository;
     private final FindingProperties properties;
+    private final MuteRuleApplier applier;
 
-    public MuteRuleService(MuteRuleRepository repository, FindingProperties properties) {
+    public MuteRuleService(MuteRuleRepository repository, FindingProperties properties, MuteRuleApplier applier) {
         this.repository = repository;
         this.properties = properties;
+        this.applier = applier;
     }
 
     public long create(MuteRuleForm form, String actor, Instant now) {
@@ -58,6 +60,7 @@ public class MuteRuleService {
         entity.setCreatedAt(now.truncatedTo(ChronoUnit.MICROS));
 
         MuteRuleEntity saved = repository.save(entity);
+        applier.applyRule(toDomain(saved), now);
         return saved.getId();
     }
 
@@ -81,6 +84,7 @@ public class MuteRuleService {
     }
 
     public void delete(long id) {
+        applier.unmuteRule(id, Instant.now());
         repository.deleteById(id);
         repository.flush();
     }

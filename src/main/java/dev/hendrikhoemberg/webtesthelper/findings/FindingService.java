@@ -25,10 +25,12 @@ public class FindingService {
 
     private final FindingStore store;
     private final FindingProperties properties;
+    private final MuteRuleApplier muteRuleApplier;
 
-    public FindingService(FindingStore store, FindingProperties properties) {
+    public FindingService(FindingStore store, FindingProperties properties, MuteRuleApplier muteRuleApplier) {
         this.store = store;
         this.properties = properties;
+        this.muteRuleApplier = muteRuleApplier;
     }
 
     /**
@@ -46,6 +48,8 @@ public class FindingService {
         store.insertOccurrences(ids, runId, materialised, observedAt);
         store.recountOccurrences(ids);
         store.resolveOutsideRun(siteId, runId, coverage);
+        // D46: Apply mute rules after resolveOutsideRun and before diffOf inside the same transaction
+        muteRuleApplier.applyToRun(siteId, runId, observedAt);
         return store.diffOf(siteId, runId);
     }
 
