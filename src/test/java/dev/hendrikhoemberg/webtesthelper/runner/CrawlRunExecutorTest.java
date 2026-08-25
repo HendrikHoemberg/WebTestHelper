@@ -41,6 +41,7 @@ class CrawlRunExecutorTest extends AbstractPostgresTest {
     private long runId3;
     private List<String> pinsAfterFirstFullCrawl;
     private List<String> pinsAfterSecondFullCrawl;
+    private List<String> pinsAfterPartialFullCrawl;
 
     @BeforeAll static void startSite() { site = FixtureSite.start(); }
     @AfterAll static void stopSite() { site.close(); }
@@ -77,6 +78,7 @@ class CrawlRunExecutorTest extends AbstractPostgresTest {
                 Duration.ofMinutes(3), List.of(), List.of(), true, null, true));
         runId3 = runs.enqueue(siteId, RunTrigger.MANUAL, RunScope.FULL);
         assertThat(worker.workOnce()).isTrue();
+        pinsAfterPartialFullCrawl = sites.contextFor(siteId).pinnedKeyPages();
     }
 
     @Test
@@ -262,6 +264,17 @@ class CrawlRunExecutorTest extends AbstractPostgresTest {
                 "SELECT url FROM crawl_queue_item WHERE run_id = ? AND status = 'FAILED'",
                 String.class, runId1);
         assertThat(pinsAfterFirstFullCrawl).doesNotContainAnyElementsOf(failed);
+    }
+
+    @Test
+    void aPartialFullCrawlPinsNothing() {
+        // Run 3 hit its page budget, so it saw an arbitrary slice of the site. Freezing that slice
+        // into the pulse set is exactly the drift a pinned set exists to prevent (spec 9, 6.4), so
+        // the executor must leave the site unpinned even though the scope is FULL and the pins are
+        // empty. No pins is the honest state until the budget is raised.
+        assertThat(jdbc.queryForObject("SELECT partial_coverage FROM run WHERE id = ?",
+                Boolean.class, runId3)).isTrue();
+        assertThat(pinsAfterPartialFullCrawl).isEmpty();
     }
 
     @Test
