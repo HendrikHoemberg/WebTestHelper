@@ -17,7 +17,9 @@
           th:object="${form}"
           method="post"
           class="formular"
-          th:attr="x-data='{ tls: \'' + *{tls} + '\', username: \'' + (*{username != null} ? *{username} : '') + '\' }'">
+          th:data-tls="*{tls}"
+          th:data-username="*{username} ?: ''"
+          x-data="{ tls: $el.dataset.tls || 'STARTTLS', username: $el.dataset.username || '' }">
 
         <section class="form-bereich">
             <h2 th:text="#{ui.einstellungen.allgemein.titel}">Allgemeine Einstellungen</h2>

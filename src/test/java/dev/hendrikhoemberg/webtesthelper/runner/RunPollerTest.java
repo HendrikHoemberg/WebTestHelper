@@ -88,6 +88,31 @@ class RunPollerTest {
     }
 
     @Test
+    void aPersistentlyThrowingWorkOnceBacksOffInsteadOfSpinning() throws InterruptedException {
+        // A database that is down makes workOnce() throw on every call. Retrying with no pause
+        // burns a core and floods the log with the same stack trace thousands of times a second.
+        RunWorker worker = mock(RunWorker.class);
+        AtomicInteger callCount = new AtomicInteger(0);
+        when(worker.workOnce()).thenAnswer(inv -> {
+            callCount.incrementAndGet();
+            throw new IllegalStateException("Datenbank nicht erreichbar");
+        });
+
+        RunnerProperties properties = new RunnerProperties(Duration.ofSeconds(10), true);
+        RunPoller poller = new RunPoller(worker, properties);
+
+        poller.start();
+        try {
+            Thread.sleep(300);
+            assertThat(callCount.get())
+                    .as("a failing workOnce must wait the poll interval before retrying")
+                    .isLessThanOrEqualTo(2);
+        } finally {
+            poller.stop();
+        }
+    }
+
+    @Test
     void stopTerminatesLoopAndNoFurtherCallsHappen() throws InterruptedException {
         RunWorker worker = mock(RunWorker.class);
         CountDownLatch firstCall = new CountDownLatch(1);

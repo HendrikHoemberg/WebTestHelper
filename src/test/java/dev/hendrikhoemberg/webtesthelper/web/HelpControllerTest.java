@@ -10,8 +10,11 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 import java.util.Optional;
 
+import static org.hamcrest.Matchers.containsStringIgnoringCase;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
@@ -69,8 +72,12 @@ class HelpControllerTest {
 
         mvc.perform(get("/hilfe/hinweis/bericht-lesen"))
                 .andExpect(status().isOk())
-                .andExpect(view().name("fragments/hinweis"))
-                .andExpect(model().attribute("thema", topic));
+                .andExpect(view().name("fragments/hinweis :: hinweis"))
+                .andExpect(model().attribute("thema", topic))
+                // The ? affordance swaps this into a div, so the body is the fragment alone —
+                // a document wrapper is markup HTMX has to strip before it can swap.
+                .andExpect(content().string(not(containsStringIgnoringCase("<!DOCTYPE"))))
+                .andExpect(content().string(not(containsStringIgnoringCase("<body"))));
     }
 
     @Test

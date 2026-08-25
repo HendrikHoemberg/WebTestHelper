@@ -36,6 +36,22 @@ class HelpServiceTest {
     }
 
     @Test
+    void rawHtmlInATopicIsEscapedRatherThanRendered() {
+        // The three bundled topics are clean today, and the assertion below proves only that.
+        // The renderer itself has to be the guard: `th:utext` drops this straight into the page,
+        // so a topic pasted in from somewhere else must not be able to bring markup with it.
+        HelpTopic topic = HelpService.parseTopic("boeswillig", """
+                # Ein Thema
+
+                Ein Absatz <script>alert('xss')</script> mit Markup.
+                """);
+
+        assertThat(topic.html()).doesNotContain("<script");
+        assertThat(topic.html()).contains("&lt;script&gt;");
+        assertThat(topic.teaserHtml()).doesNotContain("<script");
+    }
+
+    @Test
     void renderedHtmlOfEveryBundledTopicIsNonEmptyAndContainsNoScript() {
         List<HelpTopic> topics = helpService.all();
 

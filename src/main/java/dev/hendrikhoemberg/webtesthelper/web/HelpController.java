@@ -37,6 +37,6 @@ public class HelpController {
         HelpTopic topic = helpService.byId(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Hilfethema nicht gefunden: " + id));
         model.addAttribute("thema", topic);
-        return "fragments/hinweis";
+        return "fragments/hinweis :: hinweis";
     }
 }

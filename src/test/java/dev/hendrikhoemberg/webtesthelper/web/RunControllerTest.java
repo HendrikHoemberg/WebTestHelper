@@ -1,7 +1,6 @@
 package dev.hendrikhoemberg.webtesthelper.web;
 
 import dev.hendrikhoemberg.webtesthelper.catalog.SiteService;
-import dev.hendrikhoemberg.webtesthelper.findings.Finding;
 import dev.hendrikhoemberg.webtesthelper.findings.FindingService;
 import dev.hendrikhoemberg.webtesthelper.findings.ReportSection;
 import dev.hendrikhoemberg.webtesthelper.findings.RunDiff;
@@ -32,6 +31,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.containsStringIgnoringCase;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -226,8 +226,12 @@ class RunControllerTest {
 
         mvc.perform(get("/laeufe/" + runId + "/fortschritt"))
                 .andExpect(status().isOk())
-                .andExpect(view().name("fragments/fortschritt"))
+                .andExpect(view().name("fragments/fortschritt :: fortschritt"))
                 .andExpect(content().string(containsString("hx-trigger=\"every 3s\"")))
+                // The body is the fragment, not the template file that hosts it: a document
+                // wrapper here is markup HTMX has to strip before it can swap the div.
+                .andExpect(content().string(not(containsStringIgnoringCase("<!DOCTYPE"))))
+                .andExpect(content().string(not(containsStringIgnoringCase("<body"))))
                 .andExpect(header().doesNotExist("HX-Refresh"));
     }
 

@@ -70,7 +70,24 @@ public class RunPoller implements SmartLifecycle {
                 return;
             } catch (Exception keepPolling) {
                 log.error("Warteschlange konnte nicht abgearbeitet werden", keepPolling);
+                // Wait before retrying. A failure that persists — an unreachable database, say —
+                // otherwise spins the thread at full speed and repeats one stack trace thousands
+                // of times a second, which buries the very log line that explains the outage.
+                if (!sleepPollInterval()) {
+                    return;
+                }
             }
+        }
+    }
+
+    /** Sleeps one poll interval; false means the thread was interrupted and the loop must end. */
+    private boolean sleepPollInterval() {
+        try {
+            Thread.sleep(properties.pollInterval());
+            return true;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return false;
         }
     }
 }

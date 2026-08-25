@@ -26,6 +26,16 @@ import java.util.Optional;
 @Component
 public class HelpService {
 
+    private static final Parser PARSER = Parser.builder().build();
+
+    /**
+     * Raw HTML in a topic is escaped, not passed through. Both templates render a topic with
+     * {@code th:utext}, so whatever this returns lands in the page unescaped; the bundled topics
+     * are reviewed in the same commit as the code, but a topic pasted in from elsewhere must not
+     * be able to bring markup with it.
+     */
+    private static final HtmlRenderer RENDERER = HtmlRenderer.builder().escapeHtml(true).build();
+
     private final Map<String, HelpTopic> topicsById;
     private final List<HelpTopic> sortedTopics;
 
@@ -42,9 +52,6 @@ public class HelpService {
         try {
             PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
             Resource[] resources = resolver.getResources("classpath*:help/*.md");
-            Parser parser = Parser.builder().build();
-            HtmlRenderer renderer = HtmlRenderer.builder().build();
-
             for (Resource resource : resources) {
                 String filename = resource.getFilename();
                 if (filename != null && filename.endsWith(".md")) {
@@ -53,7 +60,7 @@ public class HelpService {
                     try (InputStream is = resource.getInputStream()) {
                         markdown = new String(is.readAllBytes(), StandardCharsets.UTF_8);
                     }
-                    HelpTopic topic = parseTopic(id, markdown, parser, renderer);
+                    HelpTopic topic = parseTopic(id, markdown);
                     topicsById.put(id, topic);
                 }
             }
@@ -62,15 +69,16 @@ public class HelpService {
         }
     }
 
-    private HelpTopic parseTopic(String id, String markdown, Parser parser, HtmlRenderer renderer) {
-        Node document = parser.parse(markdown);
+    /** Renders one topic from its Markdown source. The seam {@code HelpServiceTest} renders through. */
+    static HelpTopic parseTopic(String id, String markdown) {
+        Node document = PARSER.parse(markdown);
         String title = extractTitle(document, id, markdown);
-        String html = renderer.render(document);
-        String teaserHtml = extractTeaserHtml(document, renderer);
+        String html = RENDERER.render(document);
+        String teaserHtml = extractTeaserHtml(document);
         return new HelpTopic(id, title, html, teaserHtml);
     }
 
-    private String extractTitle(Node document, String id, String markdown) {
+    private static String extractTitle(Node document, String id, String markdown) {
         for (Node node = document.getFirstChild(); node != null; node = node.getNext()) {
             if (node instanceof Heading heading && heading.getLevel() == 1) {
                 StringBuilder sb = new StringBuilder();
@@ -89,7 +97,7 @@ public class HelpService {
         return id;
     }
 
-    private void extractText(Node node, StringBuilder sb) {
+    private static void extractText(Node node, StringBuilder sb) {
         if (node instanceof Text text) {
             sb.append(text.getLiteral());
         }
@@ -98,10 +106,10 @@ public class HelpService {
         }
     }
 
-    private String extractTeaserHtml(Node document, HtmlRenderer renderer) {
+    private static String extractTeaserHtml(Node document) {
         for (Node node = document.getFirstChild(); node != null; node = node.getNext()) {
             if (node instanceof Paragraph paragraph) {
-                return renderer.render(paragraph).trim();
+                return RENDERER.render(paragraph).trim();
             }
         }
         return "";

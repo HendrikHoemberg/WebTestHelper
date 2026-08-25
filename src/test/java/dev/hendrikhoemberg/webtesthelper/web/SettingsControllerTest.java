@@ -76,6 +76,30 @@ class SettingsControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
+    void alpineIsSeededFromDataAttributesRatherThanFromInterpolatedFormValues() throws Exception {
+        // The conditional-field state used to be built by concatenating the stored username into
+        // a JavaScript object literal. An apostrophe closes the literal early, which at best
+        // breaks the panel and at worst lets one administrator put an expression on another's
+        // screen. A data attribute is escaped by the parser and reaches Alpine as a plain string.
+        when(appSettings.smtp()).thenReturn(new SmtpSettings(
+                "smtp.example.com",
+                587,
+                TlsMode.STARTTLS,
+                "o'brien",
+                "irrelevant",
+                "alerts@example.com"
+        ));
+        when(appSettings.baseUrl()).thenReturn("https://webtesthelper.example.com");
+        when(appSettings.redirectAllMailTo()).thenReturn(Optional.empty());
+
+        mvc.perform(get("/einstellungen"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("$el.dataset.username")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("username: 'o'"))));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
     void getSettingsRendersRedirectAllMailWarningSentenceWhenSet() throws Exception {
         when(appSettings.smtp()).thenReturn(new SmtpSettings(
                 "smtp.example.com",

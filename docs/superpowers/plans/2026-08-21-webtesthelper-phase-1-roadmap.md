@@ -2,12 +2,17 @@
 
 **Date:** 2026-08-21
 **Spec:** `docs/superpowers/specs/2026-08-21-webtesthelper-design.md` (§17 defines Phase 1)
-**Status:** Plans 1, 2a, 2b, 3a, 3b and **4** executed and reviewed against the spec; their commits
-are on `main`. Plan 3 is split into 3a and 3b; both halves are executed. Plan 4 executed
-2026-08-23 with subagent-driven development (six task commits plus review fixes, 417 full tests
-green including the three-run browser acceptance). **Plan 5 is written and awaiting execution** —
-`2026-08-21-webtesthelper-p5-web-smtp.md`, nine tasks, written from p4's "What Plan 5 consumes"
-section. It is the last plan of Phase 1.
+**Status: Phase 1 is complete.** All five plans (1, 2a, 2b, 3a, 3b, 4, 5) are executed and
+reviewed against the spec; their commits are on `main`. Plan 3 is split into 3a and 3b; both
+halves are executed. Plan 4 executed 2026-08-23 with subagent-driven development (six task
+commits plus review fixes, 417 full tests green including the three-run browser acceptance).
+Plan 5 executed 2026-08-25 — `2026-08-21-webtesthelper-p5-web-smtp.md`, nine tasks, one commit
+each, plus a review pass; **549 full tests green, 482 of them under `-Pfast`**, because plan 5
+adds no browser test. See its "Execution findings" section for what the review changed.
+
+What Phase 1 does **not** ship, deliberately: the application container image (§16 — `compose.yaml`
+still runs Postgres only), and the scheduler §14's kill switches would pause. Both are named in
+plan 5's "Deliberately not in this plan" and are the first things in front of Phase 2.
 
 ---
 
@@ -234,13 +239,20 @@ soft-404 cutoff of 16, and it belongs in front of a plan rather than inside one.
 - **Left alone deliberately:** `truncate` in four `crawler` classes, which 3b's own review already
   deferred to "if a fifth appears".
 
-**Open for Plan 5, recorded here because the enforcement test cannot see it:** several findings
-render an internal identifier through their *message arguments* — `PAGE_UNREACHABLE.navigation`
-carries Chromium's `net::ERR_…`, `DEAD_LINK.dead` and `TLS_CERT.handshakeFailed` carry
-`e.toString()` (`java.net.ConnectException: …`). §13.1 says no internal identifier reaches the
-screen. `CheckDocumentationTest.noExplanationLeaksAnInternalIdentifier` only scans the static
-German, so it passes. 3b sanctioned these args; the UI that renders them has to translate or
-demote them to evidence.
+**Was open for Plan 5, recorded here because the enforcement test cannot see it — now closed:**
+several findings render an internal identifier through their *message arguments* —
+`PAGE_UNREACHABLE.navigation` carries Chromium's `net::ERR_…`, `DEAD_LINK.dead` and
+`TLS_CERT.handshakeFailed` carry `e.toString()` (`java.net.ConnectException: …`). §13.1 says no
+internal identifier reaches the screen. `CheckDocumentationTest.noExplanationLeaksAnInternalIdentifier`
+only scans the static German, so it passes. 3b sanctioned these args; the UI that renders them
+has to translate or demote them to evidence.
+
+Plan 5 closed it as D32: `web/TechnicalText.java` maps each measured string to a German sentence,
+`FindingViewFactory` runs every message argument through it before formatting, and the untranslated
+original survives only in the finding detail's *Technische Details* block. Two tests hold it:
+`TechnicalTextTest` pins the mapping against the exact strings p3 and p4 measured, and
+`FindingViewFactoryTest.noRenderedTextCarriesAnInternalIdentifier` scans the *rendered* result for
+every `CheckType` name — the gate `CheckDocumentationTest` structurally cannot reach.
 
 ## Measurements taken while writing plan 3a
 

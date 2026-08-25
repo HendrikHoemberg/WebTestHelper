@@ -16,6 +16,8 @@ import java.util.Optional;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -90,5 +92,18 @@ class OutboxControllerTest {
         mvc.perform(get("/postausgang"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(not(containsString("fehlgeschlagen"))));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void healthBannerCostsNoErrorQueryWhenNothingHasFailed() throws Exception {
+        // The banner advice runs on every request, the 3 s progress poll included (D29 budgets
+        // one indexed query per viewer). With no failures there is no error to fetch.
+        when(outboxService.recent(50)).thenReturn(List.of());
+        when(outboxService.failedCount()).thenReturn(0);
+
+        mvc.perform(get("/postausgang")).andExpect(status().isOk());
+
+        verify(outboxService, never()).lastError();
     }
 }

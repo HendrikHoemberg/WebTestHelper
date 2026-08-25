@@ -962,3 +962,79 @@ Named here so a reviewer can tell a gap from a decision:
   the Playwright version — that is a packaging task with its own verification, not a tail end of
   a UI plan. Phase 1's software is complete and runs with `./mvnw spring-boot:run`; the container
   is the first thing to build once the relay question is answered.
+
+---
+
+## Execution findings
+
+Plan 5 executed 2026-08-25: nine task commits, one per task, in plan order (`2e26e93`…`e0f8004`,
+113 files, +8,514). **549 full tests green, 482 under `-Pfast`** — the plan's claim that every
+new test is browser-free held, so `-Pfast` really does prove all of it. A review pass afterwards
+found seven things; all are fixed and the notes below are what a reader of the code needs that
+the code does not say for itself.
+
+**What the plan got right and is worth reusing.** Naming the *assertions* rather than writing the
+test bodies produced tests that match the plan almost line for line, and in three places the
+implementer strengthened them unprompted: `EnumLabelsTest` covers eight enums rather than the six
+named, `SecurityConfig` adds the `POST /websites/*` rule the prose omitted but the URL table
+required, and `WebExceptionHandler` plus a `RequestRejectedHandler` turn both the unknown-id and
+the encoded-traversal cases into 404s. The two acceptance tests are the plan's step lists almost
+verbatim and are the artefact most worth keeping.
+
+**The verbatim `RunPoller` loop shipped a busy-loop, and the plan is where it came from.** The
+snippet's `catch (Exception keepPolling) { log.error(…); }` retries with no pause, so a failure
+that persists — an unreachable database is the realistic one — spins the thread at full speed and
+repeats one stack trace thousands of times a second, burying the log line that explains the
+outage. `continuesLoopWhenWorkOnceThrows` passes either way: it asserts the loop survives, which
+is a different property. The fix sleeps one poll interval on the error path;
+`aPersistentlyThrowingWorkOnceBacksOffInsteadOfSpinning` pins it. **This is the second plan whose
+only outright failure was inside a code block** (plan 4's was the `Fingerprint` join), which is
+now two for two on `CLAUDE.md`'s claim that verbatim code is a plan's riskiest content.
+
+**Both HTMX endpoints returned whole documents.** `return "fragments/fortschritt"` renders the
+entire template file, `<!DOCTYPE html><html><body>` and all, because a bare view name is a
+template, not a fragment; the selector form `"fragments/fortschritt :: fortschritt"` is what
+returns the fragment. HTMX 2 copes — it parses a full document and takes the body — so nothing
+looked broken, and `content().string(containsString(…))` cannot tell the difference. Both
+endpoints now use the selector and both tests assert the absence of a document wrapper.
+
+**A `@ControllerAdvice` model attribute is a query on every request.** `HealthBannerAdvice` ran
+`failedCount()` *and* `lastError()` for every page, the run detail's 3 s progress poll included,
+which is three times the cost D29 budgeted — and `mailLastError` is rendered by nothing:
+`layout.html` uses only the count. It is now one `@ModelAttribute` method that fetches the error
+text only when the count is non-zero. `reporting/MailHealth` was deleted: the plan listed it as a
+produced interface, but nothing ever referenced it, and the advice reads `OutboxService` directly.
+
+**Markdown help renders through `th:utext`, so the renderer has to be the guard.** commonmark
+passes raw HTML through by default and `HelpServiceTest` only scanned the three bundled files —
+exactly the "topic somebody pasted in" the plan named. `escapeHtml(true)` now closes it, with a
+package-private `HelpService.parseTopic(id, markdown)` as the seam the test renders through.
+
+**`atLeastThreeAffordancesAreWiredInTemplates` counted buttons, not topics.** `laeufe/detail.html`
+carries four `hinweis-schalter` on its own, so the assertion would have passed with a single topic
+wired four times. It now also asserts three *distinct* topic ids — which is what §13.7's second
+gate is actually about.
+
+**Alpine seeds come from `data-` attributes, never from concatenated form values.** The settings
+form built its `x-data` by splicing the stored SMTP username into a JavaScript object literal; an
+apostrophe closes the literal early. Both sides are ADMIN-only so the blast radius is small, but
+the fix is one line: `th:data-username` plus `x-data="{ username: $el.dataset.username || '' }"`.
+The parser escapes the attribute and Alpine receives a plain string.
+
+**Deviations from the plan that were correct and stay.** `SiteFormModel.respectRobots` is `Boolean`,
+not `boolean`, because an unchecked checkbox binds null. The test mail is addressed to the
+configured from-address; the plan never named a recipient, and this keeps the button self-contained.
+`AdminBootstrapTest` folds the second-run assertion into the first test rather than adding a third.
+The "generated password is logged once" assertion was never written — it is the one plan assertion
+with no test behind it, and it stays that way rather than growing a log-capture harness for it.
+
+**Still open, unchanged.** The `IFRAME_EMBED` canvas-paint gap, blocked-iframe URL attribution and
+Maps-error attribution — inherited from the plan-3 review and p4. Each needs a measurement against
+a hand-built fixture page, which belongs in front of a plan, not inside one.
+
+**The calibration numbers held.** Plan 5 is 964 lines across nine tasks — 107 per task, inside the
+~120 tripwire — and used 84 of the 150 verbatim-code lines. The cap has still never bound. What the
+`RunPoller` loop suggests is not a lower cap but a stricter question at the block itself: this one
+carried a real algorithm *and* a bug, and the bug lived in the branch the surrounding prose never
+discussed. A code block that a plan cannot describe in prose is a block whose edge cases nobody
+has thought about yet.

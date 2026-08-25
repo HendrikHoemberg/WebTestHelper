@@ -72,7 +72,7 @@ public class RunController {
         if (run.status().isTerminal()) {
             response.setHeader("HX-Refresh", "true");
         }
-        return "fragments/fortschritt";
+        return "fragments/fortschritt :: fortschritt";
     }
 
     @PostMapping("/{id}/ausgangsbestand")

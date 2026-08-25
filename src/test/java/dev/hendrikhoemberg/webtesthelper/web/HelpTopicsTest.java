@@ -95,6 +95,7 @@ class HelpTopicsTest {
     @Test
     void atLeastThreeAffordancesAreWiredInTemplates() throws IOException {
         int affordanceCount = 0;
+        Set<String> distinctTopicIds = new HashSet<>();
 
         try (Stream<Path> stream = Files.walk(TEMPLATES_DIR)) {
             List<Path> templateFiles = stream
@@ -108,12 +109,23 @@ class HelpTopicsTest {
                 while (matcher.find()) {
                     affordanceCount++;
                 }
+                Matcher topics = HINWEIS_PARAM_PATTERN.matcher(content);
+                while (topics.find()) {
+                    distinctTopicIds.add(topics.group(1));
+                }
             }
         }
 
         assertThat(affordanceCount)
                 .as("At least three ? affordances (hinweis-schalter) must be wired in templates")
                 .isGreaterThanOrEqualTo(3);
+
+        // Counting buttons alone would pass on one topic wired three times — one screen already
+        // carries four. What the mechanism has to prove is that each bundled topic is reachable
+        // from the place it explains.
+        assertThat(distinctTopicIds)
+                .as("The ? affordances must cover at least three distinct help topics")
+                .hasSizeGreaterThanOrEqualTo(3);
     }
 
     @Test
