@@ -198,6 +198,32 @@ class ScheduleControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
+    void blankTimezoneRerendersWithFieldErrorAndCancelsTheWholeSave() throws Exception {
+        when(scheduleService.forSite(1L)).thenReturn(defaultSchedules());
+
+        mvc.perform(post("/websites/1/zeitplaene")
+                        .with(csrf())
+                        .param("zeitplaene[0].scope", "PULSE")
+                        .param("zeitplaene[0].zeit", "03:00")
+                        .param("zeitplaene[0].timezone", "Europe/Berlin")
+                        .param("zeitplaene[0].enabled", "true")
+                        .param("zeitplaene[1].scope", "FULL")
+                        .param("zeitplaene[1].zeit", "09:30")
+                        .param("zeitplaene[1].timezone", "")
+                        .param("zeitplaene[1].enabled", "true")
+                        .param("zeitplaene[2].scope", "DEEP")
+                        .param("zeitplaene[2].zeit", "02:15")
+                        .param("zeitplaene[2].timezone", "Europe/Berlin")
+                        .param("zeitplaene[2].enabled", "true"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("websites/detail"))
+                .andExpect(model().attributeHasFieldErrors("zeitplaene", "zeitplaene[1].timezone"));
+
+        verify(scheduleService, never()).update(anyLong(), anyString(), anyString(), anyBoolean(), any());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
     void anUnparseableAdvancedCronIsAFieldErrorOnThatRowNotAnException() throws Exception {
         when(scheduleService.forSite(1L)).thenReturn(defaultSchedules());
 

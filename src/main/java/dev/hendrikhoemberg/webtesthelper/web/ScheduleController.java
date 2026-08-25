@@ -1,9 +1,9 @@
 package dev.hendrikhoemberg.webtesthelper.web;
 
 import dev.hendrikhoemberg.webtesthelper.catalog.SiteService;
-import dev.hendrikhoemberg.webtesthelper.checks.CheckDescriptor;
 import dev.hendrikhoemberg.webtesthelper.checks.CheckRegistry;
 import dev.hendrikhoemberg.webtesthelper.model.RunScope;
+import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
 import dev.hendrikhoemberg.webtesthelper.runner.RunService;
 import dev.hendrikhoemberg.webtesthelper.scheduling.CronSchedule;
 import dev.hendrikhoemberg.webtesthelper.scheduling.Schedule;
@@ -60,9 +60,12 @@ public class ScheduleController {
         validate(form, bindingResult);
 
         if (bindingResult.hasErrors()) {
-            model.addAttribute("site", siteService.contextFor(id));
+            SiteContext site = siteService.contextFor(id);
+            model.addAttribute("site", site);
             model.addAttribute("recentRuns", runService.recentForSite(id, 20));
-            model.addAttribute("activeChecks", activeChecks(id));
+            model.addAttribute("activeChecks", checkRegistry.all().stream()
+                    .filter(check -> site.enabled(check.type()))
+                    .toList());
             model.addAttribute("zeitplaeneDetail", ScheduleView.detailByScope(current));
             return "websites/detail";
         }
@@ -99,7 +102,15 @@ public class ScheduleController {
             String cron = row.cron() == null ? "" : row.cron().strip();
             String timezone = row.timezone() == null ? "" : row.timezone().strip();
 
-            if (!timezone.isBlank()) {
+            if (timezone.isEmpty()) {
+                // A blank timezone is not "just invalid" here: it would reach update() and make
+                // CronSchedule.parse fail mid-loop, after earlier tiers already committed (the
+                // service deliberately commits per row). Reject it before any write so the whole
+                // form fails atomically (§ "a partial save across three tiers" is the worst case).
+                bindingResult.rejectValue("zeitplaene[" + i + "].timezone",
+                        "ui.zeitplan.fehler.zone",
+                        "Bitte eine Zeitzone angeben.");
+            } else {
                 try {
                     ZoneId.of(timezone);
                 } catch (RuntimeException e) {
@@ -131,12 +142,5 @@ public class ScheduleController {
     private LocalTime timeOf(ScheduleFormModel.Row row) {
         String zeit = row.zeit() == null || row.zeit().isBlank() ? DEFAULT_TIME : row.zeit().strip();
         return LocalTime.parse(zeit);
-    }
-
-    private List<CheckDescriptor> activeChecks(long siteId) {
-        var site = siteService.contextFor(siteId);
-        return checkRegistry.all().stream()
-                .filter(check -> site.enabled(check.type()))
-                .toList();
     }
 }
