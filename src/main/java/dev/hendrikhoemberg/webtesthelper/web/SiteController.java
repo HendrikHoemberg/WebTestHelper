@@ -9,6 +9,8 @@ import dev.hendrikhoemberg.webtesthelper.model.RunTrigger;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
 import dev.hendrikhoemberg.webtesthelper.runner.RunService;
 import dev.hendrikhoemberg.webtesthelper.runner.RunSummary;
+import dev.hendrikhoemberg.webtesthelper.scheduling.Schedule;
+import dev.hendrikhoemberg.webtesthelper.scheduling.ScheduleService;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -26,11 +28,14 @@ public class SiteController {
     private final SiteService siteService;
     private final RunService runService;
     private final CheckRegistry checkRegistry;
+    private final ScheduleService scheduleService;
 
-    public SiteController(SiteService siteService, RunService runService, CheckRegistry checkRegistry) {
+    public SiteController(SiteService siteService, RunService runService, CheckRegistry checkRegistry,
+                          ScheduleService scheduleService) {
         this.siteService = siteService;
         this.runService = runService;
         this.checkRegistry = checkRegistry;
+        this.scheduleService = scheduleService;
     }
 
     @GetMapping("/")
@@ -65,9 +70,12 @@ public class SiteController {
                 .filter(check -> site.enabled(check.type()))
                 .toList();
 
+        List<Schedule> schedules = scheduleService.forSite(id);
         model.addAttribute("site", site);
         model.addAttribute("recentRuns", recentRuns);
         model.addAttribute("activeChecks", activeChecks);
+        model.addAttribute("zeitplaene", ScheduleFormModel.of(schedules));
+        model.addAttribute("zeitplaeneDetail", ScheduleView.detailByScope(schedules));
         return "websites/detail";
     }
 

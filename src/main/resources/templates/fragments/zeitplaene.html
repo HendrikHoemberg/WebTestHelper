@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<section class="detail-bereich" th:fragment="zeitplaene">
+    <div class="abschnitt-ueberschrift-zeile">
+        <h2 th:text="#{ui.websites.detail.zeitplaene.titel}">Zeitpläne</h2>
+        <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
+                th:data-hx-get="@{/hilfe/hinweis/{id}(id='zeitplaene')}"
+                data-hx-target="next .hinweis" data-hx-swap="innerHTML">?</button>
+        <div class="hinweis" aria-live="polite"></div>
+    </div>
+
+    <p th:if="${#lists.isEmpty(zeitplaene.zeitplaene)}" class="text-gedaempft"
+       th:text="#{ui.websites.detail.zeitplaene.leer}">(noch keine Zeitpläne)</p>
+
+    <form th:if="${!#lists.isEmpty(zeitplaene.zeitplaene)}"
+          th:action="@{/websites/{id}/zeitplaene(id=${site.siteId})}"
+          th:object="${zeitplaene}" method="post" class="zeitplaene-form">
+        <div th:each="row,status : ${zeitplaene.zeitplaene}" class="zeitplan-karte">
+            <h3 th:text="#{${'ui.runscope.' + row.scope}}">Puls-Prüfung</h3>
+            <p th:if="${!#strings.isEmpty(row.zeit)}"
+               th:text="#{${'ui.zeitplan.beschreibung.' + row.scope}(${row.zeit})}">Täglich um 03:00 Uhr</p>
+            <p th:if="${#strings.isEmpty(row.zeit)}" class="text-gedaempft"
+               th:text="#{ui.zeitplan.eigen}">Eigener Zeitplan</p>
+            <p th:if="${row.scope.name() == 'DEEP'}" class="hinweis-text"
+               th:text="#{ui.zeitplan.deep.hinweis}">Die Tiefenprüfung verschickt Formular-Testnachrichten an die Website. Sie ist erst ab Ausbaustufe 3 wirksam.</p>
+
+            <div class="zeitplan-zeiten">
+                <span th:text="#{ui.zeitplan.naechster}">Nächster Lauf</span>:
+                <span th:if="${zeitplaeneDetail.get(row.scope)?.nextFireAt != null}"
+                      th:text="${#temporals.format(zeitplaeneDetail.get(row.scope).nextFireZoned(), 'dd.MM.yyyy HH:mm')}">26.08.2026 03:00</span>
+                <span th:if="${zeitplaeneDetail.get(row.scope)?.nextFireAt == null}" th:text="'-'">-</span>
+                <span class="zeitplan-trenner" aria-hidden="true">·</span>
+                <span th:text="#{ui.zeitplan.letzter}">Letzter Lauf</span>:
+                <span th:if="${zeitplaeneDetail.get(row.scope)?.lastFiredAt != null}"
+                      th:text="${#temporals.format(zeitplaeneDetail.get(row.scope).lastFireZoned(), 'dd.MM.yyyy HH:mm')}">25.08.2026 03:00</span>
+                <span th:if="${zeitplaeneDetail.get(row.scope)?.lastFiredAt == null}"
+                      th:text="#{ui.zeitplan.nie}">noch nie</span>
+            </div>
+
+            <label class="form-gruppe-checkbox">
+                <input type="checkbox" th:field="*{zeitplaene[__${status.index}__].enabled}">
+                <span th:text="#{ui.zeitplan.aktiviert}">Zeitplan aktiviert</span>
+            </label>
+
+            <div class="form-gruppe">
+                <label th:for="${'zeit-' + status.index}" th:text="#{ui.zeitplan.zeit}">Uhrzeit</label>
+                <input type="time" th:id="'zeit-' + ${status.index}" th:field="*{zeitplaene[__${status.index}__].zeit}">
+                <span th:if="${#fields.hasErrors('zeitplaene[' + status.index + '].zeit')}"
+                      th:errors="*{zeitplaene[__${status.index}__].zeit}" class="feld-fehler">Fehler</span>
+            </div>
+
+            <div x-data="{ offen: false }" class="zeitplan-erweitert">
+                <button type="button" @click="offen = !offen" class="button sekundär klein"
+                        th:text="#{ui.zeitplan.erweitert}">Erweitert</button>
+                <div x-show="offen" class="zeitplan-erweitert-panel" style="display: none;">
+                    <p class="hinweis-text" th:text="#{ui.zeitplan.erweitert.hinweis}">Hier können Fachleute einen festen Zeitplan hinterlegen. Im Normalfall reicht die Uhrzeit oben.</p>
+                    <div class="form-gruppe">
+                        <label th:for="${'cron-' + status.index}" th:text="#{ui.zeitplan.erweitert.cron}">Cron-Ausdruck (nur für Fachleute)</label>
+                        <input type="text" th:id="'cron-' + ${status.index}" th:field="*{zeitplaene[__${status.index}__].cron}">
+                        <span th:if="${#fields.hasErrors('zeitplaene[' + status.index + '].cron')}"
+                              th:errors="*{zeitplaene[__${status.index}__].cron}" class="feld-fehler">Fehler</span>
+                    </div>
+                    <div class="form-gruppe">
+                        <label th:for="${'zone-' + status.index}" th:text="#{ui.zeitplan.erweitert.zone}">Zeitzone</label>
+                        <input type="text" th:id="'zone-' + ${status.index}" th:field="*{zeitplaene[__${status.index}__].timezone}">
+                        <span th:if="${#fields.hasErrors('zeitplaene[' + status.index + '].timezone')}"
+                              th:errors="*{zeitplaene[__${status.index}__].timezone}" class="feld-fehler">Fehler</span>
+                    </div>
+                </div>
+            </div>
+
+            <input type="hidden" th:field="*{zeitplaene[__${status.index}__].scope}">
+        </div>
+
+        <div class="form-aktionen">
+            <button type="submit" class="button primär" th:text="#{ui.zeitplan.speichern}">Zeitpläne speichern</button>
+        </div>
+    </form>
+</section>
+</body>
+</html>

@@ -10,6 +10,7 @@ import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
 import dev.hendrikhoemberg.webtesthelper.model.UrlNormalizer;
 import dev.hendrikhoemberg.webtesthelper.checks.CheckRegistry;
 import dev.hendrikhoemberg.webtesthelper.runner.RunService;
+import dev.hendrikhoemberg.webtesthelper.scheduling.ScheduleService;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,6 +51,9 @@ class SiteControllerTest {
 
     @MockitoBean
     CheckRegistry checkRegistry;
+
+    @MockitoBean
+    ScheduleService scheduleService;
 
     @MockitoBean
     AppUserService appUserService;

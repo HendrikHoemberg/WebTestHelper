@@ -12,6 +12,8 @@ import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
 import dev.hendrikhoemberg.webtesthelper.model.UrlNormalizer;
 import dev.hendrikhoemberg.webtesthelper.runner.RunService;
 import dev.hendrikhoemberg.webtesthelper.runner.RunSummary;
+import dev.hendrikhoemberg.webtesthelper.scheduling.Schedule;
+import dev.hendrikhoemberg.webtesthelper.scheduling.ScheduleService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -27,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -55,7 +58,20 @@ class SiteDetailControllerTest {
     CheckRegistry checkRegistry;
 
     @MockitoBean
+    ScheduleService scheduleService;
+
+    @MockitoBean
     AppUserService appUserService;
+
+    private List<Schedule> defaultSchedules() {
+        return List.of(
+                new Schedule(11L, 42L, RunScope.PULSE, "0 0 3 * * *", "Europe/Berlin",
+                        true, null, Instant.parse("2026-08-26T01:00:00Z")),
+                new Schedule(12L, 42L, RunScope.FULL, "0 0 3 * * SUN", "Europe/Berlin",
+                        true, null, Instant.parse("2026-08-30T01:00:00Z")),
+                new Schedule(13L, 42L, RunScope.DEEP, "0 0 3 1 * *", "Europe/Berlin",
+                        true, null, Instant.parse("2026-09-01T01:00:00Z")));
+    }
 
     @Test
     @WithMockUser(roles = "USER")
@@ -102,6 +118,7 @@ class SiteDetailControllerTest {
         when(siteService.contextFor(42L)).thenReturn(context);
         when(runService.recentForSite(42L, 20)).thenReturn(List.of(runSummary));
         when(checkRegistry.all()).thenReturn(CheckRegistry.standard().all());
+        when(scheduleService.forSite(42L)).thenReturn(defaultSchedules());
 
         mvc.perform(get("/websites/42"))
                 .andExpect(status().isOk())
@@ -119,6 +136,36 @@ class SiteDetailControllerTest {
                 .andExpect(content().string(containsString("Tote Links")))
                 .andExpect(content().string(containsString("101")))
                 .andExpect(content().string(containsString("Abgeschlossen")));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void getSiteDetailRendersThreeTiersWithoutRawCronInProse() throws Exception {
+        SiteContext context = new SiteContext(
+                42L,
+                "Acme Shop",
+                UrlNormalizer.normalize("https://acme.example.com/").orElseThrow(),
+                new CrawlBudget(120, 3, Duration.ofMinutes(15)),
+                List.of(), List.of(), List.of(),
+                true, "AcmeBot/2.0", Map.of()
+        );
+        when(siteService.contextFor(42L)).thenReturn(context);
+        when(runService.recentForSite(42L, 20)).thenReturn(List.of());
+        when(checkRegistry.all()).thenReturn(CheckRegistry.standard().all());
+        when(scheduleService.forSite(42L)).thenReturn(defaultSchedules());
+
+        mvc.perform(get("/websites/42"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("websites/detail"))
+                .andExpect(content().string(containsString("Puls-Prüfung")))
+                .andExpect(content().string(containsString("Vollständige Prüfung")))
+                .andExpect(content().string(containsString("Tiefenprüfung")))
+                .andExpect(content().string(containsString("Zeitpläne")))
+                // §13.1: the raw cron is an internal identifier and must not reach the reader's
+                // prose. The common case is a time of day, so no cron literal appears anywhere.
+                .andExpect(content().string(not(containsString("0 0 3 * *"))))
+                .andExpect(content().string(not(containsString("0 0 3 * * SUN"))))
+                .andExpect(content().string(not(containsString("0 0 3 1 * *"))));
     }
 
     @Test

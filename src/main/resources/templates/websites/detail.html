@@ -82,6 +82,9 @@
             </ul>
             <p th:if="${#lists.isEmpty(site.pinnedKeyPages)}" class="text-gedaempft" th:text="#{ui.websites.detail.pins.leer}">(noch keine festgehalten)</p>
         </section>
+
+        <!-- Zeitpläne -->
+        <div th:replace="~{fragments/zeitplaene :: zeitplaene}"></div>
     </div>
 
     <!-- Aktive Prüfungen -->
