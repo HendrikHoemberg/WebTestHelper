@@ -4,11 +4,13 @@ import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserType;
 import com.microsoft.playwright.Playwright;
 import org.slf4j.Logger;
+import org.slf4j.MDC;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
@@ -56,6 +58,11 @@ public class BrowserPool implements AutoCloseable {
         return workers.size();
     }
 
+    /** Workers currently lent out. Saturation is this against {@link #size()} (spec 14). */
+    public int busy() {
+        return workers.size() - available.size();
+    }
+
     /** Borrows a worker, runs the task on its thread, and returns the worker. Blocks if busy. */
     public <T> T submit(BrowserTask<T> task) {
         Worker worker;
@@ -98,9 +105,21 @@ public class BrowserPool implements AutoCloseable {
         }
 
         <T> T call(BrowserTask<T> task) {
+            // Spec 14: runId/siteId must reach every worker thread, or the per-page log lines —
+            // the ones worth grepping — carry no run. MDC is a ThreadLocal, so the caller's map
+            // is copied in and cleared again: a pooled thread outlives the run that borrowed it,
+            // and stale context would file the next run's pages under this one.
+            Map<String, String> callerContext = MDC.getCopyOfContextMap();
             Future<T> future = thread.submit(() -> {
-                ensureBrowser();
-                return task.run(browser);
+                if (callerContext != null) {
+                    MDC.setContextMap(callerContext);
+                }
+                try {
+                    ensureBrowser();
+                    return task.run(browser);
+                } finally {
+                    MDC.clear();
+                }
             });
             try {
                 return future.get();

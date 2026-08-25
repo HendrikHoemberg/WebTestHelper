@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-21
 **Spec:** `docs/superpowers/specs/2026-08-21-webtesthelper-design.md` (§17 defines Phase 1)
-**Status: Phase 1 is complete.** All five plans (1, 2a, 2b, 3a, 3b, 4, 5) are executed and
+**Status: Phase 1 is complete**, plus a post-review fix pass (see "Post-review fixes to Phase 1"). All five plans (1, 2a, 2b, 3a, 3b, 4, 5) are executed and
 reviewed against the spec; their commits are on `main`. Plan 3 is split into 3a and 3b; both
 halves are executed. Plan 4 executed 2026-08-23 with subagent-driven development (six task
 commits plus review fixes, 417 full tests green including the three-run browser acceptance).
@@ -91,6 +91,21 @@ plan is never edited.
 | D34 | Phase 1's only mail is the test mail — the outbox and `Notifier` are built and proven, the notification policy is Phase 2 | 5 |
 | D35 | The mail-health banner lives in the shared layout, because the dashboard §11.5 puts it on is Phase 2 | 5 |
 | D36 | `org.commonmark:commonmark` is the plan's one new dependency, because §13.6 specifies Markdown | 5 |
+| D37 | `findings` holds Spring and `JdbcTemplate`, and the run-to-run diff is a SQL `CASE`, not a pure function | 4 (post-execution) |
+
+D37 was added after the Phase-1 review, which found it unrecorded. §5.1 says `checks` and `findings`
+"depend only on their own value types — no Spring, no database", and §15 lists the diff engine
+under pure-function unit tests. `checks` holds that line exactly; `findings` does not: `FindingService`
+is a `@Service`, `FindingStore` is `JdbcTemplate`, and the diff is the `CASE` expression in
+`DIFF_SQL`, tested against Testcontainers Postgres rather than in memory. The reason is in
+`FindingService`'s javadoc and is a good one — the diff is read back out of the database after the
+write, so the report and the findings table cannot disagree, which an in-memory diff computed
+alongside the write can. Modulith still passes because a framework dependency is not a module, so
+no test could have caught this; only reading §5.1 against the tree does. What survives of the
+spec's property: `Fingerprint` and `FindingMaterializer` — identity and site-wide promotion, the
+logic-dense half — are pure and unit-tested with no database. What is given up: the section rules
+(§6.3's five report sections) can only be exercised against Postgres, which is why
+`FindingServiceDiffTest` is twelve database tests rather than twelve pure ones.
 
 D28 was added after plan 4 executed, from the review of its result: branching the report on
 `resolved_at_run IS NOT NULL` made "Regressed" permanent, so one unfixed regression would mail on
@@ -253,6 +268,48 @@ original survives only in the finding detail's *Technische Details* block. Two t
 `TechnicalTextTest` pins the mapping against the exact strings p3 and p4 measured, and
 `FindingViewFactoryTest.noRenderedTextCarriesAnInternalIdentifier` scans the *rendered* result for
 every `CheckType` name — the gate `CheckDocumentationTest` structurally cannot reach.
+
+## Post-review fixes to Phase 1 (applied after the whole-phase review)
+
+A review of the finished phase against the spec found three §14 items that no plan had recorded
+as deferred — unlike the container image and the kill switches, which are named decisions. All
+three are fixed on `main`, each driven by a test that failed first.
+
+- **The MDC covered only the crawl.** §14 asks for `runId`/`siteId` "so one run's complete history
+  is greppable across every worker thread". `CrawlService` set them on its own thread, and `MDC` is
+  a `ThreadLocal`: the `browser-worker-N` threads it fans out to had none, so the per-page lines —
+  the ones worth grepping — carried no run, and neither did verification, the check passes,
+  re-verification, materialisation, or the run's own failure line. `RunWorker` now sets the context
+  for the whole leased execution and `BrowserPool` copies the caller's map into the worker thread,
+  clearing it after each task because a pooled thread outlives the run that borrowed it and stale
+  context is worse than none. Two tests in `BrowserPoolTest`, two in `RunWorkerTest`.
+- **The Actuator pool metrics did not exist.** §14 names three — queue depth, browser worker
+  saturation, outbox backlog — and only the default `health,info,metrics` endpoints were exposed.
+  Each gauge is now registered by the module that owns what it measures (`RunnerMetrics`,
+  `CrawlerMetrics`, `OutboxMetrics`), because a single metrics component would have to cross a
+  Modulith boundary: `web` is not allowed to depend on `crawler`. `ObservabilityMetricsTest` holds
+  all three. They are polled on scrape rather than counted in memory, since the queue and the
+  outbox are tables more than one process writes to.
+- **The outbox could deliver a mail twice.** `dispatchCycle` was `@Transactional` around the SMTP
+  conversations, and `claimDue` marked nothing durably — it bumped `attempts` and relied on the
+  row lock, which lasts only as long as that transaction. So anything unwinding the cycle restored
+  already-delivered mail to `PENDING` and the next cycle sent it again (§11.3). The claim now
+  leases the row — `next_attempt_at` moves out of the due window in the same statement — which is
+  the same shape as a run lease and is what a rollback cannot undo, so the sends no longer need a
+  transaction around them. `OutboxDispatcherDurabilityTest` reproduces the double send; the claim's
+  exclusivity is pinned in `OutboxDispatcherTest`.
+
+**Still open after this pass, deliberately:** the `IFRAME_EMBED` canvas-paint gap (unchanged —
+it needs a hand-built grey-map fixture page and a measurement before it can be planned), and
+**D23's re-verification scope**, which is the one the review would still change. §8 collects
+failures and re-verifies them "with fresh contexts and backoff"; D23 narrows that to an HTTP
+re-check of subjects the crawl never navigated. `PAGE_UNREACHABLE`'s `subjectKey` is the page URL
+and is therefore always in `RunSnapshots.visitedUrls()`, so a page that timed out once gets no
+second chance — and §16 names the OOM killer terminating Chromium mid-run, surfacing as exactly
+these findings, as a real event on this host. D23's rationale ("a browser verdict is never
+overturned") inverts §8's premise, which is that a crawl-time verdict may be transient. Closing it
+means re-navigating failed pages in a fresh context at end of run, which is a behaviour change to
+the false-positive engine and belongs in front of a plan, not in a review fix.
 
 ## Measurements taken while writing plan 3a
 

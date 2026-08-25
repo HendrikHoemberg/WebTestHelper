@@ -8,6 +8,7 @@ import dev.hendrikhoemberg.webtesthelper.catalog.SmtpSettings;
 import dev.hendrikhoemberg.webtesthelper.catalog.TlsMode;
 import dev.hendrikhoemberg.webtesthelper.reporting.persistence.NotificationEntity;
 import dev.hendrikhoemberg.webtesthelper.reporting.persistence.NotificationRepository;
+import dev.hendrikhoemberg.webtesthelper.reporting.persistence.OutboxClaimJdbcRepository;
 import dev.hendrikhoemberg.webtesthelper.support.AbstractPostgresTest;
 import jakarta.mail.BodyPart;
 import jakarta.mail.internet.MimeMessage;
@@ -48,6 +49,9 @@ class OutboxDispatcherTest extends AbstractPostgresTest {
 
     @Autowired
     ReportingProperties reportingProperties;
+
+    @Autowired
+    OutboxClaimJdbcRepository claimRepository;
 
     @Autowired
     JdbcTemplate jdbc;
@@ -270,5 +274,16 @@ class OutboxDispatcherTest extends AbstractPostgresTest {
                 extractParts(child, text, html);
             }
         }
+    }
+
+    @Test
+    void aClaimedMailIsNotHandedOutAgainWhileItsFirstDeliveryIsStillInFlight() {
+        // The claim has to be durable, not just a row lock held for the length of an SMTP
+        // conversation: only then can the send happen outside a transaction, which is what stops
+        // a rollback from un-recording a mail that already left the building.
+        outboxService.enqueue(new OutboundMail("empfaenger@example.com", "Betreff", "<p>x</p>", "x"));
+
+        assertThat(claimRepository.claimDue(10)).hasSize(1);
+        assertThat(claimRepository.claimDue(10)).isEmpty();
     }
 }

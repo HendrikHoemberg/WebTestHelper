@@ -73,4 +73,33 @@ class RunWorkerTest extends AbstractPostgresTest {
     void anEmptyQueueIsANoOp() {
         assertThat(worker.workOnce()).isFalse();
     }
+
+    @Test
+    void theRunsLoggingContextIsSetForTheWholeExecution() {
+        // Spec 14: structured logging with runId and siteId in the MDC, so one run's complete
+        // history is greppable. The crawl sets it for itself; verification, the check passes,
+        // re-verification and materialisation all run under this worker and need it too.
+        long runId = runs.enqueue(siteId, RunTrigger.MANUAL, RunScope.FULL);
+        java.util.Map<String, String> seen = new java.util.HashMap<>();
+        worker.withExecutorForTest(lease -> {
+            seen.put("runId", org.slf4j.MDC.get("runId"));
+            seen.put("siteId", org.slf4j.MDC.get("siteId"));
+        });
+
+        assertThat(worker.workOnce()).isTrue();
+
+        assertThat(seen).containsEntry("runId", String.valueOf(runId))
+                .containsEntry("siteId", String.valueOf(siteId));
+    }
+
+    @Test
+    void theLoggingContextIsClearedWhenTheRunIsDone() {
+        // The poller thread is reused for the next run; a leftover runId would mislabel it.
+        runs.enqueue(siteId, RunTrigger.MANUAL, RunScope.FULL);
+
+        assertThat(worker.workOnce()).isTrue();
+
+        assertThat(org.slf4j.MDC.get("runId")).isNull();
+        assertThat(org.slf4j.MDC.get("siteId")).isNull();
+    }
 }

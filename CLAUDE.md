@@ -63,8 +63,8 @@ first reports that the cap forced out something real, and say what it was.
 
 ## Tests
 
-- `./mvnw test` runs everything (549 tests, ~1m22s). **This is what CI and pre-merge use.**
-- `./mvnw test -Pfast` skips `@Tag("browser")` (482 tests, ~14s) — edit-test loop only. It
+- `./mvnw test` runs everything (558 tests, ~1m25s). **This is what CI and pre-merge use.**
+- `./mvnw test -Pfast` skips `@Tag("browser")` (489 tests, ~16s) — edit-test loop only. It
   does not prove the crawler, the browser pool, or the page-check acceptance suite.
 
 Plan 5 added no browser test: every one of its 122 tests runs under `-Pfast`, including both

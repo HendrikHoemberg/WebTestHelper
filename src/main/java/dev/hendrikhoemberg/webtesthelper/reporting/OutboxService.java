@@ -92,6 +92,12 @@ public class OutboxService {
                 .toList();
     }
 
+    /** Backlog: mails accepted but not yet delivered, whatever their next attempt is (spec 14). */
+    @Transactional(readOnly = true)
+    public int backlogCount() {
+        return notificationRepository.countByState(NotificationState.PENDING);
+    }
+
     @Transactional(readOnly = true)
     public int failedCount() {
         return notificationRepository.countByState(NotificationState.FAILED);

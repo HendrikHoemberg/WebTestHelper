@@ -4,12 +4,21 @@ import dev.hendrikhoemberg.webtesthelper.catalog.AppSettings;
 import dev.hendrikhoemberg.webtesthelper.reporting.persistence.OutboxClaimJdbcRepository;
 import dev.hendrikhoemberg.webtesthelper.reporting.persistence.OutboxClaimJdbcRepository.ClaimedNotification;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
+/**
+ * Sends what the outbox holds (spec 11.3). One cycle claims a batch, then delivers each mail and
+ * records the outcome immediately.
+ *
+ * <p>Deliberately <em>not</em> transactional. Delivery is an external side effect that cannot be
+ * rolled back, so a transaction spanning the sends can only lie: unwinding it would restore rows
+ * to {@code PENDING} for mail that had already gone out, and the next cycle would send it twice.
+ * Exclusivity comes from the durable lease in
+ * {@link OutboxClaimJdbcRepository#claimDue(int)} instead, which is what a rollback cannot undo.
+ */
 @Component
 public class OutboxDispatcher {
 
@@ -30,7 +39,6 @@ public class OutboxDispatcher {
         this.properties = properties;
     }
 
-    @Transactional
     public int dispatchCycle() {
         List<ClaimedNotification> due = claimRepository.claimDue(20);
         for (ClaimedNotification item : due) {

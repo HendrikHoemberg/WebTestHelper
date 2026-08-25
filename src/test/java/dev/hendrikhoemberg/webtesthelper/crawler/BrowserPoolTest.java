@@ -101,4 +101,38 @@ class BrowserPoolTest {
             assertThat(pool.<Boolean>submit(browser -> browser.isConnected())).isTrue();
         }
     }
+
+    @Test
+    void theCallersLoggingContextTravelsToTheWorkerThread() throws Exception {
+        // Spec 14: one run's history must be greppable "across every worker thread". The crawl
+        // puts runId/siteId in the MDC on its own thread; MDC is a ThreadLocal, so without
+        // propagation every per-page log line the pool produces is unattributable.
+        try (BrowserPool pool = new BrowserPool(properties(1))) {
+            org.slf4j.MDC.put("runId", "4711");
+            org.slf4j.MDC.put("siteId", "9");
+            try {
+                String runId = pool.submit(browser -> org.slf4j.MDC.get("runId"));
+                String siteId = pool.submit(browser -> org.slf4j.MDC.get("siteId"));
+                assertThat(runId).isEqualTo("4711");
+                assertThat(siteId).isEqualTo("9");
+            } finally {
+                org.slf4j.MDC.clear();
+            }
+        }
+    }
+
+    @Test
+    void aWorkerThreadDoesNotKeepThePreviousTasksLoggingContext() throws Exception {
+        // A pooled thread outlives the run that borrowed it. Stale context is worse than none:
+        // it files run B's pages under run A.
+        try (BrowserPool pool = new BrowserPool(properties(1))) {
+            org.slf4j.MDC.put("runId", "4711");
+            try {
+                pool.submit(browser -> org.slf4j.MDC.get("runId"));
+            } finally {
+                org.slf4j.MDC.clear();
+            }
+            assertThat(pool.<String>submit(browser -> org.slf4j.MDC.get("runId"))).isNull();
+        }
+    }
 }

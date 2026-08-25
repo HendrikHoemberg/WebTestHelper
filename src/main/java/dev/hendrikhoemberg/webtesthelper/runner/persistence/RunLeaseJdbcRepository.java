@@ -173,6 +173,13 @@ public class RunLeaseJdbcRepository {
      * makes that harmless: the racing QUEUED row is visible on the second attempt, so the
      * stale run no longer matches the NOT EXISTS guard and is superseded instead.
      */
+    /** Queue depth: runs waiting for a worker to claim them (spec 14). */
+    public int queuedCount() {
+        Integer count = jdbc.queryForObject(
+                "SELECT count(*) FROM run WHERE status = 'QUEUED'", Integer.class);
+        return count == null ? 0 : count;
+    }
+
     public List<Long> reclaimExpiredLeases() {
         List<Long> requeued = requeueExpiredLeases();
         requeued.addAll(jdbc.queryForList(SWEEP_SUPERSEDE_SQL, Long.class));
