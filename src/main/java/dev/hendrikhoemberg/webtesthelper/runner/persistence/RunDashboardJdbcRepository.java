@@ -6,6 +6,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 
+import java.sql.Timestamp;
 import java.util.List;
 
 /**
@@ -26,12 +27,15 @@ public class RunDashboardJdbcRepository {
              ORDER BY site_id, queued_at DESC, id DESC
             """;
 
-    private static final RowMapper<LastRun> LAST_RUN_MAPPER = (rs, row) -> new LastRun(
-            rs.getLong("site_id"),
-            rs.getLong("id"),
-            RunStatus.valueOf(rs.getString("status")),
-            rs.getTimestamp("finished_at").toInstant(),
-            rs.getBoolean("partial_coverage"));
+    private static final RowMapper<LastRun> LAST_RUN_MAPPER = (rs, row) -> {
+        Timestamp finishedAt = rs.getTimestamp("finished_at");
+        return new LastRun(
+                rs.getLong("site_id"),
+                rs.getLong("id"),
+                RunStatus.valueOf(rs.getString("status")),
+                finishedAt == null ? null : finishedAt.toInstant(),
+                rs.getBoolean("partial_coverage"));
+    };
 
     private final JdbcTemplate jdbc;
 

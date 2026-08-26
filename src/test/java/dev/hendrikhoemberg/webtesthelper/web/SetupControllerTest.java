@@ -140,7 +140,7 @@ class SetupControllerTest {
         assertThat(body).contains("sitemap.xml gefunden");
         // The found form is information only: a sentence, with no checkbox beside it
         assertThat(body).contains("Kontaktformular auf https://acme.example.com/kontakt gefunden");
-        assertThat(body).contains("Standardmässig abgeschaltet, weil die Erstprüfung dazu nichts belegt");
+        assertThat(body).contains("Standardmäßig abgeschaltet, weil die Erstprüfung dazu nichts belegt");
     }
 
     @Test

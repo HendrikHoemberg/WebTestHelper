@@ -24,7 +24,7 @@ public class SecurityConfig implements WebMvcConfigurer {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.authorizeHttpRequests(auth -> auth
                 .requestMatchers("/anmelden", "/vendor/**", "/css/**", "/favicon.ico").permitAll()
-                .requestMatchers("/einstellungen", "/einstellungen/testmail", "/einstellungen/benutzer/**",
+                .requestMatchers("/einstellungen/**",
                         "/postausgang", "/actuator/**",
                         "/websites/neu", "/websites/*/bearbeiten").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/websites", "/websites/*", "/websites/*/zeitplaene",
