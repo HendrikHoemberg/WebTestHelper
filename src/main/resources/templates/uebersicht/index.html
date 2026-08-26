@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html th:replace="~{layout :: seite(#{ui.titel.uebersicht}, ~{::main})}" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title th:text="#{ui.titel.uebersicht}">Übersicht</title>
+</head>
+<body>
+<main>
+    <header class="seiten-kopf">
+        <div class="abschnitt-ueberschrift-zeile">
+            <h1 th:text="#{ui.titel.uebersicht}">Übersicht</h1>
+            <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
+                    th:data-hx-get="@{/hilfe/hinweis/{id}(id='uebersicht')}"
+                    data-hx-target="next .hinweis" data-hx-swap="innerHTML">?</button>
+            <div class="hinweis" aria-live="polite"></div>
+        </div>
+    </header>
+
+    <section class="uebersicht-kennzahlen">
+        <div class="kennzahl" th:text="#{ui.uebersicht.fehler(${uebersicht.totals.errors()})}">3 Fehler</div>
+        <div class="kennzahl">
+            <span th:if="${uebersicht.totals.warnings() == 1}"
+                  th:text="#{ui.uebersicht.warnung.einzahl}">1 Warnung</span>
+            <span th:if="${uebersicht.totals.warnings() != 1}"
+                  th:text="#{ui.uebersicht.warnung.mehrzahl(${uebersicht.totals.warnings()})}">0 Warnungen</span>
+        </div>
+        <div class="kennzahl">
+            <span th:if="${uebersicht.totals.infos() == 1}"
+                  th:text="#{ui.uebersicht.hinweis.einzahl}">1 Hinweis</span>
+            <span th:if="${uebersicht.totals.infos() != 1}"
+                  th:text="#{ui.uebersicht.hinweis.mehrzahl(${uebersicht.totals.infos()})}">0 Hinweise</span>
+        </div>
+        <div class="kennzahl">
+            <span th:if="${uebersicht.runsInFlight() == 1}"
+                  th:text="#{ui.uebersicht.laeufe_laeuft.einzahl}">1 Lauf läuft</span>
+            <span th:if="${uebersicht.runsInFlight() != 1}"
+                  th:text="#{ui.uebersicht.laeufe_laeuft.mehrzahl(${uebersicht.runsInFlight()})}">2 Läufe laufen</span>
+        </div>
+    </section>
+
+    <p class="kapazitaet-zeile"
+       th:text="#{ui.uebersicht.kapazitaet(${uebersicht.capacity.browserWorkersBusy()},
+           ${uebersicht.capacity.browserWorkersTotal()},
+           ${uebersicht.capacity.queuedRuns()},
+           ${uebersicht.capacity.failedMails()},
+           ${uebersicht.capacity.schedulerThreads()})}">
+        Kapazität: 1 von 2 Browsern, 4 Läufe in Warteschlange, 1 E-Mail-Versandfehler, 5 Planungs-Threads.
+    </p>
+
+    <div th:replace="~{fragments/kacheln :: kacheln}"></div>
+</main>
+</body>
+</html>

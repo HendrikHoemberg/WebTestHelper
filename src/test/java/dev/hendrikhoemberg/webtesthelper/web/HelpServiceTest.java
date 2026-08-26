@@ -2,7 +2,9 @@ package dev.hendrikhoemberg.webtesthelper.web;
 
 import org.junit.jupiter.api.Test;
 
+import java.text.Collator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -10,20 +12,21 @@ import static org.assertj.core.api.Assertions.assertThat;
 class HelpServiceTest {
 
     private final HelpService helpService = new HelpService();
+    private final Collator germanOrder = Collator.getInstance(Locale.GERMAN);
 
     @Test
     void allFindsAllBundledTopicsSortedByTitle() {
         List<HelpTopic> topics = helpService.all();
 
         assertThat(topics)
-                .hasSize(6)
+                .hasSize(7)
                 .extracting(HelpTopic::title)
-                .isSorted();
+                .isSortedAccordingTo(germanOrder);
 
         assertThat(topics)
                 .extracting(HelpTopic::id)
                 .containsExactlyInAnyOrder("bericht-lesen", "ausgangsbestand", "smtp-einrichten",
-                        "zeitplaene", "stummschaltungen", "benachrichtigungen");
+                        "zeitplaene", "stummschaltungen", "benachrichtigungen", "uebersicht");
     }
 
     @Test

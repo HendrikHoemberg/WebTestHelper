@@ -934,5 +934,174 @@ main {
     padding: 0.6rem 0.85rem;
 }
 
+/* Dashboard / Übersicht (§14) */
+.uebersicht-kennzahlen {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.kennzahl {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 0.75rem 1.25rem;
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.kapazitaet-zeile {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin: 0 0 1.5rem 0;
+}
+
+.dashboard-raster {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1rem;
+}
+
+.dash-leer {
+    grid-column: 1 / -1;
+}
+
+.kachel {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 1rem 1.1rem;
+}
+
+.kachel-rot { border-left: 4px solid var(--danger-color); }
+.kachel-gelb { border-left: 4px solid var(--warning-color); }
+.kachel-gruen { border-left: 4px solid var(--success-color); }
+.kachel-grau { border-left: 4px solid var(--border-color); }
+
+.kachel-kopf {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.35rem;
+}
+
+.kachel-ampel.status-badge {
+    flex-shrink: 0;
+}
+
+.ampel-rot {
+    background-color: var(--danger-bg);
+    color: var(--danger-color);
+    border: 1px solid var(--danger-border);
+}
+
+.ampel-gelb {
+    background-color: var(--warning-bg);
+    color: var(--warning-color);
+    border: 1px solid var(--warning-border);
+}
+
+.ampel-gruen {
+    background-color: var(--success-bg);
+    color: var(--success-color);
+    border: 1px solid var(--success-border);
+}
+
+.ampel-grau {
+    background-color: #f1f5f9;
+    color: var(--text-muted);
+    border: 1px solid var(--border-color);
+}
+
+.kachel-name {
+    color: var(--text-color);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 1rem;
+    overflow-wrap: anywhere;
+}
+
+.kachel-name:hover {
+    color: var(--primary-color);
+    text-decoration: underline;
+}
+
+.kachel-url {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    overflow-wrap: anywhere;
+    margin-bottom: 0.75rem;
+}
+
+.kachel-kennzahlen {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.kennzahl-link {
+    display: inline-block;
+    padding: 0.2rem 0.55rem;
+    border-radius: 9999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.kennzahl-link:hover {
+    text-decoration: underline;
+}
+
+.kennzahl-fehler {
+    background-color: var(--danger-bg);
+    color: var(--danger-color);
+    border: 1px solid var(--danger-border);
+}
+
+.kennzahl-warnung {
+    background-color: var(--warning-bg);
+    color: var(--warning-color);
+    border: 1px solid var(--warning-border);
+}
+
+.kennzahl-hinweis {
+    background-color: #f8fafc;
+    color: var(--text-muted);
+    border: 1px solid var(--border-color);
+}
+
+.kachel-fuss {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    border-top: 1px solid var(--border-color);
+    padding-top: 0.6rem;
+}
+
+.kachel-aktion {
+    font-size: 0.85rem;
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.kachel-lauf-link {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.kachel-lauf-link:hover {
+    text-decoration: underline;
+}
+
+.kachel-schluessel {
+    color: var(--text-muted);
+}
+
 
 

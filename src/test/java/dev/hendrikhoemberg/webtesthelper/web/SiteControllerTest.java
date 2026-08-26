@@ -70,12 +70,12 @@ class SiteControllerTest {
 
     @Test
     @WithMockUser(roles = "USER")
-    void getRootAsUserReturnsSiteList() throws Exception {
+    void getWebsitesAsUserReturnsSiteList() throws Exception {
         when(siteService.summaries()).thenReturn(List.of(
                 new SiteSummary(1L, "Test Site", "https://example.com/", true, 10)
         ));
 
-        mvc.perform(get("/"))
+        mvc.perform(get("/websites"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("websites/liste"))
                 .andExpect(model().attributeExists("sites"));

@@ -30,7 +30,7 @@ public class SiteController {
         this.siteDetailModel = siteDetailModel;
     }
 
-    @GetMapping("/")
+    @GetMapping("/websites")
     public String index(Model model) {
         List<SiteSummary> sites = siteService.summaries();
         model.addAttribute("sites", sites);

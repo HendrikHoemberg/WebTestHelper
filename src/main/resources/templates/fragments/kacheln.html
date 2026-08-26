@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="kacheln" id="dashboard-kacheln" class="dashboard-raster"
+     th:attr="hx-get=@{/uebersicht/kacheln}"
+     hx-trigger="every 30s"
+     hx-swap="outerHTML">
+
+    <div th:if="${#lists.isEmpty(uebersicht.tiles)}" class="leer-zustand dash-leer">
+        <p th:text="#{ui.uebersicht.leer}">Noch keine Websites vorhanden.</p>
+    </div>
+
+    <article th:each="tile : ${uebersicht.tiles}" class="kachel"
+             th:classappend="${'kachel-' + #strings.toLowerCase(tile.light.name())}">
+        <div class="kachel-kopf">
+            <span class="kachel-ampel status-badge"
+                  th:classappend="${'ampel-' + #strings.toLowerCase(tile.light.name())}"
+                  th:text="#{${'ui.trafficlight.' + tile.light}}">Grün</span>
+            <a class="kachel-name" th:href="@{/websites/{id}(id=${tile.siteId})}" th:text="${tile.name}">Alpha</a>
+        </div>
+
+        <div class="kachel-url" th:text="${tile.baseUrl}">https://alpha.example.com/</div>
+
+        <div th:if="${tile.enabled}" class="kachel-kennzahlen">
+            <a th:if="${tile.counts.errors() > 0}" class="kennzahl-link kennzahl-fehler"
+               th:href="@{/websites/{id}/befunde(id=${tile.siteId}, severities='ERROR')}"
+               th:text="#{ui.uebersicht.fehler(${tile.counts.errors()})}">3 Fehler</a>
+            <a th:if="${tile.counts.warnings() > 0}" class="kennzahl-link kennzahl-warnung"
+               th:href="@{/websites/{id}/befunde(id=${tile.siteId}, severities='WARN')}">
+                <span th:if="${tile.counts.warnings() == 1}"
+                      th:text="#{ui.uebersicht.warnung.einzahl}">1 Warnung</span>
+                <span th:if="${tile.counts.warnings() != 1}"
+                      th:text="#{ui.uebersicht.warnung.mehrzahl(${tile.counts.warnings()})}">2 Warnungen</span>
+            </a>
+            <a th:if="${tile.counts.infos() > 0}" class="kennzahl-link kennzahl-hinweis"
+               th:href="@{/websites/{id}/befunde(id=${tile.siteId}, severities='INFO')}">
+                <span th:if="${tile.counts.infos() == 1}"
+                      th:text="#{ui.uebersicht.hinweis.einzahl}">1 Hinweis</span>
+                <span th:if="${tile.counts.infos() != 1}"
+                      th:text="#{ui.uebersicht.hinweis.mehrzahl(${tile.counts.infos()})}">2 Hinweise</span>
+            </a>
+        </div>
+
+        <div th:if="${tile.enabled}" class="kachel-fuss">
+            <div th:if="${tile.lastRun != null}" class="kachel-aktion">
+                <a th:href="@{/laeufe/{id}(id=${tile.lastRun.runId()})}" class="kachel-lauf-link"
+                   th:text="#{ui.uebersicht.letzter}">Letzter Lauf</a>
+                <span class="text-gedaempft"
+                      th:text="${#temporals.format(tile.lastRun.finishedAt(), 'dd.MM.yyyy HH:mm')}">26.08.2026 09:00</span>
+            </div>
+            <div th:if="${tile.nextRun != null}" class="kachel-aktion">
+                <span class="kachel-schluessel" th:text="#{ui.uebersicht.naechster}">Nächster Lauf</span>
+                <span th:replace="~{fragments/relativzeit :: relativzeit(${tile.nextRun.nextFireAt()})}">in 3 Stunden</span>
+            </div>
+        </div>
+
+        <div th:unless="${tile.enabled}" class="kachel-aktion">
+            <span class="text-gedaempft" th:text="#{ui.uebersicht.inaktiv}">Website ist deaktiviert.</span>
+        </div>
+    </article>
+</div>
+</body>
+</html>

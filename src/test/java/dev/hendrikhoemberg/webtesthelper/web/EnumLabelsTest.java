@@ -6,6 +6,7 @@ import dev.hendrikhoemberg.webtesthelper.model.RunStatus;
 import dev.hendrikhoemberg.webtesthelper.model.RunTrigger;
 import dev.hendrikhoemberg.webtesthelper.model.Severity;
 import dev.hendrikhoemberg.webtesthelper.model.TriageStatus;
+import dev.hendrikhoemberg.webtesthelper.reporting.TrafficLight;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -34,7 +35,8 @@ class EnumLabelsTest {
                 TriageStatus.class,
                 dev.hendrikhoemberg.webtesthelper.model.ObservedStatus.class,
                 dev.hendrikhoemberg.webtesthelper.catalog.TlsMode.class,
-                dev.hendrikhoemberg.webtesthelper.reporting.NotificationState.class
+                dev.hendrikhoemberg.webtesthelper.reporting.NotificationState.class,
+                TrafficLight.class
         );
 
         for (Class<? extends Enum<?>> enumClass : enumClasses) {
