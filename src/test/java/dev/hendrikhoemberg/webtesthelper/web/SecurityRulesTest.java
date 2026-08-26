@@ -95,4 +95,14 @@ class SecurityRulesTest {
         mvc.perform(get("/stummschaltungen"))
                 .andExpect(status().isNotFound());
     }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void userCannotAddOrDeleteSiteRecipients() throws Exception {
+        mvc.perform(post("/websites/1/empfaenger").with(csrf()).param("email", "test@example.com"))
+                .andExpect(status().isForbidden());
+
+        mvc.perform(post("/websites/1/empfaenger/1/loeschen").with(csrf()))
+                .andExpect(status().isForbidden());
+    }
 }

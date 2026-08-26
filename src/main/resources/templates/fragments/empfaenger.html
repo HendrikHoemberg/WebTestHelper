@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<body>
+<section class="detail-bereich" th:fragment="empfaenger">
+    <div class="abschnitt-ueberschrift-zeile">
+        <h2 th:text="#{ui.websites.detail.empfaenger.titel}">Benachrichtigungsempfänger</h2>
+        <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
+                th:data-hx-get="@{/hilfe/hinweis/{id}(id='benachrichtigungen')}"
+                data-hx-target="next .hinweis" data-hx-swap="innerHTML">?</button>
+        <div class="hinweis" aria-live="polite"></div>
+    </div>
+
+    <!-- Case 1: Site has recipients -->
+    <ul th:if="${not #lists.isEmpty(recipients)}" class="muster-liste empfaenger-liste">
+        <li th:each="r : ${recipients}" class="empfaenger-zeile">
+            <span th:text="${r.email}">empfaenger@example.com</span>
+            <form sec:authorize="hasRole('ADMIN')" th:action="@{/websites/{id}/empfaenger/{rid}/loeschen(id=${site.siteId}, rid=${r.id})}" method="post" class="inline-form">
+                <button type="submit" class="button sekundär klein" th:text="#{ui.websites.detail.empfaenger.loeschen}">Löschen</button>
+            </form>
+        </li>
+    </ul>
+
+    <!-- Case 2: Site has no recipients, but global fallback exists (§13.4 rule) -->
+    <p th:if="${#lists.isEmpty(recipients) and not #lists.isEmpty(fallbackRecipients)}" class="hinweis-text"
+       th:text="#{ui.websites.detail.empfaenger.fallback_hinweis(${#strings.listJoin(fallbackRecipients, ', ')})}">
+        Keine eigenen Empfänger hinterlegt. Benachrichtigungen werden an die Ausweichadresse fallback@example.com gesendet.
+    </p>
+
+    <!-- Case 3: Site has no recipients, and no global fallback exists -->
+    <p th:if="${#lists.isEmpty(recipients) and #lists.isEmpty(fallbackRecipients)}" class="hinweis-text"
+       th:text="#{ui.websites.detail.empfaenger.leer.warnung}">
+        Keine Empfänger hinterlegt. Zu dieser Website werden keine Benachrichtigungen versendet.
+    </p>
+
+    <!-- Add recipient form (ADMIN only) -->
+    <form sec:authorize="hasRole('ADMIN')" th:action="@{/websites/{id}/empfaenger(id=${site.siteId})}" method="post" class="empfaenger-formular">
+        <div class="form-gruppe">
+            <label for="empfaenger-email" th:text="#{ui.websites.detail.empfaenger.neu.label}">E-Mail-Adresse</label>
+            <input type="text" id="empfaenger-email" name="email" th:value="${email}" placeholder="name@example.com">
+            <span th:if="${recipientError != null}" th:text="${recipientError}" class="feld-fehler">Fehler</span>
+        </div>
+        <div class="form-aktionen">
+            <button type="submit" class="button primär" th:text="#{ui.websites.detail.empfaenger.neu.button}">Empfänger hinzufügen</button>
+        </div>
+    </form>
+</section>
+</body>
+</html>

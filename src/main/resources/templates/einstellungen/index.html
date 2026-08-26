@@ -38,6 +38,19 @@
                 <span th:if="${#fields.hasErrors('redirectAllMailTo')}" th:errors="*{redirectAllMailTo}" class="feld-fehler">Fehler</span>
             </div>
 
+            <div class="form-gruppe">
+                <div class="abschnitt-ueberschrift-zeile">
+                    <label for="fallbackRecipients" th:text="#{ui.einstellungen.fallbackRecipients}">Ausweich-Empfänger (Fallback)</label>
+                    <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
+                            th:data-hx-get="@{/hilfe/hinweis/{id}(id='benachrichtigungen')}"
+                            data-hx-target="next .hinweis" data-hx-swap="innerHTML">?</button>
+                    <div class="hinweis" aria-live="polite"></div>
+                </div>
+                <textarea id="fallbackRecipients" th:field="*{fallbackRecipients}" rows="3" placeholder="empfaenger@example.com"></textarea>
+                <p class="hinweis-text" th:text="#{ui.einstellungen.fallbackRecipients.hinweis}">An diese Adressen gehen Benachrichtigungen für Websites, bei denen keine eigenen Empfänger eingetragen sind. Mehrere Adressen durch Kommas oder Zeilenumbrüche trennen.</p>
+                <span th:if="${#fields.hasErrors('fallbackRecipients')}" th:errors="*{fallbackRecipients}" class="feld-fehler">Fehler</span>
+            </div>
+
             <div class="form-gruppe form-gruppe-checkbox">
                 <label>
                     <input type="checkbox" th:field="*{schedulingPaused}">

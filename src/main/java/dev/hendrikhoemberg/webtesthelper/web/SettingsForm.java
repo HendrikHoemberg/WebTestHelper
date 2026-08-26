@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.List;
 import java.util.Optional;
 
 @Getter
@@ -22,9 +23,10 @@ public class SettingsForm {
     private String baseUrl;
     private String redirectAllMailTo;
     private Boolean schedulingPaused;
+    private String fallbackRecipients = "";
 
     public static SettingsForm from(SmtpSettings smtp, String baseUrl, Optional<String> redirectAllMailTo,
-                                    boolean schedulingPaused) {
+                                    boolean schedulingPaused, List<String> fallbackRecipients) {
         SettingsForm form = new SettingsForm();
         if (smtp != null) {
             form.setHost(smtp.host());
@@ -38,6 +40,12 @@ public class SettingsForm {
         form.setBaseUrl(baseUrl);
         form.setRedirectAllMailTo(redirectAllMailTo.orElse(""));
         form.setSchedulingPaused(schedulingPaused);
+        form.setFallbackRecipients(fallbackRecipients != null ? String.join(", ", fallbackRecipients) : "");
         return form;
+    }
+
+    public static SettingsForm from(SmtpSettings smtp, String baseUrl, Optional<String> redirectAllMailTo,
+                                    boolean schedulingPaused) {
+        return from(smtp, baseUrl, redirectAllMailTo, schedulingPaused, List.of());
     }
 }

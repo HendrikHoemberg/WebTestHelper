@@ -17,9 +17,14 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.util.Locale;
+import java.util.regex.Pattern;
+
 @Controller
 @RequestMapping("/einstellungen")
 public class SettingsController {
+
+    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
 
     private final AppSettings appSettings;
     private final MailRenderer mailRenderer;
@@ -42,7 +47,8 @@ public class SettingsController {
                 smtp,
                 appSettings.baseUrl(),
                 appSettings.redirectAllMailTo(),
-                appSettings.schedulingPaused()
+                appSettings.schedulingPaused(),
+                appSettings.fallbackRecipients()
         );
         model.addAttribute("form", form);
         model.addAttribute("tlsModes", TlsMode.values());
@@ -61,6 +67,18 @@ public class SettingsController {
             String trimmed = form.getBaseUrl().strip();
             if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
                 bindingResult.rejectValue("baseUrl", "ui.einstellungen.fehler.baseUrl.scheme", "Die Basis-URL muss mit http:// oder https:// beginnen.");
+            }
+        }
+
+        if (form.getFallbackRecipients() != null && !form.getFallbackRecipients().isBlank()) {
+            String[] tokens = form.getFallbackRecipients().split("[,;\\s]+");
+            for (String token : tokens) {
+                String email = token.strip();
+                if (!email.isEmpty() && !EMAIL_PATTERN.matcher(email.toLowerCase(Locale.ROOT)).matches()) {
+                    bindingResult.rejectValue("fallbackRecipients", "ui.einstellungen.fehler.fallbackRecipients.invalid",
+                            "Mindestens eine der angegebenen E-Mail-Adressen ist ungültig.");
+                    break;
+                }
             }
         }
 
@@ -89,6 +107,7 @@ public class SettingsController {
         appSettings.saveSmtp(smtp);
         appSettings.saveBaseUrl(form.getBaseUrl());
         appSettings.saveRedirectAllMailTo(form.getRedirectAllMailTo());
+        appSettings.saveFallbackRecipients(form.getFallbackRecipients());
         appSettings.saveSchedulingPaused(Boolean.TRUE.equals(form.getSchedulingPaused()));
 
         redirectAttributes.addFlashAttribute("gespeichert", true);

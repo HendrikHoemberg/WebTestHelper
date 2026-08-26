@@ -1,5 +1,7 @@
 package dev.hendrikhoemberg.webtesthelper.web;
 
+import dev.hendrikhoemberg.webtesthelper.catalog.AppSettings;
+import dev.hendrikhoemberg.webtesthelper.catalog.RecipientService;
 import dev.hendrikhoemberg.webtesthelper.catalog.SiteForm;
 import dev.hendrikhoemberg.webtesthelper.catalog.SiteService;
 import dev.hendrikhoemberg.webtesthelper.catalog.SiteSummary;
@@ -54,6 +56,12 @@ class SiteControllerTest {
 
     @MockitoBean
     ScheduleService scheduleService;
+
+    @MockitoBean
+    RecipientService recipientService;
+
+    @MockitoBean
+    AppSettings appSettings;
 
     @MockitoBean
     AppUserService appUserService;

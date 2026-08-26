@@ -16,14 +16,14 @@ class HelpServiceTest {
         List<HelpTopic> topics = helpService.all();
 
         assertThat(topics)
-                .hasSize(5)
+                .hasSize(6)
                 .extracting(HelpTopic::title)
                 .isSorted();
 
         assertThat(topics)
                 .extracting(HelpTopic::id)
                 .containsExactlyInAnyOrder("bericht-lesen", "ausgangsbestand", "smtp-einrichten",
-                        "zeitplaene", "stummschaltungen");
+                        "zeitplaene", "stummschaltungen", "benachrichtigungen");
     }
 
     @Test

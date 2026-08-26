@@ -15,6 +15,7 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -366,5 +367,59 @@ class SettingsControllerTest {
         mvc.perform(get("/einstellungen"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(org.hamcrest.Matchers.not(containsString("Die Planung ist angehalten"))));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void getSettingsLoadsAndRendersFallbackRecipientsAndHelpAffordance() throws Exception {
+        when(appSettings.smtp()).thenReturn(new SmtpSettings(
+                "smtp.example.com", 587, TlsMode.STARTTLS, "admin-smtp", "", "alerts@example.com"));
+        when(appSettings.baseUrl()).thenReturn("https://webtesthelper.example.com");
+        when(appSettings.redirectAllMailTo()).thenReturn(Optional.empty());
+        when(appSettings.fallbackRecipients()).thenReturn(List.of("fb1@example.com", "fb2@example.com"));
+
+        mvc.perform(get("/einstellungen"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("einstellungen/index"))
+                .andExpect(content().string(containsString("fb1@example.com")))
+                .andExpect(content().string(containsString("fb2@example.com")))
+                .andExpect(content().string(containsString("benachrichtigungen")));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void postSettingsWithValidFallbackRecipientsSavesThem() throws Exception {
+        mvc.perform(post("/einstellungen")
+                        .with(csrf())
+                        .param("host", "smtp.example.com")
+                        .param("port", "587")
+                        .param("tls", "STARTTLS")
+                        .param("password", "secret")
+                        .param("fromAddress", "alerts@example.com")
+                        .param("baseUrl", "https://webtesthelper.example.com")
+                        .param("fallbackRecipients", "fb1@example.com, fb2@example.com"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/einstellungen"));
+
+        verify(appSettings).saveFallbackRecipients("fb1@example.com, fb2@example.com");
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void postSettingsWithInvalidFallbackRecipientsReRendersWithFieldErrorAndDoesNotSave() throws Exception {
+        mvc.perform(post("/einstellungen")
+                        .with(csrf())
+                        .param("host", "smtp.example.com")
+                        .param("port", "587")
+                        .param("tls", "STARTTLS")
+                        .param("password", "secret")
+                        .param("fromAddress", "alerts@example.com")
+                        .param("baseUrl", "https://webtesthelper.example.com")
+                        .param("fallbackRecipients", "valid@example.com, not-an-email"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("einstellungen/index"))
+                .andExpect(model().attributeHasFieldErrors("form", "fallbackRecipients"));
+
+        verify(appSettings, never()).saveFallbackRecipients(any());
     }
 }

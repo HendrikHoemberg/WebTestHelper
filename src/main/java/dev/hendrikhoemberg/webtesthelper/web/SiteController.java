@@ -1,5 +1,8 @@
 package dev.hendrikhoemberg.webtesthelper.web;
 
+import dev.hendrikhoemberg.webtesthelper.catalog.AppSettings;
+import dev.hendrikhoemberg.webtesthelper.catalog.Recipient;
+import dev.hendrikhoemberg.webtesthelper.catalog.RecipientService;
 import dev.hendrikhoemberg.webtesthelper.catalog.SiteService;
 import dev.hendrikhoemberg.webtesthelper.catalog.SiteSummary;
 import dev.hendrikhoemberg.webtesthelper.checks.CheckDescriptor;
@@ -29,13 +32,18 @@ public class SiteController {
     private final RunService runService;
     private final CheckRegistry checkRegistry;
     private final ScheduleService scheduleService;
+    private final RecipientService recipientService;
+    private final AppSettings appSettings;
 
     public SiteController(SiteService siteService, RunService runService, CheckRegistry checkRegistry,
-                          ScheduleService scheduleService) {
+                          ScheduleService scheduleService, RecipientService recipientService,
+                          AppSettings appSettings) {
         this.siteService = siteService;
         this.runService = runService;
         this.checkRegistry = checkRegistry;
         this.scheduleService = scheduleService;
+        this.recipientService = recipientService;
+        this.appSettings = appSettings;
     }
 
     @GetMapping("/")
@@ -71,11 +79,15 @@ public class SiteController {
                 .toList();
 
         List<Schedule> schedules = scheduleService.forSite(id);
+        List<Recipient> recipients = recipientService.list(id);
+        List<String> fallbackRecipients = appSettings.fallbackRecipients();
         model.addAttribute("site", site);
         model.addAttribute("recentRuns", recentRuns);
         model.addAttribute("activeChecks", activeChecks);
         model.addAttribute("zeitplaene", ScheduleFormModel.of(schedules));
         model.addAttribute("zeitplaeneDetail", ScheduleView.detailByScope(schedules));
+        model.addAttribute("recipients", recipients);
+        model.addAttribute("fallbackRecipients", fallbackRecipients);
         return "websites/detail";
     }
 
