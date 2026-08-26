@@ -11,9 +11,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 /**
  * Service managing notification recipients per site with global fallback (spec 11.2, D59).
@@ -22,8 +20,6 @@ import java.util.regex.Pattern;
 @Service
 @Transactional
 public class RecipientService {
-
-    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
 
     private final NotificationRecipientRepository recipients;
     private final SiteRepository sites;
@@ -49,13 +45,10 @@ public class RecipientService {
         if (!sites.existsById(siteId)) {
             throw new IllegalArgumentException("Site existiert nicht: " + siteId);
         }
-        if (email == null || email.isBlank()) {
+        if (!EmailAddresses.isValid(email)) {
             throw new IllegalArgumentException("recipient.email.invalid");
         }
-        String normalized = email.strip().toLowerCase(Locale.ROOT);
-        if (!EMAIL_PATTERN.matcher(normalized).matches()) {
-            throw new IllegalArgumentException("recipient.email.invalid");
-        }
+        String normalized = EmailAddresses.normalize(email);
         if (recipients.existsBySiteIdAndEmail(siteId, normalized)) {
             throw new IllegalArgumentException("recipient.email.duplicate");
         }

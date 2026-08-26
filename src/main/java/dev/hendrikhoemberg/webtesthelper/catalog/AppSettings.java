@@ -6,9 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
 
 @Service
@@ -127,15 +125,7 @@ public class AppSettings {
     }
 
     private List<String> parseRecipients(String raw) {
-        if (raw == null || raw.isBlank()) {
-            return List.of();
-        }
-        return Arrays.stream(raw.split("[,;\\s]+"))
-                .map(String::strip)
-                .filter(s -> !s.isEmpty())
-                .map(s -> s.toLowerCase(Locale.ROOT))
-                .distinct()
-                .toList();
+        return EmailAddresses.split(raw);
     }
 
     @Transactional(readOnly = true)

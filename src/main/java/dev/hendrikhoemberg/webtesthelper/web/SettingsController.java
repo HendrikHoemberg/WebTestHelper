@@ -1,6 +1,7 @@
 package dev.hendrikhoemberg.webtesthelper.web;
 
 import dev.hendrikhoemberg.webtesthelper.catalog.AppSettings;
+import dev.hendrikhoemberg.webtesthelper.catalog.EmailAddresses;
 import dev.hendrikhoemberg.webtesthelper.catalog.SmtpSettings;
 import dev.hendrikhoemberg.webtesthelper.catalog.TlsMode;
 import dev.hendrikhoemberg.webtesthelper.reporting.DeliveryResult;
@@ -17,14 +18,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.util.Locale;
-import java.util.regex.Pattern;
 
 @Controller
 @RequestMapping("/einstellungen")
 public class SettingsController {
-
-    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
 
     private final AppSettings appSettings;
     private final MailRenderer mailRenderer;
@@ -70,16 +67,9 @@ public class SettingsController {
             }
         }
 
-        if (form.getFallbackRecipients() != null && !form.getFallbackRecipients().isBlank()) {
-            String[] tokens = form.getFallbackRecipients().split("[,;\\s]+");
-            for (String token : tokens) {
-                String email = token.strip();
-                if (!email.isEmpty() && !EMAIL_PATTERN.matcher(email.toLowerCase(Locale.ROOT)).matches()) {
-                    bindingResult.rejectValue("fallbackRecipients", "ui.einstellungen.fehler.fallbackRecipients.invalid",
-                            "Mindestens eine der angegebenen E-Mail-Adressen ist ungültig.");
-                    break;
-                }
-            }
+        if (!EmailAddresses.allValid(form.getFallbackRecipients())) {
+            bindingResult.rejectValue("fallbackRecipients", "ui.einstellungen.fehler.fallbackRecipients.invalid",
+                    "Mindestens eine der angegebenen E-Mail-Adressen ist ungültig.");
         }
 
         if (bindingResult.hasErrors()) {

@@ -43,9 +43,4 @@ public class SettingsForm {
         form.setFallbackRecipients(fallbackRecipients != null ? String.join(", ", fallbackRecipients) : "");
         return form;
     }
-
-    public static SettingsForm from(SmtpSettings smtp, String baseUrl, Optional<String> redirectAllMailTo,
-                                    boolean schedulingPaused) {
-        return from(smtp, baseUrl, redirectAllMailTo, schedulingPaused, List.of());
-    }
 }

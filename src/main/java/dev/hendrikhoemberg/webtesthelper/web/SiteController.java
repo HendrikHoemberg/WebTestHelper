@@ -1,19 +1,11 @@
 package dev.hendrikhoemberg.webtesthelper.web;
 
-import dev.hendrikhoemberg.webtesthelper.catalog.AppSettings;
-import dev.hendrikhoemberg.webtesthelper.catalog.Recipient;
-import dev.hendrikhoemberg.webtesthelper.catalog.RecipientService;
 import dev.hendrikhoemberg.webtesthelper.catalog.SiteService;
 import dev.hendrikhoemberg.webtesthelper.catalog.SiteSummary;
-import dev.hendrikhoemberg.webtesthelper.checks.CheckDescriptor;
-import dev.hendrikhoemberg.webtesthelper.checks.CheckRegistry;
 import dev.hendrikhoemberg.webtesthelper.model.RunScope;
 import dev.hendrikhoemberg.webtesthelper.model.RunTrigger;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
 import dev.hendrikhoemberg.webtesthelper.runner.RunService;
-import dev.hendrikhoemberg.webtesthelper.runner.RunSummary;
-import dev.hendrikhoemberg.webtesthelper.scheduling.Schedule;
-import dev.hendrikhoemberg.webtesthelper.scheduling.ScheduleService;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -30,20 +22,12 @@ public class SiteController {
 
     private final SiteService siteService;
     private final RunService runService;
-    private final CheckRegistry checkRegistry;
-    private final ScheduleService scheduleService;
-    private final RecipientService recipientService;
-    private final AppSettings appSettings;
+    private final SiteDetailModel siteDetailModel;
 
-    public SiteController(SiteService siteService, RunService runService, CheckRegistry checkRegistry,
-                          ScheduleService scheduleService, RecipientService recipientService,
-                          AppSettings appSettings) {
+    public SiteController(SiteService siteService, RunService runService, SiteDetailModel siteDetailModel) {
         this.siteService = siteService;
         this.runService = runService;
-        this.checkRegistry = checkRegistry;
-        this.scheduleService = scheduleService;
-        this.recipientService = recipientService;
-        this.appSettings = appSettings;
+        this.siteDetailModel = siteDetailModel;
     }
 
     @GetMapping("/")
@@ -72,22 +56,7 @@ public class SiteController {
 
     @GetMapping("/websites/{id}")
     public String detail(@PathVariable("id") long id, Model model) {
-        SiteContext site = siteService.contextFor(id);
-        List<RunSummary> recentRuns = runService.recentForSite(id, 20);
-        List<CheckDescriptor> activeChecks = checkRegistry.all().stream()
-                .filter(check -> site.enabled(check.type()))
-                .toList();
-
-        List<Schedule> schedules = scheduleService.forSite(id);
-        List<Recipient> recipients = recipientService.list(id);
-        List<String> fallbackRecipients = appSettings.fallbackRecipients();
-        model.addAttribute("site", site);
-        model.addAttribute("recentRuns", recentRuns);
-        model.addAttribute("activeChecks", activeChecks);
-        model.addAttribute("zeitplaene", ScheduleFormModel.of(schedules));
-        model.addAttribute("zeitplaeneDetail", ScheduleView.detailByScope(schedules));
-        model.addAttribute("recipients", recipients);
-        model.addAttribute("fallbackRecipients", fallbackRecipients);
+        siteDetailModel.populate(id, model);
         return "websites/detail";
     }
 
