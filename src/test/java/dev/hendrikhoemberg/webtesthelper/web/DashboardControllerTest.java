@@ -8,8 +8,10 @@ import dev.hendrikhoemberg.webtesthelper.reporting.DashboardView;
 import dev.hendrikhoemberg.webtesthelper.reporting.SiteTile;
 import dev.hendrikhoemberg.webtesthelper.reporting.TrafficLight;
 import dev.hendrikhoemberg.webtesthelper.runner.LastRun;
+import dev.hendrikhoemberg.webtesthelper.runner.DashboardProperties;
 import dev.hendrikhoemberg.webtesthelper.runner.SystemCapacity;
 import dev.hendrikhoemberg.webtesthelper.scheduling.Schedule;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -46,7 +48,15 @@ class DashboardControllerTest {
     DashboardService dashboardService;
 
     @MockitoBean
+    DashboardProperties dashboardProperties;
+
+    @MockitoBean
     AppUserService appUserService;
+
+    @BeforeEach
+    void pollIntervalIsThirtySeconds() {
+        when(dashboardProperties.pollInterval()).thenReturn(Duration.ofSeconds(30));
+    }
 
     private DashboardView sampleView() {
         SiteTile red = new SiteTile(1L, "Alpha", "https://alpha.example.com/", true, TrafficLight.ROT,

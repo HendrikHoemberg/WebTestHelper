@@ -2,8 +2,8 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 <div th:fragment="kacheln" id="dashboard-kacheln" class="dashboard-raster"
-     th:attr="hx-get=@{/uebersicht/kacheln}"
-     hx-trigger="every 30s"
+     th:with="takt=${'every ' + pollSekunden + 's'}"
+     th:attr="hx-get=@{/uebersicht/kacheln},hx-trigger=${takt}"
      hx-swap="outerHTML">
 
     <div th:if="${#lists.isEmpty(uebersicht.tiles)}" class="leer-zustand dash-leer">

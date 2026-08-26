@@ -71,7 +71,7 @@ class RunReportAcceptanceTest extends AbstractPostgresTest {
 
     @Test
     void runReportLifeCycleFromSiteCreationToBaselineAcceptanceAndPartialCoverage() throws Exception {
-        // 1. Create a site through POST /websites; assert it appears on GET /
+        // 1. Create a site through POST /websites; assert it appears on GET /websites
         MvcResult createResult = mvc.perform(post("/websites")
                         .with(csrf())
                         .param("name", "Test Kunde")
