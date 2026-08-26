@@ -126,4 +126,21 @@ class AppSettingsTest extends AbstractPostgresTest {
         appSettings.saveRedirectAllMailTo(null);
         assertThat(appSettings.redirectAllMailTo()).isEmpty();
     }
+
+    @Test
+    void saveFallbackRecipientsSplitsNormalisesAndDeduplicates() {
+        appSettings.saveFallbackRecipients("A@x.test; b@x.test , b@X.test");
+        assertThat(appSettings.fallbackRecipients()).containsExactly("a@x.test", "b@x.test");
+
+        appSettings.saveFallbackRecipients("  ");
+        assertThat(appSettings.fallbackRecipients()).isEmpty();
+
+        appSettings.saveFallbackRecipients(null);
+        assertThat(appSettings.fallbackRecipients()).isEmpty();
+    }
+
+    @Test
+    void fallbackRecipientsOnEmptyTableReturnsEmptyList() {
+        assertThat(appSettings.fallbackRecipients()).isEmpty();
+    }
 }

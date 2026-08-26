@@ -6,6 +6,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 @Service
@@ -20,6 +23,7 @@ public class AppSettings {
     public static final String KEY_SMTP_FROM = "smtp.from";
     public static final String KEY_MAIL_BASE_URL = "mail.base-url";
     public static final String KEY_MAIL_REDIRECT_ALL_TO = "mail.redirect-all-to";
+    public static final String KEY_MAIL_FALLBACK_RECIPIENTS = "mail.fallback-recipients";
     public static final String KEY_SCHEDULING_PAUSED = "scheduling.paused";
 
     private final AppSettingRepository repository;
@@ -107,6 +111,31 @@ public class AppSettings {
     public void saveRedirectAllMailTo(String address) {
         String val = (address != null && !address.isBlank()) ? address.strip() : "";
         saveSetting(KEY_MAIL_REDIRECT_ALL_TO, val, false);
+    }
+
+    @Transactional(readOnly = true)
+    public List<String> fallbackRecipients() {
+        return getSetting(KEY_MAIL_FALLBACK_RECIPIENTS)
+                .map(this::parseRecipients)
+                .orElseGet(List::of);
+    }
+
+    public void saveFallbackRecipients(String raw) {
+        List<String> parsed = parseRecipients(raw);
+        String val = String.join(", ", parsed);
+        saveSetting(KEY_MAIL_FALLBACK_RECIPIENTS, val, false);
+    }
+
+    private List<String> parseRecipients(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return List.of();
+        }
+        return Arrays.stream(raw.split("[,;\\s]+"))
+                .map(String::strip)
+                .filter(s -> !s.isEmpty())
+                .map(s -> s.toLowerCase(Locale.ROOT))
+                .distinct()
+                .toList();
     }
 
     @Transactional(readOnly = true)

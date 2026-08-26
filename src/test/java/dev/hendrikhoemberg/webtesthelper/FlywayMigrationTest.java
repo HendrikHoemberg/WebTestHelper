@@ -23,5 +23,8 @@ class FlywayMigrationTest extends AbstractPostgresTest {
 
         Integer notifications = jdbc.queryForObject("SELECT count(*) FROM notification", Integer.class);
         assertThat(notifications).isGreaterThanOrEqualTo(0);
+
+        Integer recipients = jdbc.queryForObject("SELECT count(*) FROM notification_recipient", Integer.class);
+        assertThat(recipients).isGreaterThanOrEqualTo(0);
     }
 }
