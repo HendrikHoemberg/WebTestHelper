@@ -123,7 +123,7 @@
             </div>
             <div class="befunde-liste">
                 <div th:each="befundItem : ${entry.value}">
-                    <div th:replace="~{fragments/befundzeile :: befundzeile(${befundItem})}"></div>
+                    <div th:replace="~{fragments/befundzeile :: befundzeile(${befundItem}, false)}"></div>
                 </div>
             </div>
         </section>

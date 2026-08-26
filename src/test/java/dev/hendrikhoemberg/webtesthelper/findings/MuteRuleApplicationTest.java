@@ -292,12 +292,14 @@ class MuteRuleApplicationTest extends AbstractPostgresTest {
         // Delete rule (which triggers unmuteRule)
         muteRuleService.delete(ruleId);
 
-        // Rule-muted finding must be UNTRIAGED, muted_by_rule_id cleared, mute_expired_at stamped
+        // Rule-muted finding must be UNTRIAGED, muted_by_rule_id cleared, mute_expired_at stamped.
+        // The reason survives, exactly as it does when the sweep expires a mute (D50): the screen
+        // prints it as "Damalige Begründung" next to a live occurrence count.
         Finding afterUnmuteRule = findingService.byId(fRule.id()).orElseThrow();
         assertThat(afterUnmuteRule.triage()).isEqualTo(TriageStatus.UNTRIAGED);
         assertThat(afterUnmuteRule.mutedByRuleId()).isNull();
-        assertThat(afterUnmuteRule.triageReason()).isNull();
-        assertThat(afterUnmuteRule.triagedBy()).isNull();
+        assertThat(afterUnmuteRule.triageReason()).isEqualTo("Rule mute");
+        assertThat(afterUnmuteRule.triagedBy()).isEqualTo("alice");
         assertThat(afterUnmuteRule.mutedUntil()).isNull();
         assertThat(afterUnmuteRule.muteExpiredAt()).isNotNull();
 
@@ -323,6 +325,37 @@ class MuteRuleApplicationTest extends AbstractPostgresTest {
         assertThat(f.triage()).isEqualTo(TriageStatus.MUTED);
         assertThat(f.mutedUntil()).isEqualTo(expiry.truncatedTo(ChronoUnit.MICROS));
         assertThat(f.mutedByRuleId()).isEqualTo(ruleId);
+    }
+
+    @Test
+    void deletingARuleLeavesAHumanWhoOverrodeItsMuteUntouched() {
+        // D51's second clause: deleting the rule cannot un-triage. The finding was muted BY the
+        // rule first, so muted_by_rule_id was set — and then a human made their own decision.
+        findingService.record(1, siteA, List.of(finding(CheckType.DEAD_LINK, "dead:/override", "/override")),
+                fullCoverage(List.of("/override")), now);
+
+        long ruleId = muteRuleService.create(new MuteRuleForm(
+                siteA, CheckType.DEAD_LINK, null, null, "Regel-Grund", now.plus(30, ChronoUnit.DAYS)), "alice", now);
+
+        Finding muted = findingService.byId(
+                jdbc.queryForObject("SELECT id FROM finding WHERE location_key = '/override'", Long.class)).orElseThrow();
+        assertThat(muted.mutedByRuleId()).isEqualTo(ruleId);
+
+        findingService.triage(siteA, List.of(muted.id()),
+                new TriageAction(TriageStatus.WONT_FIX, "Kunde will das so", null), "bob", now);
+
+        Finding overridden = findingService.byId(muted.id()).orElseThrow();
+        assertThat(overridden.mutedByRuleId())
+                .as("a human's decision detaches the finding from the rule")
+                .isNull();
+
+        muteRuleService.delete(ruleId);
+
+        Finding afterDelete = findingService.byId(muted.id()).orElseThrow();
+        assertThat(afterDelete.triage()).isEqualTo(TriageStatus.WONT_FIX);
+        assertThat(afterDelete.triageReason()).isEqualTo("Kunde will das so");
+        assertThat(afterDelete.triagedBy()).isEqualTo("bob");
+        assertThat(afterDelete.muteExpiredAt()).isNull();
     }
 
     private CheckFinding finding(CheckType type, String subject, String location) {

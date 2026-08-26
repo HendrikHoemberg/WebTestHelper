@@ -146,6 +146,26 @@ class FindingTriageTest extends AbstractPostgresTest {
     }
 
     @Test
+    void freshManualMuteClearsAStaleMuteExpiredAtStamp() {
+        // Otherwise a finding whose mute expired and was then re-muted by hand renders both
+        // "Stumm bis 24.11." and "Stummschaltung abgelaufen am 14.11." on the same row.
+        RunDiff diff = service.record(1, siteId, List.of(singleFinding("/a")), fullCoverage(List.of("/a")), now);
+        long id = diff.of(ReportSection.NEW).get(0).id();
+
+        Instant expiredStamp = now.minus(1, ChronoUnit.HOURS);
+        jdbc.update("UPDATE finding SET mute_expired_at = ? WHERE id = ?", Timestamp.from(expiredStamp), id);
+
+        TriageAction reMute = TriageAction.of(
+                TriageStatus.MUTED, "Doch noch nicht behoben", now.plus(30, ChronoUnit.DAYS), now, MAX_MUTE_DAYS);
+        service.triage(siteId, List.of(id), reMute, "charlie", now);
+
+        Finding f = service.byId(id).orElseThrow();
+        assertThat(f.triage()).isEqualTo(TriageStatus.MUTED);
+        assertThat(f.mutedUntil()).isNotNull();
+        assertThat(f.muteExpiredAt()).isNull();
+    }
+
+    @Test
     void bothStatusColumnsStayOrthogonalSoResolvedFindingCanBeTriagedAndStaysResolved() {
         // Run 1 observes finding
         service.record(1, siteId, List.of(singleFinding("/a")), fullCoverage(List.of("/a")), now);

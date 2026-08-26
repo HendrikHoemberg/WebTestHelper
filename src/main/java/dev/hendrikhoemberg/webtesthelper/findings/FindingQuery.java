@@ -20,6 +20,12 @@ public record FindingQuery(
         int page,
         int size
 ) {
+    /** Hard ceiling on a page, whatever the query string asks for. */
+    public static final int MAX_SIZE = 200;
+
+    /** Fallback when no page size is configured or supplied. */
+    public static final int DEFAULT_SIZE = 50;
+
     public FindingQuery {
         severities = severities == null ? Set.of() : Set.copyOf(severities);
         triageStatuses = triageStatuses == null ? Set.of() : Set.copyOf(triageStatuses);
@@ -28,11 +34,16 @@ public record FindingQuery(
             page = 1;
         }
         if (size < 1) {
-            size = 50;
+            size = DEFAULT_SIZE;
+        }
+        // ?size=100000 is one request away, and every row it returns is a checkbox the bulk
+        // endpoint would then refuse at its own cap of 200.
+        if (size > MAX_SIZE) {
+            size = MAX_SIZE;
         }
     }
 
     public static FindingQuery forSite(long siteId) {
-        return new FindingQuery(siteId, Set.of(), Set.of(), null, Set.of(), 1, 50);
+        return new FindingQuery(siteId, Set.of(), Set.of(), null, Set.of(), 1, DEFAULT_SIZE);
     }
 }

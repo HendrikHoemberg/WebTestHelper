@@ -69,14 +69,15 @@
             </div>
         </div>
 
-        <!-- §13.4 Consequence text stated before the click -->
-        <div x-show="requiresExpiry()" class="hinweis-folge" style="display: none; margin-top: 0.75rem; margin-bottom: 0.75rem;">
-            <p th:if="${!isBulk}" class="text-gedaempft" style="font-size: 0.9rem; margin: 0;">
-                Dieser Befund erscheint bis zum <strong x-text="formatDate(stummBis)"></strong> nicht mehr in Berichten oder E-Mails. Danach wird er automatisch wieder angezeigt.
-            </p>
-            <p th:if="${isBulk}" class="text-gedaempft" style="font-size: 0.9rem; margin: 0;">
-                Die ausgewählten Feststellungen erscheinen bis zum <strong x-text="formatDate(stummBis)"></strong> nicht mehr in Berichten oder E-Mails. Danach werden sie automatisch wieder angezeigt.
-            </p>
+        <!-- §13.4 Consequence text stated before the click. The date is only known to Alpine, so
+             the message is fetched with a marker as its {0} and split around that — the sentence
+             itself stays in messages.properties where §13.1 requires it. -->
+        <div x-show="requiresExpiry()" class="hinweis-folge" style="display: none; margin-top: 0.75rem; margin-bottom: 0.75rem;"
+             th:with="folge=${#messages.msg(isBulk ? 'ui.befunde.triage.stumm_folge_bulk' : 'ui.befunde.triage.stumm_folge', '#WERT#')}">
+            <p class="text-gedaempft" style="font-size: 0.9rem; margin: 0;"><span
+                    th:text="${#strings.substringBefore(folge, '#WERT#')}">Dieser Befund erscheint bis zum </span><strong
+                    x-text="formatDate(stummBis)"></strong><span
+                    th:text="${#strings.substringAfter(folge, '#WERT#')}"> nicht mehr in Berichten oder E-Mails.</span></p>
         </div>
 
         <div class="form-aktionen" style="margin-top: 0.75rem;">
@@ -85,7 +86,10 @@
                 Speichern
             </button>
             <span th:if="${isBulk}" x-show="selected.length > 0" class="text-gedaempft" style="align-self: center; font-size: 0.85rem;"
-                  x-text="selected.length + ' ausgewählt'"></span>
+                  th:with="auswahl=${#messages.msg('ui.befunde.triage.ausgewaehlt', '#WERT#')}"><span
+                    th:text="${#strings.substringBefore(auswahl, '#WERT#')}"></span><span
+                    x-text="selected.length">0</span><span
+                    th:text="${#strings.substringAfter(auswahl, '#WERT#')}"> ausgewählt</span></span>
         </div>
     </form>
 </div>

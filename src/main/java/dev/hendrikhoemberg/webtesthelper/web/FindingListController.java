@@ -3,6 +3,7 @@ package dev.hendrikhoemberg.webtesthelper.web;
 import dev.hendrikhoemberg.webtesthelper.catalog.SiteService;
 import dev.hendrikhoemberg.webtesthelper.checks.CheckRegistry;
 import dev.hendrikhoemberg.webtesthelper.findings.FindingPage;
+import dev.hendrikhoemberg.webtesthelper.findings.FindingProperties;
 import dev.hendrikhoemberg.webtesthelper.findings.FindingQuery;
 import dev.hendrikhoemberg.webtesthelper.findings.FindingService;
 import dev.hendrikhoemberg.webtesthelper.model.ObservedStatus;
@@ -26,13 +27,16 @@ public class FindingListController {
     private final FindingService findingService;
     private final FindingViewFactory findingViewFactory;
     private final CheckRegistry checkRegistry;
+    private final FindingProperties findingProperties;
 
     public FindingListController(SiteService siteService, FindingService findingService,
-                                 FindingViewFactory findingViewFactory, CheckRegistry checkRegistry) {
+                                 FindingViewFactory findingViewFactory, CheckRegistry checkRegistry,
+                                 FindingProperties findingProperties) {
         this.siteService = siteService;
         this.findingService = findingService;
         this.findingViewFactory = findingViewFactory;
         this.checkRegistry = checkRegistry;
+        this.findingProperties = findingProperties;
     }
 
     @GetMapping("/websites/{id}/befunde")
@@ -42,7 +46,7 @@ public class FindingListController {
                        Locale locale,
                        Model model) {
         SiteContext site = siteService.contextFor(siteId);
-        FindingQuery query = filter.toQuery(siteId);
+        FindingQuery query = filter.toQuery(siteId, findingProperties.pageSize());
         FindingPage page = findingService.search(query);
 
         List<FindingView> findingViews = page.findings().stream()

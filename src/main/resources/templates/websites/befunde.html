@@ -61,7 +61,7 @@
 
                 <div th:if="${not #lists.isEmpty(findings)}" class="befunde-liste">
                     <div th:each="befund : ${findings}">
-                        <div th:replace="~{fragments/befundzeile :: befundzeile(${befund})}"></div>
+                        <div th:replace="~{fragments/befundzeile :: befundzeile(${befund}, true)}"></div>
                     </div>
                 </div>
 
@@ -82,44 +82,46 @@
             </div>
         </section>
     </div>
-</main>
 
-<script>
-function findingsSelection() {
-    return {
-        selected: [],
-        toggle(id) {
-            const index = this.selected.indexOf(id);
-            if (index > -1) {
-                this.selected.splice(index, 1);
-            } else {
-                this.selected.push(id);
+    <!-- Inside <main>: the layout inserts only ~{::main}, so a script placed after it is
+         silently dropped and x-data="findingsSelection()" resolves to nothing. -->
+    <script>
+    function findingsSelection() {
+        return {
+            selected: [],
+            toggle(id) {
+                const index = this.selected.indexOf(id);
+                if (index > -1) {
+                    this.selected.splice(index, 1);
+                } else {
+                    this.selected.push(id);
+                }
+            },
+            isSelected(id) {
+                return this.selected.includes(String(id));
+            },
+            toggleAll(event) {
+                const checkboxes = document.querySelectorAll('.befund-checkbox');
+                if (event.target.checked) {
+                    this.selected = Array.from(checkboxes).map(cb => cb.value);
+                } else {
+                    this.selected = [];
+                }
+            },
+            isAllSelected() {
+                const checkboxes = document.querySelectorAll('.befund-checkbox');
+                if (checkboxes.length === 0) return false;
+                return Array.from(checkboxes).every(cb => this.selected.includes(cb.value));
+            },
+            isIndeterminate() {
+                const checkboxes = document.querySelectorAll('.befund-checkbox');
+                if (checkboxes.length === 0) return false;
+                const checkedCount = Array.from(checkboxes).filter(cb => this.selected.includes(cb.value)).length;
+                return checkedCount > 0 && checkedCount < checkboxes.length;
             }
-        },
-        isSelected(id) {
-            return this.selected.includes(String(id));
-        },
-        toggleAll(event) {
-            const checkboxes = document.querySelectorAll('.befund-checkbox');
-            if (event.target.checked) {
-                this.selected = Array.from(checkboxes).map(cb => cb.value);
-            } else {
-                this.selected = [];
-            }
-        },
-        isAllSelected() {
-            const checkboxes = document.querySelectorAll('.befund-checkbox');
-            if (checkboxes.length === 0) return false;
-            return Array.from(checkboxes).every(cb => this.selected.includes(cb.value));
-        },
-        isIndeterminate() {
-            const checkboxes = document.querySelectorAll('.befund-checkbox');
-            if (checkboxes.length === 0) return false;
-            const checkedCount = Array.from(checkboxes).filter(cb => this.selected.includes(cb.value)).length;
-            return checkedCount > 0 && checkedCount < checkboxes.length;
         }
     }
-}
-</script>
+    </script>
+</main>
 </body>
 </html>

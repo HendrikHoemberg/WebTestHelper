@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
-<div th:fragment="befundzeile(befund)" class="befund-karte">
+<!-- auswaehlbar: only the findings list carries a selection scope (findingsSelection()). The run
+     report reuses this fragment without one, and bulk triage deliberately does not live there. -->
+<div th:fragment="befundzeile(befund, auswaehlbar)" class="befund-karte">
     <div class="befund-kopf">
         <div class="befund-titel-zeile">
-            <label class="befund-checkbox-label">
+            <label th:if="${auswaehlbar}" class="befund-checkbox-label">
                 <input type="checkbox" name="ids" th:value="${befund.id}" class="befund-checkbox"
                        @change="toggle($el.value)" :checked="isSelected($el.value)">
             </label>

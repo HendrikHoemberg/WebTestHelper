@@ -2,7 +2,6 @@ package dev.hendrikhoemberg.webtesthelper.web;
 
 import dev.hendrikhoemberg.webtesthelper.catalog.SiteService;
 import dev.hendrikhoemberg.webtesthelper.catalog.SiteSummary;
-import dev.hendrikhoemberg.webtesthelper.findings.FindingStore;
 import dev.hendrikhoemberg.webtesthelper.findings.MuteRule;
 import dev.hendrikhoemberg.webtesthelper.findings.MuteRuleForm;
 import dev.hendrikhoemberg.webtesthelper.findings.MuteRuleService;
@@ -42,19 +41,16 @@ public class MuteRuleController {
 
     private final MuteRuleService muteRuleService;
     private final SiteService siteService;
-    private final FindingStore findingStore;
     private final ScheduleService scheduleService;
     private final MessageSource messageSource;
 
     public MuteRuleController(
             MuteRuleService muteRuleService,
             SiteService siteService,
-            FindingStore findingStore,
             ScheduleService scheduleService,
             MessageSource messageSource) {
         this.muteRuleService = muteRuleService;
         this.siteService = siteService;
-        this.findingStore = findingStore;
         this.scheduleService = scheduleService;
         this.messageSource = messageSource;
     }
@@ -152,7 +148,7 @@ public class MuteRuleController {
             @RequestParam(name = "subjectPattern", required = false) String subjectPattern,
             @RequestParam(name = "locationPattern", required = false) String locationPattern,
             Model model) {
-        int count = findingStore.countMatching(siteId, checkType, subjectPattern, locationPattern);
+        int count = muteRuleService.countMatching(siteId, checkType, subjectPattern, locationPattern);
         model.addAttribute("trefferAnzahl", count);
         return "fragments/regelvorschau :: regelvorschau";
     }

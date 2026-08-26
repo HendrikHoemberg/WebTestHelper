@@ -103,6 +103,13 @@ public class FindingStore {
                    muted_until = ?,
                    triaged_by = ?,
                    triaged_at = ?,
+                   -- A human's decision is now the reason this finding is quiet, so it can no longer
+                   -- belong to a rule: leaving muted_by_rule_id set would let a later rule deletion
+                   -- reset that decision to UNTRIAGED, which is exactly what D51 forbids.
+                   muted_by_rule_id = NULL,
+                   -- Cleared only when a fresh mute starts (?=TRUE). An un-triage leaves the stamp
+                   -- alone — that column is the sweep's record, and a human is not an expiry.
+                   mute_expired_at = CASE WHEN ? THEN NULL ELSE mute_expired_at END,
                    version = version + 1
              WHERE site_id = ?
                AND id = ANY(?)
@@ -123,14 +130,17 @@ public class FindingStore {
     private static final String UNMUTE_RULE_SQL = """
             UPDATE finding
                SET triage_status = 'UNTRIAGED',
-                   triage_reason = NULL,
-                   triaged_by = NULL,
-                   triaged_at = NULL,
                    muted_until = NULL,
                    muted_by_rule_id = NULL,
+                   -- Same SET list as EXPIRE_MUTES_SQL, and for the same reason (D50): triage_reason,
+                   -- triaged_by and triaged_at survive so the screen can print "Stummschaltung
+                   -- abgelaufen am … · Damalige Begründung: …" instead of an empty line.
                    mute_expired_at = ?,
                    version = version + 1
              WHERE muted_by_rule_id = ?
+               -- D51: only rows the rule itself is still silencing. A human who re-triaged a
+               -- rule-muted finding owns it now, and deleting the rule must not touch them.
+               AND triage_status = 'MUTED'
             """;
 
     private static final String COUNT_MATCHING_SQL = """
@@ -479,6 +489,8 @@ public class FindingStore {
         String triagedBy = isUntriaged ? null : actor;
         Timestamp triagedAt = isUntriaged ? null : ts(now);
 
+        boolean startsFreshMute = action.target() == TriageStatus.MUTED;
+
         return jdbc.execute((java.sql.Connection c) -> {
             Array idArray = c.createArrayOf("bigint", ids.toArray());
             try (PreparedStatement ps = c.prepareStatement(TRIAGE_SQL)) {
@@ -487,8 +499,9 @@ public class FindingStore {
                 ps.setTimestamp(3, mutedUntil);
                 ps.setString(4, triagedBy);
                 ps.setTimestamp(5, triagedAt);
-                ps.setLong(6, siteId);
-                ps.setArray(7, idArray);
+                ps.setBoolean(6, startsFreshMute);
+                ps.setLong(7, siteId);
+                ps.setArray(8, idArray);
                 return ps.executeUpdate();
             } finally {
                 idArray.free();

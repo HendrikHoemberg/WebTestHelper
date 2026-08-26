@@ -804,3 +804,50 @@ Run before declaring the plan done:
 - **Template enum encapsulation:** To fulfill §13.1 and ensure zero occurrences of `MUTED` or `WONT_FIX` in templates, `TriageStatus` was extended with UI helper predicates (`requiresExpiry()`, `requiresReason()`, `allowsReason()`, `formActions()`, `defaultFormAction()`) and exposed via `@ControllerAdvice` (`TriageUiAdvice`), allowing `bewertung.html` to render options dynamically and drive Alpine visibility without string matching on enum literals.
 - **Whole suite execution:** 711 tests passed (0 failures, 0 skipped), including full browser acceptance suite and ModularityTest.
 
+### Post-execution audit (2026-08-26)
+
+An audit against this plan found eight defects the 711 green tests did not catch. All are fixed;
+the suite is now **716 tests**, green including browser. What the audit changed, and why:
+
+- **The bulk selection script never reached the browser.** `websites/befunde.html` defined
+  `findingsSelection()` in a `<script>` after `</main>`, and `layout :: seite` inserts only
+  `~{::main}` — so `x-data="findingsSelection()"` resolved to nothing and every bulk POST arrived
+  with an empty `ids` list. `TriageControllerTest` passed throughout because MockMvc posts `ids`
+  directly and never renders the page. **The lesson for plans 8 and 9: a controller test that
+  asserts model attributes proves nothing about a screen whose behaviour lives in a template.**
+  `FindingListControllerTest` now asserts against the rendered body.
+- **D51 was violated on rule deletion.** `TRIAGE_SQL` did not clear `muted_by_rule_id`, and
+  `UNMUTE_RULE_SQL` matched on that column with no status guard — so a human who re-triaged a
+  rule-muted finding to `WONT_FIX` had their decision reset to `UNTRIAGED` when the rule was
+  deleted, which is the second clause of D51 in as many words. Fixed on both sides (the triage
+  detaches the row from the rule; the un-mute only touches rows still `MUTED`). Task 4's test
+  covered only the never-rule-muted human mute, so the override sequence was uncovered.
+- **`unmuteRule` now keeps `triage_reason`, `triaged_by` and `triaged_at`**, giving it exactly
+  `EXPIRE_MUTES_SQL`'s SET list. It stamped `mute_expired_at` while clearing the reason, so a
+  deleted rule rendered as *"Stummschaltung abgelaufen am …"* with an empty *Damalige Begründung* —
+  the one line D50 exists to print. This changed two assertions in `MuteRuleApplicationTest`.
+- **A fresh manual mute now clears a stale `mute_expired_at`.** `APPLY_RULE_SQL` cleared it;
+  `TRIAGE_SQL` did not, so a finding re-muted by hand after an expiry rendered both *"Stumm bis
+  24.11."* and *"Stummschaltung abgelaufen am 14.11."* at once. Un-triage still leaves the stamp
+  alone, per Task 1 — the `CASE WHEN ? THEN NULL` carries that distinction.
+- **The checkbox left the run report.** `befundzeile` gained an unconditional checkbox in Task 6,
+  and the run report shares that fragment without a selection scope — a dead control plus an Alpine
+  error on every row, and directly against this plan's *"Deliberately not in this plan"*. The
+  fragment now takes an `auswaehlbar` flag; `RunReportAcceptanceTest` asserts the run report has no
+  `befund-checkbox`.
+- **`webtesthelper.findings.page-size` was dead config.** `FindingFilterForm` and `FindingQuery`
+  each hardcoded 50 and nothing read the property. The form now leaves `size` null when the query
+  string carries none and the controller supplies `FindingProperties.pageSize()`.
+  `FindingQuery.MAX_SIZE = 200` also caps it: `?size=100000` was one request away, and every row it
+  returned was a checkbox the bulk endpoint would refuse at its own cap.
+- **`MuteRuleController` no longer injects `FindingStore`.** The §13.4 preview count went straight
+  past `FindingService`/`MuteRuleService` — the only place in `web` that reached past a service.
+  `MuteRuleService.countMatching` now fronts it.
+- **`fragments/bewertung.html` no longer hardcodes German.** §13.4's consequence sentence and the
+  selection count were literal text while `ui.befunde.triage.stumm_folge`, `…stumm_folge_bulk` and
+  `…ausgewaehlt` already existed unused in `messages.properties`. Because the value is only known
+  to Alpine, the message is fetched with a marker as its `{0}` and split around it with
+  `#strings.substringBefore/After` — the sentence stays in the properties file. **`UiMessageKeyTest`
+  checks that every key used resolves; nothing checks that visible text uses a key at all**, which
+  is how this survived. Worth a test in a later plan.
+

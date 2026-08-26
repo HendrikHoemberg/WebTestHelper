@@ -21,10 +21,16 @@ public record FindingFilterForm(
         triageStatuses = triageStatuses == null ? Set.of() : Set.copyOf(triageStatuses);
         checkTypes = checkTypes == null ? Set.of() : Set.copyOf(checkTypes);
         page = (page == null || page < 1) ? 1 : page;
-        size = (size == null || size < 1) ? 50 : size;
+        // Left null when the query string says nothing, so the controller can supply the
+        // configured webtesthelper.findings.page-size rather than a second hardcoded 50.
+        size = (size != null && size < 1) ? null : size;
     }
 
-    public FindingQuery toQuery(long siteId) {
-        return new FindingQuery(siteId, severities, triageStatuses, observed, checkTypes, page, size);
+    /**
+     * @param defaultSize the configured page size, used when the query string carries none.
+     */
+    public FindingQuery toQuery(long siteId, int defaultSize) {
+        return new FindingQuery(siteId, severities, triageStatuses, observed, checkTypes, page,
+                size == null ? defaultSize : size);
     }
 }

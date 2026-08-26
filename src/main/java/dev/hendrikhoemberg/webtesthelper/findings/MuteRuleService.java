@@ -1,5 +1,6 @@
 package dev.hendrikhoemberg.webtesthelper.findings;
 
+import dev.hendrikhoemberg.webtesthelper.model.CheckType;
 import dev.hendrikhoemberg.webtesthelper.findings.persistence.MuteRuleEntity;
 import dev.hendrikhoemberg.webtesthelper.findings.persistence.MuteRuleRepository;
 import org.springframework.stereotype.Service;
@@ -22,11 +23,23 @@ public class MuteRuleService {
     private final MuteRuleRepository repository;
     private final FindingProperties properties;
     private final MuteRuleApplier applier;
+    private final FindingStore findingStore;
 
-    public MuteRuleService(MuteRuleRepository repository, FindingProperties properties, MuteRuleApplier applier) {
+    public MuteRuleService(MuteRuleRepository repository, FindingProperties properties,
+            MuteRuleApplier applier, FindingStore findingStore) {
         this.repository = repository;
         this.properties = properties;
         this.applier = applier;
+        this.findingStore = findingStore;
+    }
+
+    /**
+     * How many findings a rule's criteria match right now — the §13.4 preview shown before the
+     * rule is created. Zero when no criterion is set, rather than "the whole site".
+     */
+    @Transactional(readOnly = true)
+    public int countMatching(Long siteId, CheckType checkType, String subjectPattern, String locationPattern) {
+        return findingStore.countMatching(siteId, checkType, subjectPattern, locationPattern);
     }
 
     public long create(MuteRuleForm form, String actor, Instant now) {
