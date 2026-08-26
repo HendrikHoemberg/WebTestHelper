@@ -35,6 +35,15 @@ public class SetupController {
     private final SiteService siteService;
     private final MessageSource messageSource;
 
+    /**
+     * D67's always-on checks: the probe proposes them unconditionally, and a probe that saw
+     * nothing — unreachable site — must not silently turn features off, so a failed probe
+     * submits exactly this set.
+     */
+    private static final List<CheckType> BASELINE = List.of(
+            CheckType.PAGE_STATUS, CheckType.PAGE_UNREACHABLE, CheckType.DEAD_LINK,
+            CheckType.REDIRECT_CHAIN, CheckType.IMAGE_BROKEN);
+
     public SetupController(SetupProbeService setupProbeService, SiteService siteService,
                            MessageSource messageSource) {
         this.setupProbeService = setupProbeService;
@@ -91,19 +100,25 @@ public class SetupController {
         model.addAttribute("error", state.error());
 
         List<SetupCheckView> checks = List.of();
-        List<String> pagesVisited = List.of();
         List<String> formPages = List.of();
         SetupProposal proposal = state.proposal();
         if (proposal != null) {
-            pagesVisited = proposal.pagesVisited();
             formPages = proposal.formPages();
             checks = proposal.checks().stream()
                     .map(this::toView)
                     .toList();
+        } else if (state.status() == ProbeStatus.FEHLGESCHLAGEN) {
+            checks = baseline();
         }
-        model.addAttribute("pagesVisited", pagesVisited);
         model.addAttribute("formPages", formPages);
         model.addAttribute("checks", checks);
+    }
+
+    private List<SetupCheckView> baseline() {
+        String reason = messageSource.getMessage("ui.einrichtung.grund.basis", null, Locale.GERMAN);
+        return BASELINE.stream()
+                .map(type -> new SetupCheckView(type, true, reason))
+                .toList();
     }
 
     private SetupCheckView toView(CheckProposal check) {

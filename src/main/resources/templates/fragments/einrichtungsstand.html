@@ -10,17 +10,14 @@
 
     <div th:if="${laeuft}" class="einrichtungsstand-laeuft">
         <p th:text="#{ui.einrichtung.laeuft}">Wir untersuchen die Website gerade — das kann einen Moment dauern.</p>
-        <p th:if="${not #lists.isEmpty(pagesVisited)}" class="text-gedaempft">
-            <span th:text="#{ui.einrichtung.seiten_gesehen}">Bisher gesehen:</span>
-            <span th:each="page : ${pagesVisited}" th:text="${page}">https://example.com/</span>
-        </p>
     </div>
 
-    <div th:if="${fertig}" class="einrichtungsstand-fertig">
-        <p th:if="${not #lists.isEmpty(formPages)}" class="hinweis-text"
+    <div th:if="${fertig or fehlgeschlagen}" class="einrichtungsstand-vorschlag">
+        <p th:if="${fertig and not #lists.isEmpty(formPages)}" class="hinweis-text"
            th:text="#{ui.einrichtung.form_gefunden(${#strings.listJoin(formPages, ' · ')})}">
             Kontaktformular auf /kontakt gefunden
         </p>
+        <p th:if="${fehlgeschlagen}" class="fehler" th:text="${error}">Fehlermeldung</p>
         <form th:action="@{/websites/{id}/einrichtung(id=${siteId})}" method="post" class="einrichtung-formular">
             <div th:each="item : ${checks}" class="einrichtung-check">
                 <label>
@@ -33,18 +30,9 @@
                 <button type="submit" class="button primär" th:text="#{ui.einrichtung.uebernehmen}">Übernehmen</button>
             </div>
         </form>
-    </div>
-
-    <div th:if="${fehlgeschlagen}" class="einrichtungsstand-fehlgeschlagen">
-        <p class="fehler" th:text="${error}">Fehlermeldung</p>
-        <div class="form-aktionen">
-            <form th:action="@{/websites/{id}/einrichtung/neu(id=${siteId})}" method="post" class="inline-form">
-                <button type="submit" class="button sekundär" th:text="#{ui.einrichtung.erneut}">Erneut versuchen</button>
-            </form>
-            <form th:action="@{/websites/{id}/einrichtung(id=${siteId})}" method="post" class="inline-form">
-                <button type="submit" class="button primär" th:text="#{ui.einrichtung.uebernehmen}">Übernehmen</button>
-            </form>
-        </div>
+        <form th:if="${fehlgeschlagen}" th:action="@{/websites/{id}/einrichtung/neu(id=${siteId})}" method="post" class="inline-form">
+            <button type="submit" class="button sekundär" th:text="#{ui.einrichtung.erneut}">Erneut versuchen</button>
+        </form>
     </div>
 
 </div>

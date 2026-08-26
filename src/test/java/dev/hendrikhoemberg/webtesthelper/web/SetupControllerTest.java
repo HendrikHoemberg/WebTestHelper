@@ -41,6 +41,10 @@ class SetupControllerTest {
 
     private static final long SITE_ID = 42L;
 
+    private static final List<CheckType> BASELINE = List.of(
+            CheckType.PAGE_STATUS, CheckType.PAGE_UNREACHABLE, CheckType.DEAD_LINK,
+            CheckType.REDIRECT_CHAIN, CheckType.IMAGE_BROKEN);
+
     @Autowired
     MockMvc mvc;
 
@@ -141,7 +145,7 @@ class SetupControllerTest {
 
     @Test
     @WithMockUser(roles = "USER")
-    void standWhenFailedRendersErrorAndRetryAndKeepAcceptButton() throws Exception {
+    void standWhenFailedRendersErrorRetryAndBaselineChecksChecked() throws Exception {
         when(setupProbeService.stateOf(SITE_ID)).thenReturn(Optional.of(failed("Website nicht erreichbar")));
 
         MvcResult result = mvc.perform(get("/websites/" + SITE_ID + "/einrichtung/stand"))
@@ -154,6 +158,14 @@ class SetupControllerTest {
         assertThat(body).contains("Website nicht erreichbar");
         assertThat(body).contains("Erneut versuchen");
         assertThat(body).contains("Übernehmen");
+        // The five always-on baseline checks are ticked, so Übernehmen never turns them off —
+        // a probe that saw nothing must not silently disable a seeded-on check.
+        assertThat(countOccurrences(body, "name=\"aktiv\"")).isEqualTo(5);
+        for (CheckType baseline : BASELINE) {
+            assertThat(body).contains("value=\"" + baseline + "\" checked=\"checked\"");
+        }
+        assertThat(body).contains("Grundprüfung, immer sinnvoll");
+        assertThat(body).doesNotContain("value=\"CONSOLE_ERRORS\"");
     }
 
     @Test
@@ -176,6 +188,30 @@ class SetupControllerTest {
         verify(siteService).setCheckEnabled(eq(SITE_ID), eq(CheckType.TLS_CERT), eq(false));
         // The one check SiteService.create seeds off is ticked here: on, the form decides.
         verify(siteService).setCheckEnabled(eq(SITE_ID), eq(CheckType.CONSOLE_ERRORS), eq(true));
+        verify(setupProbeService).clear(SITE_ID);
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void applyBaselineFromFailedProbeEnablesExactlyTheFiveAlwaysOnChecks() throws Exception {
+        siteExists();
+
+        mvc.perform(post("/websites/" + SITE_ID + "/einrichtung")
+                        .with(csrf())
+                        .param("aktiv", CheckType.PAGE_STATUS.name())
+                        .param("aktiv", CheckType.PAGE_UNREACHABLE.name())
+                        .param("aktiv", CheckType.DEAD_LINK.name())
+                        .param("aktiv", CheckType.REDIRECT_CHAIN.name())
+                        .param("aktiv", CheckType.IMAGE_BROKEN.name()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/websites/" + SITE_ID));
+
+        for (CheckType type : CheckType.values()) {
+            boolean enabled = BASELINE.contains(type);
+            verify(siteService).setCheckEnabled(eq(SITE_ID), eq(type), eq(enabled));
+        }
+        // A seeded-on check outside the baseline is disabled by the failed-probe form.
+        verify(siteService).setCheckEnabled(eq(SITE_ID), eq(CheckType.TLS_CERT), eq(false));
         verify(setupProbeService).clear(SITE_ID);
     }
 
