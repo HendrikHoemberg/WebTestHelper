@@ -41,4 +41,19 @@ public record SiteDigest(
     public boolean notable() {
         return errorCount > 0 || failed();
     }
+
+    /**
+     * Nothing whatsoever to report: no findings in either section, no counts, full coverage, no
+     * failure. Spec 11.2 aggregates to keep volume down, so these sites become one summary line
+     * rather than a card each. A site with so much as a "3 behoben" keeps its card.
+     */
+    public boolean quiet() {
+        return !failed()
+                && !partialCoverage
+                && news.total() == 0
+                && regressions.total() == 0
+                && fixedCount == 0
+                && stillOpenCount == 0
+                && knownCount == 0;
+    }
 }

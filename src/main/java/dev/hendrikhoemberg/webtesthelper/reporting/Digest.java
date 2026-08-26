@@ -40,6 +40,20 @@ public record Digest(
         return sites.stream().mapToInt(SiteDigest::errorCount).sum();
     }
 
+    /** The sites that get a card of their own. */
+    public List<SiteDigest> loudSites() {
+        return sites.stream().filter(site -> !site.quiet()).toList();
+    }
+
+    /** The sites that collapse into one summary line (spec 11.2). */
+    public List<SiteDigest> quietSites() {
+        return sites.stream().filter(SiteDigest::quiet).toList();
+    }
+
+    public List<String> quietSiteNames() {
+        return quietSites().stream().map(SiteDigest::siteName).toList();
+    }
+
     public int failedRuns() {
         return (int) sites.stream().filter(SiteDigest::failed).count();
     }

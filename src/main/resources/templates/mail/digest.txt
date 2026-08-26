@@ -4,7 +4,7 @@
 [# th:if="${digest.allClear()}"]
 [(#{ui.mail.digest.alles_gut})]
 [/]
-[# th:each="site : ${digest.sites}"]
+[# th:each="site : ${digest.loudSites()}"]
 === [(${site.siteName})] ===
 [# th:if="${site.failed()}"]
 [(#{ui.mail.digest.lauf_fehlgeschlagen})]
@@ -15,7 +15,7 @@
 [# th:if="${site.partialCoverage}"]
 [(#{ui.mail.digest.teilweise})]
 [/]
-[# th:if="${!site.news.shown.isEmpty()}"]
+[# th:if="${site.news.total > 0}"]
 [(#{ui.mail.digest.neu})]:
 [# th:each="befund : ${site.news.shown}"]
 * [(${site.siteName})] - [(${befund.title})] ([(#{${'ui.severity.' + befund.severity}})])
@@ -24,11 +24,13 @@
   [(#{ui.befund.behebung.label})] [(${befund.remediation})]
   [(${baseUrl})]/befunde/[(${befund.id})]
 [/]
-[# th:if="${site.news.omitted() > 0}"]
+[# th:if="${site.news.omitted() > 0 and !site.news.shown.isEmpty()}"]
 [(#{ui.mail.digest.weitere(${site.news.omitted()})})]
+[/][# th:if="${site.news.shown.isEmpty()}"]
+[(#{ui.mail.digest.nicht_aufgefuehrt(${site.news.total})})]
 [/]
 [/]
-[# th:if="${!site.regressions.shown.isEmpty()}"]
+[# th:if="${site.regressions.total > 0}"]
 [(#{ui.mail.digest.wiederkehrend})]:
 [# th:each="befund : ${site.regressions.shown}"]
 * [(${site.siteName})] - [(${befund.title})] ([(#{${'ui.severity.' + befund.severity}})])
@@ -37,8 +39,10 @@
   [(#{ui.befund.behebung.label})] [(${befund.remediation})]
   [(${baseUrl})]/befunde/[(${befund.id})]
 [/]
-[# th:if="${site.regressions.omitted() > 0}"]
+[# th:if="${site.regressions.omitted() > 0 and !site.regressions.shown.isEmpty()}"]
 [(#{ui.mail.digest.weitere(${site.regressions.omitted()})})]
+[/][# th:if="${site.regressions.shown.isEmpty()}"]
+[(#{ui.mail.digest.nicht_aufgefuehrt(${site.regressions.total})})]
 [/]
 [/]
 [# th:if="${site.fixedCount > 0 or site.stillOpenCount > 0 or site.knownCount > 0}"]
@@ -47,4 +51,7 @@
 [(#{ui.mail.digest.lauf_oeffnen})]: [(${baseUrl})]/laeufe/[(${site.runId})]
 [/]
 
+[/]
+[# th:if="${!digest.quietSites().isEmpty()}"]
+[# th:if="${digest.quietSites().size() == 1}"][(#{ui.mail.digest.stille_seiten_einzahl(${digest.quietSiteNames()[0]})})][/][# th:if="${digest.quietSites().size() > 1}"][(#{ui.mail.digest.stille_seiten(${digest.quietSites().size()}, ${#strings.listJoin(digest.quietSiteNames(), ', ')})})][/]
 [/]

@@ -277,4 +277,82 @@ class DigestMailRendererTest {
                 .contains("Auf allen geprüften Websites ist alles in Ordnung.")
                 .doesNotContain("??");
     }
+
+    @Test
+    void aSectionWhoseFindingsAreAllTooQuietToListStillReportsThatTheyExist() {
+        // Five new INFO findings: none is listed (D58 keeps INFO a count), but the section's total
+        // remembers them. Before the fix the whole section was hidden and the mail read as if the
+        // run had found nothing at all.
+        SiteDigest site = new SiteDigest(
+                10L, "Kunde Müller", 101L, RunStatus.COMPLETED, Instant.now(), null, false,
+                new DigestSection(List.of(), 5),
+                new DigestSection(List.of(), 0),
+                0, 0, 0, 0
+        );
+
+        Digest digest = new Digest(RunScope.DEEP, Instant.now(), List.of(site));
+
+        OutboundMail mail = renderer.render("admin@example.com", digest, "https://wth.example", Locale.GERMAN);
+
+        assertThat(mail.html()).contains("5 Feststellungen nicht aufgeführt");
+        assertThat(mail.text()).contains("5 Feststellungen nicht aufgeführt");
+    }
+
+    @Test
+    void quietSitesAreRolledUpIntoOneLineInsteadOfOneCardEach() {
+        // Spec 11.2 aggregates to stop volume making people filter reports away. A window of twelve
+        // sites where two changed must not render twelve cards.
+        FindingView finding = new FindingView(
+                1L, "Tote Links", "HTTP 404 auf https://example.com/kontakt",
+                "Linkziel prüfen", "/kontakt", false, 1,
+                Severity.ERROR, TriageStatus.UNTRIAGED
+        );
+        SiteDigest laut = new SiteDigest(
+                10L, "Laute Seite", 101L, RunStatus.COMPLETED, Instant.now(), null, false,
+                new DigestSection(List.of(finding), 1),
+                new DigestSection(List.of(), 0),
+                1, 0, 0, 0
+        );
+        SiteDigest still1 = new SiteDigest(
+                11L, "Stille Seite Eins", 102L, RunStatus.COMPLETED, Instant.now(), null, false,
+                new DigestSection(List.of(), 0), new DigestSection(List.of(), 0),
+                0, 0, 0, 0
+        );
+        SiteDigest still2 = new SiteDigest(
+                12L, "Stille Seite Zwei", 103L, RunStatus.COMPLETED, Instant.now(), null, false,
+                new DigestSection(List.of(), 0), new DigestSection(List.of(), 0),
+                0, 0, 0, 0
+        );
+
+        Digest digest = new Digest(RunScope.PULSE, Instant.now(), List.of(laut, still1, still2));
+
+        OutboundMail mail = renderer.render("admin@example.com", digest, "https://wth.example", Locale.GERMAN);
+
+        // The quiet pair is one summary line naming both, not two cards with their own run links.
+        assertThat(mail.html()).contains("2 Websites ohne Änderungen");
+        assertThat(mail.html()).contains("Stille Seite Eins");
+        assertThat(mail.html()).contains("Stille Seite Zwei");
+        assertThat(mail.html()).contains("https://wth.example/laeufe/101");
+        assertThat(mail.html()).doesNotContain("https://wth.example/laeufe/102");
+        assertThat(mail.text()).contains("2 Websites ohne Änderungen");
+    }
+
+    @Test
+    void aQuietSiteThatStillCarriesCountsKeepsItsOwnCard() {
+        // "Quiet" means nothing to report. A site with fixed or still-open findings has numbers
+        // worth showing and must not be swept into the rollup.
+        SiteDigest site = new SiteDigest(
+                11L, "Seite mit Zahlen", 102L, RunStatus.COMPLETED, Instant.now(), null, false,
+                new DigestSection(List.of(), 0), new DigestSection(List.of(), 0),
+                0, 3, 2, 0
+        );
+
+        Digest digest = new Digest(RunScope.DEEP, Instant.now(), List.of(site));
+
+        OutboundMail mail = renderer.render("admin@example.com", digest, "https://wth.example", Locale.GERMAN);
+
+        assertThat(mail.html()).doesNotContain("Websites ohne Änderungen");
+        assertThat(mail.html()).contains("3 behoben");
+        assertThat(mail.html()).contains("2 weiterhin offen");
+    }
 }

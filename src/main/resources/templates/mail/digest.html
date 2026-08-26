@@ -15,7 +15,7 @@
             <strong th:text="#{ui.mail.digest.alles_gut}">Auf allen geprüften Websites ist alles in Ordnung.</strong>
         </div>
 
-        <div th:each="site : ${digest.sites}" style="border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 20px; overflow: hidden;">
+        <div th:each="site : ${digest.loudSites()}" style="border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 20px; overflow: hidden;">
             <div style="background-color: #f1f5f9; padding: 12px 16px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
                 <span style="font-size: 16px; font-weight: 600; color: #0f172a;" th:text="${site.siteName}">Website</span>
                 <a th:href="${baseUrl} + '/laeufe/' + ${site.runId}" style="font-size: 13px; color: #2563eb; text-decoration: none; font-weight: 500;" th:text="#{ui.mail.digest.lauf_oeffnen}">Lauf ansehen</a>
@@ -32,7 +32,7 @@
                         Der Lauf hat sein Budget erreicht und nicht die ganze Website geprüft.
                     </div>
 
-                    <div th:if="${!site.news.shown.isEmpty()}" style="margin-bottom: 16px;">
+                    <div th:if="${site.news.total > 0}" style="margin-bottom: 16px;">
                         <h2 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #dc2626;" th:text="#{ui.mail.digest.neu}">Neu</h2>
                         <div th:each="befund : ${site.news.shown}" style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px; margin-bottom: 8px;">
                             <div style="margin-bottom: 6px;">
@@ -46,10 +46,11 @@
                                 <span th:text="${befund.remediation}">Abhilfe-Text</span>
                             </p>
                         </div>
-                        <p th:if="${site.news.omitted() > 0}" style="margin: 4px 0 0 0; font-size: 13px; color: #64748b; font-style: italic;" th:text="#{ui.mail.digest.weitere(${site.news.omitted()})}">und 2 weitere</p>
+                        <p th:if="${site.news.omitted() > 0 and !site.news.shown.isEmpty()}" style="margin: 4px 0 0 0; font-size: 13px; color: #64748b; font-style: italic;" th:text="#{ui.mail.digest.weitere(${site.news.omitted()})}">und 2 weitere</p>
+                        <p th:if="${site.news.shown.isEmpty()}" style="margin: 4px 0 0 0; font-size: 13px; color: #64748b; font-style: italic;" th:text="#{ui.mail.digest.nicht_aufgefuehrt(${site.news.total})}">5 Feststellungen nicht aufgeführt</p>
                     </div>
 
-                    <div th:if="${!site.regressions.shown.isEmpty()}" style="margin-bottom: 16px;">
+                    <div th:if="${site.regressions.total > 0}" style="margin-bottom: 16px;">
                         <h2 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #d97706;" th:text="#{ui.mail.digest.wiederkehrend}">Wieder aufgetreten</h2>
                         <div th:each="befund : ${site.regressions.shown}" style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px; margin-bottom: 8px;">
                             <div style="margin-bottom: 6px;">
@@ -63,7 +64,8 @@
                                 <span th:text="${befund.remediation}">Abhilfe-Text</span>
                             </p>
                         </div>
-                        <p th:if="${site.regressions.omitted() > 0}" style="margin: 4px 0 0 0; font-size: 13px; color: #64748b; font-style: italic;" th:text="#{ui.mail.digest.weitere(${site.regressions.omitted()})}">und 2 weitere</p>
+                        <p th:if="${site.regressions.omitted() > 0 and !site.regressions.shown.isEmpty()}" style="margin: 4px 0 0 0; font-size: 13px; color: #64748b; font-style: italic;" th:text="#{ui.mail.digest.weitere(${site.regressions.omitted()})}">und 2 weitere</p>
+                        <p th:if="${site.regressions.shown.isEmpty()}" style="margin: 4px 0 0 0; font-size: 13px; color: #64748b; font-style: italic;" th:text="#{ui.mail.digest.nicht_aufgefuehrt(${site.regressions.total})}">5 Feststellungen nicht aufgeführt</p>
                     </div>
 
                     <div th:if="${site.fixedCount > 0 or site.stillOpenCount > 0 or site.knownCount > 0}" style="border-top: 1px solid #f1f5f9; padding-top: 8px; font-size: 12px; color: #64748b;">
@@ -74,6 +76,14 @@
                 </div>
             </div>
         </div>
+
+        <p th:if="${!digest.quietSites().isEmpty()}"
+           style="margin: 0; padding: 12px 16px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 13px; color: #64748b;"
+           th:text="${digest.quietSites().size() == 1}
+                    ? #{ui.mail.digest.stille_seiten_einzahl(${digest.quietSiteNames()[0]})}
+                    : #{ui.mail.digest.stille_seiten(${digest.quietSites().size()}, ${#strings.listJoin(digest.quietSiteNames(), ', ')})}">
+            2 Websites ohne Änderungen: Seite A, Seite B
+        </p>
     </div>
 </body>
 </html>
