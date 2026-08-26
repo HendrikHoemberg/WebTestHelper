@@ -758,3 +758,69 @@ git commit -am "test(web): acceptance for guided setup and the dashboard"
 - **Persisted probe results and a "setup complete" flag.** D67.
 - **A second locale.** §12 is German-only and every key added here is German-only.
 - **`§16`'s application image.** Unchanged from the roadmap: it waits on the SMTP relay question.
+
+---
+
+## Execution findings
+
+### Task 10 added no code — the acceptance test passed on first run
+
+`DashboardAcceptanceTest` (one method, `-Pfast`) walked all seven steps and passed immediately
+against the features Tasks 1–9 shipped. No gap surfaced, which is what the plan expected when it
+said "Expect nothing new to be needed" — Task 10 therefore contributes a test and nothing else.
+The probe is stubbed (`@MockitoBean SetupProbe` returning a hand-built `ProbeEvidence`), and the
+site catalog, `SetupProbeService`, `FindingService` and the dashboard queries are all real, so the
+test crossed the real HTTP + Postgres + mute path end to end with no browser. The one ordering
+detail worth writing down: a `POST /websites` only redirects — the probe is started by the wizard
+shell GET, so the test follows the create redirect to `/einrichtung` before polling `/stand`.
+
+### The probe's page budget of 8 held against the fixture
+
+`SetupProbeTest` (browser) ran in this suite and its `hasSizeLessThanOrEqualTo(8)` along with
+`startsWith(baseUrl)` held. The fixture yields the homepage plus the five admitted internal links
+the preamble enumerates — `/leistungen`, `/kontakt`, `/medien`, `/mixed-content`, `/en/index` —
+six pages inside the homepage-plus-seven cap. The cap never bound here.
+
+### Dashboard query cost at the seeded site count
+
+`DashboardService.overview()` still issues its five grouped queries (sites, open counts, last
+runs, next fires, in-flight) plus the two fixed reads (scheduling flag, `CapacityService`) no
+matter how many sites there are, per Task 3. Both dashboard routes (`GET /` and
+`GET /uebersicht/kacheln`) returned 200 against a single seeded site in the acceptance test. I did
+not isolate per-query DB timings, so this records the end-to-end outcome, not a millisecond
+figure — and at one site the cost is dominated by the two fixed reads (CapacityService reads the
+browser-pool `busy()` count across two workers plus the outbox backlog), not the site-scaled
+aggregates, each of which is a single-row scan.
+
+### Constants
+
+No constant in the Decided table contradicted the runtime. The probe timeout (120 s) and result
+TTL (1 h) were never exercised here — the probe was mocked, which is the whole point, and the
+measured 8-page cap and 30 s poll are asserted elsewhere. Nothing shown below the Table section
+needed a number moved.
+
+### Notable execution events from Tasks 4–9
+
+- **Task 4:** `HelpServiceTest` was adjusted to the German `Collator` — the handbook sorts topics
+  by German title order (`Collator.getInstance(Locale.GERMAN)`), and adding the `uebersicht` topic
+  took the ordering assertion off a plain ASCII comparison; the test now owns a German collator.
+- **Task 5:** the follow-up fix commit (`54ae995`, honest guard javadoc / narrow duplicate catch /
+  case-insensitive ordering) initially carried a broken import in `AppUserService`; the compile
+  error was caught and corrected in Task 6 (`1f4433d`).
+- **Task 8:** `SetupProbeServiceTest.concurrentStartsRunTheProbeOnlyOnce` reproduced 7/8 duplicate
+  probes across eight racing threads before `start` was made `synchronized`; the fix (`220c889`)
+  is what makes the check-then-put one step, and the test pins that the probe runs exactly once.
+- **Task 9:** two plan-internal tensions resolved. `FEHLGESCHLAGEN` now submits the exactly-five
+  baseline checks instead of an empty config (`a3dcbcb`) — a probe that saw nothing must not
+  silently disable a seeded-on check. And the live page list under `LAEUFT` was dropped as inert:
+  the fragment shows only the waiting sentence while running, so a list no poll ever rendered was
+  removed rather than shipped.
+
+### Suite
+
+`./mvnw test` — **882 tests, 0 failures, 0 errors**, browser tests included, ~1m37s wall. Plan 8
+as executed was 782 / ~1m27s, so this is **+100 tests, ~+10s**. The growth is the whole plan, not
+just Task 10: the ten-browser-test `SetupProbeTest` (Task 7, 8.8 s) plus `DashboardAcceptanceTest`
+(Task 10) and the dashboard/setup/run unit tests from Tasks 1–9. `-Pfast` with
+`-Dtest=DashboardAcceptanceTest` is the edit-time loop for this test (single test, ~4.6 s once the
+Testcontainers container and Spring context are warm, ~16 s cold).
