@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 /**
  * The findings write path. {@link #record} is four statements in one transaction — upsert,
@@ -87,6 +88,11 @@ public class FindingService {
 
     public List<FindingOccurrence> occurrencesOfLastRun(long findingId, int limit) {
         return store.occurrencesOfLastRun(findingId, limit);
+    }
+
+    @Transactional(readOnly = true)
+    public Map<Long, OpenFindingCounts> openCountsBySite() {
+        return store.openCountsBySite();
     }
 }
 

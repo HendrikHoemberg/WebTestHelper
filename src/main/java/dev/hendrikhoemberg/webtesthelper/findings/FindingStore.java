@@ -170,6 +170,16 @@ public class FindingStore {
             .sorted()
             .collect(java.util.stream.Collectors.joining(", "));
 
+    private static final String OPEN_COUNTS_SQL = String.format("""
+            SELECT site_id, severity,
+                   count(*)                                               AS open_count,
+                   count(*) FILTER (WHERE triage_status = 'UNTRIAGED')     AS untriaged_count
+              FROM finding
+             WHERE observed_status = 'ACTIVE'
+               AND triage_status NOT IN (%s)
+             GROUP BY site_id, severity
+            """, SILENCING_IN_CLAUSE);
+
     private static final String DIFF_SQL = String.format("""
             SELECT f.*, CASE
                 WHEN f.observed_status = 'RESOLVED' AND f.resolved_at_run = ? THEN 'FIXED'
@@ -643,6 +653,29 @@ public class FindingStore {
         });
     }
 
+
+    /** Open findings per site, per severity, in one grouped statement. Sites with no open
+     * finding are absent from the map rather than present with zeros. */
+    public Map<Long, OpenFindingCounts> openCountsBySite() {
+        return jdbc.query(OPEN_COUNTS_SQL, rs -> {
+            Map<Long, OpenFindingCounts> bySite = new LinkedHashMap<>();
+            while (rs.next()) {
+                long siteId = rs.getLong("site_id");
+                int openCount = rs.getInt("open_count");
+                int untriaged = rs.getInt("untriaged_count");
+                OpenFindingCounts current = bySite.getOrDefault(siteId, OpenFindingCounts.none());
+                bySite.put(siteId, switch (Severity.valueOf(rs.getString("severity"))) {
+                    case ERROR -> new OpenFindingCounts(
+                            openCount, current.warnings(), current.infos(), current.untriaged() + untriaged);
+                    case WARN -> new OpenFindingCounts(
+                            current.errors(), openCount, current.infos(), current.untriaged() + untriaged);
+                    case INFO -> new OpenFindingCounts(
+                            current.errors(), current.warnings(), openCount, current.untriaged() + untriaged);
+                });
+            }
+            return bySite;
+        });
+    }
 
     private static Long getLongOrNull(java.sql.ResultSet rs, String column) {
         try {
