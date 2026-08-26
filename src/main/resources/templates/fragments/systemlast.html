@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<section id="systemlast" class="detail-bereich" th:fragment="systemlast">
+    <div class="abschnitt-ueberschrift-zeile">
+        <h2 th:text="#{ui.einstellungen.systemlast.titel}">Systemauslastung</h2>
+    </div>
+    <p class="kapazitaet-zeile"
+       th:text="#{ui.einstellungen.systemlast.browser(${systemlast.browserWorkersBusy()}, ${systemlast.browserWorkersTotal()})}">
+        Browser-Arbeiter: 1 belegt von 4.
+    </p>
+    <p class="hinweis-text"
+       th:text="#{ui.einstellungen.systemlast.envvar('WTH_BROWSER_WORKERS')}">
+        Umgebungsvariable: WTH_BROWSER_WORKERS
+    </p>
+    <p class="hinweis-text" th:text="#{ui.einstellungen.systemlast.neustart}">
+        Eine Änderung der Anzahl wird erst nach einem Neustart der Anwendung wirksam.
+    </p>
+</section>
+</body>
+</html>

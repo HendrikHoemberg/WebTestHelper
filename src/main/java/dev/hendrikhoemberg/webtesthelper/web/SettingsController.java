@@ -8,6 +8,7 @@ import dev.hendrikhoemberg.webtesthelper.reporting.DeliveryResult;
 import dev.hendrikhoemberg.webtesthelper.reporting.MailRenderer;
 import dev.hendrikhoemberg.webtesthelper.reporting.OutboundMail;
 import dev.hendrikhoemberg.webtesthelper.reporting.OutboxService;
+import dev.hendrikhoemberg.webtesthelper.runner.CapacityService;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -26,15 +27,18 @@ public class SettingsController {
     private final AppSettings appSettings;
     private final MailRenderer mailRenderer;
     private final OutboxService outboxService;
+    private final CapacityService capacityService;
 
     public SettingsController(
             AppSettings appSettings,
             MailRenderer mailRenderer,
-            OutboxService outboxService
+            OutboxService outboxService,
+            CapacityService capacityService
     ) {
         this.appSettings = appSettings;
         this.mailRenderer = mailRenderer;
         this.outboxService = outboxService;
+        this.capacityService = capacityService;
     }
 
     @GetMapping
@@ -50,6 +54,7 @@ public class SettingsController {
         model.addAttribute("form", form);
         model.addAttribute("tlsModes", TlsMode.values());
         model.addAttribute("smtpConfigured", smtp != null && smtp.configured());
+        model.addAttribute("systemlast", capacityService.current(outboxService.failedCount()));
         return "einstellungen/index";
     }
 
@@ -76,6 +81,7 @@ public class SettingsController {
             SmtpSettings currentSmtp = appSettings.smtp();
             model.addAttribute("tlsModes", TlsMode.values());
             model.addAttribute("smtpConfigured", currentSmtp != null && currentSmtp.configured());
+            model.addAttribute("systemlast", capacityService.current(outboxService.failedCount()));
             return "einstellungen/index";
         }
 

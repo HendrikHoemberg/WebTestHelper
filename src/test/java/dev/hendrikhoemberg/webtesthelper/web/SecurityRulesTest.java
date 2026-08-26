@@ -105,4 +105,20 @@ class SecurityRulesTest {
         mvc.perform(post("/websites/1/empfaenger/1/loeschen").with(csrf()))
                 .andExpect(status().isForbidden());
     }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void userCannotAccessUserAdministration() throws Exception {
+        mvc.perform(get("/einstellungen/benutzer"))
+                .andExpect(status().isForbidden());
+
+        mvc.perform(post("/einstellungen/benutzer").with(csrf()))
+                .andExpect(status().isForbidden());
+
+        mvc.perform(post("/einstellungen/benutzer/1").with(csrf()))
+                .andExpect(status().isForbidden());
+
+        mvc.perform(post("/einstellungen/benutzer/1/loeschen").with(csrf()))
+                .andExpect(status().isForbidden());
+    }
 }

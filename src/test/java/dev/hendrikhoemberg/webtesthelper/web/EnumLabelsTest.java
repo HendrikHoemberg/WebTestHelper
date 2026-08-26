@@ -36,7 +36,8 @@ class EnumLabelsTest {
                 dev.hendrikhoemberg.webtesthelper.model.ObservedStatus.class,
                 dev.hendrikhoemberg.webtesthelper.catalog.TlsMode.class,
                 dev.hendrikhoemberg.webtesthelper.reporting.NotificationState.class,
-                TrafficLight.class
+                TrafficLight.class,
+                dev.hendrikhoemberg.webtesthelper.web.AppRole.class
         );
 
         for (Class<? extends Enum<?>> enumClass : enumClasses) {

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html th:replace="~{layout :: seite(#{ui.einstellungen.benutzer.titel}, ~{::main})}" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title th:text="#{ui.einstellungen.benutzer.titel}">Benutzerverwaltung</title>
+</head>
+<body>
+<main>
+    <div th:if="${benutzerAngelegt}" class="hinweis erfolg" th:text="#{ui.einstellungen.benutzer.angelegt}">Benutzer wurde angelegt.</div>
+    <div th:if="${benutzerGeloescht}" class="hinweis erfolg" th:text="#{ui.einstellungen.benutzer.geloescht}">Benutzer wurde gelöscht.</div>
+    <div th:if="${benutzerGespeichert}" class="hinweis erfolg" th:text="#{ui.einstellungen.benutzer.gespeichert}">Änderungen wurden gespeichert.</div>
+    <div th:if="${flashError}" class="hinweis fehler" th:text="${flashError}">Fehler</div>
+
+    <header class="seiten-kopf">
+        <h1 th:text="#{ui.einstellungen.benutzer.titel}">Benutzerverwaltung</h1>
+    </header>
+
+    <section class="form-bereich">
+        <h2 th:text="#{ui.einstellungen.benutzer.neu.titel}">Benutzer anlegen</h2>
+        <form th:action="@{/einstellungen/benutzer}" th:object="${form}" method="post" class="formular">
+            <div class="form-gruppe">
+                <label for="benutzer-benutzername" th:text="#{ui.einstellungen.benutzer.neu.benutzername}">Benutzername</label>
+                <input type="text" id="benutzer-benutzername" th:field="*{username}" required autocomplete="off">
+                <span th:if="${#fields.hasErrors('username')}" th:errors="*{username}" class="feld-fehler">Fehler</span>
+            </div>
+            <div class="form-gruppe">
+                <label for="benutzer-passwort" th:text="#{ui.einstellungen.benutzer.neu.passwort}">Passwort</label>
+                <input type="password" id="benutzer-passwort" th:field="*{password}" required autocomplete="new-password"
+                       th:placeholder="#{ui.einstellungen.benutzer.neu.passwort.platzhalter}">
+                <span th:if="${#fields.hasErrors('password')}" th:errors="*{password}" class="feld-fehler">Fehler</span>
+            </div>
+            <div class="form-aktionen">
+                <button type="submit" class="button primär" th:text="#{ui.einstellungen.benutzer.neu.anlegen}">Benutzer anlegen</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="detail-bereich">
+        <h2 th:text="#{ui.einstellungen.benutzer.liste.titel}">Benutzer</h2>
+        <p th:if="${#lists.isEmpty(benutzer)}" class="text-gedaempft"
+           th:text="#{ui.einstellungen.benutzer.liste.leer}">(noch keine Benutzer)</p>
+
+        <table th:if="${!#lists.isEmpty(benutzer)}" class="tabelle">
+            <thead>
+            <tr>
+                <th th:text="#{ui.einstellungen.benutzer.liste.benutzername}">Benutzername</th>
+                <th th:text="#{ui.einstellungen.benutzer.liste.rolle}">Rolle</th>
+                <th th:text="#{ui.einstellungen.benutzer.liste.status}">Status</th>
+                <th th:text="#{ui.einstellungen.benutzer.liste.aktionen}">Aktionen</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="b : ${benutzer}"
+                th:with="geschuetzt=${b.role().name() == 'ADMIN' and b.enabled() and letzterAdminGeschuetzt}"
+                th:classappend="${b.enabled()} ? '' : 'zeile-gedaempft'">
+                <td th:text="${b.username()}">alice</td>
+                <td th:text="#{${'ui.approle.' + b.role()}}">Benutzer</td>
+                <td>
+                    <span th:if="${b.enabled()}" class="status-badge aktiv" th:text="#{ui.einstellungen.benutzer.status.aktiv}">Aktiv</span>
+                    <span th:unless="${b.enabled()}" class="status-badge inaktiv" th:text="#{ui.einstellungen.benutzer.status.inaktiv}">Deaktiviert</span>
+                </td>
+                <td class="benutzer-aktionen">
+                    <div th:if="${!geschuetzt}">
+                        <form th:if="${b.role().name() == 'ADMIN'}"
+                              th:action="@{/einstellungen/benutzer/{id}(id=${b.id()})}" method="post" class="inline-form">
+                            <input type="hidden" name="aktion" value="rolle">
+                            <input type="hidden" name="sollAdministrator" value="false">
+                            <button type="submit" class="button sekundär klein" th:text="#{ui.einstellungen.benutzer.herabstufen}">Zum Benutzer zurückstufen</button>
+                        </form>
+                        <form th:if="${b.role().name() == 'USER'}"
+                              th:action="@{/einstellungen/benutzer/{id}(id=${b.id()})}" method="post" class="inline-form">
+                            <input type="hidden" name="aktion" value="rolle">
+                            <input type="hidden" name="sollAdministrator" value="true">
+                            <button type="submit" class="button sekundär klein" th:text="#{ui.einstellungen.benutzer.befoerdern}">Zum Administrator machen</button>
+                        </form>
+                        <form th:if="${b.enabled()}"
+                              th:action="@{/einstellungen/benutzer/{id}(id=${b.id()})}" method="post" class="inline-form">
+                            <input type="hidden" name="aktion" value="aktiv">
+                            <input type="hidden" name="aktiv" value="false">
+                            <button type="submit" class="button sekundär klein" th:text="#{ui.einstellungen.benutzer.deaktivieren}">Deaktivieren</button>
+                            <p class="hinweis-text" th:text="#{ui.einstellungen.benutzer.deaktivieren.hinweis}">Diese Person kann sich danach nicht mehr anmelden.</p>
+                        </form>
+                        <form th:if="${!b.enabled()}"
+                              th:action="@{/einstellungen/benutzer/{id}(id=${b.id()})}" method="post" class="inline-form">
+                            <input type="hidden" name="aktion" value="aktiv">
+                            <input type="hidden" name="aktiv" value="true">
+                            <button type="submit" class="button sekundär klein" th:text="#{ui.einstellungen.benutzer.aktivieren}">Aktivieren</button>
+                        </form>
+                    </div>
+
+                    <form th:action="@{/einstellungen/benutzer/{id}(id=${b.id()})}" method="post" class="inline-form">
+                        <input type="hidden" name="aktion" value="passwort">
+                        <input type="password" name="passwort" th:placeholder="#{ui.einstellungen.benutzer.passwort.platzhalter}" autocomplete="new-password" class="passwort-eingabe">
+                        <button type="submit" class="button sekundär klein" th:text="#{ui.einstellungen.benutzer.passwort.setzen}">Passwort setzen</button>
+                    </form>
+
+                    <div th:if="${!geschuetzt}">
+                        <div x-data="{ offen: false, text: '' }" class="benutzer-loeschen">
+                            <button type="button" class="button sekundär klein" @click="offen = true"
+                                    th:text="#{ui.einstellungen.benutzer.loeschen}">Löschen</button>
+                            <form th:action="@{/einstellungen/benutzer/{id}/loeschen(id=${b.id()})}" method="post"
+                                  x-show="offen" style="display: none;" class="loeschen-bestaetigung">
+                                <p class="hinweis-text" th:text="#{ui.einstellungen.benutzer.loeschen.hinweis}">
+                                    Diese Person kann sich danach nicht mehr anmelden. Geben Sie zur Bestätigung „LÖSCHEN" ein.
+                                </p>
+                                <input type="text" x-model="text" name="bestaetigung"
+                                       th:placeholder="#{ui.einstellungen.benutzer.loeschen.bestaetigung}" autocomplete="off">
+                                <button type="submit" class="button gefährlich" :disabled="text !== 'LÖSCHEN'"
+                                        th:text="#{ui.einstellungen.benutzer.loeschen.bestaetigen}">Endgültig löschen</button>
+                            </form>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+</main>
+</body>
+</html>

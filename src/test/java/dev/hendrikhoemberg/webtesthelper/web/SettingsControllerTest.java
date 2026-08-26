@@ -7,6 +7,9 @@ import dev.hendrikhoemberg.webtesthelper.reporting.DeliveryResult;
 import dev.hendrikhoemberg.webtesthelper.reporting.MailRenderer;
 import dev.hendrikhoemberg.webtesthelper.reporting.OutboundMail;
 import dev.hendrikhoemberg.webtesthelper.reporting.OutboxService;
+import dev.hendrikhoemberg.webtesthelper.runner.CapacityService;
+import dev.hendrikhoemberg.webtesthelper.runner.SystemCapacity;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,12 +18,14 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -51,6 +56,14 @@ class SettingsControllerTest {
 
     @MockitoBean
     AppUserService appUserService;
+
+    @MockitoBean
+    CapacityService capacityService;
+
+    @BeforeEach
+    void capacityServiceStub() {
+        when(capacityService.current(anyInt())).thenReturn(new SystemCapacity(4, 1, 3, 1, Duration.ofSeconds(30), 2));
+    }
 
     @Test
     @WithMockUser(roles = "ADMIN")
@@ -421,5 +434,33 @@ class SettingsControllerTest {
                 .andExpect(model().attributeHasFieldErrors("form", "fallbackRecipients"));
 
         verify(appSettings, never()).saveFallbackRecipients(any());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void getSettingsRendersCapacityPanelReadOnly() throws Exception {
+        when(appSettings.smtp()).thenReturn(new SmtpSettings(
+                "smtp.example.com", 587, TlsMode.STARTTLS, "admin-smtp", "", "alerts@example.com"));
+        when(appSettings.baseUrl()).thenReturn("https://webtesthelper.example.com");
+        when(appSettings.redirectAllMailTo()).thenReturn(Optional.empty());
+        when(outboxService.failedCount()).thenReturn(2);
+        when(capacityService.current(2)).thenReturn(new SystemCapacity(4, 1, 3, 2, Duration.ofSeconds(30), 2));
+
+        String body = mvc.perform(get("/einstellungen"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        int panelStart = body.indexOf("id=\"systemlast\"");
+        assertThat(panelStart).isGreaterThan(-1);
+        int panelEnd = body.indexOf("</section>", panelStart);
+        assertThat(panelEnd).isGreaterThan(panelStart);
+        String panel = body.substring(panelStart, panelEnd);
+
+        assertThat(panel)
+                .contains("WTH_BROWSER_WORKERS")
+                .contains("1 belegt von 4")
+                .contains("Neustart")
+                .doesNotContain("<input")
+                .doesNotContain("<form");
     }
 }

@@ -2,7 +2,7 @@ package dev.hendrikhoemberg.webtesthelper.web;
 
 import dev.hendrikhoemberg.webtesthelper.web.persistence.AppUserEntity;
 import dev.hendrikhoemberg.webtesthelper.web.persistence.AppUserRepository;
-import org.springframework.dao.ConstraintViolationException;
+import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.core.userdetails.User;
