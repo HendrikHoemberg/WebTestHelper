@@ -778,8 +778,9 @@ shell GET, so the test follows the create redirect to `/einrichtung` before poll
 
 `SetupProbeTest` (browser) ran in this suite and its `hasSizeLessThanOrEqualTo(8)` along with
 `startsWith(baseUrl)` held. The fixture yields the homepage plus the five admitted internal links
-the preamble enumerates — `/leistungen`, `/kontakt`, `/medien`, `/mixed-content`, `/en/index` —
-six pages inside the homepage-plus-seven cap. The cap never bound here.
+the preamble enumerates — `/leistungen.html`, `/kontakt.html`, `/medien.html`,
+`/mixed-content.html`, `/en/index.html` — six pages inside the homepage-plus-seven cap. The cap
+never bound here.
 
 ### Dashboard query cost at the seeded site count
 

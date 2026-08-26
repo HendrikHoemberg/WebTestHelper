@@ -18,6 +18,7 @@ import dev.hendrikhoemberg.webtesthelper.model.RunTrigger;
 import dev.hendrikhoemberg.webtesthelper.model.Severity;
 import dev.hendrikhoemberg.webtesthelper.model.TriageStatus;
 import dev.hendrikhoemberg.webtesthelper.model.UrlNormalizer;
+import dev.hendrikhoemberg.webtesthelper.runner.SetupProbeService;
 import dev.hendrikhoemberg.webtesthelper.runner.persistence.RunEntity;
 import dev.hendrikhoemberg.webtesthelper.runner.persistence.RunRepository;
 import dev.hendrikhoemberg.webtesthelper.support.AbstractPostgresTest;
@@ -34,13 +35,12 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -197,7 +197,7 @@ class DashboardAcceptanceTest extends AbstractPostgresTest {
         Instant now = Instant.now();
         findingService.triage(siteId, List.of(findingId),
                 TriageAction.of(TriageStatus.MUTED, "Anbieter arbeitet an der Adresse, wird behoben",
-                        now.plusSeconds(86_400), now, findingProperties.maxMuteDays()),
+                        now.plus(1, ChronoUnit.DAYS), now, findingProperties.maxMuteDays()),
                 "test", now);
 
         String mutedGrid = mvc.perform(get("/uebersicht/kacheln"))
