@@ -54,12 +54,54 @@ class AppUserServiceTest extends AbstractPostgresTest {
 
     @Test
     void loadUserThrowsWhenDisabled() {
-        long id = appUserService.create("disabledUser", "pass", AppRole.USER);
+        long id = appUserService.create("disabledUser", "password123", AppRole.USER);
         AppUserEntity entity = userRepository.findById(id).orElseThrow();
         entity.setEnabled(false);
         userRepository.save(entity);
 
         assertThatThrownBy(() -> appUserService.loadUserByUsername("disabledUser"))
                 .isInstanceOf(UsernameNotFoundException.class);
+    }
+
+    @Test
+    void createRejectsBlankUsername() {
+        assertThatThrownBy(() -> appUserService.create("", "password123", AppRole.USER))
+                .isInstanceOfSatisfying(UserValidationException.class,
+                        ex -> assertThat(ex.messageKey()).isEqualTo("user.username.blank"));
+        assertThatThrownBy(() -> appUserService.create(" ", "password123", AppRole.USER))
+                .isInstanceOf(UserValidationException.class);
+    }
+
+    @Test
+    void createRejectsDuplicateUsernameCaseInsensitively() {
+        appUserService.create("TestUser", "password123", AppRole.USER);
+
+        assertThatThrownBy(() -> appUserService.create("testuser", "password123", AppRole.USER))
+                .isInstanceOfSatisfying(UserValidationException.class,
+                        ex -> {
+                            assertThat(ex.messageKey()).isEqualTo("user.username.duplicate");
+                            assertThat(ex.args()).containsExactly("testuser");
+                        });
+    }
+
+    @Test
+    void createRejectsPasswordUnderEightCharacters() {
+        assertThatThrownBy(() -> appUserService.create("shortpw", "seven77", AppRole.USER))
+                .isInstanceOfSatisfying(UserValidationException.class,
+                        ex -> {
+                            assertThat(ex.messageKey()).isEqualTo("user.password.tooShort");
+                            assertThat(ex.args()).containsExactly(8);
+                        });
+    }
+
+    @Test
+    void listOrdersUsersByUsername() {
+        appUserService.create("charlie", "password123", AppRole.USER);
+        appUserService.create("alice", "password123", AppRole.USER);
+        appUserService.create("bob", "password123", AppRole.ADMIN);
+
+        assertThat(appUserService.list())
+                .extracting(AppUserSummary::username)
+                .containsExactly("alice", "bob", "charlie");
     }
 }

@@ -51,5 +51,21 @@ public class WebExceptionHandler {
         }
         return "redirect:/";
     }
+
+    @ExceptionHandler(UserValidationException.class)
+    public String handleUserValidationException(
+            UserValidationException ex,
+            HttpServletRequest request,
+            RedirectAttributes redirectAttributes,
+            Locale locale) {
+        String errorMsg = messageSource.getMessage(ex.messageKey(), ex.args(), ex.messageKey(), locale);
+        redirectAttributes.addFlashAttribute("flashError", errorMsg);
+
+        String uri = request.getRequestURI();
+        if (uri != null && uri.contains("/einstellungen/benutzer")) {
+            return "redirect:/einstellungen/benutzer";
+        }
+        return "redirect:/";
+    }
 }
 
