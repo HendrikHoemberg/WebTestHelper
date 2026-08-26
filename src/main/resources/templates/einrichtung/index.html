@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html th:replace="~{layout :: seite(${siteName} + ' – ' + #{ui.einrichtung.titel}, ~{::main})}"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title th:text="${siteName} + ' – ' + #{ui.einrichtung.titel}">Website einrichten</title>
+</head>
+<body>
+<main>
+    <header class="seiten-kopf">
+        <div>
+            <h1 th:text="#{ui.einrichtung.titel}">Website einrichten</h1>
+            <span class="text-gedaempft" th:text="${siteName}">Website Name</span>
+        </div>
+        <div class="seiten-kopf-aktionen">
+            <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
+                    th:data-hx-get="@{/hilfe/hinweis/{id}(id='einrichtung')}"
+                    data-hx-target="next .hinweis" data-hx-swap="innerHTML">?</button>
+            <div class="hinweis" aria-live="polite"></div>
+        </div>
+    </header>
+
+    <p class="hinweis-text" th:text="#{ui.einrichtung.einleitung}">
+        Wir untersuchen die Website kurz und schlagen Ihnen daraus die passenden Prüfungen vor.
+    </p>
+
+    <div th:replace="~{fragments/einrichtungsstand :: stand}"></div>
+
+    <div class="form-aktionen">
+        <a th:href="@{/websites/{id}(id=${siteId})}" class="button sekundär"
+           th:text="#{ui.einrichtung.abbrechen}">Abbrechen</a>
+    </div>
+</main>
+</body>
+</html>

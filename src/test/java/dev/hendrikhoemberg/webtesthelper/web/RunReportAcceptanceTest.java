@@ -85,7 +85,7 @@ class RunReportAcceptanceTest extends AbstractPostgresTest {
 
         String redirectedUrl = createResult.getResponse().getRedirectedUrl();
         assertThat(redirectedUrl).isNotNull().startsWith("/websites/");
-        long siteId = Long.parseLong(redirectedUrl.substring("/websites/".length()));
+        long siteId = Long.parseLong(redirectedUrl.substring("/websites/".length()).split("/")[0]);
 
         mvc.perform(get("/websites"))
                 .andExpect(status().isOk())

@@ -51,7 +51,7 @@ public class SiteController {
             return "websites/formular";
         }
         long id = siteService.create(form.toForm());
-        return "redirect:/websites/" + id;
+        return "redirect:/websites/" + id + "/einrichtung";
     }
 
     @GetMapping("/websites/{id}")

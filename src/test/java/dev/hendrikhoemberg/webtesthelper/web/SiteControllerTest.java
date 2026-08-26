@@ -145,7 +145,7 @@ class SiteControllerTest {
                         .param("userAgent", "CustomBot/1.0")
                         .param("enabled", "true"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/websites/42"));
+                .andExpect(redirectedUrl("/websites/42/einrichtung"));
 
         ArgumentCaptor<SiteForm> captor = ArgumentCaptor.forClass(SiteForm.class);
         verify(siteService).create(captor.capture());

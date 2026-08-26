@@ -66,6 +66,35 @@ class SecurityRulesTest {
 
     @Test
     @WithMockUser(roles = "USER")
+    void userCanReachAllSetupPaths() throws Exception {
+        mvc.perform(get("/websites/1/einrichtung"))
+                .andExpect(status().isNotFound());
+        mvc.perform(get("/websites/1/einrichtung/stand"))
+                .andExpect(status().isNotFound());
+        mvc.perform(post("/websites/1/einrichtung").with(csrf()))
+                .andExpect(status().isNotFound());
+        mvc.perform(post("/websites/1/einrichtung/neu").with(csrf()))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void anonymousSetupPathsRedirectToAnmelden() throws Exception {
+        mvc.perform(get("/websites/1/einrichtung"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/anmelden"));
+        mvc.perform(get("/websites/1/einrichtung/stand"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/anmelden"));
+        mvc.perform(post("/websites/1/einrichtung").with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/anmelden"));
+        mvc.perform(post("/websites/1/einrichtung/neu").with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/anmelden"));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
     void mutatingActionRequiresCsrf() throws Exception {
         mvc.perform(post("/websites/1/pruefen"))
                 .andExpect(status().isForbidden());

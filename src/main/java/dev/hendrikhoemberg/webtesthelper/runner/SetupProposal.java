@@ -18,4 +18,18 @@ public record SetupProposal(ProbeEvidence evidence, List<CheckProposal> checks) 
     public SetupProposal {
         checks = List.copyOf(checks);
     }
+
+    /**
+     * The pages the probe actually visited, as plain URLs. Exposed here so the {@code web} module
+     * reads them off this record instead of reaching into {@link ProbeEvidence} directly — the
+     * {@code web} module may not depend on the {@code crawler} module.
+     */
+    public List<String> pagesVisited() {
+        return evidence.pagesVisited();
+    }
+
+    /** The pages carrying a form, as plain URLs. Same module-boundary reason as {@link #pagesVisited()}. */
+    public List<String> formPages() {
+        return evidence.formPages();
+    }
 }
