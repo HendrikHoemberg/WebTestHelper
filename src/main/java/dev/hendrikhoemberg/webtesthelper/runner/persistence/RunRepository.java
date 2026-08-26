@@ -4,7 +4,12 @@ import dev.hendrikhoemberg.webtesthelper.model.RunScope;
 import dev.hendrikhoemberg.webtesthelper.model.RunStatus;
 import org.springframework.data.domain.Limit;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
+import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -21,4 +26,13 @@ public interface RunRepository extends JpaRepository<RunEntity, Long> {
     /** The previous completed run of the same site — the diff's baseline (spec 6.3). */
     Optional<RunEntity> findFirstBySiteIdAndStatusAndIdLessThanOrderByIdDesc(
             Long siteId, RunStatus status, Long beforeRunId);
+
+    List<RunEntity> findByScopeAndDigestSentAtIsNullAndStatusInOrderByFinishedAtAsc(
+            RunScope scope, Collection<RunStatus> statuses);
+
+    boolean existsByScopeAndStatusIn(RunScope scope, Collection<RunStatus> statuses);
+
+    @Modifying
+    @Query("UPDATE RunEntity r SET r.digestSentAt = :at WHERE r.id IN :ids AND r.digestSentAt IS NULL")
+    int markDigested(@Param("ids") Collection<Long> ids, @Param("at") Instant at);
 }

@@ -110,6 +110,24 @@ public class RunService {
         return moved;
     }
 
+    public List<RunSummary> undigested(RunScope scope) {
+        return runs.findByScopeAndDigestSentAtIsNullAndStatusInOrderByFinishedAtAsc(
+                        scope, List.of(RunStatus.COMPLETED, RunStatus.FAILED))
+                .stream().map(this::toSummary).toList();
+    }
+
+    public boolean hasRunsInFlight(RunScope scope) {
+        return runs.existsByScopeAndStatusIn(scope, List.of(RunStatus.QUEUED, RunStatus.RUNNING));
+    }
+
+    @Transactional
+    public int markDigested(List<Long> runIds, Instant at) {
+        if (runIds == null || runIds.isEmpty()) {
+            return 0;
+        }
+        return runs.markDigested(runIds, at);
+    }
+
     private RunSummary toSummary(RunEntity run) {
         Set<CheckType> covered = run.getCoveredCheckTypes().isEmpty()
                 ? EnumSet.noneOf(CheckType.class)

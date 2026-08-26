@@ -80,6 +80,8 @@ public class RunEntity {
 
     private Instant baselineAcceptedAt;
 
+    private Instant digestSentAt;
+
     private String errorMessage;
 
     @Version

@@ -8,7 +8,12 @@ import java.time.Duration;
 public record ReportingProperties(
         Duration dispatchInterval,
         int maxAttempts,
-        boolean dispatcherEnabled
+        boolean dispatcherEnabled,
+        Duration digestSettle,
+        Duration digestMaxWait,
+        Duration digestInterval,
+        boolean digestEnabled,
+        int digestMaxFindings
 ) {
     public ReportingProperties {
         if (dispatchInterval == null) {
@@ -16,6 +21,18 @@ public record ReportingProperties(
         }
         if (maxAttempts <= 0) {
             maxAttempts = 5;
+        }
+        if (digestSettle == null) {
+            digestSettle = Duration.ofMinutes(5);
+        }
+        if (digestMaxWait == null) {
+            digestMaxWait = Duration.ofHours(6);
+        }
+        if (digestInterval == null) {
+            digestInterval = Duration.ofMinutes(2);
+        }
+        if (digestMaxFindings <= 0) {
+            digestMaxFindings = 10;
         }
     }
 }
