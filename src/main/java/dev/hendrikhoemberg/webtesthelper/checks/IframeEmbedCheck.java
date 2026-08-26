@@ -6,7 +6,6 @@ import dev.hendrikhoemberg.webtesthelper.model.ConsoleMessage;
 import dev.hendrikhoemberg.webtesthelper.model.Evidence;
 import dev.hendrikhoemberg.webtesthelper.model.FailedRequest;
 import dev.hendrikhoemberg.webtesthelper.model.FrameRef;
-import dev.hendrikhoemberg.webtesthelper.model.NormalizedUrl;
 import dev.hendrikhoemberg.webtesthelper.model.PageSnapshot;
 import dev.hendrikhoemberg.webtesthelper.model.Severity;
 import dev.hendrikhoemberg.webtesthelper.model.UrlNormalizer;
@@ -100,7 +99,7 @@ public final class IframeEmbedCheck implements PageCheck {
         boolean anyLocationMatch = false;
         for (FrameRef frame : snapshot.frames()) {
             String frameSubject = frame.src().value();
-            if (!isMapsEmbed(frame.src()) || blocked.contains(frameSubject)) {
+            if (!frame.isMapsEmbed() || blocked.contains(frameSubject)) {
                 continue;
             }
             String frameKey = UrlNormalizer.key(frameSubject).orElse(null);
@@ -130,7 +129,7 @@ public final class IframeEmbedCheck implements PageCheck {
             if (blocked.contains(subject)) {
                 findings.add(finding(snapshot, config, BLOCKED, subject, List.of(subject),
                         List.of()));
-            } else if (isMapsEmbed(frame.src())) {
+            } else if (frame.isMapsEmbed()) {
                 List<String> errors = anyLocationMatch
                         ? perFrame.getOrDefault(subject, List.of())
                         : mapsErrors;
@@ -162,11 +161,5 @@ public final class IframeEmbedCheck implements PageCheck {
                 .filter(code -> lower.contains(code.toLowerCase(Locale.ROOT)))
                 .findFirst()
                 .orElse(null);
-    }
-
-    private static boolean isMapsEmbed(NormalizedUrl src) {
-        String path = src.path().toLowerCase(Locale.ROOT);
-        return path.contains("/maps/embed")
-                || (src.registrableHost().contains("google") && path.contains("/maps"));
     }
 }
