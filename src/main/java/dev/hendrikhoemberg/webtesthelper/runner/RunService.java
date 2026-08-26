@@ -6,6 +6,7 @@ import dev.hendrikhoemberg.webtesthelper.model.CheckType;
 import dev.hendrikhoemberg.webtesthelper.model.RunScope;
 import dev.hendrikhoemberg.webtesthelper.model.RunStatus;
 import dev.hendrikhoemberg.webtesthelper.model.RunTrigger;
+import dev.hendrikhoemberg.webtesthelper.runner.persistence.RunDashboardJdbcRepository;
 import dev.hendrikhoemberg.webtesthelper.runner.persistence.RunEntity;
 import dev.hendrikhoemberg.webtesthelper.runner.persistence.RunRepository;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -15,8 +16,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.time.Instant;
 import java.util.stream.Collectors;
 
@@ -34,11 +37,14 @@ import java.util.stream.Collectors;
 public class RunService {
 
     private final RunRepository runs;
+    private final RunDashboardJdbcRepository dashboard;
     private final SiteService sites;
     private final FindingService findings;
 
-    public RunService(RunRepository runs, SiteService sites, FindingService findings) {
+    public RunService(RunRepository runs, RunDashboardJdbcRepository dashboard,
+                      SiteService sites, FindingService findings) {
         this.runs = runs;
+        this.dashboard = dashboard;
         this.sites = sites;
         this.findings = findings;
     }
@@ -84,6 +90,21 @@ public class RunService {
     public List<RunSummary> recentForSite(long siteId, int limit) {
         return runs.findBySiteIdOrderByQueuedAtDesc(siteId, Limit.of(limit))
                 .stream().map(this::toSummary).toList();
+    }
+
+    /**
+     * The newest terminal run per site ({@code COMPLETED}/{@code FAILED} only). A site whose only
+     * run is {@code QUEUED} or {@code RUNNING} is absent: "nothing has finished here yet" and "it
+     * is green" are different answers, and the grid needs the one that is true.
+     */
+    public Map<Long, LastRun> lastTerminalPerSite() {
+        return dashboard.lastTerminalPerSite().stream()
+                .collect(Collectors.toMap(LastRun::siteId, Function.identity()));
+    }
+
+    /** Runs waiting for a worker plus runs in flight, all scopes. */
+    public int runsInFlight() {
+        return dashboard.runsInFlight();
     }
 
     public RunSummary summary(long runId) {

@@ -11,7 +11,7 @@ import java.util.List;
 
 /**
  * <b>This interface depends on {@code catalog}'s internals and no automated check can see it.</b>
- * Both {@code @Query} strings name {@link SiteEntity} — a type inside {@code catalog.persistence},
+ * The {@code @Query} strings name {@link SiteEntity} — a type inside {@code catalog.persistence},
  * not on {@code catalog}'s exposed API. JPQL names entities as text, so the reference lives only
  * in a string literal: it compiles to no bytecode, and {@code ModularityTest}'s ArchUnit scan
  * therefore passes on it rather than approving it. The import above is deliberately kept, unused,
@@ -33,6 +33,10 @@ public interface ScheduleRepository extends JpaRepository<ScheduleEntity, Long> 
     /** Enabled rows of enabled sites whose {@code next_fire_at} has passed, oldest first (matches ix_schedule_due). */
     @Query("SELECT sch FROM ScheduleEntity sch JOIN SiteEntity site ON site.id = sch.siteId WHERE sch.enabled = TRUE AND site.enabled = TRUE AND sch.nextFireAt <= :now ORDER BY sch.nextFireAt ASC")
     List<ScheduleEntity> findDue(Instant now, Limit limit);
+
+    /** Enabled rows of enabled sites that will ever fire, ordered per site then by next occurrence (the join matches findDue's D41 predicate). */
+    @Query("SELECT sch FROM ScheduleEntity sch JOIN SiteEntity site ON site.id = sch.siteId WHERE sch.enabled = TRUE AND site.enabled = TRUE AND sch.nextFireAt IS NOT NULL ORDER BY sch.siteId ASC, sch.nextFireAt ASC")
+    List<ScheduleEntity> findNextFirePerSite();
 
     /** Site ids with no schedule row at all — D38's lazy backfill set. */
     @Query("SELECT s.id FROM SiteEntity s WHERE NOT EXISTS (SELECT sch.id FROM ScheduleEntity sch WHERE sch.siteId = s.id)")

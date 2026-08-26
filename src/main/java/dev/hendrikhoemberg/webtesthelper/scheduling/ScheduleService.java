@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
+import java.util.LinkedHashMap;
 
 /**
  * The schedule catalog: reads one tier's rows for a site, the due set for the dispatcher,
@@ -41,6 +43,20 @@ public class ScheduleService {
         return schedules.findDue(now, Limit.of(limit)).stream()
                 .map(this::toSchedule)
                 .toList();
+    }
+
+    /**
+     * The earliest future occurrence per site, across the three tiers. The repository returns
+     * enabled rows of enabled sites with a non-null {@code next_fire_at}, ordered per site then
+     * by occurrence; DISTINCT ON is not expressible in JPQL, so the first row per site is taken
+     * here. A site with no enabled, non-null row is absent.
+     */
+    public Map<Long, Schedule> nextFirePerSite() {
+        Map<Long, Schedule> firstPerSite = new LinkedHashMap<>();
+        for (ScheduleEntity row : schedules.findNextFirePerSite()) {
+            firstPerSite.putIfAbsent(row.getSiteId(), toSchedule(row));
+        }
+        return firstPerSite;
     }
 
     /**
