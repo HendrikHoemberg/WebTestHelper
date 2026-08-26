@@ -2,6 +2,7 @@ package dev.hendrikhoemberg.webtesthelper.web;
 
 import dev.hendrikhoemberg.webtesthelper.web.persistence.AppUserEntity;
 import dev.hendrikhoemberg.webtesthelper.web.persistence.AppUserRepository;
+import org.springframework.dao.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.core.userdetails.User;
@@ -45,14 +46,17 @@ public class AppUserService implements UserDetailsService {
         entity.setEnabled(true);
         try {
             return userRepository.save(entity).getId();
-        } catch (DataIntegrityViolationException raceLostToAnotherCreate) {
-            throw new UserValidationException("user.username.duplicate", username);
+        } catch (DataIntegrityViolationException ex) {
+            if (isUsernameConstraintViolation(ex)) {
+                throw new UserValidationException("user.username.duplicate", username);
+            }
+            throw ex;
         }
     }
 
     @Transactional(readOnly = true)
     public List<AppUserSummary> list() {
-        return userRepository.findAll(Sort.by("username")).stream()
+        return userRepository.findAll(Sort.by(Sort.Order.asc("username").ignoreCase())).stream()
                 .map(this::toSummary)
                 .toList();
     }
@@ -113,10 +117,13 @@ public class AppUserService implements UserDetailsService {
     }
 
     /**
-     * D71: the last enabled {@code ADMIN} cannot be disabled, demoted or deleted. The count is
-     * read inside the same transaction that writes, so two concurrent demotions cannot each see
-     * two admins — the count is the read half of a check-then-act and the transaction is what
-     * makes it one.
+     * D71: the last enabled {@code ADMIN} cannot be disabled, demoted or deleted. The count and
+     * the write share one transaction, so they are atomic with respect to each other — the count
+     * is the read half of a check-then-act and the transaction makes the whole thing one
+     * operation. That does not by itself exclude two concurrent demotions of two different admins:
+     * under Postgres' default {@code READ_COMMITTED} each sees a snapshot with both admins and the
+     * check passes twice. Hardening would be a pessimistic lock on the admin's row (a
+     * {@code SELECT ... FOR UPDATE}); not implemented.
      */
     private void assertNotLastEnabledAdmin(AppUserEntity entity) {
         if (entity.getRole() == AppRole.ADMIN && entity.isEnabled() && enabledAdminCount() <= 1) {
@@ -127,6 +134,25 @@ public class AppUserService implements UserDetailsService {
     private AppUserEntity require(long id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Benutzer " + id + " existiert nicht"));
+    }
+
+    /**
+     * Matches {@code ux_app_user_username} rather than translating any integrity violation into
+     * "duplicate username": the insert touches only {@code app_user}, but only a violation of the
+     * username unique index is actually a duplicate, and swallowing anything else would hide a
+     * real database error.
+     */
+    private boolean isUsernameConstraintViolation(DataIntegrityViolationException ex) {
+        for (Throwable cause = ex; cause != null; cause = cause.getCause()) {
+            if (cause instanceof ConstraintViolationException cv
+                    && "ux_app_user_username".equals(cv.getConstraintName())) {
+                return true;
+            }
+            if (cause.getMessage() != null && cause.getMessage().contains("ux_app_user_username")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private AppUserSummary toSummary(AppUserEntity entity) {
