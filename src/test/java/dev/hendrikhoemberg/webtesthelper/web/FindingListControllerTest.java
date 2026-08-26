@@ -15,6 +15,7 @@ import dev.hendrikhoemberg.webtesthelper.model.ObservedStatus;
 import dev.hendrikhoemberg.webtesthelper.model.Severity;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
 import dev.hendrikhoemberg.webtesthelper.model.TriageStatus;
+import dev.hendrikhoemberg.webtesthelper.reporting.FindingViewFactory;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;

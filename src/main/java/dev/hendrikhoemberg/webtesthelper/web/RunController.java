@@ -5,6 +5,8 @@ import dev.hendrikhoemberg.webtesthelper.findings.FindingService;
 import dev.hendrikhoemberg.webtesthelper.findings.ReportSection;
 import dev.hendrikhoemberg.webtesthelper.findings.RunDiff;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
+import dev.hendrikhoemberg.webtesthelper.reporting.FindingView;
+import dev.hendrikhoemberg.webtesthelper.reporting.FindingViewFactory;
 import dev.hendrikhoemberg.webtesthelper.runner.RunService;
 import dev.hendrikhoemberg.webtesthelper.runner.RunSummary;
 import jakarta.servlet.http.HttpServletResponse;

@@ -10,6 +10,8 @@ import dev.hendrikhoemberg.webtesthelper.model.ObservedStatus;
 import dev.hendrikhoemberg.webtesthelper.model.Severity;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
 import dev.hendrikhoemberg.webtesthelper.model.TriageStatus;
+import dev.hendrikhoemberg.webtesthelper.reporting.FindingView;
+import dev.hendrikhoemberg.webtesthelper.reporting.FindingViewFactory;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;

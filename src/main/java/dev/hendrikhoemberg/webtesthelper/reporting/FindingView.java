@@ -1,4 +1,4 @@
-package dev.hendrikhoemberg.webtesthelper.web;
+package dev.hendrikhoemberg.webtesthelper.reporting;
 
 import dev.hendrikhoemberg.webtesthelper.model.Severity;
 import dev.hendrikhoemberg.webtesthelper.model.TriageStatus;

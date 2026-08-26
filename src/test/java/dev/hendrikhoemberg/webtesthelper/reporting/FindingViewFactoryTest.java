@@ -1,4 +1,4 @@
-package dev.hendrikhoemberg.webtesthelper.web;
+package dev.hendrikhoemberg.webtesthelper.reporting;
 
 import dev.hendrikhoemberg.webtesthelper.checks.CheckDescriptor;
 import dev.hendrikhoemberg.webtesthelper.checks.CheckRegistry;

@@ -1,4 +1,4 @@
-package dev.hendrikhoemberg.webtesthelper.web;
+package dev.hendrikhoemberg.webtesthelper.reporting;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.context.MessageSource;

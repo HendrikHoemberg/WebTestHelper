@@ -1,4 +1,4 @@
-package dev.hendrikhoemberg.webtesthelper.web;
+package dev.hendrikhoemberg.webtesthelper.reporting;
 
 import java.time.Instant;
 import java.util.List;

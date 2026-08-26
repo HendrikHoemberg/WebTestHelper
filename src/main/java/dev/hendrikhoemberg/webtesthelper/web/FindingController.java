@@ -3,6 +3,8 @@ package dev.hendrikhoemberg.webtesthelper.web;
 import dev.hendrikhoemberg.webtesthelper.findings.Finding;
 import dev.hendrikhoemberg.webtesthelper.findings.FindingOccurrence;
 import dev.hendrikhoemberg.webtesthelper.findings.FindingService;
+import dev.hendrikhoemberg.webtesthelper.reporting.FindingDetailView;
+import dev.hendrikhoemberg.webtesthelper.reporting.FindingViewFactory;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;

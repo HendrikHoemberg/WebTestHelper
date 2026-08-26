@@ -1,16 +1,19 @@
-package dev.hendrikhoemberg.webtesthelper.web;
+package dev.hendrikhoemberg.webtesthelper.reporting;
 
 import dev.hendrikhoemberg.webtesthelper.checks.CheckDescriptor;
 import dev.hendrikhoemberg.webtesthelper.checks.CheckRegistry;
 import dev.hendrikhoemberg.webtesthelper.findings.Finding;
+import dev.hendrikhoemberg.webtesthelper.findings.FindingOccurrence;
 import dev.hendrikhoemberg.webtesthelper.findings.ReportSection;
 import dev.hendrikhoemberg.webtesthelper.findings.RunDiff;
+import dev.hendrikhoemberg.webtesthelper.model.Evidence;
 import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Component;
 
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Map;
 
 /**
@@ -68,7 +71,7 @@ public class FindingViewFactory {
         );
     }
 
-    public FindingDetailView detailOf(Finding finding, List<dev.hendrikhoemberg.webtesthelper.findings.FindingOccurrence> occurrences, Locale locale) {
+    public FindingDetailView detailOf(Finding finding, List<FindingOccurrence> occurrences, Locale locale) {
         FindingView summary = of(finding, locale);
         CheckDescriptor descriptor = checkRegistry.all().stream()
                 .filter(check -> check.type() == finding.type())
@@ -85,15 +88,15 @@ public class FindingViewFactory {
                 ? TechnicalText.humanise(rawTechnicalDetail, messageSource, locale)
                 : null;
 
-        dev.hendrikhoemberg.webtesthelper.model.Evidence evidence = finding.evidence();
+        Evidence evidence = finding.evidence();
         String screenshotUrl = null;
         if (evidence.screenshotPath() != null && !evidence.screenshotPath().isBlank()) {
             screenshotUrl = "/artefakte/" + finding.lastSeenRun() + "/" + evidence.screenshotPath();
         }
 
         List<String> pages = occurrences.stream()
-                .map(dev.hendrikhoemberg.webtesthelper.findings.FindingOccurrence::pageUrl)
-                .filter(java.util.Objects::nonNull)
+                .map(FindingOccurrence::pageUrl)
+                .filter(Objects::nonNull)
                 .toList();
 
         return new FindingDetailView(

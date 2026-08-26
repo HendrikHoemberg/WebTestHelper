@@ -13,6 +13,8 @@ import dev.hendrikhoemberg.webtesthelper.model.Severity;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
 import dev.hendrikhoemberg.webtesthelper.model.TriageStatus;
 import dev.hendrikhoemberg.webtesthelper.model.UrlNormalizer;
+import dev.hendrikhoemberg.webtesthelper.reporting.FindingView;
+import dev.hendrikhoemberg.webtesthelper.reporting.FindingViewFactory;
 import dev.hendrikhoemberg.webtesthelper.runner.RunService;
 import dev.hendrikhoemberg.webtesthelper.runner.RunSummary;
 import org.junit.jupiter.api.Test;
