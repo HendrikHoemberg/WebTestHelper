@@ -89,7 +89,9 @@
 
                     <form th:action="@{/einstellungen/benutzer/{id}(id=${b.id()})}" method="post" class="inline-form">
                         <input type="hidden" name="aktion" value="passwort">
-                        <input type="password" name="passwort" th:placeholder="#{ui.einstellungen.benutzer.passwort.platzhalter}" autocomplete="new-password" class="passwort-eingabe">
+                        <input type="password" name="passwort" th:placeholder="#{ui.einstellungen.benutzer.passwort.platzhalter}"
+                               th:attr="aria-label=#{ui.einstellungen.benutzer.passwort.aria}"
+                               autocomplete="new-password" class="passwort-eingabe">
                         <button type="submit" class="button sekundär klein" th:text="#{ui.einstellungen.benutzer.passwort.setzen}">Passwort setzen</button>
                     </form>
 
@@ -103,8 +105,11 @@
                                     Diese Person kann sich danach nicht mehr anmelden. Geben Sie zur Bestätigung „LÖSCHEN" ein.
                                 </p>
                                 <input type="text" x-model="text" name="bestaetigung"
+                                       th:attr="aria-label=#{ui.einstellungen.benutzer.loeschen.aria}"
                                        th:placeholder="#{ui.einstellungen.benutzer.loeschen.bestaetigung}" autocomplete="off">
-                                <button type="submit" class="button gefährlich" :disabled="text !== 'LÖSCHEN'"
+                                <button type="submit" class="button gefährlich"
+                                        :disabled="text !== $el.dataset.bestaetigung"
+                                        th:data-bestaetigung="#{ui.einstellungen.benutzer.loeschen.bestaetigung}"
                                         th:text="#{ui.einstellungen.benutzer.loeschen.bestaetigen}">Endgültig löschen</button>
                             </form>
                         </div>

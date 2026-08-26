@@ -58,51 +58,48 @@ public class UserController {
         return "einstellungen/benutzer";
     }
 
+    /**
+     * One endpoint for the three near-identical writes that act on a single row. A
+     * {@link UserValidationException} (the D71 last-admin guard) and an unknown {@code aktion} are
+     * left to the {@link WebExceptionHandler}: the former flashes and redirects back, the latter is
+     * an {@link IllegalArgumentException} that answers 404. Only the create POST needs an inline
+     * catch, because a validation failure there must land next to its field rather than on the far
+     * side of a redirect.
+     */
     @PostMapping("/{id}")
     public String change(@PathVariable long id,
                          @RequestParam("aktion") String aktion,
                          @RequestParam(name = "sollAdministrator", required = false) Boolean sollAdministrator,
                          @RequestParam(name = "aktiv", required = false) Boolean aktiv,
                          @RequestParam(name = "passwort", required = false) String passwort,
-                         RedirectAttributes redirectAttributes,
-                         Locale locale) {
-        try {
-            switch (aktion) {
-                case "rolle" -> {
-                    if (sollAdministrator == null) {
-                        throw new IllegalArgumentException("sollAdministrator fehlt für die Rollenaktion");
-                    }
-                    userService.setRole(id, sollAdministrator ? AppRole.ADMIN : AppRole.USER);
-                    redirectAttributes.addFlashAttribute("benutzerGespeichert", true);
+                         RedirectAttributes redirectAttributes) {
+        switch (aktion) {
+            case "rolle" -> {
+                if (sollAdministrator == null) {
+                    throw new IllegalArgumentException("sollAdministrator fehlt für die Rollenaktion");
                 }
-                case "aktiv" -> {
-                    userService.setEnabled(id, Boolean.TRUE.equals(aktiv));
-                    redirectAttributes.addFlashAttribute("benutzerGespeichert", true);
-                }
-                case "passwort" -> {
-                    if (passwort != null && !passwort.isBlank()) {
-                        userService.setPassword(id, passwort);
-                        redirectAttributes.addFlashAttribute("benutzerGespeichert", true);
-                    }
-                }
-                default -> throw new IllegalArgumentException("Unbekannte Aktion: " + aktion);
+                userService.setRole(id, sollAdministrator ? AppRole.ADMIN : AppRole.USER);
+                redirectAttributes.addFlashAttribute("benutzerGespeichert", true);
             }
-        } catch (UserValidationException ex) {
-            redirectAttributes.addFlashAttribute("flashError",
-                    messageSource.getMessage(ex.messageKey(), ex.args(), locale));
+            case "aktiv" -> {
+                userService.setEnabled(id, Boolean.TRUE.equals(aktiv));
+                redirectAttributes.addFlashAttribute("benutzerGespeichert", true);
+            }
+            case "passwort" -> {
+                if (passwort != null && !passwort.isBlank()) {
+                    userService.setPassword(id, passwort);
+                    redirectAttributes.addFlashAttribute("benutzerGespeichert", true);
+                }
+            }
+            default -> throw new IllegalArgumentException("Unbekannte Aktion: " + aktion);
         }
         return "redirect:/einstellungen/benutzer";
     }
 
     @PostMapping("/{id}/loeschen")
-    public String delete(@PathVariable long id, RedirectAttributes redirectAttributes, Locale locale) {
-        try {
-            userService.delete(id);
-            redirectAttributes.addFlashAttribute("benutzerGeloescht", true);
-        } catch (UserValidationException ex) {
-            redirectAttributes.addFlashAttribute("flashError",
-                    messageSource.getMessage(ex.messageKey(), ex.args(), locale));
-        }
+    public String delete(@PathVariable long id, RedirectAttributes redirectAttributes) {
+        userService.delete(id);
+        redirectAttributes.addFlashAttribute("benutzerGeloescht", true);
         return "redirect:/einstellungen/benutzer";
     }
 

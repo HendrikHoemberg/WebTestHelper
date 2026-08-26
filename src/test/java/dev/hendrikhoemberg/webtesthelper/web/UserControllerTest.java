@@ -13,6 +13,8 @@ import java.util.List;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -68,7 +70,11 @@ class UserControllerTest {
                 .andExpect(content().string(containsString("Löschen")))
                 .andExpect(content().string(containsString("Administrator")))
                 .andExpect(content().string(not(containsString("ADMIN"))))
-                .andExpect(content().string(not(containsString("zurückstufen"))));
+                .andExpect(content().string(not(containsString("zurückstufen"))))
+                .andExpect(content().string(containsString("name=\"aktion\"")))
+                .andExpect(content().string(containsString("value=\"rolle\"")))
+                .andExpect(content().string(containsString("value=\"aktiv\"")))
+                .andExpect(content().string(containsString("value=\"passwort\"")));
     }
 
     @Test
@@ -126,5 +132,70 @@ class UserControllerTest {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/einstellungen/benutzer"))
                 .andExpect(flash().attribute("benutzerGeloescht", true));
+
+        verify(appUserService).delete(5L);
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void changeRolePromoteCallsSetRoleAdmin() throws Exception {
+        mvc.perform(post("/einstellungen/benutzer/5")
+                        .with(csrf())
+                        .param("aktion", "rolle")
+                        .param("sollAdministrator", "true"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/einstellungen/benutzer"))
+                .andExpect(flash().attribute("benutzerGespeichert", true));
+
+        verify(appUserService).setRole(5L, AppRole.ADMIN);
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void changeRoleDemoteCallsSetRoleUser() throws Exception {
+        mvc.perform(post("/einstellungen/benutzer/5")
+                        .with(csrf())
+                        .param("aktion", "rolle")
+                        .param("sollAdministrator", "false"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/einstellungen/benutzer"));
+
+        verify(appUserService).setRole(5L, AppRole.USER);
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void changePasswordCallsSetPassword() throws Exception {
+        mvc.perform(post("/einstellungen/benutzer/5")
+                        .with(csrf())
+                        .param("aktion", "passwort")
+                        .param("passwort", "geheim123"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/einstellungen/benutzer"))
+                .andExpect(flash().attribute("benutzerGespeichert", true));
+
+        verify(appUserService).setPassword(5L, "geheim123");
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void changePasswordBlankLeavesPasswordUntouched() throws Exception {
+        mvc.perform(post("/einstellungen/benutzer/5")
+                        .with(csrf())
+                        .param("aktion", "passwort")
+                        .param("passwort", ""))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/einstellungen/benutzer"));
+
+        verify(appUserService, never()).setPassword(5L, "");
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void unknownActionAnswersNotFound() throws Exception {
+        mvc.perform(post("/einstellungen/benutzer/5")
+                        .with(csrf())
+                        .param("aktion", "quatsch"))
+                .andExpect(status().isNotFound());
     }
 }
