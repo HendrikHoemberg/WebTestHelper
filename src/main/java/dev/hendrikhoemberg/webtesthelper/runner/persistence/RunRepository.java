@@ -32,6 +32,8 @@ public interface RunRepository extends JpaRepository<RunEntity, Long> {
 
     boolean existsByScopeAndStatusIn(RunScope scope, Collection<RunStatus> statuses);
 
+    long countByStatus(RunStatus status);
+
     @Modifying
     @Query("UPDATE RunEntity r SET r.digestSentAt = :at WHERE r.id IN :ids AND r.digestSentAt IS NULL")
     int markDigested(@Param("ids") Collection<Long> ids, @Param("at") Instant at);
