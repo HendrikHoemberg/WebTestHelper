@@ -26,15 +26,18 @@ public class DashboardController {
 
     @GetMapping("/")
     public String index(Model model) {
-        model.addAttribute("uebersicht", dashboardService.overview());
-        model.addAttribute("pollSekunden", dashboardProperties.pollInterval().toSeconds());
+        populate(model);
         return "uebersicht/index";
     }
 
     @GetMapping("/uebersicht/kacheln")
     public String kacheln(Model model) {
+        populate(model);
+        return "fragments/kacheln :: kacheln";
+    }
+
+    private void populate(Model model) {
         model.addAttribute("uebersicht", dashboardService.overview());
         model.addAttribute("pollSekunden", dashboardProperties.pollInterval().toSeconds());
-        return "fragments/kacheln :: kacheln";
     }
 }

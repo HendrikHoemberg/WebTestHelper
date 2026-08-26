@@ -147,4 +147,42 @@ class DashboardControllerTest {
                 // A document wrapper is markup HTMX would have to strip before swapping the div.
                 .andExpect(content().string(not(containsString("<nav"))));
     }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void nextRunOneMinuteAwayRendersGermanSingular() throws Exception {
+        when(dashboardService.overview()).thenReturn(einzelView(90));
+
+        mvc.perform(get("/"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("in 1 Minute")))
+                .andExpect(content().string(not(containsString("in 1 Minuten"))));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void nextRunTwoMinutesAwayRendersGermanPlural() throws Exception {
+        when(dashboardService.overview()).thenReturn(einzelView(150));
+
+        mvc.perform(get("/"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("in 2 Minuten")));
+    }
+
+    // One enabled tile whose next occurrence lands `sekundenBisNaechsterLauf` seconds after the
+    // test runs — mid-bucket values (90 s -> 1 minute, 150 s -> 2 minutes) so the displayed unit
+    // can't shift across a boundary during the sub-second request.
+    private DashboardView einzelView(long sekundenBisNaechsterLauf) {
+        SiteTile tile = new SiteTile(5L, "Delta", "https://delta.example.com/", true, TrafficLight.GRUEN,
+                new LastRun(5L, 41L, RunStatus.COMPLETED, Instant.now().minusSeconds(300), false),
+                new OpenFindingCounts(0, 0, 0, 0),
+                new Schedule(50L, 5L, RunScope.PULSE, "0 */6 * * *", "Europe/Berlin", true,
+                        Instant.now().minusSeconds(3600), Instant.now().plusSeconds(sekundenBisNaechsterLauf)));
+        return new DashboardView(List.of(tile),
+                new OpenFindingCounts(0, 0, 0, 0),
+                0,
+                Instant.now().plusSeconds(sekundenBisNaechsterLauf),
+                false,
+                new SystemCapacity(2, 1, 4, 1, Duration.ofSeconds(30), 5));
+    }
 }
