@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class SetupProbeTest {
 
     private static FixtureSite site;
+    private static BrowserPool pool;
     private static Path artifacts;
     private static ProbeEvidence evidence;
     private static ProbeEvidence unreachable;
@@ -35,7 +36,7 @@ class SetupProbeTest {
         CrawlerProperties crawlerProperties = new CrawlerProperties(2, 10, Duration.ofSeconds(5),
                 Duration.ZERO, artifacts, true);
         SetupProbeProperties properties = new SetupProbeProperties(8, Duration.ofSeconds(120));
-        BrowserPool pool = new BrowserPool(crawlerProperties);
+        pool = new BrowserPool(crawlerProperties);
         PageNavigator navigator = new PageNavigator(crawlerProperties, new HostThrottle());
         SetupProbe probe = new SetupProbe(pool, navigator, new SiteResourceFetcher(),
                 properties, crawlerProperties);
@@ -47,6 +48,7 @@ class SetupProbeTest {
 
     @AfterAll
     static void stop() {
+        pool.close();
         site.close();
     }
 

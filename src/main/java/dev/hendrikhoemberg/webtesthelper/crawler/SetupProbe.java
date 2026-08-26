@@ -21,8 +21,8 @@ import java.util.Set;
 /**
  * The browser half of guided setup: read what a site contains without a full crawl, so the
  * setup wizard can propose the default checks. Blocking (in production it runs on a background
- * thread) and one {@link BrowserPool#submit} per page, so a probe never pins a worker across
- * the politeness delay.
+ * thread) with one {@link BrowserPool#submit} per page, so no worker is held for the whole
+ * probe and no navigation is ever interrupted mid-flight — the deadline is checked between pages.
  */
 @Component
 public class SetupProbe {
@@ -99,11 +99,11 @@ public class SetupProbe {
     private void collect(PageSnapshot snapshot, List<String> pagesVisited, List<String> formPages,
             List<String> mediaPages, List<String> mapPages, Set<String> languages,
             List<String> documentLinks) {
-        pagesVisited.add(snapshot.url().value());
         if (!snapshot.reachable()) {
             return;
         }
         String page = snapshot.url().value();
+        pagesVisited.add(page);
         if (!snapshot.forms().isEmpty() && !formPages.contains(page)) {
             formPages.add(page);
         }
