@@ -664,5 +664,95 @@ Run before declaring the plan done:
 
 ## Execution findings
 
-*(Filled in after the plan executes. Do not edit anything above this line once execution has
-started — the code is the truth.)*
+*Nothing above this line was edited after execution. Tasks 1–9 executed as written; the
+signatures, the deviations and the constants all survived contact. What follows is the audit that
+came after, and the five fixes it produced.*
+
+### D53's boundary held, and it is worth saying how it was checked
+
+`grep -rn "reporting" runner/` returns nothing and `runner/package-info.java` is untouched. That is
+the whole of §11.3 — a run cannot fail because of mail, because the run has no way to reach mail.
+No `try/catch` was needed anywhere. **Plan 9 should not relax `runner`'s `allowedDependencies` for
+the dashboard**; the dashboard is in `web`, which may depend on both.
+
+### The one real defect: V17 has no backfill (fixed in V18)
+
+`V17` adds `digest_sent_at` as a plain nullable column, so **every run that already existed reads
+as undigested**. On the first cycle after the upgrade nothing is in flight and the newest finish is
+far past the settle delay, so `DigestWindow.close` collapses the *entire run history* of a tier
+into one window and mails it as current news.
+
+Measured, not reasoned: 40 `FULL` runs seeded across 40 days, one recipient, one cycle →
+one mail, subject `WebTestHelper – Vollständige Prüfung: 4 Prüfläufe fehlgeschlagen`. Four failures
+up to forty days old, delivered as this morning's news — the exact inverse of the goal at the top of
+this plan.
+
+The repair is `V18__backfill_digest_sent_at.sql`, one guarded `UPDATE`, kept honest by
+`RunDigestBackfillTest`, which executes the shipped migration file against seeded legacy rows.
+
+**The general lesson for plan 9 and beyond: a nullable column that means "not yet done" is a
+backlog for every row that predates it.** Any Phase-2 migration adding a `*_at` sentinel over an
+existing table needs a backfill in the same breath, and the test belongs with the migration, not
+with the feature.
+
+### D58 hid an entire section when nothing in it was listable
+
+`DigestSection` carries `shown` and `total`, and D58 keeps `INFO` out of `shown` while counting it
+in `total`. Both mail templates guarded the section on `!shown.isEmpty()`, so a run whose only new
+findings were `INFO` rendered as a site card with nothing in it — the count D58 promised was
+computed and then dropped on the floor. §8 makes `UNVERIFIABLE` `INFO` by default, so this is the
+noisiest class the system produces and the one most likely to be alone in a section.
+
+Sections now render on `total > 0`, with two closing lines instead of one: `und {0} weitere` after
+a list, `{0} Feststellungen nicht aufgeführt` when nothing was listed at all.
+
+### The quiet-site rollup was prose, not code
+
+The preamble promises *"the ten quiet sites are a count"*; Task 6 shipped one card per site in the
+window. With twelve sites and two that changed, the two that matter were buried in ten cards — the
+volume problem §11.2 exists to solve, reintroduced one layer down.
+
+`SiteDigest.quiet()` now names the condition (no findings in either section, no counts, full
+coverage, no failure) and both templates iterate `digest.loudSites()`, closing with one
+`ui.mail.digest.stille_seiten` line that still names every quiet site. A site carrying so much as a
+`3 behoben` keeps its card — `aQuietSiteThatStillCarriesCountsKeepsItsOwnCard` is the guard, and it
+is the assertion to run first if the rollup ever grows.
+
+### `digest-max-findings` is a per-section cap, not a per-site one
+
+The **Decided constants** table says "findings listed per site: 10"; `DigestAssembler` applies the
+cap to `news` and `regressions` independently, so a site can list twenty. Left as built and the
+property is now commented to say so. A shared per-site budget was considered and rejected: spending
+it all on `news` would leave `regressions.shown` empty, and an empty section is the failure mode
+directly above.
+
+### Three copies of one email rule, one plan after D57 argued against exactly that
+
+`EMAIL_PATTERN` was pasted into `RecipientService`, `RecipientController` and `SettingsController`,
+and the `[,;\s]+` split into `AppSettings` and `SettingsController`. D57 moved the finding renderer
+into `reporting` on the argument that two implementations of one rule drift the first time one is
+softened — and validation of a colleague's address is precisely a rule someone will soften under
+pressure. Both now live in `catalog/EmailAddresses`.
+
+`web/SiteDetailModel` collects the seven attributes `websites/detail` needs, because
+`RecipientController` had grown its own copy of `SiteController.detail`'s assembly for the
+field-error re-render; an attribute added to one and not the other is a screen that works until
+someone types a bad address. **It is a `@Component`, so a `@WebMvcTest` slice does not see it —
+three tests needed `@Import(SiteDetailModel.class)`.** Plan 9 will hit the same wall the moment the
+dashboard extracts a model helper.
+
+### Not changed, and why
+
+- **`ix_run_undigested`'s status predicate.** The index is partial on
+  `status IN ('COMPLETED','FAILED')` while the derived query binds statuses as parameters, so under
+  a generic plan Postgres cannot prove the implication and the index goes unused. Left alone: at
+  twelve sites and three tiers the table gains ~13k rows a year, no measurement showed a cost, and
+  changing a schema on an unproven planner argument is worse than living with a dead index.
+- **`markDigested`'s bulk `UPDATE` bypassing the persistence context.** The `RunEntity` instances
+  loaded earlier in the same transaction keep `digestSentAt = null`, but nothing mutates them, so
+  Hibernate never flushes over the update, and each scope queries a disjoint set. Theoretical.
+
+### Suite
+
+`./mvnw test` — **782 tests, 0 failures**, browser tests included, ~1m27s. Plan 8 as executed was
+777; the five added are two for the backfill migration and three for the mail-content fixes.
