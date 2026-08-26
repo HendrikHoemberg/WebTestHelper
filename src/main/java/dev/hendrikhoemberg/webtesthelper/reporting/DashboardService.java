@@ -23,8 +23,9 @@ import java.util.Objects;
 /**
  * The dashboard read model (D61, spec 14). Assembles one tile per site by joining the site list
  * against the open-finding counts, the last terminal run and the next scheduled occurrence, then
- * decides the light. Five queries regardless of site count: sites, open counts, last runs, next
- * fires, in-flight.
+ * decides the light. The query count is constant regardless of how many sites there are: the site
+ * list, open counts, last runs, next fires and in-flight count are one call each, and the two
+ * fixed reads — the scheduling flag and {@link CapacityService} — do not scale with site count.
  *
  * <p>The header totals count only <em>enabled</em> sites — a disabled site's stale findings are
  * noise, not a reason anyone opens the app — and {@code nextFireAt} is the earliest occurrence
@@ -77,9 +78,10 @@ public class DashboardService {
     }
 
     private SiteTile tile(SiteSummary site, OpenFindingCounts counts, LastRun lastRun, Schedule nextRun) {
+        OpenFindingCounts effective = counts != null ? counts : OpenFindingCounts.none();
         return new SiteTile(site.id(), site.name(), site.baseUrl(), site.enabled(),
-                TrafficLight.of(site.enabled(), lastRun, counts != null ? counts : OpenFindingCounts.none()),
-                lastRun, counts != null ? counts : OpenFindingCounts.none(), nextRun);
+                TrafficLight.of(site.enabled(), lastRun, effective),
+                lastRun, effective, nextRun);
     }
 
     private OpenFindingCounts totalsOverEnabled(List<SiteSummary> siteList, Map<Long, OpenFindingCounts> countsBySite) {

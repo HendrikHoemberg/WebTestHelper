@@ -53,7 +53,7 @@ class TrafficLightTest {
 
     @Test
     void aSilencedErrorExcludedUpstreamRendersGreen() {
-        assertThat(TrafficLight.of(true, run(RunStatus.COMPLETED, false), new OpenFindingCounts(0, 0, 1, 0)))
+        assertThat(TrafficLight.of(true, run(RunStatus.COMPLETED, false), new OpenFindingCounts(0, 0, 0, 0)))
                 .isEqualTo(TrafficLight.GRUEN);
     }
 

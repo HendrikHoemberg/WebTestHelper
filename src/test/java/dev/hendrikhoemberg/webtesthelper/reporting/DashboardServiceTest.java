@@ -39,7 +39,7 @@ class DashboardServiceTest {
     private ScheduleService schedules;
     private AppSettings appSettings;
     private CapacityService capacityService;
-    private dev.hendrikhoemberg.webtesthelper.reporting.OutboxService outbox;
+    private OutboxService outbox;
     private DashboardService dashboard;
 
     @BeforeEach
@@ -50,7 +50,7 @@ class DashboardServiceTest {
         schedules = mock(ScheduleService.class);
         appSettings = mock(AppSettings.class);
         capacityService = mock(CapacityService.class);
-        outbox = mock(dev.hendrikhoemberg.webtesthelper.reporting.OutboxService.class);
+        outbox = mock(OutboxService.class);
         dashboard = new DashboardService(sites, findings, runs, schedules, appSettings, capacityService, outbox);
 
         when(runs.runsInFlight()).thenReturn(3);
@@ -77,6 +77,14 @@ class DashboardServiceTest {
         DashboardView view = dashboard.overview();
 
         assertThat(view.tiles()).hasSize(3);
+
+        SiteTile alpha = tileById(view, 1);
+        assertThat(alpha.light()).isEqualTo(TrafficLight.ROT);
+        assertThat(alpha.counts()).isEqualTo(new OpenFindingCounts(2, 1, 1, 2));
+        assertThat(alpha.lastRun()).isEqualTo(
+                new LastRun(1L, 11L, RunStatus.COMPLETED, Instant.parse("2026-08-26T09:00:00Z"), false));
+        assertThat(alpha.nextRun()).isEqualTo(
+                schedule(1, 10L, "0 0 3 * * *", Instant.parse("2026-08-26T10:00:00Z")));
 
         SiteTile beta = tileById(view, 2);
         assertThat(beta.light()).isEqualTo(TrafficLight.GELB);
