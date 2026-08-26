@@ -4,6 +4,8 @@ import dev.hendrikhoemberg.webtesthelper.catalog.SiteService;
 import dev.hendrikhoemberg.webtesthelper.crawler.ProbeEvidence;
 import dev.hendrikhoemberg.webtesthelper.crawler.SetupProbe;
 import jakarta.annotation.PreDestroy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -22,6 +24,8 @@ import java.util.concurrent.Executors;
  */
 @Service
 public class SetupProbeService {
+
+    private static final Logger log = LoggerFactory.getLogger(SetupProbeService.class);
 
     /** D67: nobody returns to a proposal an hour later; stale entries are swept on every start. */
     private static final Duration RESULT_TTL = Duration.ofHours(1);
@@ -48,8 +52,12 @@ public class SetupProbeService {
     /**
      * Kicks off a probe for a site, or does nothing if one is already running. Stale entries —
      * older than the result TTL — are swept on every call.
+     *
+     * <p>Synchronized so the check-then-put that decides "no probe is running" is one step:
+     * two concurrent calls must not both see no {@code LAEUFT}, both submit, and run the probe
+     * twice. Probes are rare, so the read of one map entry under the lock is noise.
      */
-    public void start(long siteId) {
+    public synchronized void start(long siteId) {
         sweep();
         ProbeState current = states.get(siteId);
         if (current != null && current.status() == ProbeStatus.LAEUFT) {
@@ -72,7 +80,8 @@ public class SetupProbeService {
             ProbeEvidence evidence = probe.probe(sites.contextFor(siteId));
             states.put(siteId, new ProbeState(ProbeStatus.FERTIG, Instant.now(),
                     new SetupProposal(evidence, SetupProposals.of(evidence)), null));
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
+            log.error("Setup-Prüfung für Website {} fehlgeschlagen", siteId, e);
             String message = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
             states.put(siteId, new ProbeState(ProbeStatus.FEHLGESCHLAGEN, Instant.now(), null, message));
         }

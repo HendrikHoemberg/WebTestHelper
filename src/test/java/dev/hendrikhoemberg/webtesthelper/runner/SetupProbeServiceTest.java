@@ -8,11 +8,16 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -35,10 +40,11 @@ class SetupProbeServiceTest {
     @Test
     void startWhileAProbeIsRunningRunsItOnlyOnce() throws InterruptedException {
         CountDownLatch probeEntered = new CountDownLatch(1);
+        CountDownLatch releaseProbe = new CountDownLatch(1);
         when(probe.probe(any()))
                 .thenAnswer(invocation -> {
                     probeEntered.countDown();
-                    new CountDownLatch(1).await();
+                    releaseProbe.await();
                     return evidence();
                 });
 
@@ -47,6 +53,8 @@ class SetupProbeServiceTest {
 
         assertThat(probeEntered.await(2, TimeUnit.SECONDS)).isTrue();
         verify(probe, times(1)).probe(any());
+        releaseProbe.countDown();
+        awaitStatus(7, ProbeStatus.FERTIG);
     }
 
     @Test
@@ -89,6 +97,48 @@ class SetupProbeServiceTest {
         service.clear(8);
 
         assertThat(service.stateOf(8)).isEmpty();
+    }
+
+    @Test
+    void concurrentStartsRunTheProbeOnlyOnce() throws Exception {
+        CountDownLatch probeEntered = new CountDownLatch(1);
+        CountDownLatch releaseProbe = new CountDownLatch(1);
+        AtomicInteger calls = new AtomicInteger();
+        when(probe.probe(any())).thenAnswer(invocation -> {
+            calls.incrementAndGet();
+            probeEntered.countDown();
+            releaseProbe.await();
+            return evidence();
+        });
+
+        int threads = 8;
+        CountDownLatch ready = new CountDownLatch(threads);
+        CountDownLatch go = new CountDownLatch(1);
+        ExecutorService pool = Executors.newFixedThreadPool(threads);
+        List<Future<?>> futures = new ArrayList<>();
+        try {
+            for (int i = 0; i < threads; i++) {
+                futures.add(pool.submit(() -> {
+                    ready.countDown();
+                    go.await();
+                    service.start(42);
+                    return null;
+                }));
+            }
+            assertThat(ready.await(2, TimeUnit.SECONDS)).isTrue();
+            go.countDown();
+            for (Future<?> future : futures) {
+                future.get(2, TimeUnit.SECONDS);
+            }
+            assertThat(probeEntered.await(2, TimeUnit.SECONDS)).isTrue();
+            releaseProbe.countDown();
+            awaitStatus(42, ProbeStatus.FERTIG);
+        } finally {
+            releaseProbe.countDown();
+            pool.shutdownNow();
+        }
+
+        assertThat(calls.get()).isEqualTo(1);
     }
 
     private ProbeState awaitStatus(long siteId, ProbeStatus status) {
