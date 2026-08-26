@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="de" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="#{ui.mail.digest.titel}">Prüfbericht</title>
+</head>
+<body style="margin: 0; padding: 24px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; color: #1e293b; line-height: 1.5;">
+    <div style="max-width: 640px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 24px;">
+        <div style="border-bottom: 2px solid #3b82f6; padding-bottom: 16px; margin-bottom: 20px;">
+            <h1 style="margin: 0 0 8px 0; font-size: 20px; font-weight: 700; color: #0f172a;" th:text="#{ui.mail.digest.titel}">Prüfbericht</h1>
+            <p style="margin: 0; font-size: 14px; color: #64748b;" th:text="#{ui.mail.digest.einleitung(${digest.sites.size()})}">Diese Sammelmail fasst 1 geprüfte Websites zusammen.</p>
+        </div>
+
+        <div th:if="${digest.allClear()}" style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 16px; margin-bottom: 20px; color: #166534; font-size: 14px;">
+            <strong th:text="#{ui.mail.digest.alles_gut}">Auf allen geprüften Websites ist alles in Ordnung.</strong>
+        </div>
+
+        <div th:each="site : ${digest.sites}" style="border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 20px; overflow: hidden;">
+            <div style="background-color: #f1f5f9; padding: 12px 16px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 16px; font-weight: 600; color: #0f172a;" th:text="${site.siteName}">Website</span>
+                <a th:href="${baseUrl} + '/laeufe/' + ${site.runId}" style="font-size: 13px; color: #2563eb; text-decoration: none; font-weight: 500;" th:text="#{ui.mail.digest.lauf_oeffnen}">Lauf ansehen</a>
+            </div>
+
+            <div style="padding: 16px;">
+                <div th:if="${site.failed()}" style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 12px; margin-bottom: 12px; color: #991b1b; font-size: 14px;">
+                    <p style="margin: 0 0 4px 0; font-weight: 600;" th:text="#{ui.mail.digest.lauf_fehlgeschlagen}">Der Prüflauf ist fehlgeschlagen und hat nichts geprüft.</p>
+                    <p th:if="${site.errorMessage != null}" style="margin: 0; font-size: 13px;" th:text="${site.errorMessage}">Fehlermeldung</p>
+                </div>
+
+                <div th:if="${!site.failed()}">
+                    <div th:if="${site.partialCoverage}" style="background-color: #fffbeb; border: 1px solid #fef3c7; border-radius: 6px; padding: 10px 12px; margin-bottom: 12px; color: #92400e; font-size: 13px;" th:text="#{ui.mail.digest.teilweise}">
+                        Der Lauf hat sein Budget erreicht und nicht die ganze Website geprüft.
+                    </div>
+
+                    <div th:if="${!site.news.shown.isEmpty()}" style="margin-bottom: 16px;">
+                        <h2 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #dc2626;" th:text="#{ui.mail.digest.neu}">Neu</h2>
+                        <div th:each="befund : ${site.news.shown}" style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px; margin-bottom: 8px;">
+                            <div style="margin-bottom: 6px;">
+                                <span th:text="#{${'ui.severity.' + befund.severity}}" style="display: inline-block; padding: 2px 6px; font-size: 11px; font-weight: 600; border-radius: 4px; background-color: #fee2e2; color: #991b1b; margin-right: 6px;">Fehler</span>
+                                <a th:href="${baseUrl} + '/befunde/' + ${befund.id}" style="font-size: 14px; font-weight: 600; color: #2563eb; text-decoration: none;" th:text="${befund.title}">Befund-Titel</a>
+                            </div>
+                            <div style="font-family: monospace; font-size: 12px; color: #64748b; margin-bottom: 6px; word-break: break-all;" th:text="${befund.locationText}">/kontakt</div>
+                            <p style="margin: 0 0 6px 0; font-size: 13px; color: #334155;" th:text="${befund.message}">Meldung</p>
+                            <p style="margin: 0; font-size: 12px; color: #475569;">
+                                <strong th:text="#{ui.befund.behebung.label}">Abhilfe:</strong>
+                                <span th:text="${befund.remediation}">Abhilfe-Text</span>
+                            </p>
+                        </div>
+                        <p th:if="${site.news.omitted() > 0}" style="margin: 4px 0 0 0; font-size: 13px; color: #64748b; font-style: italic;" th:text="#{ui.mail.digest.weitere(${site.news.omitted()})}">und 2 weitere</p>
+                    </div>
+
+                    <div th:if="${!site.regressions.shown.isEmpty()}" style="margin-bottom: 16px;">
+                        <h2 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #d97706;" th:text="#{ui.mail.digest.wiederkehrend}">Wieder aufgetreten</h2>
+                        <div th:each="befund : ${site.regressions.shown}" style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px; margin-bottom: 8px;">
+                            <div style="margin-bottom: 6px;">
+                                <span th:text="#{${'ui.severity.' + befund.severity}}" style="display: inline-block; padding: 2px 6px; font-size: 11px; font-weight: 600; border-radius: 4px; background-color: #fef3c7; color: #92400e; margin-right: 6px;">Warnung</span>
+                                <a th:href="${baseUrl} + '/befunde/' + ${befund.id}" style="font-size: 14px; font-weight: 600; color: #2563eb; text-decoration: none;" th:text="${befund.title}">Befund-Titel</a>
+                            </div>
+                            <div style="font-family: monospace; font-size: 12px; color: #64748b; margin-bottom: 6px; word-break: break-all;" th:text="${befund.locationText}">/impressum</div>
+                            <p style="margin: 0 0 6px 0; font-size: 13px; color: #334155;" th:text="${befund.message}">Meldung</p>
+                            <p style="margin: 0; font-size: 12px; color: #475569;">
+                                <strong th:text="#{ui.befund.behebung.label}">Abhilfe:</strong>
+                                <span th:text="${befund.remediation}">Abhilfe-Text</span>
+                            </p>
+                        </div>
+                        <p th:if="${site.regressions.omitted() > 0}" style="margin: 4px 0 0 0; font-size: 13px; color: #64748b; font-style: italic;" th:text="#{ui.mail.digest.weitere(${site.regressions.omitted()})}">und 2 weitere</p>
+                    </div>
+
+                    <div th:if="${site.fixedCount > 0 or site.stillOpenCount > 0 or site.knownCount > 0}" style="border-top: 1px solid #f1f5f9; padding-top: 8px; font-size: 12px; color: #64748b;">
+                        <span th:if="${site.fixedCount > 0}" th:text="#{ui.mail.digest.behoben(${site.fixedCount})}" style="margin-right: 12px;">1 behoben</span>
+                        <span th:if="${site.stillOpenCount > 0}" th:text="#{ui.mail.digest.offen(${site.stillOpenCount})}" style="margin-right: 12px;">2 weiterhin offen</span>
+                        <span th:if="${site.knownCount > 0}" th:text="#{ui.mail.digest.bekannt(${site.knownCount})}">3 bereits bewertet</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
