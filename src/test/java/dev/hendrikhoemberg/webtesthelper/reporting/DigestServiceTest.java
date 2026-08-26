@@ -72,6 +72,15 @@ class DigestServiceTest extends AbstractPostgresTest {
 
     @BeforeEach
     void setUp() {
+        jdbc.update("DELETE FROM notification");
+        jdbc.update("DELETE FROM crawl_queue_item");
+        jdbc.update("DELETE FROM finding_occurrence");
+        jdbc.update("DELETE FROM finding");
+        jdbc.update("DELETE FROM run");
+        jdbc.update("DELETE FROM notification_recipient");
+        jdbc.update("DELETE FROM site_check_setting");
+        jdbc.update("DELETE FROM site");
+
         siteA = siteService.create(new SiteForm(
                 "Site Alpha", "https://alpha.example.com/", 100, 3,
                 Duration.ofMinutes(10), List.of(), List.of(), true, null, true));
