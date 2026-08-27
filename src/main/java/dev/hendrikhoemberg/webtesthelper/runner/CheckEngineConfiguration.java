@@ -2,6 +2,7 @@ package dev.hendrikhoemberg.webtesthelper.runner;
 
 import dev.hendrikhoemberg.webtesthelper.checks.CheckEngine;
 import dev.hendrikhoemberg.webtesthelper.checks.CheckRegistry;
+import dev.hendrikhoemberg.webtesthelper.model.Mailbox;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -13,8 +14,8 @@ import org.springframework.context.annotation.Configuration;
 class CheckEngineConfiguration {
 
     @Bean
-    CheckRegistry checkRegistry() {
-        return CheckRegistry.standard();
+    CheckRegistry checkRegistry(Mailbox mailbox) {
+        return CheckRegistry.standard(mailbox);
     }
 
     @Bean

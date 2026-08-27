@@ -2,6 +2,8 @@ package dev.hendrikhoemberg.webtesthelper.checks;
 
 import dev.hendrikhoemberg.webtesthelper.model.CheckType;
 
+import dev.hendrikhoemberg.webtesthelper.model.Mailbox;
+
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -33,6 +35,10 @@ public final class CheckRegistry {
     }
 
     public static CheckRegistry standard() {
+        return standard(Mailbox.UNCONFIGURED);
+    }
+
+    public static CheckRegistry standard(Mailbox mailbox) {
         return new CheckRegistry(
                 List.of(new PageUnreachableCheck(),
                         new PageStatusCheck(),
