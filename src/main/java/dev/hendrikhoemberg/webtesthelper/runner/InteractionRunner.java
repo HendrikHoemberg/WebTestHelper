@@ -4,6 +4,7 @@ import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.WaitUntilState;
+import dev.hendrikhoemberg.webtesthelper.checks.CheckAbstainedException;
 import dev.hendrikhoemberg.webtesthelper.checks.CheckConfig;
 import dev.hendrikhoemberg.webtesthelper.checks.CheckRegistry;
 import dev.hendrikhoemberg.webtesthelper.checks.CookieBanner;
@@ -45,7 +46,7 @@ import java.util.concurrent.TimeUnit;
  *   <li>One {@link BrowserContext} per target with viewport and user-agent matching the crawl.</li>
  *   <li>Setup page establishes consent (evaluating {@code COOKIE_BANNER} or calling {@code CookieBanner.accept}).</li>
  *   <li>Each subsequent check gets a fresh {@link Page} in the same context.</li>
- *   <li>Timeouts and runtime exceptions are caught per check (D79); failed types are absent from {@code drivenTypes}.</li>
+ *   <li>Timeouts, runtime exceptions and check abstentions are caught per check (D79, D86); failed or abstained types are absent from {@code drivenTypes}.</li>
  *   <li>Full-page screenshot taken for findings, naming via {@link ScreenshotNames#screenshotName(String, String)}.</li>
  *   <li>All pages and contexts are closed inside the worker task.</li>
  * </ol>
@@ -154,6 +155,9 @@ public class InteractionRunner {
                 try (Page setupPage = createAndNavigatePage(context, targetUrl)) {
                     executeCheck(setupPage, cbCheck, targetUrl, site, facts, runArtifacts,
                             targetFindings, targetDrivenTypes);
+                } catch (CheckAbstainedException e) {
+                    log.info("Lauf {} Check {} auf {} enthielt sich: {}",
+                            facts.runId(), e.type(), targetUrl.value(), e.reason());
                 } catch (RuntimeException e) {
                     log.warn("Lauf {} Check {} auf {} fehlgeschlagen: {}",
                             facts.runId(), cbCheck.type(), targetUrl.value(), e.getMessage(), e);
@@ -174,6 +178,9 @@ public class InteractionRunner {
                 try (Page page = createAndNavigatePage(context, targetUrl)) {
                     executeCheck(page, check, targetUrl, site, facts, runArtifacts,
                             targetFindings, targetDrivenTypes);
+                } catch (CheckAbstainedException e) {
+                    log.info("Lauf {} Check {} auf {} enthielt sich: {}",
+                            facts.runId(), e.type(), targetUrl.value(), e.reason());
                 } catch (RuntimeException e) {
                     log.warn("Lauf {} Check {} auf {} fehlgeschlagen: {}",
                             facts.runId(), check.type(), targetUrl.value(), e.getMessage(), e);

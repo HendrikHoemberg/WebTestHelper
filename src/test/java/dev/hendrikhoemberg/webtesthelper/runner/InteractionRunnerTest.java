@@ -1,6 +1,7 @@
 package dev.hendrikhoemberg.webtesthelper.runner;
 
 import com.microsoft.playwright.Page;
+import dev.hendrikhoemberg.webtesthelper.checks.CheckAbstainedException;
 import dev.hendrikhoemberg.webtesthelper.checks.CheckConfig;
 import dev.hendrikhoemberg.webtesthelper.checks.CheckRegistry;
 import dev.hendrikhoemberg.webtesthelper.checks.CookieBannerCheck;
@@ -148,6 +149,61 @@ class InteractionRunnerTest {
         assertThat(outcome.findings()).isEmpty();
         assertThat(outcome.drivenTypes()).containsExactly(CheckType.COOKIE_BANNER);
         assertThat(outcome.drivenTypes()).doesNotContain(CheckType.MIXED_CONTENT);
+        assertThat(outcome.drivenUrls()).containsExactly(home.value());
+    }
+
+    /**
+     * D86: A check that cannot judge a page throws {@link CheckAbstainedException}. The runner
+     * logs at INFO (unlike unhandled RuntimeExceptions logged at WARN) and excludes the check from
+     * drivenTypes while preserving candidateTypes, without failing the run.
+     */
+    @Test
+    void fakeCheckThatAbstainsLeavesTypeOutOfDrivenTypesWhilePreservingCandidateTypes(@TempDir Path tempArtifacts) {
+        String url = fixtureSite.url("interaktiv/ohne-banner.html");
+        NormalizedUrl home = Snapshots.url(url);
+        SiteContext site = siteContext(home);
+        PageSnapshot homeSnapshot = Snapshots.page(url).build();
+        RunSnapshots snapshots = new RunSnapshots(1L, site, List.of(homeSnapshot), SoftNotFoundProbe.NONE);
+        RunFacts facts = RunFacts.of(snapshots, RunScope.FULL, Instant.now());
+
+        InteractionCheck abstainingCheck = new InteractionCheck() {
+            @Override
+            public CheckType type() {
+                return CheckType.LANGUAGE_SWITCHER;
+            }
+
+            @Override
+            public Severity defaultSeverity() {
+                return Severity.ERROR;
+            }
+
+            @Override
+            public Set<String> messageKeys() {
+                return Set.of();
+            }
+
+            @Override
+            public List<NormalizedUrl> targets(RunSnapshots s, SiteContext sc, int max) {
+                return InteractionTargets.homepage(s, sc);
+            }
+
+            @Override
+            public List<CheckFinding> evaluate(Page page, SiteContext sc, CheckConfig config) {
+                throw new CheckAbstainedException(type(), page.url(), "Page DOM did not settle");
+            }
+        };
+
+        CheckRegistry registry = new CheckRegistry(List.of(), List.of(),
+                List.of(new CookieBannerCheck(), abstainingCheck));
+        InteractionRunner runner = new InteractionRunner(pool, registry, crawlerProperties,
+                new InteractionProperties(3, Duration.ofSeconds(10)));
+
+        InteractionOutcome outcome = runner.run(snapshots, site, facts, tempArtifacts);
+
+        assertThat(outcome.findings()).isEmpty();
+        assertThat(outcome.drivenTypes()).containsExactly(CheckType.COOKIE_BANNER);
+        assertThat(outcome.drivenTypes()).doesNotContain(CheckType.LANGUAGE_SWITCHER);
+        assertThat(outcome.candidateTypes()).containsExactlyInAnyOrder(CheckType.COOKIE_BANNER, CheckType.LANGUAGE_SWITCHER);
         assertThat(outcome.drivenUrls()).containsExactly(home.value());
     }
 
