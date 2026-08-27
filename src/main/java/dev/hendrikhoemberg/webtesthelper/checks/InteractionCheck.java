@@ -17,6 +17,14 @@ import java.util.List;
  */
 public interface InteractionCheck extends CheckDescriptor {
 
+    /**
+     * Evaluates the check against a live browser page.
+     *
+     * <p>Deviation D88: an interaction check may navigate away while performing its checks, but
+     * it must restore the page to the initial URL it was handed before returning. The runner
+     * captures a screenshot after evaluation completes, so failing to navigate back would attach
+     * evidence of the wrong page to any emitted findings.
+     */
     List<CheckFinding> evaluate(Page page, SiteContext site, CheckConfig config);
 
     default List<NormalizedUrl> targets(RunSnapshots snapshots, SiteContext site, int maxTargets) {

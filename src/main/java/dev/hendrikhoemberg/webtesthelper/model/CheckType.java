@@ -15,5 +15,6 @@ public enum CheckType {
     TLS_CERT,
     HREFLANG,
     SITEMAP_CONSISTENCY,
-    COOKIE_BANNER
+    COOKIE_BANNER,
+    LANGUAGE_SWITCHER
 }

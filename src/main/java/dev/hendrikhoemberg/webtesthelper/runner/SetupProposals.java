@@ -45,6 +45,9 @@ final class SetupProposals {
         checks.add(conditional(CheckType.HREFLANG,
                 evidence.reachable() && evidence.languages().size() > 1,
                 REASON_LANGUAGES, List.of(String.valueOf(evidence.languages().size()))));
+        checks.add(conditional(CheckType.LANGUAGE_SWITCHER,
+                evidence.reachable() && evidence.languages().size() > 1,
+                REASON_LANGUAGES, List.of(String.valueOf(evidence.languages().size()))));
         checks.add(conditional(CheckType.FILE_DOWNLOAD,
                 evidence.reachable() && !evidence.documentLinks().isEmpty(),
                 REASON_DOCUMENT, firstOf(evidence.documentLinks())));

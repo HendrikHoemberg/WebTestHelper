@@ -85,8 +85,10 @@ class SetupProposalTest {
                 List.of(), List.of(), List.of(),
                 Set.of("de", "en"), List.of(), false, false));
 
-        assertThat(suggested(proposals)).contains(CheckType.HREFLANG);
+        assertThat(suggested(proposals)).contains(CheckType.HREFLANG, CheckType.LANGUAGE_SWITCHER);
         assertThat(proposalFor(proposals, CheckType.HREFLANG).reasonArgs())
+                .containsExactly("2");
+        assertThat(proposalFor(proposals, CheckType.LANGUAGE_SWITCHER).reasonArgs())
                 .containsExactly("2");
     }
 
@@ -96,7 +98,7 @@ class SetupProposalTest {
                 List.of(), List.of(), List.of(),
                 Set.of("de"), List.of(), false, false));
 
-        assertThat(suggested(proposals)).doesNotContain(CheckType.HREFLANG);
+        assertThat(suggested(proposals)).doesNotContain(CheckType.HREFLANG, CheckType.LANGUAGE_SWITCHER);
     }
 
     @Test
