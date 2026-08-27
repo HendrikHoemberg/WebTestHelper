@@ -3,15 +3,23 @@ package dev.hendrikhoemberg.webtesthelper.support;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 
+import jakarta.mail.Message;
+import jakarta.mail.Session;
+import jakarta.mail.Transport;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeMessage;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
+import java.net.URLDecoder;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -59,6 +67,9 @@ public final class FixtureSite implements AutoCloseable {
     private final Map<String, String> lastPostedBodies = new ConcurrentHashMap<>();
     private final AtomicBoolean cookieBannerDismissable = new AtomicBoolean(false);
     private final AtomicBoolean languageSwitcherHealed = new AtomicBoolean(false);
+    private volatile MailRelay mailRelay;
+
+    private record MailRelay(String host, int port, String recipient) {}
 
     private FixtureSite(HttpServer server) {
         this.server = server;
@@ -117,6 +128,10 @@ public final class FixtureSite implements AutoCloseable {
         languageSwitcherHealed.set(healed);
     }
 
+    public void setMailRelay(String host, int port, String recipient) {
+        this.mailRelay = (host != null && recipient != null) ? new MailRelay(host, port, recipient) : null;
+    }
+
     @Override
     public void close() {
         server.stop(0);
@@ -133,11 +148,14 @@ public final class FixtureSite implements AutoCloseable {
         }
         try {
             switch (path) {
-                case "/kontakt/gesendet" -> sendHtml(exchange, 200, """
-                        <!doctype html><html lang="de"><head><meta charset="utf-8">
-                        <title>Vielen Dank</title></head>
-                        <body><h1>Vielen Dank, Ihre Nachricht wurde erfolgreich versendet.</h1></body></html>
-                        """);
+                case "/kontakt/gesendet" -> {
+                    relayMailIfConfigured(lastPostedBodies.get(path));
+                    sendHtml(exchange, 200, """
+                            <!doctype html><html lang="de"><head><meta charset="utf-8">
+                            <title>Vielen Dank</title></head>
+                            <body><h1>Vielen Dank, Ihre Nachricht wurde erfolgreich versendet.</h1></body></html>
+                            """);
+                }
                 case "/kontakt/still" -> sendHtml(exchange, 200, """
                         <!doctype html><html lang="de"><head><meta charset="utf-8">
                         <title>Vielen Dank</title></head>
@@ -325,5 +343,49 @@ public final class FixtureSite implements AutoCloseable {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
+    }
+
+    private void relayMailIfConfigured(String body) {
+        MailRelay relay = this.mailRelay;
+        if (relay != null && relay.host() != null && !relay.host().isBlank()) {
+            try {
+                String nachricht = extractFormField(body, "nachricht");
+                Properties props = new Properties();
+                props.put("mail.smtp.host", relay.host());
+                props.put("mail.smtp.port", String.valueOf(relay.port()));
+                props.put("mail.smtp.auth", "false");
+                props.put("mail.smtp.starttls.enable", "false");
+                Session session = Session.getInstance(props);
+                MimeMessage msg = new MimeMessage(session);
+                msg.setFrom(new InternetAddress("noreply@fixture-site.test"));
+                msg.setRecipient(Message.RecipientType.TO, new InternetAddress(relay.recipient()));
+                msg.setSubject("Kontaktformular");
+                msg.setText(nachricht, "utf-8");
+                Transport.send(msg);
+            } catch (Exception e) {
+                throw new RuntimeException("Mail relay failed", e);
+            }
+        }
+    }
+
+    private static String extractFormField(String body, String name) {
+        if (body == null || body.isBlank()) {
+            return "";
+        }
+        for (String pair : body.split("&")) {
+            int eq = pair.indexOf('=');
+            if (eq > 0) {
+                String key = URLDecoder.decode(pair.substring(0, eq), StandardCharsets.UTF_8);
+                if (key.equals(name)) {
+                    return URLDecoder.decode(pair.substring(eq + 1), StandardCharsets.UTF_8);
+                }
+            } else if (eq < 0) {
+                String key = URLDecoder.decode(pair, StandardCharsets.UTF_8);
+                if (key.equals(name)) {
+                    return "";
+                }
+            }
+        }
+        return "";
     }
 }
