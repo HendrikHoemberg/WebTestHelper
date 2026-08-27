@@ -195,7 +195,48 @@ class RunControllerTest {
         mvc.perform(get("/laeufe/" + runId))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("85 Seiten besucht")))
+                .andExpect(content().string(containsString("Interaktive Prüfungen: keine")))
                 .andExpect(content().string(not(containsString("Der Prüflauf hat das Seiten- oder Zeitlimit erreicht"))));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void coverageLineRendersInteractiveChecksCountAndPageCount() throws Exception {
+        long runId = 1031L;
+        long siteId = 42L;
+        RunSummary summary = new RunSummary(
+                runId,
+                siteId,
+                RunStatus.COMPLETED,
+                RunTrigger.MANUAL,
+                RunScope.FULL,
+                Instant.parse("2026-08-25T10:00:00Z"),
+                Instant.parse("2026-08-25T10:00:05Z"),
+                Instant.parse("2026-08-25T10:02:30Z"),
+                85,
+                0,
+                4,
+                2,
+                1,
+                false,
+                null,
+                false,
+                null,
+                Set.of(CheckType.PAGE_STATUS, CheckType.DEAD_LINK),
+                Set.of(CheckType.COOKIE_BANNER, CheckType.IFRAME_EMBED),
+                List.of("https://acme.example.com/", "https://acme.example.com/a", "https://acme.example.com/b")
+        );
+        SiteContext site = sampleSite(siteId);
+        RunDiff diff = new RunDiff(runId, Map.of());
+
+        when(runService.summary(runId)).thenReturn(summary);
+        when(siteService.contextFor(siteId)).thenReturn(site);
+        when(findingService.diffOf(siteId, runId)).thenReturn(diff);
+        when(findingViewFactory.of(eq(diff), any(Locale.class))).thenReturn(Map.of());
+
+        mvc.perform(get("/laeufe/" + runId))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Interaktive Prüfungen: 2 Prüfungen auf 3 Seiten")));
     }
 
     @Test

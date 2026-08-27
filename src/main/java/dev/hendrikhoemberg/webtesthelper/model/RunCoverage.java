@@ -89,14 +89,25 @@ public record RunCoverage(Set<CheckType> checkTypes,
 
     private static Set<String> parseLocationKeys(Collection<String> urls1, Collection<String> urls2) {
         Set<String> keys = new LinkedHashSet<>();
-        if (urls1 != null) {
-            urls1.stream().map(UrlNormalizer::normalize).filter(Optional::isPresent)
-                    .map(o -> o.get().locationKey()).forEach(keys::add);
-        }
-        if (urls2 != null) {
-            urls2.stream().map(UrlNormalizer::normalize).filter(Optional::isPresent)
-                    .map(o -> o.get().locationKey()).forEach(keys::add);
-        }
+        parseLocationKeysInto(urls1, keys);
+        parseLocationKeysInto(urls2, keys);
         return keys;
+    }
+
+    private static void parseLocationKeysInto(Collection<String> urls, Set<String> target) {
+        if (urls == null) {
+            return;
+        }
+        for (String url : urls) {
+            if (url == null) {
+                continue;
+            }
+            Optional<NormalizedUrl> normalized = UrlNormalizer.normalize(url);
+            if (normalized.isPresent()) {
+                target.add(normalized.get().locationKey());
+            } else if (url.startsWith("/")) {
+                target.add(url);
+            }
+        }
     }
 }

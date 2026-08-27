@@ -44,7 +44,8 @@ public class FindingService {
     public RunDiff record(long runId, long siteId, List<CheckFinding> findings, RunCoverage coverage,
             Instant observedAt) {
         List<MaterialisedFinding> materialised =
-                FindingMaterializer.materialise(siteId, findings, properties.siteWideThreshold());
+                FindingMaterializer.materialise(siteId, findings, properties.siteWideThreshold(),
+                        coverage.interactionCheckTypes());
         List<Long> ids = store.upsertAll(siteId, runId, materialised, observedAt);
         store.insertOccurrences(ids, runId, materialised, observedAt);
         store.recountOccurrences(ids);

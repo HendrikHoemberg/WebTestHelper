@@ -3,8 +3,13 @@ package dev.hendrikhoemberg.webtesthelper.runner;
 import dev.hendrikhoemberg.webtesthelper.catalog.SiteForm;
 import dev.hendrikhoemberg.webtesthelper.catalog.SiteService;
 import dev.hendrikhoemberg.webtesthelper.crawler.CrawlerProperties;
+import dev.hendrikhoemberg.webtesthelper.model.CheckFinding;
+import dev.hendrikhoemberg.webtesthelper.model.CheckType;
+import dev.hendrikhoemberg.webtesthelper.model.Evidence;
 import dev.hendrikhoemberg.webtesthelper.model.RunScope;
+import dev.hendrikhoemberg.webtesthelper.model.RunSnapshots;
 import dev.hendrikhoemberg.webtesthelper.model.RunTrigger;
+import dev.hendrikhoemberg.webtesthelper.model.Severity;
 import dev.hendrikhoemberg.webtesthelper.model.UrlNormalizer;
 import dev.hendrikhoemberg.webtesthelper.support.AbstractPostgresTest;
 import dev.hendrikhoemberg.webtesthelper.support.FixtureSite;
@@ -15,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.Duration;
 import java.util.List;
@@ -22,6 +28,11 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @Tag("browser")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -33,6 +44,7 @@ class CrawlRunExecutorTest extends AbstractPostgresTest {
     @Autowired JdbcTemplate jdbc;
     @Autowired CrawlerProperties properties;
     @Autowired RunnerProperties runnerProperties;
+    @MockitoBean InteractionRunner interactionRunner;
 
     private static FixtureSite site;
     private long siteId;
@@ -56,6 +68,24 @@ class CrawlRunExecutorTest extends AbstractPostgresTest {
      */
     @BeforeAll
     void crawlFixtureThreeTimes() {
+        when(interactionRunner.run(any(), any(), any(), any())).thenAnswer(invocation -> {
+            RunSnapshots snapshots = invocation.getArgument(0);
+            if (snapshots != null && (snapshots.runId() == runId1 || snapshots.runId() == runId2)) {
+                return new InteractionOutcome(
+                        List.of(new CheckFinding(
+                                CheckType.COOKIE_BANNER,
+                                Severity.ERROR,
+                                "cookie-hinweis",
+                                UrlNormalizer.normalize(site.baseUrl() + "interaktiv/banner.html").orElseThrow(),
+                                "finding.COOKIE_BANNER.undismissable",
+                                List.of("cookie-hinweis"),
+                                new Evidence("screenshot.png", null, null, null, List.of()))),
+                        Set.of(CheckType.COOKIE_BANNER),
+                        Set.of("/interaktiv/banner.html"));
+            }
+            return new InteractionOutcome(List.of(), Set.of(), Set.of());
+        });
+
         jdbc.update("DELETE FROM crawl_queue_item");
         jdbc.update("DELETE FROM run");
         jdbc.update("DELETE FROM site_check_setting");
@@ -79,6 +109,12 @@ class CrawlRunExecutorTest extends AbstractPostgresTest {
         runId3 = runs.enqueue(siteId, RunTrigger.MANUAL, RunScope.FULL);
         assertThat(worker.workOnce()).isTrue();
         pinsAfterPartialFullCrawl = sites.contextFor(siteId).pinnedKeyPages();
+    }
+
+    @org.junit.jupiter.api.BeforeEach
+    void resetMockDefault() {
+        when(interactionRunner.run(any(), any(), any(), any()))
+                .thenReturn(new InteractionOutcome(List.of(), Set.of(), Set.of()));
     }
 
     @Test
@@ -283,5 +319,38 @@ class CrawlRunExecutorTest extends AbstractPostgresTest {
         // skipped re-pinning (only-if-empty). The hand-edited list survives unchanged.
         assertThat(pinsAfterSecondFullCrawl)
                 .containsExactly(site.baseUrl() + "handbearbeitet.html");
+    }
+
+    @Test
+    void theInteractionPassMaterialisesItsFindingsAndRecordsCoverage() {
+        int interactionCount = jdbc.queryForObject(
+                "SELECT count(*) FROM finding WHERE site_id = ? AND check_type = 'COOKIE_BANNER' "
+                        + "AND subject_key = 'cookie-hinweis' AND location_key = '/interaktiv/banner.html'",
+                Integer.class, siteId);
+        assertThat(interactionCount).isEqualTo(1);
+
+        String coveredInteractionTypes = jdbc.queryForObject(
+                "SELECT covered_interaction_check_types::text FROM run WHERE id = ?", String.class, runId2);
+        assertThat(coveredInteractionTypes).contains("COOKIE_BANNER");
+
+        String coveredInteractionUrls = jdbc.queryForObject(
+                "SELECT covered_interaction_urls::text FROM run WHERE id = ?", String.class, runId2);
+        assertThat(coveredInteractionUrls).contains("/interaktiv/banner.html");
+    }
+
+    @Test
+    void aPulseRunNeverCallsTheInteractionRunner() {
+        long pulseRunId = runs.enqueue(siteId, RunTrigger.MANUAL, RunScope.PULSE);
+        assertThat(worker.workOnce()).isTrue();
+
+        verify(interactionRunner, never()).run(any(), any(), argThat(facts -> facts != null && facts.scope() == RunScope.PULSE), any());
+
+        String pulseInteractionTypes = jdbc.queryForObject(
+                "SELECT covered_interaction_check_types::text FROM run WHERE id = ?", String.class, pulseRunId);
+        assertThat(pulseInteractionTypes).isEqualTo("[]");
+
+        String pulseInteractionUrls = jdbc.queryForObject(
+                "SELECT covered_interaction_urls::text FROM run WHERE id = ?", String.class, pulseRunId);
+        assertThat(pulseInteractionUrls).isEqualTo("[]");
     }
 }

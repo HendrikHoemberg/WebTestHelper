@@ -70,6 +70,12 @@
             <span th:text="#{ui.lauf.abdeckung.seiten_besucht(${run.pagesVisited})}">85 Seiten besucht</span>,
             <span th:text="#{ui.lauf.abdeckung.seiten_fehlgeschlagen(${run.pagesFailed})}">2 fehlgeschlagen</span>.
         </p>
+        <p class="abdeckung-zeile">
+            <span th:if="${run.coveredInteractionCheckTypes == null or #sets.isEmpty(run.coveredInteractionCheckTypes) or run.coveredInteractionUrls == null or #lists.isEmpty(run.coveredInteractionUrls)}"
+                  th:text="#{ui.lauf.abdeckung.interaktiv.keine}">Interaktive Prüfungen: keine</span>
+            <span th:if="${run.coveredInteractionCheckTypes != null and not #sets.isEmpty(run.coveredInteractionCheckTypes) and run.coveredInteractionUrls != null and not #lists.isEmpty(run.coveredInteractionUrls)}"
+                  th:text="#{ui.lauf.abdeckung.interaktiv.ergebnis(${#sets.size(run.coveredInteractionCheckTypes)}, ${#lists.size(run.coveredInteractionUrls)})}">Interaktive Prüfungen: 2 Prüfungen auf 3 Seiten</span>
+        </p>
         <p th:if="${run.partialCoverage}" class="fehler" th:text="#{ui.lauf.abdeckung.teilweise}">
             Der Prüflauf hat das Seiten- oder Zeitlimit erreicht und nicht alle Seiten geprüft. Nicht besuchte Seiten wurden nicht ausgewertet und darin liegende Feststellungen nicht als behoben markiert.
         </p>

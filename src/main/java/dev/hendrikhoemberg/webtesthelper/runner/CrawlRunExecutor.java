@@ -5,6 +5,7 @@ import dev.hendrikhoemberg.webtesthelper.checks.CheckEngine;
 import dev.hendrikhoemberg.webtesthelper.crawler.CrawlRequest;
 import dev.hendrikhoemberg.webtesthelper.crawler.CrawlResult;
 import dev.hendrikhoemberg.webtesthelper.crawler.CrawlService;
+import dev.hendrikhoemberg.webtesthelper.crawler.CrawlerProperties;
 import dev.hendrikhoemberg.webtesthelper.crawler.FindingReverifier;
 import dev.hendrikhoemberg.webtesthelper.crawler.ReverificationOutcome;
 import dev.hendrikhoemberg.webtesthelper.crawler.TlsProbe;
@@ -25,10 +26,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * The sole {@link RunExecutor}: crawl the leased site, evaluate the page checks over what the
@@ -67,12 +70,15 @@ public class CrawlRunExecutor implements RunExecutor {
     private final FindingReverifier reverifier;
     private final FindingService findings;
     private final RunnerProperties properties;
+    private final InteractionRunner interactionRunner;
+    private final CrawlerProperties crawlerProperties;
 
     public CrawlRunExecutor(CrawlService crawler, CheckEngine checks,
             UrlVerificationService verifier, TlsProbe tlsProbe, SiteService sites,
             RunResultJdbcRepository results, RunLeaseJdbcRepository leases,
             WorkerIdentity identity, FindingReverifier reverifier, FindingService findings,
-            RunnerProperties properties) {
+            RunnerProperties properties, InteractionRunner interactionRunner,
+            CrawlerProperties crawlerProperties) {
         this.crawler = crawler;
         this.checks = checks;
         this.verifier = verifier;
@@ -84,6 +90,8 @@ public class CrawlRunExecutor implements RunExecutor {
         this.reverifier = reverifier;
         this.findings = findings;
         this.properties = properties;
+        this.interactionRunner = interactionRunner;
+        this.crawlerProperties = crawlerProperties;
     }
 
     @Override
@@ -117,6 +125,19 @@ public class CrawlRunExecutor implements RunExecutor {
         checkFindings.addAll(pageFindings);
         checkFindings.addAll(siteFindings);
 
+        InteractionOutcome interactionOutcome;
+        if (lease.scope() != RunScope.PULSE) {
+            leases.heartbeat(lease.runId(), identity.name(), LEASE_EXTENSION);
+            Path runArtifacts = crawlerProperties.artifactDir().resolve(String.valueOf(lease.runId()));
+            interactionOutcome = interactionRunner.run(result.snapshots(), site, facts, runArtifacts);
+            if (interactionOutcome == null) {
+                interactionOutcome = new InteractionOutcome(List.of(), Set.of(), Set.of());
+            }
+            checkFindings.addAll(interactionOutcome.findings());
+        } else {
+            interactionOutcome = new InteractionOutcome(List.of(), Set.of(), Set.of());
+        }
+
         // A dead-link finding is a chance for a false positive: re-check every subject the first
         // pass called DEAD and that the crawl did not itself visit. Anything that answers OK on a
         // later probe was transient and never becomes a finding (spec 8). Nothing here swallows a
@@ -139,11 +160,20 @@ public class CrawlRunExecutor implements RunExecutor {
                 .sorted()
                 .toList();
 
+        List<String> coveredInteractionCheckTypes = interactionOutcome.drivenTypes().stream()
+                .map(Enum::name)
+                .sorted()
+                .toList();
+        List<String> coveredInteractionUrls = interactionOutcome.drivenLocationKeys().stream()
+                .sorted()
+                .toList();
+
         // Materialise the survivors into fingerprints, promote site-wide where the check decides,
         // and diff against the previous run. observedAt is the run's start so every observation a
         // run makes is stamped with one instant (spec 6.4).
         RunCoverage coverage = RunCoverage.of(lease.scope(), coveredCheckTypes, result.coveredUrls(),
-                result.snapshots().visitedUrls(), result.partialCoverage());
+                result.snapshots().visitedUrls(), result.partialCoverage(),
+                coveredInteractionCheckTypes, coveredInteractionUrls);
         RunDiff diff = findings.record(lease.runId(), site.siteId(), surviving, coverage, startedAt);
 
         log.info("Lauf {}: {} neu, {} behoben, {} weiterhin offen",
@@ -151,6 +181,7 @@ public class CrawlRunExecutor implements RunExecutor {
                 diff.observedTotal() - diff.count(ReportSection.NEW));
 
         results.saveCrawlOutcome(lease.runId(), result, coveredCheckTypes,
+                coveredInteractionCheckTypes, coveredInteractionUrls,
                 result.snapshots().softNotFound(), diff.observedTotal(),
                 diff.count(ReportSection.NEW), diff.count(ReportSection.FIXED));
 

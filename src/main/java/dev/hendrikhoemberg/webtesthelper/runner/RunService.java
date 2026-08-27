@@ -153,6 +153,9 @@ public class RunService {
         Set<CheckType> covered = run.getCoveredCheckTypes().isEmpty()
                 ? EnumSet.noneOf(CheckType.class)
                 : run.getCoveredCheckTypes().stream().map(CheckType::valueOf).collect(Collectors.toSet());
+        Set<CheckType> coveredInteractions = run.getCoveredInteractionCheckTypes().isEmpty()
+                ? EnumSet.noneOf(CheckType.class)
+                : run.getCoveredInteractionCheckTypes().stream().map(CheckType::valueOf).collect(Collectors.toSet());
         return new RunSummary(
                 run.getId(),
                 run.getSiteId(),
@@ -171,6 +174,8 @@ public class RunService {
                 run.getBudgetStopReason(),
                 run.isBaselineAccepted(),
                 run.getErrorMessage(),
-                covered);
+                covered,
+                coveredInteractions,
+                run.getCoveredInteractionUrls() != null ? run.getCoveredInteractionUrls() : List.of());
     }
 }
