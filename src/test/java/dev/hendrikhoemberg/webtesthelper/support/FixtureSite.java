@@ -14,6 +14,7 @@ import java.util.Base64;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -55,6 +56,7 @@ public final class FixtureSite implements AutoCloseable {
     private final AtomicInteger echoInFlight = new AtomicInteger();
     private final AtomicInteger maxConcurrent = new AtomicInteger();
     private final Map<String, AtomicInteger> requestCounts = new ConcurrentHashMap<>();
+    private final AtomicBoolean cookieBannerDismissable = new AtomicBoolean(false);
 
     private FixtureSite(HttpServer server) {
         this.server = server;
@@ -99,6 +101,10 @@ public final class FixtureSite implements AutoCloseable {
 
     public int requestCount(String path) {
         return requestCounts.getOrDefault(path, new AtomicInteger()).get();
+    }
+
+    public void setCookieBannerDismissable(boolean dismissable) {
+        cookieBannerDismissable.set(dismissable);
     }
 
     @Override
@@ -183,7 +189,11 @@ public final class FixtureSite implements AutoCloseable {
     }
 
     private void serveStaticOrSoft404(HttpExchange exchange, String path) throws IOException {
-        String resource = "fixture-site" + (path.endsWith("/") ? path + "index.html" : path);
+        String effectivePath = path;
+        if ("/interaktiv/banner-hartnaeckig.html".equals(path) && cookieBannerDismissable.get()) {
+            effectivePath = "/interaktiv/banner.html";
+        }
+        String resource = "fixture-site" + (effectivePath.endsWith("/") ? effectivePath + "index.html" : effectivePath);
         try (InputStream in = FixtureSite.class.getClassLoader().getResourceAsStream(resource)) {
             if (in == null) {
                 sendHtml(exchange, 200, SOFT_404_BODY);   // the soft 404 — deliberately not 404
