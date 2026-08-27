@@ -542,4 +542,48 @@ class ContactFormsTest {
 
         assertThat(ContactForms.verdict(outcome)).isEqualTo(ContactForms.SubmitVerdict.NO_INDICATOR);
     }
+
+    // --- Token carrier tests (the field that makes SUBMIT_AND_VERIFY_MAIL provable) ---
+
+    @Test
+    void theTokenCarrierIsTheMessageFieldWhenTheFormHasOne() {
+        ClassifiedField subject = new ClassifiedField(visibleField(0, "input", "text", "betreff", "betreff", "", "", ""), FieldKind.SUBJECT);
+        ClassifiedField message = new ClassifiedField(visibleTextarea(1, "nachricht", "Nachricht"), FieldKind.MESSAGE);
+
+        assertThat(ContactForms.tokenCarrier(List.of(subject, message))).contains(message);
+        assertThat(ContactForms.tokenCarrier(List.of(message, subject))).contains(message);
+    }
+
+    @Test
+    void theTokenCarrierFallsBackToTheSubjectWhenTheFormHasNoMessageField() {
+        // triage admits a form on three fillable fields alone, so a name/e-mail/subject form with
+        // no textarea is a CONTACT form the token would otherwise never reach.
+        ClassifiedField name = new ClassifiedField(visibleField(0, "input", "text", "name", "name", "", "", ""), FieldKind.NAME);
+        ClassifiedField subject = new ClassifiedField(visibleField(1, "input", "text", "betreff", "betreff", "", "", ""), FieldKind.SUBJECT);
+
+        assertThat(ContactForms.tokenCarrier(List.of(name, subject))).contains(subject);
+    }
+
+    @Test
+    void thereIsNoTokenCarrierWhenTheFormHasNeitherMessageNorSubject() {
+        ClassifiedField name = new ClassifiedField(visibleField(0, "input", "text", "name", "name", "", "", ""), FieldKind.NAME);
+        ClassifiedField email = new ClassifiedField(visibleField(1, "input", "email", "email", "email", "", "", ""), FieldKind.EMAIL);
+
+        assertThat(ContactForms.tokenCarrier(List.of(name, email))).isEmpty();
+        assertThat(ContactForms.tokenCarrier(List.of())).isEmpty();
+        assertThat(ContactForms.tokenCarrier(null)).isEmpty();
+    }
+
+    @Test
+    void withTokenAppendsOnceAndLeavesAValueThatAlreadyCarriesItAlone() {
+        String token = "WTH-TOKEN-42";
+        String subject = "Automatische Prüfung – bitte ignorieren";
+        String message = "Dies ist eine automatische Testnachricht von WebTestHelper. Bitte ignorieren. Kennung: " + token;
+
+        assertThat(ContactForms.withToken(subject, token))
+                .isEqualTo(subject + " Kennung: " + token);
+        assertThat(ContactForms.withToken(message, token)).isEqualTo(message);
+        assertThat(ContactForms.withToken(null, token)).isNull();
+        assertThat(ContactForms.withToken(subject, null)).isEqualTo(subject);
+    }
 }

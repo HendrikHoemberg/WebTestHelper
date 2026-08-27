@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Kontaktformular ohne Nachrichtenfeld — Fixture</title>
+</head>
+<body>
+  <h1>Rückruf anfordern</h1>
+  <!-- No textarea: triage admits this as CONTACT on its fillable-field count alone, so the
+       verification token has to travel in "Betreff" or it never reaches the mailbox. -->
+  <form id="rueckrufformular" action="/kontakt/still" method="post">
+    <label for="name">Name</label>
+    <input type="text" id="name" name="name" autocomplete="name" required>
+
+    <label for="email">E-Mail</label>
+    <input type="email" id="email" name="email" autocomplete="email" required>
+
+    <label for="telefon">Telefon</label>
+    <input type="tel" id="telefon" name="telefon" autocomplete="tel">
+
+    <label for="betreff">Betreff</label>
+    <input type="text" id="betreff" name="betreff" required>
+
+    <button type="submit" id="submit-btn">Absenden</button>
+  </form>
+</body>
+</html>

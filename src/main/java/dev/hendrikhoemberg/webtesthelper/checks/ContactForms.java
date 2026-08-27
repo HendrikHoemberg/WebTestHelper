@@ -324,6 +324,44 @@ public final class ContactForms {
         };
     }
 
+    /**
+     * The field the run's verification token has to land in for {@code SUBMIT_AND_VERIFY_MAIL} to
+     * be able to prove anything: the {@code MESSAGE} field, or the {@code SUBJECT} field when the
+     * form has none.
+     *
+     * <p>The fallback is not cosmetic. {@link #triage} admits a form as {@code CONTACT} on three
+     * fillable fields alone, so a name / e-mail / subject form with no textarea is a contact form
+     * this system will submit — and with the token confined to {@code MESSAGE} it would be reported
+     * as {@code notDelivered} every month no matter how well the site works. An empty answer means
+     * the token cannot be carried at all, which is a reason to abstain rather than to report.
+     */
+    public static Optional<ClassifiedField> tokenCarrier(List<ClassifiedField> classified) {
+        if (classified == null || classified.isEmpty()) {
+            return Optional.empty();
+        }
+        Optional<ClassifiedField> message = classified.stream()
+                .filter(cf -> cf != null && cf.kind() == FieldKind.MESSAGE)
+                .findFirst();
+        if (message.isPresent()) {
+            return message;
+        }
+        return classified.stream()
+                .filter(cf -> cf != null && cf.kind() == FieldKind.SUBJECT)
+                .findFirst();
+    }
+
+    /**
+     * Appends the token to a value that does not already carry it, in the same wording the message
+     * body uses. Idempotent, so the {@code MESSAGE} value {@link #plausible} already stamped passes
+     * through untouched.
+     */
+    public static String withToken(String value, String token) {
+        if (value == null || token == null || token.isBlank() || value.contains(token)) {
+            return value;
+        }
+        return value + " Kennung: " + token;
+    }
+
     private static String plausibleAddress(HarvestedField field) {
         if (field == null) {
             return "Teststraße 1";

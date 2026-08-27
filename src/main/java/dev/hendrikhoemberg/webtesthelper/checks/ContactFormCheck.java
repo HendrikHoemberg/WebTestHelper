@@ -36,7 +36,7 @@ import java.util.Random;
 import java.util.Set;
 
 /**
- * Contact form interaction check (spec 7.2, D77, D90, D91, D94).
+ * Contact form interaction check (spec 7.2, D77, D90, D91, D94, D103).
  *
  * <p>Harvests forms, selects the contact form, classifies its fields, and fills them with plausible
  * test values. In {@link FormTestMode#NO_SUBMIT} mode, verifies whether the form can validate and
@@ -156,8 +156,20 @@ public final class ContactFormCheck implements InteractionCheck {
                 : FALLBACK_EMAIL;
         String token = mintToken();
 
+        // The token has to reach the mailbox inside the message the form sends, so a form with no
+        // field able to carry it cannot prove delivery. Saying so is the honest answer; filling it
+        // anyway would report notDelivered every month against a form that works (D103).
+        Optional<ClassifiedField> tokenCarrier = ContactForms.tokenCarrier(classified);
+        if (effectiveMode == FormTestMode.SUBMIT_AND_VERIFY_MAIL && tokenCarrier.isEmpty()) {
+            throw new CheckAbstainedException(type(), page.url(),
+                    "kein Feld, das die Kennung zum Prüfpostfach tragen kann");
+        }
+
         for (ClassifiedField cf : classified) {
             String value = ContactForms.plausible(cf, email, token);
+            if (tokenCarrier.filter(carrier -> carrier == cf).isPresent()) {
+                value = ContactForms.withToken(value, token);
+            }
             if (value != null) {
                 Locator el = page.locator("[data-wth-field='" + form.index() + "-" + cf.field().index() + "']");
                 switch (cf.kind()) {

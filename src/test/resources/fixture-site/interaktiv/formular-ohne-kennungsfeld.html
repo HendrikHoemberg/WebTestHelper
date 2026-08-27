@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Kontaktformular ohne Kennungsfeld — Fixture</title>
+</head>
+<body>
+  <h1>Rückruf anfordern</h1>
+  <!-- Neither a message nor a subject field: nothing here can carry the verification token, so
+       SUBMIT_AND_VERIFY_MAIL must abstain rather than report a delivery it cannot observe. -->
+  <form id="rueckrufformular" action="/kontakt/still" method="post">
+    <label for="name">Name</label>
+    <input type="text" id="name" name="name" autocomplete="name" required>
+
+    <label for="email">E-Mail</label>
+    <input type="email" id="email" name="email" autocomplete="email" required>
+
+    <label for="telefon">Telefon</label>
+    <input type="tel" id="telefon" name="telefon" autocomplete="tel" required>
+
+    <button type="submit" id="submit-btn">Absenden</button>
+  </form>
+</body>
+</html>

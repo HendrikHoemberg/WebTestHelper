@@ -488,4 +488,69 @@ class ContactFormCheckTest {
             assertThat(mailbox.receivedToken).isNull();
         }
     }
+
+    @Test
+    void aFormWithNoMessageFieldCarriesTheTokenInItsSubjectAndProvesDelivery() {
+        // triage admits a form as CONTACT on three fillable fields alone, so this shape is
+        // submitted for real. With the token confined to MESSAGE it could never be found in the
+        // mailbox and the site would be reported notDelivered every month (D103).
+        FakeMailbox mailbox = new FakeMailbox("pruefpostfach@example.com", Mailbox.Result.FOUND);
+        ContactFormCheck checkWithMailbox = new ContactFormCheck(mailbox);
+
+        try (BrowserContext context = browser.newContext()) {
+            Page page = context.newPage();
+            String initialUrl = fixtureSite.url("interaktiv/formular-ohne-nachricht.html");
+            page.navigate(initialUrl);
+
+            List<CheckFinding> findings = checkWithMailbox.evaluate(
+                    page, siteContext(FormTestMode.SUBMIT_AND_VERIFY_MAIL), checkConfig(RunScope.DEEP));
+
+            assertThat(findings).isEmpty();
+            assertThat(mailbox.receivedToken).isNotNull().startsWith("WTH-");
+
+            String postedBody = fixtureSite.lastPostedBody("/kontakt/still");
+            assertThat(postedBody).contains("betreff=");
+            assertThat(postedBody).contains(mailbox.receivedToken);
+            assertThat(page.url()).isEqualTo(initialUrl);
+        }
+    }
+
+    @Test
+    void aFormWithNeitherMessageNorSubjectAbstainsInsteadOfClaimingNonDelivery() {
+        FakeMailbox mailbox = new FakeMailbox("pruefpostfach@example.com", Mailbox.Result.NOT_FOUND);
+        ContactFormCheck checkWithMailbox = new ContactFormCheck(mailbox);
+
+        try (BrowserContext context = browser.newContext()) {
+            Page page = context.newPage();
+            page.navigate(fixtureSite.url("interaktiv/formular-ohne-kennungsfeld.html"));
+
+            int requestsBefore = fixtureSite.requestCount("/kontakt/still");
+
+            assertThatThrownBy(() -> checkWithMailbox.evaluate(
+                    page, siteContext(FormTestMode.SUBMIT_AND_VERIFY_MAIL), checkConfig(RunScope.DEEP)))
+                    .isInstanceOf(CheckAbstainedException.class)
+                    .hasMessageContaining("Kennung");
+
+            assertThat(fixtureSite.requestCount("/kontakt/still")).isEqualTo(requestsBefore);
+            assertThat(mailbox.receivedToken).isNull();
+        }
+    }
+
+    @Test
+    void aFormWithNoMessageFieldIsStillFilledAndJudgedWithoutSubmittingInNoSubmitMode() {
+        try (BrowserContext context = browser.newContext()) {
+            Page page = context.newPage();
+            String initialUrl = fixtureSite.url("interaktiv/formular-ohne-kennungsfeld.html");
+            page.navigate(initialUrl);
+
+            int requestsBefore = fixtureSite.requestCount("/kontakt/still");
+            List<CheckFinding> findings = check.evaluate(
+                    page, siteContext(FormTestMode.NO_SUBMIT), checkConfig(RunScope.FULL));
+
+            // The carrier only gates the mode that has to find the token again.
+            assertThat(findings).isEmpty();
+            assertThat(fixtureSite.requestCount("/kontakt/still")).isEqualTo(requestsBefore);
+            assertThat(page.url()).isEqualTo(initialUrl);
+        }
+    }
 }
