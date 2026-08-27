@@ -127,14 +127,14 @@ class RedactorTest extends AbstractPostgresTest {
         logger.addAppender(appender);
 
         try {
-            SecretText secretText = SecretText.of("superSecretPlaintext", "{{cred:login.password}}");
+            SecretText secretText = SecretText.of("superSecretPlaintext", "{{cred.login.password}}");
 
             logger.info("FILL {} = {}", "pw", secretText);
 
             assertThat(appender.list).hasSize(1);
             String formattedMessage = appender.list.get(0).getFormattedMessage();
             assertThat(formattedMessage)
-                    .contains("{{cred:login.password}}")
+                    .contains("{{cred.login.password}}")
                     .doesNotContain("superSecretPlaintext");
         } finally {
             logger.detachAppender(appender);
