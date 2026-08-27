@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Service
@@ -15,6 +16,8 @@ import java.util.regex.Pattern;
 public class CredentialService {
 
     private static final Pattern NAME_PATTERN = Pattern.compile("^[a-z][a-z0-9_-]{0,31}$");
+    private static final Pattern CANDIDATE_REF_PATTERN = Pattern.compile("\\{\\{[^{}]*\\}\\}");
+
 
     private final CredentialRepository credentials;
     private final SiteRepository sites;
@@ -82,6 +85,53 @@ public class CredentialService {
                 .map(this::toCredential)
                 .toList();
     }
+
+    @Transactional(readOnly = true)
+    public SecretText resolve(long siteId, String template) {
+        if (template == null) {
+            return SecretText.plain(null);
+        }
+
+        Matcher candidateMatcher = CANDIDATE_REF_PATTERN.matcher(template);
+        while (candidateMatcher.find()) {
+            String candidate = candidateMatcher.group();
+            if (candidate.toLowerCase().contains("cred") && !CredentialReference.PATTERN.matcher(candidate).matches()) {
+                throw new IllegalArgumentException("credential.reference.malformed: " + candidate);
+            }
+        }
+
+        List<CredentialReference> refs = CredentialReference.findAll(template);
+        if (refs.isEmpty()) {
+            return SecretText.plain(template);
+        }
+
+        Matcher matcher = CredentialReference.PATTERN.matcher(template);
+        StringBuilder sb = new StringBuilder();
+        while (matcher.find()) {
+            String name = matcher.group(1);
+            CredentialField field = CredentialField.parse(matcher.group(2)).orElseThrow();
+            CredentialReference ref = new CredentialReference(name, field);
+
+            CredentialEntity entity = credentials.findBySiteIdAndName(siteId, ref.name())
+                    .orElseThrow(() -> new IllegalArgumentException("credential.reference.unknown: " + ref.token()));
+
+            String value;
+            if (ref.field() == CredentialField.USERNAME) {
+                value = entity.getUsername() != null ? entity.getUsername() : "";
+            } else {
+                try {
+                    value = secretBox.decrypt(entity.getSecret());
+                } catch (RuntimeException e) {
+                    throw new IllegalStateException("credential.reference.unreadable: " + ref.token(), e);
+                }
+            }
+            matcher.appendReplacement(sb, Matcher.quoteReplacement(value));
+        }
+        matcher.appendTail(sb);
+
+        return SecretText.of(sb.toString(), template);
+    }
+
 
     private Credential toCredential(CredentialEntity entity) {
         boolean readable = isReadable(entity.getSecret());
