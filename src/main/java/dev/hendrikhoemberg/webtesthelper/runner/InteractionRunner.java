@@ -164,7 +164,7 @@ public class InteractionRunner {
                 }
             } else {
                 try (Page setupPage = createAndNavigatePage(context, targetUrl)) {
-                    CookieBanner.accept(setupPage, Duration.ofSeconds(3));
+                    CookieBanner.accept(setupPage, CookieBanner.DISMISSAL_WAIT);
                 } catch (RuntimeException e) {
                     log.warn("Lauf {} Cookie-Banner Setup auf {} fehlgeschlagen: {}",
                             facts.runId(), targetUrl.value(), e.getMessage(), e);
