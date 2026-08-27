@@ -8,6 +8,8 @@ import dev.hendrikhoemberg.webtesthelper.checks.ContactForms.FieldKind;
 import dev.hendrikhoemberg.webtesthelper.checks.ContactForms.FormVerdict;
 import dev.hendrikhoemberg.webtesthelper.checks.ContactForms.HarvestedField;
 import dev.hendrikhoemberg.webtesthelper.checks.ContactForms.HarvestedForm;
+import dev.hendrikhoemberg.webtesthelper.checks.ContactForms.Outcome;
+import dev.hendrikhoemberg.webtesthelper.checks.ContactForms.SubmitVerdict;
 import dev.hendrikhoemberg.webtesthelper.model.CheckFinding;
 import dev.hendrikhoemberg.webtesthelper.model.CheckType;
 import dev.hendrikhoemberg.webtesthelper.model.Evidence;
@@ -25,6 +27,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -33,7 +36,8 @@ import java.util.Set;
  *
  * <p>Harvests forms, selects the contact form, classifies its fields, and fills them with plausible
  * test values. In {@link FormTestMode#NO_SUBMIT} mode, verifies whether the form can validate and
- * rejects invalid emails, without submitting anything.
+ * rejects invalid emails, without submitting anything. In {@link FormTestMode#SUBMIT} mode, submits
+ * the form and evaluates whether the submission succeeded.
  */
 public final class ContactFormCheck implements InteractionCheck {
 
@@ -44,13 +48,16 @@ public final class ContactFormCheck implements InteractionCheck {
     static final String NOT_DELIVERED = "finding.CONTACT_FORM.notDelivered";
 
     private static final String SCRIPT;
+    private static final String FORM_OUTCOME_SCRIPT;
 
     static {
         try {
             SCRIPT = new ClassPathResource("checks/contact-form.js")
                     .getContentAsString(StandardCharsets.UTF_8);
+            FORM_OUTCOME_SCRIPT = new ClassPathResource("checks/form-outcome.js")
+                    .getContentAsString(StandardCharsets.UTF_8);
         } catch (IOException e) {
-            throw new IllegalStateException("checks/contact-form.js fehlt im Klassenpfad", e);
+            throw new IllegalStateException("checks/contact-form.js oder checks/form-outcome.js fehlt im Klassenpfad", e);
         }
     }
 
@@ -91,10 +98,6 @@ public final class ContactFormCheck implements InteractionCheck {
 
         if (effectiveMode == null) {
             throw new CheckAbstainedException(type(), page.url(), "submit-modus ausserhalb des Tiefenlaufs");
-        }
-
-        if (effectiveMode != FormTestMode.NO_SUBMIT) {
-            throw new UnsupportedOperationException("Mode " + effectiveMode + " not supported yet");
         }
 
         List<HarvestedForm> forms = harvest(page);
@@ -180,7 +183,84 @@ public final class ContactFormCheck implements InteractionCheck {
             }
         }
 
+        if (effectiveMode.submits()) {
+            String textBefore = getBodyText(page);
+
+            ClassifiedField submitField = classified.stream()
+                    .filter(cf -> cf.kind() == FieldKind.SUBMIT)
+                    .findFirst()
+                    .orElse(null);
+
+            if (submitField == null) {
+                throw new CheckAbstainedException(type(), page.url(), "kein Absende-Knopf gefunden");
+            }
+
+            String initialUrl = page.url();
+            NormalizedUrl initialNormalized = initialUrl != null ? UrlNormalizer.normalize(initialUrl).orElse(null) : null;
+
+            try {
+                Locator submitEl = page.locator("[data-wth-field='" + form.index() + "-" + submitField.field().index() + "']");
+                submitEl.click();
+
+                try {
+                    page.waitForLoadState();
+                } catch (PlaywrightException ignored) {
+                }
+                page.waitForTimeout(500);
+
+                String currentUrl = page.url();
+                NormalizedUrl currentNormalized = currentUrl != null ? UrlNormalizer.normalize(currentUrl).orElse(null) : null;
+                boolean navigated = !Objects.equals(initialNormalized, currentNormalized);
+                boolean formGone = page.locator("[data-wth-form='" + form.index() + "']").count() == 0;
+                String textAfter = getBodyText(page);
+
+                Outcome outcome = new Outcome(navigated, formGone, textBefore, textAfter);
+                SubmitVerdict verdict = ContactForms.verdict(outcome);
+
+                String location = observedOn != null ? observedOn.value() : page.url();
+                if (verdict == SubmitVerdict.NO_INDICATOR) {
+                    return List.of(new CheckFinding(
+                            type(),
+                            severity,
+                            subjectKey,
+                            observedOn,
+                            NO_SUCCESS,
+                            List.of(location),
+                            Evidence.NONE));
+                } else if (verdict == SubmitVerdict.ERROR_SHOWN) {
+                    return List.of(new CheckFinding(
+                            type(),
+                            severity,
+                            subjectKey,
+                            observedOn,
+                            ERROR_SHOWN,
+                            List.of(location),
+                            Evidence.NONE));
+                }
+            } finally {
+                if (initialUrl != null && !Objects.equals(page.url(), initialUrl)) {
+                    try {
+                        page.navigate(initialUrl);
+                        page.waitForLoadState();
+                    } catch (Exception ignored) {
+                    }
+                }
+            }
+        }
+
         return List.of();
+    }
+
+    private static String getBodyText(Page page) {
+        if (page == null) {
+            return "";
+        }
+        try {
+            Object res = page.evaluate(FORM_OUTCOME_SCRIPT);
+            return res != null ? res.toString() : "";
+        } catch (Exception e) {
+            return "";
+        }
     }
 
     private record ValidityResult(boolean valid, String invalidFieldName) {}

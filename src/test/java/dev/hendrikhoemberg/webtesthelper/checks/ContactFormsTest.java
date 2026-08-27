@@ -486,4 +486,60 @@ class ContactFormsTest {
         assertThat(msg1).isEqualTo(msg2);
         assertThat(name1).isEqualTo(name2);
     }
+
+    // --- Submit Verdict Tests (Task 4) ---
+
+    @Test
+    void verdictSuccessWhenNavigatedAndSuccessWordGained() {
+        ContactForms.Outcome outcome = new ContactForms.Outcome(true, true,
+                "Bitte füllen Sie das Formular aus.",
+                "Vielen Dank, Ihre Nachricht wurde erfolgreich versendet.");
+
+        assertThat(ContactForms.verdict(outcome)).isEqualTo(ContactForms.SubmitVerdict.SUCCESS);
+    }
+
+    @Test
+    void verdictNoIndicatorWhenNoStructuralChangeEvenWithSuccessText() {
+        ContactForms.Outcome outcome = new ContactForms.Outcome(false, false,
+                "Bitte füllen Sie das Formular aus.",
+                "Vielen Dank für Ihren Besuch.");
+
+        assertThat(ContactForms.verdict(outcome)).isEqualTo(ContactForms.SubmitVerdict.NO_INDICATOR);
+    }
+
+    @Test
+    void verdictNoIndicatorWhenNavigatedWithoutSuccessOrError() {
+        ContactForms.Outcome outcome = new ContactForms.Outcome(true, false,
+                "Bitte füllen Sie das Formular aus.",
+                "Hier ist eine andere Seite.");
+
+        assertThat(ContactForms.verdict(outcome)).isEqualTo(ContactForms.SubmitVerdict.NO_INDICATOR);
+    }
+
+    @Test
+    void verdictErrorShownWhenErrorWordGained() {
+        ContactForms.Outcome outcome = new ContactForms.Outcome(false, false,
+                "Bitte füllen Sie das Formular aus.",
+                "Bitte füllen Sie das Formular aus. Fehler beim Versand.");
+
+        assertThat(ContactForms.verdict(outcome)).isEqualTo(ContactForms.SubmitVerdict.ERROR_SHOWN);
+    }
+
+    @Test
+    void verdictErrorShownWinsOverGainedSuccessWord() {
+        ContactForms.Outcome outcome = new ContactForms.Outcome(true, true,
+                "Bitte ausfüllen",
+                "Vielen Dank! Leider ist ein Fehler aufgetreten.");
+
+        assertThat(ContactForms.verdict(outcome)).isEqualTo(ContactForms.SubmitVerdict.ERROR_SHOWN);
+    }
+
+    @Test
+    void verdictFooterAlreadySaidVielenDankYieldsNoIndicator() {
+        ContactForms.Outcome outcome = new ContactForms.Outcome(true, true,
+                "Kontaktformular. Footer: Vielen Dank für Ihren Besuch.",
+                "Seite danach. Footer: Vielen Dank für Ihren Besuch.");
+
+        assertThat(ContactForms.verdict(outcome)).isEqualTo(ContactForms.SubmitVerdict.NO_INDICATOR);
+    }
 }

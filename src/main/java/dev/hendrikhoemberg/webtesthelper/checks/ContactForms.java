@@ -32,11 +32,61 @@ public final class ContactForms {
 
     public record ClassifiedField(HarvestedField field, FieldKind kind) {}
 
+    public record Outcome(boolean navigated, boolean formGone, String textBefore, String textAfter) {}
+
+    public enum SubmitVerdict {
+        SUCCESS, NO_INDICATOR, ERROR_SHOWN
+    }
+
     public enum FormVerdict {
         CONTACT, SEARCH, NEWSLETTER, LOGIN, CAPTCHA, NONE
     }
 
+    private static final List<String> SUCCESS_WORDS = List.of(
+            "vielen dank", "danke", "erfolgreich", "gesendet", "versendet", "verschickt",
+            "ubermittelt", "erhalten", "bestatigung", "wir melden uns", "nachricht ist unterwegs");
+
+    private static final List<String> ERROR_WORDS = List.of(
+            "fehler", "fehlgeschlagen", "konnte nicht", "nicht gesendet", "ungultig",
+            "pflichtfeld", "bitte fullen sie", "versuchen sie es");
+
     private ContactForms() {
+    }
+
+    /**
+     * Evaluates the outcome of submitting a contact form.
+     * <ol>
+     *   <li>The text gained an error word &rarr; {@code ERROR_SHOWN}</li>
+     *   <li>Neither navigated nor form gone &rarr; {@code NO_INDICATOR}</li>
+     *   <li>The text gained a success word &rarr; {@code SUCCESS}</li>
+     *   <li>Otherwise &rarr; {@code NO_INDICATOR}</li>
+     * </ol>
+     */
+    public static SubmitVerdict verdict(Outcome outcome) {
+        if (outcome == null) {
+            return SubmitVerdict.NO_INDICATOR;
+        }
+
+        String foldedBefore = fold(outcome.textBefore());
+        String foldedAfter = fold(outcome.textAfter());
+
+        boolean gainedError = ERROR_WORDS.stream()
+                .anyMatch(w -> foldedAfter.contains(w) && !foldedBefore.contains(w));
+        if (gainedError) {
+            return SubmitVerdict.ERROR_SHOWN;
+        }
+
+        if (!outcome.navigated() && !outcome.formGone()) {
+            return SubmitVerdict.NO_INDICATOR;
+        }
+
+        boolean gainedSuccess = SUCCESS_WORDS.stream()
+                .anyMatch(w -> foldedAfter.contains(w) && !foldedBefore.contains(w));
+        if (gainedSuccess) {
+            return SubmitVerdict.SUCCESS;
+        }
+
+        return SubmitVerdict.NO_INDICATOR;
     }
 
     /**

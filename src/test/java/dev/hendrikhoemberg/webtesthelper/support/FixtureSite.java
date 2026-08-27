@@ -56,6 +56,7 @@ public final class FixtureSite implements AutoCloseable {
     private final AtomicInteger echoInFlight = new AtomicInteger();
     private final AtomicInteger maxConcurrent = new AtomicInteger();
     private final Map<String, AtomicInteger> requestCounts = new ConcurrentHashMap<>();
+    private final Map<String, String> lastPostedBodies = new ConcurrentHashMap<>();
     private final AtomicBoolean cookieBannerDismissable = new AtomicBoolean(false);
     private final AtomicBoolean languageSwitcherHealed = new AtomicBoolean(false);
 
@@ -104,6 +105,10 @@ public final class FixtureSite implements AutoCloseable {
         return requestCounts.getOrDefault(path, new AtomicInteger()).get();
     }
 
+    public String lastPostedBody(String path) {
+        return lastPostedBodies.get(path);
+    }
+
     public void setCookieBannerDismissable(boolean dismissable) {
         cookieBannerDismissable.set(dismissable);
     }
@@ -120,8 +125,20 @@ public final class FixtureSite implements AutoCloseable {
     private void dispatch(HttpExchange exchange) throws IOException {
         String path = exchange.getRequestURI().getPath();
         requestCounts.computeIfAbsent(path, ignored -> new AtomicInteger()).incrementAndGet();
+        if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+            try (InputStream in = exchange.getRequestBody()) {
+                byte[] body = in.readAllBytes();
+                lastPostedBodies.put(path, new String(body, StandardCharsets.UTF_8));
+            }
+        }
         try {
             switch (path) {
+                case "/kontakt/gesendet" -> sendHtml(exchange, 200, """
+                        <!doctype html><html lang="de"><head><meta charset="utf-8">
+                        <title>Vielen Dank</title></head>
+                        <body><h1>Vielen Dank, Ihre Nachricht wurde erfolgreich versendet.</h1></body></html>
+                        """);
+                case "/kontakt/schweigt" -> serveStaticOrSoft404(exchange, "/interaktiv/formular-ohne-erfolg.html");
                 case "/assets/logo.png" -> send(exchange, 200, "image/png", PNG_1X1);
                 case "/assets/fehlt.png" -> send(exchange, 404, "text/plain", "nicht gefunden".getBytes(StandardCharsets.UTF_8));
                 case "/assets/stil.css" -> send(exchange, 200, "text/css",
