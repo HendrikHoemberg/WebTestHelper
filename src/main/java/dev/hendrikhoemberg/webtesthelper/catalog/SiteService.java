@@ -78,11 +78,20 @@ public class SiteService {
 
     public SiteContext contextFor(long siteId) {
         SiteEntity site = requireSite(siteId);
-        List<SiteCheckSettingEntity> settings = checkSettings.findBySiteId(siteId);
+        Map<CheckType, SiteCheckSettingEntity> persisted = new EnumMap<>(CheckType.class);
+        for (SiteCheckSettingEntity setting : checkSettings.findBySiteId(siteId)) {
+            persisted.put(setting.getCheckType(), setting);
+        }
         Map<CheckType, CheckSetting> checkSettingsMap = new EnumMap<>(CheckType.class);
-        for (SiteCheckSettingEntity setting : settings) {
-            checkSettingsMap.put(setting.getCheckType(),
-                    new CheckSetting(setting.isEnabled(), setting.getSeverityOverride(), setting.getConfig()));
+        for (CheckType type : CheckType.values()) {
+            SiteCheckSettingEntity setting = persisted.get(type);
+            if (setting != null) {
+                checkSettingsMap.put(type,
+                        new CheckSetting(setting.isEnabled(), setting.getSeverityOverride(), setting.getConfig()));
+            } else {
+                checkSettingsMap.put(type,
+                        new CheckSetting(!NOISY_BY_DEFAULT.contains(type), null, Map.of()));
+            }
         }
         return new SiteContext(
                 siteId,

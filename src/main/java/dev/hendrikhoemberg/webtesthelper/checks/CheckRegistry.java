@@ -20,10 +20,16 @@ public final class CheckRegistry {
 
     private final List<PageCheck> pageChecks;
     private final List<SiteCheck> siteChecks;
+    private final List<InteractionCheck> interactionChecks;
 
     public CheckRegistry(List<PageCheck> pageChecks, List<SiteCheck> siteChecks) {
+        this(pageChecks, siteChecks, List.of());
+    }
+
+    public CheckRegistry(List<PageCheck> pageChecks, List<SiteCheck> siteChecks, List<InteractionCheck> interactionChecks) {
         this.pageChecks = List.copyOf(pageChecks);
         this.siteChecks = List.copyOf(siteChecks);
+        this.interactionChecks = List.copyOf(interactionChecks);
     }
 
     public static CheckRegistry standard() {
@@ -40,7 +46,8 @@ public final class CheckRegistry {
                         new FileDownloadCheck()),
                 List.of(new TlsCertCheck(),
                         new HreflangCheck(),
-                        new SitemapConsistencyCheck()));
+                        new SitemapConsistencyCheck()),
+                List.of());
     }
 
     public List<PageCheck> pageChecks() {
@@ -51,8 +58,13 @@ public final class CheckRegistry {
         return siteChecks;
     }
 
+    public List<InteractionCheck> interactionChecks() {
+        return interactionChecks;
+    }
+
     public List<CheckDescriptor> all() {
-        return Stream.concat(pageChecks.stream(), siteChecks.stream())
+        return Stream.of(pageChecks.stream(), siteChecks.stream(), interactionChecks.stream())
+                .flatMap(s -> s)
                 .map(CheckDescriptor.class::cast)
                 .toList();
     }

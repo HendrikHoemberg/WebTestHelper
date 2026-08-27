@@ -1,0 +1,19 @@
+package dev.hendrikhoemberg.webtesthelper.checks;
+
+import com.microsoft.playwright.Page;
+import dev.hendrikhoemberg.webtesthelper.model.CheckFinding;
+import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
+
+import java.util.List;
+
+/**
+ * A check that drives a live browser page after the crawl (spec 5.2, 7.2).
+ *
+ * <p>Deviation D72: interaction checks take a Playwright {@link Page} directly. Unlike
+ * {@link PageCheck} and {@link SiteCheck}, which operate purely over immutable data structures,
+ * an interaction check needs to click, wait, and observe DOM mutations in real time.
+ */
+public interface InteractionCheck extends CheckDescriptor {
+
+    List<CheckFinding> evaluate(Page page, SiteContext site, CheckConfig config);
+}

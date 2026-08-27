@@ -5,6 +5,10 @@
  * no browser (spec 5.1). That is what lets the catalog be developed against hand-built
  * snapshots and regression-tested against the fixture site.
  *
+ * <p>Deviation D72: the page and site halves stay browser-free, while the interaction half
+ * ({@link dev.hendrikhoemberg.webtesthelper.checks.InteractionCheck}) does not.
+ * {@code git grep InteractionCheck} is the complete list of the exception.
+ *
  * <p>Deliberately flat, like {@code model}: Spring Modulith treats a module's sub-packages as
  * internal, and the registry has to see every implementation.
  */
