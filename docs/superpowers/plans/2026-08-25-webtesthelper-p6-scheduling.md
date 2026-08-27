@@ -922,3 +922,54 @@ leases) needed no revision; two reviews checked its concurrency argument and fou
 The one thing to watch: with the D43 pool of three fully spoken for (outbox, tick, retention),
 plan 7's mute-expiry sweep genuinely needs a fourth thread or a shared job — the roadmap's
 note is confirmed, not hypothetical.
+
+### Post-execution audit (2026-08-26), after the Phase-2 spec-fidelity review
+
+Three defects, all of the same family: **plan 6 made `PULSE` reachable, and three pieces of
+Phase-1 code carried an invariant that only held while `FULL` was the only scope that ran.**
+None was a scheduling bug; all three were latent until the clock started firing pulse runs.
+
+- **A pulse run resolved site-wide findings it never looked at.** `RESOLVE_SQL` gates
+  `location_key = '*'` on `RunCoverage.complete`, which was `!partialCoverage`, which
+  `CrawlService` defines as *"the frontier ran dry"*. A pulse frontier is the pinned set and
+  never discovers, so **it always drains** — eleven key pages reported complete coverage and
+  disproved a finding the full crawl saw on six hundred. The next full crawl re-promoted it to
+  `'*'` and reported `REGRESSED`: §6.4's *"every week, forever"*, arriving through the one
+  branch the plan-4 test never covered (`aPulseRunDoesNotResolveWhatAFullCrawlFound` uses a
+  per-page `locationKey`, which was always scoped correctly by `locationKeys`). §11.1 would
+  have mailed each recurrence. Fixed by making the flag say what it means:
+  `wholeSite = scope.crawlsWholeSite() && !partialCoverage`, with the scope now a required
+  first argument to `RunCoverage.of` so no caller can omit the question.
+  *The lesson for later phases: plan 4 wrote the rule as "only on a run with complete coverage",
+  which was true and became false without anyone editing it. A flag whose name describes its
+  implementation rather than its question survives exactly until a second caller appears.*
+- **`RunScope.PULSE.checkTypes()` omitted `FILE_DOWNLOAD`, `MEDIA_PLAYABLE` and
+  `IFRAME_EMBED`** — all three *page* checks under §7.1, against §9's *"page checks only, no
+  submits"*, and three of the seven items §1 names as the product's reason to exist. The set
+  was written in Phase 1 (`92e17d2`) with no rationale in any plan and no deviation number.
+  **The omission bought nothing:** the scope's check types gate `CheckEngine.evaluatePage`
+  only, never the crawl, so the snapshot already carried the media state, the frame state and
+  the resolved document statuses on every run — a pulse simply discarded evidence it had
+  already paid for. Now the full page-check set, asserted against `CheckRegistry` in
+  `ScopeCheckSetTest` rather than as a hand-copied `EnumSet`, so the eleventh check fails the
+  build until a tier claims it.
+- **A site created while the clock is paused got no schedule rows at all.** D38 seeds lazily
+  from the dispatcher, and `tick()` short-circuits on the global pause *before* the seed step —
+  deliberately, and asserted by `aPausedTickSeedsNothingAndLeavesABackdatedRowAlone`. The
+  consequence was not: the site's Zeitpläne section shows "(noch keine Zeitpläne)" and offers
+  no form, so the one thing an administrator cannot do while paused is configure the schedules
+  they paused the clock to sort out. Fixed at the source rather than in the tick — §9 says
+  *"Defaults are applied when a site is created"*, so `SiteController.create` now seeds and
+  D38's backfill stays as the net. The paused-tick assertion is unchanged and still correct:
+  seeding is not scheduling, and the seeded rows sit still until the pause lifts.
+
+**890 full tests green**, up from 882 (628 at plan 6's own execution). Two in
+`FindingServiceDiffTest` (a pulse resolves no site-wide finding; a completed full crawl still
+does — the second is what stops the fix from being "never resolve `'*'`"), three in
+`ScopeCheckSetTest`, one in `SiteControllerTest`, and a net two in `RunCoverageTest`, where
+`partialCoverageIsIncomplete` became three cases: budget-capped full, completed full, and pulse.
+One further test was rewritten rather than deleted: `CheckEngineTest.aCheckOutsideTheRunScopeDoesNotRun` used
+`MEDIA_PLAYABLE` as its example of a check outside the pulse scope and became false. The
+property it guarded now lives entirely in `aSiteCheckOutsideTheRunScopeDoesNotRun`, because
+after the second fix **no page check is outside the pulse scope** — the page-level version of
+that test could only have been made to pass by keeping the bug.
