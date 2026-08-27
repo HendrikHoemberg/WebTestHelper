@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Kontaktformular (Lasche E-Mail-Prüfung) — Fixture</title>
+</head>
+<body>
+  <h1>Kontaktformular</h1>
+  <!-- The very common German CMS form: the e-mail field is a plain required text input, so the
+       browser accepts "kein-at-zeichen". Posts to /kontakt/still, which says thank you and
+       relays nothing — so this page proves acceptsInvalid does not suppress the submit branch. -->
+  <form id="kontaktformular" action="/kontakt/still" method="post">
+    <!-- CSRF hidden field -->
+    <input type="hidden" name="csrf" value="abc123">
+
+    <label for="name">Name</label>
+    <input type="text" id="name" name="name" autocomplete="name" required>
+
+    <label for="email">E-Mail</label>
+    <input type="text" id="email" name="email" required>
+
+    <label for="nachricht">Nachricht</label>
+    <textarea id="nachricht" name="nachricht" required></textarea>
+
+    <button type="submit" id="submit-btn">Absenden</button>
+  </form>
+</body>
+</html>

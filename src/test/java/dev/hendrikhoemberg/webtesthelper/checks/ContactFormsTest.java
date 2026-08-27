@@ -58,7 +58,7 @@ class ContactFormsTest {
                 submitButton(2, "Anmelden")
         ));
 
-        assertThat(ContactForms.triage(loginForm)).isEqualTo(FormVerdict.LOGIN);
+        assertThat(ContactForms.triage(loginForm, VIEWPORT_WIDTH)).isEqualTo(FormVerdict.LOGIN);
     }
 
     @Test
@@ -68,7 +68,7 @@ class ContactFormsTest {
                 submitButton(1, "Suchen")
         ));
 
-        assertThat(ContactForms.triage(searchForm)).isEqualTo(FormVerdict.SEARCH);
+        assertThat(ContactForms.triage(searchForm, VIEWPORT_WIDTH)).isEqualTo(FormVerdict.SEARCH);
     }
 
     @Test
@@ -78,7 +78,7 @@ class ContactFormsTest {
                 submitButton(1, "Search")
         ));
 
-        assertThat(ContactForms.triage(searchForm)).isEqualTo(FormVerdict.SEARCH);
+        assertThat(ContactForms.triage(searchForm, VIEWPORT_WIDTH)).isEqualTo(FormVerdict.SEARCH);
     }
 
     @Test
@@ -92,8 +92,8 @@ class ContactFormsTest {
                 submitButton(1, "Go")
         ));
 
-        assertThat(ContactForms.triage(sucheAction)).isEqualTo(FormVerdict.SEARCH);
-        assertThat(ContactForms.triage(searchAction)).isEqualTo(FormVerdict.SEARCH);
+        assertThat(ContactForms.triage(sucheAction, VIEWPORT_WIDTH)).isEqualTo(FormVerdict.SEARCH);
+        assertThat(ContactForms.triage(searchAction, VIEWPORT_WIDTH)).isEqualTo(FormVerdict.SEARCH);
     }
 
     @Test
@@ -105,7 +105,7 @@ class ContactFormsTest {
                 submitButton(3, "Senden")
         ));
 
-        assertThat(ContactForms.triage(captchaForm)).isEqualTo(FormVerdict.CAPTCHA);
+        assertThat(ContactForms.triage(captchaForm, VIEWPORT_WIDTH)).isEqualTo(FormVerdict.CAPTCHA);
     }
 
     @Test
@@ -115,7 +115,7 @@ class ContactFormsTest {
                 submitButton(1, "Abonnieren")
         ));
 
-        assertThat(ContactForms.triage(newsletterForm)).isEqualTo(FormVerdict.NEWSLETTER);
+        assertThat(ContactForms.triage(newsletterForm, VIEWPORT_WIDTH)).isEqualTo(FormVerdict.NEWSLETTER);
     }
 
     @Test
@@ -124,7 +124,7 @@ class ContactFormsTest {
                 submitButton(0, "Gefällt mir")
         ));
 
-        assertThat(ContactForms.triage(buttonOnlyForm)).isEqualTo(FormVerdict.NEWSLETTER);
+        assertThat(ContactForms.triage(buttonOnlyForm, VIEWPORT_WIDTH)).isEqualTo(FormVerdict.NEWSLETTER);
     }
 
     @Test
@@ -136,7 +136,7 @@ class ContactFormsTest {
                 submitButton(3, "Absenden")
         ));
 
-        assertThat(ContactForms.triage(contactForm)).isEqualTo(FormVerdict.CONTACT);
+        assertThat(ContactForms.triage(contactForm, VIEWPORT_WIDTH)).isEqualTo(FormVerdict.CONTACT);
     }
 
     @Test
@@ -148,7 +148,7 @@ class ContactFormsTest {
                 submitButton(3, "Senden")
         ));
 
-        assertThat(ContactForms.triage(contactWithoutTextarea)).isEqualTo(FormVerdict.CONTACT);
+        assertThat(ContactForms.triage(contactWithoutTextarea, VIEWPORT_WIDTH)).isEqualTo(FormVerdict.CONTACT);
     }
 
     @Test
@@ -159,7 +159,7 @@ class ContactFormsTest {
                 submitButton(2, "Senden")
         ));
 
-        assertThat(ContactForms.triage(twoFields)).isEqualTo(FormVerdict.NONE);
+        assertThat(ContactForms.triage(twoFields, VIEWPORT_WIDTH)).isEqualTo(FormVerdict.NONE);
     }
 
     // --- Choose Form Tests ---
@@ -177,7 +177,7 @@ class ContactFormsTest {
                 visibleTextarea(0, "msg", "Nachricht")
         ));
 
-        Optional<HarvestedForm> chosen = ContactForms.choose(List.of(search, login, contact1, contact2));
+        Optional<HarvestedForm> chosen = ContactForms.choose(List.of(search, login, contact1, contact2), VIEWPORT_WIDTH);
 
         assertThat(chosen).contains(contact1);
     }
@@ -189,7 +189,7 @@ class ContactFormsTest {
                 visibleTextarea(0, "msg", "Nachricht")
         ));
 
-        Optional<HarvestedForm> chosen = ContactForms.choose(List.of(search, captcha));
+        Optional<HarvestedForm> chosen = ContactForms.choose(List.of(search, captcha), VIEWPORT_WIDTH);
 
         assertThat(chosen).isEmpty();
     }

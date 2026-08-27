@@ -985,5 +985,31 @@ git commit -am "test(runner): acceptance for delivery, non-delivery, and the run
 ## Execution findings
 
 - **Word-Boundary Matching in Field Classification:** In `ContactForms.java`, field matching was refined to use word/token boundaries with camelCase and delimiter splitting rather than unanchored substring containment, preventing false-positive classifications on tokens like `"ort"`, `"tel"`, and `"mail"` embedded in words like `"support"`, `"antwort"`, or `"hotel"`.
-- **Suite Growth & Timing:** Total test suite increased from 1048 to 1137 tests (+89 tests across unit, browser, and acceptance tests). Full suite wall time is 4m24s (+1m35s over Plan 11 baseline: ~60s is the intentional non-delivery mailbox timeout in Run 1 of `ContactFormAcceptanceTest`, ~35s is Playwright/Chromium execution across contact form test scenarios). All 1137 tests passing with 0 failures and 0 errors.
+- **Suite Growth & Timing:** Total test suite increased from 1048 to 1140 tests (+92 tests across unit, browser, and acceptance tests; 1137 at first execution, plus the three that the review below added). Full suite wall time is 4m25s (+1m35s over Plan 11 baseline: ~60s is the intentional non-delivery mailbox timeout in Run 1 of `ContactFormAcceptanceTest`, ~35s is Playwright/Chromium execution across contact form test scenarios). All 1140 tests passing with 0 failures and 0 errors.
 
+- **`acceptsInvalid` returned early and cost the site its submit branch.** The first
+  implementation returned the `acceptsInvalid` finding instead of collecting it, so
+  `if (effectiveMode.submits())` was unreachable for any form whose e-mail field is a plain
+  `<input type="text" name="email" required>` — the very shape the plan names as the common German
+  case. A site in `SUBMIT_AND_VERIFY_MAIL` therefore got a `WARN` about lax validation *instead of*
+  the delivery proof, and §7.2's "only mode that catches the most common real failure" was silently
+  off for exactly that class of site. The check now accumulates: `acceptsInvalid` at `WARN` and
+  `notDelivered` at the site's severity are two findings about two faults and are reported together.
+  `rejectsValid` keeps its early return, and now says why in a comment — a form the browser will not
+  let a visitor send cannot be submitted, so pressing the button would only restate the same fault.
+  The bug survived the plan because **no fixture had a lax e-mail field**: every form in the suite
+  used `type=email`, so `checkValidity()` went false and the branch never ran. `acceptsInvalid`
+  appeared in exactly one test line, the `messageKeys()` assertion, and spec §7.2's *"invalid input
+  rejected"* had no proof anywhere. `interaktiv/formular-lax-email.html` is that missing fixture.
+- **The e-mail typed into the form was a fictional address outside `SUBMIT_AND_VERIFY_MAIL`.**
+  `pruefung@webtesthelper.invalid` was hardcoded for `NO_SUBMIT` and `SUBMIT`, against the plan's
+  "the mailbox address, or the SMTP from-address". In `SUBMIT` that posts an unreachable address
+  into a customer's live form, so nobody can reply to the test message, and a server-side validator
+  that rejects `.invalid` turns a healthy form into an `errorShown`. `mailbox.address()` is
+  available in every mode and is now used whenever it is non-blank; the constant survives only as
+  the no-mailbox fallback. `SUBMIT_AND_VERIFY_MAIL` still abstains up front when it is blank.
+- **`triage`/`choose` hardcoded the 1366 viewport** that `hidden` and `classify` take as a
+  parameter, defeating the reason the plan gave for the parameter. Both now take it and the check
+  passes the context's real width.
+- **`SUCCESS_WORDS` was duplicated** verbatim in `ContactForms` and `ContactFormCheck`. It is now
+  package-private on `ContactForms` and read from there by `extractSuccessText`.

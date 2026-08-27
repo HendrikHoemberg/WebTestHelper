@@ -54,9 +54,9 @@ public final class ContactFormCheck implements InteractionCheck {
 
     private static final String BASE32_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
     private static final Random RANDOM = new SecureRandom();
-    private static final List<String> SUCCESS_WORDS = List.of(
-            "vielen dank", "danke", "erfolgreich", "gesendet", "versendet", "verschickt",
-            "ubermittelt", "erhalten", "bestatigung", "wir melden uns", "nachricht ist unterwegs");
+
+    /** Used only when no verification mailbox is configured; never a deliverable domain (RFC 2606). */
+    private static final String FALLBACK_EMAIL = "pruefung@webtesthelper.invalid";
 
     private static final String SCRIPT;
     private static final String FORM_OUTCOME_SCRIPT;
@@ -132,23 +132,28 @@ public final class ContactFormCheck implements InteractionCheck {
             }
         }
 
+        int viewportWidth = page.viewportSize() != null ? page.viewportSize().width : 1366;
         List<HarvestedForm> forms = harvest(page);
-        Optional<HarvestedForm> chosen = ContactForms.choose(forms);
+        Optional<HarvestedForm> chosen = ContactForms.choose(forms, viewportWidth);
 
         if (chosen.isEmpty()) {
-            if (forms.stream().anyMatch(f -> ContactForms.triage(f) == FormVerdict.CAPTCHA)) {
+            if (forms.stream().anyMatch(f -> ContactForms.triage(f, viewportWidth) == FormVerdict.CAPTCHA)) {
                 throw new CheckAbstainedException(type(), page.url(), "Formular ist durch ein Captcha geschützt");
             }
             throw new CheckAbstainedException(type(), page.url(), "kein Kontaktformular auf der Seite");
         }
 
         HarvestedForm form = chosen.get();
-        int viewportWidth = page.viewportSize() != null ? page.viewportSize().width : 1366;
         List<ClassifiedField> classified = ContactForms.classify(form, viewportWidth);
 
-        String email = effectiveMode == FormTestMode.SUBMIT_AND_VERIFY_MAIL
-                ? mailbox.address()
-                : "pruefung@webtesthelper.invalid";
+        // The verification mailbox's address in every mode that has one, not only when delivery is
+        // being proved: a reply to the test message must reach us rather than a fictional recipient,
+        // and a server-side validator that rejects the placeholder domain would report a healthy
+        // form as broken. SUBMIT_AND_VERIFY_MAIL has already abstained above if it is blank.
+        String mailboxAddress = mailbox.address();
+        String email = mailboxAddress != null && !mailboxAddress.isBlank()
+                ? mailboxAddress
+                : FALLBACK_EMAIL;
         String token = mintToken();
 
         for (ClassifiedField cf : classified) {
@@ -175,8 +180,13 @@ public final class ContactFormCheck implements InteractionCheck {
         String subjectKey = !form.id().isBlank() ? form.id() : (!form.action().isBlank() ? form.action() : "formular#" + form.index());
         Severity severity = config != null ? config.severity() : defaultSeverity();
 
+        String location = observedOn != null ? observedOn.value() : page.url();
+        List<CheckFinding> findings = new ArrayList<>(2);
+
         if (!validityResult.valid()) {
-            String location = observedOn != null ? observedOn.value() : page.url();
+            // A form the browser will not let a visitor send cannot be submitted either, so this is
+            // the one early return: pressing the button would only produce a second finding about
+            // the same fault.
             return List.of(new CheckFinding(
                     type(),
                     severity,
@@ -205,8 +215,10 @@ public final class ContactFormCheck implements InteractionCheck {
             }
 
             if (invalidEmailValidity.valid() && emailField.field().required()) {
-                String location = observedOn != null ? observedOn.value() : page.url();
-                return List.of(new CheckFinding(
+                // Collected, never returned: lax e-mail validation is a different question from
+                // whether the form delivers, and answering it must not cost the site the submit
+                // branch — a plain <input type="text" name="email"> is the commonest German form.
+                findings.add(new CheckFinding(
                         type(),
                         Severity.WARN,
                         subjectKey,
@@ -251,9 +263,8 @@ public final class ContactFormCheck implements InteractionCheck {
                 Outcome outcome = new Outcome(navigated, formGone, textBefore, textAfter);
                 SubmitVerdict verdict = ContactForms.verdict(outcome);
 
-                String location = observedOn != null ? observedOn.value() : page.url();
                 if (verdict == SubmitVerdict.NO_INDICATOR) {
-                    return List.of(new CheckFinding(
+                    findings.add(new CheckFinding(
                             type(),
                             severity,
                             subjectKey,
@@ -261,8 +272,9 @@ public final class ContactFormCheck implements InteractionCheck {
                             NO_SUCCESS,
                             List.of(location),
                             Evidence.NONE));
+                    return List.copyOf(findings);
                 } else if (verdict == SubmitVerdict.ERROR_SHOWN) {
-                    return List.of(new CheckFinding(
+                    findings.add(new CheckFinding(
                             type(),
                             severity,
                             subjectKey,
@@ -270,6 +282,7 @@ public final class ContactFormCheck implements InteractionCheck {
                             ERROR_SHOWN,
                             List.of(location),
                             Evidence.NONE));
+                    return List.copyOf(findings);
                 }
 
                 if (effectiveMode == FormTestMode.SUBMIT_AND_VERIFY_MAIL) {
@@ -279,7 +292,7 @@ public final class ContactFormCheck implements InteractionCheck {
                         throw new CheckAbstainedException(type(), page.url(), "Prüfpostfach nicht erreichbar");
                     } else if (result == Mailbox.Result.NOT_FOUND) {
                         String successText = extractSuccessText(outcome);
-                        return List.of(new CheckFinding(
+                        findings.add(new CheckFinding(
                                 type(),
                                 severity,
                                 subjectKey,
@@ -300,7 +313,7 @@ public final class ContactFormCheck implements InteractionCheck {
             }
         }
 
-        return List.of();
+        return List.copyOf(findings);
     }
 
     private static String mintToken() {
@@ -321,7 +334,7 @@ public final class ContactFormCheck implements InteractionCheck {
             String trimmed = line.trim();
             if (trimmed.isEmpty()) continue;
             String folded = LanguageSwitchers.fold(trimmed);
-            boolean containsSuccess = SUCCESS_WORDS.stream().anyMatch(folded::contains);
+            boolean containsSuccess = ContactForms.SUCCESS_WORDS.stream().anyMatch(folded::contains);
             boolean wasInBefore = !textBeforeFolded.isEmpty() && textBeforeFolded.contains(folded);
             if (containsSuccess && !wasInBefore) {
                 return trimmed;
@@ -331,7 +344,7 @@ public final class ContactFormCheck implements InteractionCheck {
             String trimmed = line.trim();
             if (trimmed.isEmpty()) continue;
             String folded = LanguageSwitchers.fold(trimmed);
-            if (SUCCESS_WORDS.stream().anyMatch(folded::contains)) {
+            if (ContactForms.SUCCESS_WORDS.stream().anyMatch(folded::contains)) {
                 return trimmed;
             }
         }

@@ -402,5 +402,90 @@ class ContactFormCheckTest {
                     .hasMessageContaining("kein Prüfpostfach konfiguriert");
         }
     }
-}
 
+    /**
+     * Spec 7.2's second half of NO_SUBMIT: "invalid input rejected". The form's e-mail field is a
+     * plain required text input, so the browser accepts "kein-at-zeichen" and the check must say so
+     * at a fixed WARN — the TlsCertCheck precedent — while the site's severity stays ERROR.
+     */
+    @Test
+    void laxEmailFieldEmitsAcceptsInvalidAtWarnAndSubmitsNothing() {
+        FakeMailbox mailbox = new FakeMailbox("pruefpostfach@example.com", Mailbox.Result.NOT_FOUND);
+        ContactFormCheck checkWithMailbox = new ContactFormCheck(mailbox);
+
+        try (BrowserContext context = browser.newContext()) {
+            Page page = context.newPage();
+            String initialUrl = fixtureSite.url("interaktiv/formular-lax-email.html");
+            page.navigate(initialUrl);
+
+            int requestsBefore = fixtureSite.requestCount("/kontakt/still");
+            List<CheckFinding> findings = checkWithMailbox.evaluate(page, siteContext(), checkConfig());
+            int requestsAfter = fixtureSite.requestCount("/kontakt/still");
+
+            assertThat(requestsAfter - requestsBefore).isEqualTo(0);
+            assertThat(findings).hasSize(1);
+            CheckFinding finding = findings.get(0);
+            assertThat(finding.type()).isEqualTo(CheckType.CONTACT_FORM);
+            assertThat(finding.severity()).isEqualTo(Severity.WARN);
+            assertThat(finding.messageKey()).isEqualTo("finding.CONTACT_FORM.acceptsInvalid");
+            assertThat(finding.observedOn()).isEqualTo(Snapshots.url(initialUrl));
+            assertThat(finding.messageArgs()).containsExactly(Snapshots.url(initialUrl).value(), "kein-at-zeichen");
+
+            // The plausible address is restored, so the field is not left holding the probe value.
+            Object emailValue = page.evaluate("() => document.getElementById('email').value");
+            assertThat(emailValue).isEqualTo("pruefpostfach@example.com");
+        }
+    }
+
+    /**
+     * The regression this fixture exists for: acceptsInvalid must not suppress the submit branch.
+     * A form with a lax e-mail field that says "Vielen Dank" and delivers nothing is exactly the
+     * failure spec 7.2 calls the most common real one, and it has to be reported alongside the WARN.
+     */
+    @Test
+    void laxEmailFieldStillSubmitsAndVerifiesDelivery() {
+        FakeMailbox mailbox = new FakeMailbox("pruefpostfach@example.com", Mailbox.Result.NOT_FOUND);
+        ContactFormCheck checkWithMailbox = new ContactFormCheck(mailbox);
+
+        try (BrowserContext context = browser.newContext()) {
+            Page page = context.newPage();
+            String initialUrl = fixtureSite.url("interaktiv/formular-lax-email.html");
+            page.navigate(initialUrl);
+
+            int requestsBefore = fixtureSite.requestCount("/kontakt/still");
+            List<CheckFinding> findings = checkWithMailbox.evaluate(
+                    page, siteContext(FormTestMode.SUBMIT_AND_VERIFY_MAIL), checkConfig(RunScope.DEEP));
+            int requestsAfter = fixtureSite.requestCount("/kontakt/still");
+
+            assertThat(requestsAfter - requestsBefore).isEqualTo(1);
+            assertThat(mailbox.receivedToken).isNotNull();
+            assertThat(findings).hasSize(2);
+            assertThat(findings).extracting(CheckFinding::messageKey)
+                    .containsExactly("finding.CONTACT_FORM.acceptsInvalid", "finding.CONTACT_FORM.notDelivered");
+            assertThat(findings).extracting(CheckFinding::severity)
+                    .containsExactly(Severity.WARN, Severity.ERROR);
+            assertThat(page.url()).isEqualTo(initialUrl);
+        }
+    }
+
+    /**
+     * The e-mail typed into the form is the verification mailbox's address in every mode that has
+     * one, not a fictional recipient: a reply to the test message must reach us.
+     */
+    @Test
+    void submitModeTypesTheMailboxAddressIntoTheForm() {
+        FakeMailbox mailbox = new FakeMailbox("pruefpostfach@example.com", Mailbox.Result.NOT_FOUND);
+        ContactFormCheck checkWithMailbox = new ContactFormCheck(mailbox);
+
+        try (BrowserContext context = browser.newContext()) {
+            Page page = context.newPage();
+            page.navigate(fixtureSite.url("interaktiv/formular.html"));
+
+            checkWithMailbox.evaluate(page, siteContext(FormTestMode.SUBMIT), checkConfig(RunScope.DEEP));
+
+            assertThat(fixtureSite.lastPostedBody("/kontakt/gesendet"))
+                    .contains("email=pruefpostfach%40example.com");
+            assertThat(mailbox.receivedToken).isNull();
+        }
+    }
+}

@@ -42,7 +42,8 @@ public final class ContactForms {
         CONTACT, SEARCH, NEWSLETTER, LOGIN, CAPTCHA, NONE
     }
 
-    private static final List<String> SUCCESS_WORDS = List.of(
+    /** Shared with {@link ContactFormCheck}, which quotes the site's own success line back to the reader. */
+    static final List<String> SUCCESS_WORDS = List.of(
             "vielen dank", "danke", "erfolgreich", "gesendet", "versendet", "verschickt",
             "ubermittelt", "erhalten", "bestatigung", "wir melden uns", "nachricht ist unterwegs");
 
@@ -100,7 +101,7 @@ public final class ContactForms {
      *   <li>Otherwise &rarr; {@code NONE}</li>
      * </ol>
      */
-    public static FormVerdict triage(HarvestedForm form) {
+    public static FormVerdict triage(HarvestedForm form, int viewportWidth) {
         if (form == null) {
             return FormVerdict.NONE;
         }
@@ -132,7 +133,7 @@ public final class ContactForms {
 
         // 5. At least one textarea, or at least 3 fillable non-hidden fields -> CONTACT
         long fillableNonHiddenCount = fields.stream()
-                .filter(f -> !hidden(f, 1366) && !isSubmit(f) && !"file".equalsIgnoreCase(f.type()))
+                .filter(f -> !hidden(f, viewportWidth) && !isSubmit(f) && !"file".equalsIgnoreCase(f.type()))
                 .count();
 
         if (hasTextarea || fillableNonHiddenCount >= 3) {
@@ -145,12 +146,12 @@ public final class ContactForms {
     /**
      * Selects the first form triaging {@code CONTACT} in document order.
      */
-    public static Optional<HarvestedForm> choose(List<HarvestedForm> forms) {
+    public static Optional<HarvestedForm> choose(List<HarvestedForm> forms, int viewportWidth) {
         if (forms == null || forms.isEmpty()) {
             return Optional.empty();
         }
         for (HarvestedForm form : forms) {
-            if (triage(form) == FormVerdict.CONTACT) {
+            if (triage(form, viewportWidth) == FormVerdict.CONTACT) {
                 return Optional.of(form);
             }
         }
