@@ -131,11 +131,11 @@ public class CrawlRunExecutor implements RunExecutor {
             Path runArtifacts = crawlerProperties.artifactDir().resolve(String.valueOf(lease.runId()));
             interactionOutcome = interactionRunner.run(result.snapshots(), site, facts, runArtifacts);
             if (interactionOutcome == null) {
-                interactionOutcome = new InteractionOutcome(List.of(), Set.of(), Set.of());
+                interactionOutcome = InteractionOutcome.NONE;
             }
             checkFindings.addAll(interactionOutcome.findings());
         } else {
-            interactionOutcome = new InteractionOutcome(List.of(), Set.of(), Set.of());
+            interactionOutcome = InteractionOutcome.NONE;
         }
 
         // A dead-link finding is a chance for a false positive: re-check every subject the first
@@ -164,7 +164,7 @@ public class CrawlRunExecutor implements RunExecutor {
                 .map(Enum::name)
                 .sorted()
                 .toList();
-        List<String> coveredInteractionUrls = interactionOutcome.drivenLocationKeys().stream()
+        List<String> coveredInteractionUrls = interactionOutcome.drivenUrls().stream()
                 .sorted()
                 .toList();
 
@@ -173,7 +173,10 @@ public class CrawlRunExecutor implements RunExecutor {
         // run makes is stamped with one instant (spec 6.4).
         RunCoverage coverage = RunCoverage.of(lease.scope(), coveredCheckTypes, result.coveredUrls(),
                 result.snapshots().visitedUrls(), result.partialCoverage(),
-                coveredInteractionCheckTypes, coveredInteractionUrls);
+                // The candidate types, not the driven ones: a check that drove nothing must still
+                // be excluded from the crawl-scoped resolve (D74/D79). The run row keeps reporting
+                // what was actually driven, which is what the coverage line on the screen means.
+                interactionOutcome.candidateTypes(), interactionOutcome.drivenUrlsByType());
         RunDiff diff = findings.record(lease.runId(), site.siteId(), surviving, coverage, startedAt);
 
         log.info("Lauf {}: {} neu, {} behoben, {} weiterhin offen",

@@ -1,7 +1,9 @@
 package dev.hendrikhoemberg.webtesthelper.model;
 
 import java.util.Collection;
+import java.util.EnumMap;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -23,14 +25,28 @@ import java.util.Set;
  * full crawl saw an arbitrary slice; a pulse run saw a pinned list of a dozen URLs and drained its
  * frontier doing it, so "the frontier ran dry" alone says nothing about site coverage.
  * <p>Interaction checks are recorded separately (D74): an interaction check runs on a handful of
- * pages, so {@link #interactionCheckTypes} and {@link #interactionLocationKeys} carry the types and
- * pages this run actually drove.
+ * pages, so its resolution scope cannot be the crawl's. The two halves answer different questions
+ * and both are load-bearing:
+ * <ul>
+ *   <li>{@link #interactionCheckTypes} is every interaction type this run was <em>allowed</em> to
+ *       drive. It exists to keep those types out of the crawl-scoped resolve statement — a type
+ *       whose every target failed is still an interaction type, and resolving it against 300
+ *       crawled URLs is exactly the silent false-resolution D74 and D79 forbid.</li>
+ *   <li>{@link #interactionLocationKeys} maps each type to the pages it was <em>actually</em>
+ *       driven on. It is a map rather than one flat set because a flat set is a cartesian product
+ *       again at smaller scale: with check A driven on / and check B on /kontakt, a single
+ *       {@code types x pages} pair would let A resolve its finding on /kontakt, which it never
+ *       looked at.</li>
+ * </ul>
+ * A type present in {@link #interactionCheckTypes} but absent (or empty) in
+ * {@link #interactionLocationKeys} therefore resolves nothing at all, which is the honest answer
+ * for a check that could not see.
  */
 public record RunCoverage(Set<CheckType> checkTypes,
                           Set<String> locationKeys,
                           boolean wholeSite,
                           Set<CheckType> interactionCheckTypes,
-                          Set<String> interactionLocationKeys) {
+                          Map<CheckType, Set<String>> interactionLocationKeys) {
 
     /**
      * Copies all sets: coverage decides what a run is allowed to resolve, so a caller holding
@@ -40,11 +56,13 @@ public record RunCoverage(Set<CheckType> checkTypes,
         checkTypes = Set.copyOf(checkTypes);
         locationKeys = Set.copyOf(locationKeys);
         interactionCheckTypes = Set.copyOf(interactionCheckTypes);
-        interactionLocationKeys = Set.copyOf(interactionLocationKeys);
+        Map<CheckType, Set<String>> copiedLocations = new EnumMap<>(CheckType.class);
+        interactionLocationKeys.forEach((type, keys) -> copiedLocations.put(type, Set.copyOf(keys)));
+        interactionLocationKeys = Map.copyOf(copiedLocations);
     }
 
     public RunCoverage(Set<CheckType> checkTypes, Set<String> locationKeys, boolean wholeSite) {
-        this(checkTypes, locationKeys, wholeSite, Set.of(), Set.of());
+        this(checkTypes, locationKeys, wholeSite, Set.of(), Map.of());
     }
 
     public static RunCoverage of(RunScope scope,
@@ -52,23 +70,36 @@ public record RunCoverage(Set<CheckType> checkTypes,
                                  Collection<String> coveredUrls,
                                  Collection<String> snapshotUrls,
                                  boolean partialCoverage) {
-        return of(scope, checkTypeNames, coveredUrls, snapshotUrls, partialCoverage, java.util.List.of(), java.util.List.of());
+        return of(scope, checkTypeNames, coveredUrls, snapshotUrls, partialCoverage, Set.of(), Map.of());
     }
 
+    /**
+     * The interaction half is passed already typed rather than as persisted names: unlike the
+     * crawl's coverage it is never read back from a run row, so there is no historical data to
+     * defend against and no reason to reduce a {@link CheckType} to a string and back.
+     */
     public static RunCoverage of(RunScope scope,
                                  Collection<String> checkTypeNames,
                                  Collection<String> coveredUrls,
                                  Collection<String> snapshotUrls,
                                  boolean partialCoverage,
-                                 Collection<String> interactionCheckTypeNames,
-                                 Collection<String> interactionUrls) {
+                                 Set<CheckType> interactionCheckTypes,
+                                 Map<CheckType, ? extends Collection<String>> interactionUrlsByType) {
         Set<CheckType> checkTypes = parseCheckTypes(checkTypeNames);
         Set<String> locationKeys = parseLocationKeys(coveredUrls, snapshotUrls);
-        Set<CheckType> interactionCheckTypes = parseCheckTypes(interactionCheckTypeNames);
-        Set<String> interactionLocationKeys = parseLocationKeys(interactionUrls, null);
+
+        Map<CheckType, Set<String>> interactionLocationKeys = new EnumMap<>(CheckType.class);
+        if (interactionUrlsByType != null) {
+            interactionUrlsByType.forEach((type, urls) -> {
+                if (type != null) {
+                    interactionLocationKeys.put(type, parseLocationKeys(urls, null));
+                }
+            });
+        }
 
         return new RunCoverage(checkTypes, locationKeys, scope.crawlsWholeSite() && !partialCoverage,
-                interactionCheckTypes, interactionLocationKeys);
+                interactionCheckTypes == null ? Set.of() : interactionCheckTypes,
+                interactionLocationKeys);
     }
 
     private static Set<CheckType> parseCheckTypes(Collection<String> names) {
@@ -103,11 +134,7 @@ public record RunCoverage(Set<CheckType> checkTypes,
                 continue;
             }
             Optional<NormalizedUrl> normalized = UrlNormalizer.normalize(url);
-            if (normalized.isPresent()) {
-                target.add(normalized.get().locationKey());
-            } else if (url.startsWith("/")) {
-                target.add(url);
-            }
+            normalized.ifPresent(value -> target.add(value.locationKey()));
         }
     }
 }

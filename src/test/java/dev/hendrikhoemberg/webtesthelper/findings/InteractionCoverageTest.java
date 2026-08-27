@@ -22,6 +22,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -30,6 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class InteractionCoverageTest extends AbstractPostgresTest {
 
     private static final CheckType INTERACTION_TYPE = CheckType.PAGE_STATUS;
+    private static final CheckType SECOND_INTERACTION_TYPE = CheckType.CONSOLE_ERRORS;
     private static final CheckType PAGE_CHECK_TYPE = CheckType.DEAD_LINK;
 
     @Autowired
@@ -88,8 +90,8 @@ class InteractionCoverageTest extends AbstractPostgresTest {
                 threeHundredUrls,
                 List.of(),
                 false,
-                List.of(INTERACTION_TYPE.name()),
-                List.of("https://www.example.com/"));
+                Set.of(INTERACTION_TYPE),
+                Map.of(INTERACTION_TYPE, Set.of("https://www.example.com/")));
 
         int resolvedCount = store.resolveOutsideRun(siteId, 2, run2Coverage);
 
@@ -144,42 +146,90 @@ class InteractionCoverageTest extends AbstractPostgresTest {
     }
 
     /**
-     * Empty interaction types or empty interaction location keys must be a no-op on the interaction
-     * table update, not resolving anything.
+     * D74 / D79 / spec 6.4: a run that was ALLOWED to drive an interaction check but drove
+     * nothing — the check threw, timed out, or the homepage was unreachable — must leave that
+     * type's findings alone. The type is in the run's covered check types either way, so the
+     * standard resolve statement must exclude it on the strength of it being an interaction
+     * type, not on the strength of it having been driven.
      */
     @Test
-    void emptyInteractionArraysAreNoOp() {
+    void anInteractionTypeThatDroveNothingResolvesNothing() {
         MaterialisedFinding interactionRoot = finding(INTERACTION_TYPE, "overlay:root", "/", Evidence.NONE);
-        store.upsertAll(siteId, 1, List.of(interactionRoot), observedAt);
+        MaterialisedFinding pageCheckRoot = finding(PAGE_CHECK_TYPE, "dead:link1", "/", Evidence.NONE);
+        store.upsertAll(siteId, 1, List.of(interactionRoot, pageCheckRoot), observedAt);
 
-        // Run 2 drove nothing interactively:
-        RunCoverage noInteractionCoverage = RunCoverage.of(
+        // Run 2: FULL, the interaction type is enabled and in scope so it IS in coveredCheckTypes,
+        // the crawl visited "/", but the interaction pass drove nothing at all.
+        RunCoverage coverage = RunCoverage.of(
                 RunScope.FULL,
-                List.of(INTERACTION_TYPE.name()),
+                List.of(INTERACTION_TYPE.name(), PAGE_CHECK_TYPE.name()),
                 List.of("https://www.example.com/"),
                 List.of(),
                 false,
+                Set.of(INTERACTION_TYPE),
+                Map.of());
+
+        int resolved = store.resolveOutsideRun(siteId, 2, coverage);
+
+        assertThat(observedStatus(interactionRoot.fingerprint())).isEqualTo(ObservedStatus.ACTIVE);
+        assertThat(resolvedAtRun(interactionRoot.fingerprint())).isNull();
+        // The page check on the same page IS resolved — the exclusion is by kind, not by page.
+        assertThat(observedStatus(pageCheckRoot.fingerprint())).isEqualTo(ObservedStatus.RESOLVED);
+        assertThat(resolved).isEqualTo(1);
+    }
+
+    /**
+     * D74: coverage is per interaction type, not a cartesian product of types and pages. Check A
+     * driven on / and check B driven on /kontakt must not let A resolve its finding on /kontakt.
+     */
+    @Test
+    void oneInteractionTypeDoesNotResolveAnotherTypesPages() {
+        MaterialisedFinding aOnKontakt = finding(INTERACTION_TYPE, "overlay:a", "/kontakt", Evidence.NONE);
+        MaterialisedFinding bOnRoot = finding(SECOND_INTERACTION_TYPE, "widget:b", "/", Evidence.NONE);
+        MaterialisedFinding aOnRoot = finding(INTERACTION_TYPE, "overlay:a", "/", Evidence.NONE);
+        store.upsertAll(siteId, 1, List.of(aOnKontakt, bOnRoot, aOnRoot), observedAt);
+
+        RunCoverage coverage = RunCoverage.of(
+                RunScope.FULL,
+                List.of(INTERACTION_TYPE.name(), SECOND_INTERACTION_TYPE.name()),
+                List.of("https://www.example.com/", "https://www.example.com/kontakt"),
                 List.of(),
-                List.of());
+                false,
+                Set.of(INTERACTION_TYPE, SECOND_INTERACTION_TYPE),
+                Map.of(INTERACTION_TYPE, Set.of("https://www.example.com/"),
+                        SECOND_INTERACTION_TYPE, Set.of("https://www.example.com/kontakt")));
 
-        int resolved = store.resolveOutsideRun(siteId, 2, noInteractionCoverage);
+        store.resolveOutsideRun(siteId, 2, coverage);
 
-        // Since INTERACTION_TYPE was in checkTypes but not in interactionCheckTypes,
-        // it was treated as a standard check type on the crawled location keys.
-        // But if interactionCheckTypes is specified with empty driven URLs:
-        MaterialisedFinding interaction2 = finding(INTERACTION_TYPE, "overlay:other", "/other", Evidence.NONE);
-        store.upsertAll(siteId, 2, List.of(interaction2), observedAt);
+        // A was driven on / and reported nothing there: its / finding resolves.
+        assertThat(observedStatus(aOnRoot.fingerprint())).isEqualTo(ObservedStatus.RESOLVED);
+        // A was never driven on /kontakt: its /kontakt finding must survive.
+        assertThat(observedStatus(aOnKontakt.fingerprint())).isEqualTo(ObservedStatus.ACTIVE);
+        // B was never driven on /: its / finding must survive.
+        assertThat(observedStatus(bOnRoot.fingerprint())).isEqualTo(ObservedStatus.ACTIVE);
+    }
+
+    /**
+     * An interaction type present in coverage with an empty driven-page set must be a no-op on the
+     * interaction statement, not a full-table update: {@code = ANY('{}')} is false for every row,
+     * and getting it wrong the other way resolves the whole site.
+     */
+    @Test
+    void emptyDrivenPageSetIsANoOp() {
+        MaterialisedFinding interactionOther = finding(INTERACTION_TYPE, "overlay:other", "/other", Evidence.NONE);
+        store.upsertAll(siteId, 1, List.of(interactionOther), observedAt);
 
         RunCoverage emptyUrlsCoverage = new RunCoverage(
                 Set.of(),
                 Set.of(),
                 false,
                 Set.of(INTERACTION_TYPE),
-                Set.of());
+                Map.of(INTERACTION_TYPE, Set.of()));
 
-        int resolvedEmpty = store.resolveOutsideRun(siteId, 3, emptyUrlsCoverage);
+        int resolvedEmpty = store.resolveOutsideRun(siteId, 2, emptyUrlsCoverage);
+
         assertThat(resolvedEmpty).isZero();
-        assertThat(observedStatus(interaction2.fingerprint())).isEqualTo(ObservedStatus.ACTIVE);
+        assertThat(observedStatus(interactionOther.fingerprint())).isEqualTo(ObservedStatus.ACTIVE);
     }
 
     @Autowired

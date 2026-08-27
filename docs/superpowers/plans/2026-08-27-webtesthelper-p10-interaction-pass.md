@@ -674,3 +674,47 @@ git commit -am "test(runner): acceptance for the interaction pass and the cookie
 - **Finding 3 (PULSE scope interaction isolation):** During PULSE run, regular page checks on healing targets may resolve, but interaction check types (`COOKIE_BANNER`) are completely untouched and resolve nothing.
 - **Finding 4 (Null-safety on coverage serialization):** Added defensive null guards and non-null collections in `RunSummary` compact constructor and `RunService.toSummary` so that empty/null jsonb columns in unmanaged or partially populated entity instances do not throw NPE.
 - **Metrics:** Baseline: 882 tests / ~1m37s. Post-Plan 10: 945 tests / 2m06s (+63 tests total; +29s wall time, where Chromium browser runs in `InteractionAcceptanceTest` and `InteractionRunnerTest` account for ~27s of the delta).
+
+### Post-execution review (2026-08-27)
+
+- **Finding 5 (D74/D79 were lost at the Task 6 / Task 3 seam — fixed):** `InteractionRunner`
+  reported honestly that it drove nothing, but `CrawlRunExecutor` builds `coveredCheckTypes` from
+  `scope ∩ enabled ∩ registry`, so `COOKIE_BANNER` sat in `coverage.checkTypes()` on every FULL run
+  regardless. `resolveOutsideRun` subtracted only the **driven** types, so a pass that drove nothing
+  — check threw, timed out, homepage unreachable — left the type in `RESOLVE_SQL` and resolved every
+  `COOKIE_BANNER` finding against all crawled pages. Exactly the false resolution §6.4 forbids and
+  D79 promises against. The fix: coverage now carries **candidate** types (what the run was allowed
+  to drive) separately from the driven pages, and the crawl-scoped statement excludes an interaction
+  type on the strength of it being one, never on the strength of it having run.
+  `InteractionCoverageTest.anInteractionTypeThatDroveNothingResolvesNothing` and
+  `CrawlRunExecutorTest.anInteractionPassThatDroveNothingResolvesNothing` both fail without the
+  guard. **Neither existed before:** `emptyInteractionArraysAreNoOp` called `resolveOutsideRun`,
+  assigned the result to a variable it never asserted on, and its comment described this bug in
+  passing. It is now `emptyDrivenPageSetIsANoOp` and asserts.
+- **Finding 6 (the flat coverage sets were a cartesian product again — fixed):** the plan specified
+  `InteractionOutcome` as two flat sets, which reads as `types × pages`. With one check that is
+  harmless; with plan 11's two it means a check driven on `/` resolves its own finding on `/kontakt`
+  because a *different* check was driven there. `RunCoverage.interactionLocationKeys` is now
+  `Map<CheckType, Set<String>>` and `RESOLVE_INTERACTION_SQL` runs once per type. Fixed now rather
+  than after plans 11–12 create the data that makes it visible.
+- **Finding 7 (`CookieBannerCheck` could emit an unresolvable finding — fixed):** `observedOn` came
+  from `UrlNormalizer.normalize(page.url()).orElse(null)`, and `CheckFinding.locationKey()` maps
+  null to `"*"`. `RESOLVE_INTERACTION_SQL` has no `'*'` branch **by design** (D75), so such a finding
+  would never resolve. Materialisation was guarded; the check itself was not. It now falls back to
+  the site's base URL.
+- **Finding 8 (the dismissal wait had two values — fixed):** the constants table says 3 s, the
+  runner's consent-only path used 3 s, and `CookieBannerCheck` hardcoded 2 s — the same banner could
+  be called dismissable by one path and undismissable by the other. Now one
+  `CookieBanner.DISMISSAL_WAIT`, which is also the null default inside `accept`.
+- **Finding 9 (`covered_interaction_urls` held location keys — fixed):** the runner returned
+  location keys, so `RunCoverage.parseLocationKeysInto` had grown an unrecorded
+  `else if (url.startsWith("/"))` passthrough — which also silently widened the *crawl* coverage
+  path, where an unparseable URL had always been dropped. The interaction side now carries real URLs
+  and is normalised like every other coverage URL; the passthrough is gone.
+- **Note (not changed):** the per-check timeout is measured after the fact rather than enforced —
+  `executeCheck` runs the check to completion and discards its findings if it overran. This matches
+  the plan's Step 5 ("a deadline check around it rather than a second executor", with
+  `Page.setDefaultTimeout` bounding the locator waits) and is the right call while Playwright objects
+  are thread-confined, but a check that hangs on non-Playwright work is still unbounded.
+- **Metrics after the review:** 949 tests / 2m13s (+4 tests over the 945 recorded above; all four are
+  `-Pfast` coverage tests, no new Chromium).

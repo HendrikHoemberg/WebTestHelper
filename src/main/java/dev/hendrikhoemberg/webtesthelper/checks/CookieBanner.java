@@ -24,6 +24,14 @@ public final class CookieBanner {
     public record BannerOutcome(boolean present, String containerId, boolean dismissed, String acceptLabel) {
     }
 
+    /**
+     * The container must become hidden or detached within this long. Long enough for a CSS
+     * fade-out, short enough that three targets do not add ten seconds to every run. Both callers
+     * — the reporting check and the runner's consent-only path — share it, or the same banner
+     * would be called dismissable by one and undismissable by the other.
+     */
+    public static final Duration DISMISSAL_WAIT = Duration.ofSeconds(3);
+
     private static final String SCRIPT;
 
     static {
@@ -125,7 +133,7 @@ public final class CookieBanner {
         }
 
         boolean dismissed = false;
-        long timeoutMs = dismissalWait == null ? 2000L : Math.max(0, dismissalWait.toMillis());
+        long timeoutMs = Math.max(0, (dismissalWait == null ? DISMISSAL_WAIT : dismissalWait).toMillis());
         try {
             banner.waitFor(new Locator.WaitForOptions()
                     .setState(WaitForSelectorState.HIDDEN)

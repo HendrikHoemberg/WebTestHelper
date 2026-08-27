@@ -27,6 +27,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -78,8 +79,15 @@ public class InteractionRunner {
                 .toList();
 
         if (activeChecks.isEmpty()) {
-            return new InteractionOutcome(List.of(), Set.of(), Set.of());
+            return InteractionOutcome.NONE;
         }
+
+        // Recorded before anything is driven: a check that fails on every target still has to be
+        // known to coverage as an interaction type, or the crawl-scoped resolve will claim it
+        // (D74/D79). This set is what the run was allowed to do; the map below is what it did.
+        Set<CheckType> candidateTypes = activeChecks.stream()
+                .map(InteractionCheck::type)
+                .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
 
         Map<NormalizedUrl, List<InteractionCheck>> targetsMap = new LinkedHashMap<>();
         for (InteractionCheck check : activeChecks) {
@@ -97,12 +105,11 @@ public class InteractionRunner {
         }
 
         if (targetsMap.isEmpty()) {
-            return new InteractionOutcome(List.of(), Set.of(), Set.of());
+            return new InteractionOutcome(List.of(), candidateTypes, Map.of());
         }
 
         List<CheckFinding> allFindings = new ArrayList<>();
-        Set<CheckType> drivenTypes = new LinkedHashSet<>();
-        Set<String> drivenLocationKeys = new LinkedHashSet<>();
+        Map<CheckType, Set<String>> drivenUrlsByType = new EnumMap<>(CheckType.class);
 
         for (Map.Entry<NormalizedUrl, List<InteractionCheck>> entry : targetsMap.entrySet()) {
             NormalizedUrl targetUrl = entry.getKey();
@@ -113,14 +120,14 @@ public class InteractionRunner {
 
             if (targetOutcome != null) {
                 allFindings.addAll(targetOutcome.findings());
-                drivenTypes.addAll(targetOutcome.drivenTypes());
-                if (!targetOutcome.drivenTypes().isEmpty()) {
-                    drivenLocationKeys.add(targetUrl.locationKey());
+                for (CheckType driven : targetOutcome.drivenTypes()) {
+                    drivenUrlsByType.computeIfAbsent(driven, k -> new LinkedHashSet<>())
+                            .add(targetUrl.value());
                 }
             }
         }
 
-        return new InteractionOutcome(allFindings, drivenTypes, drivenLocationKeys);
+        return new InteractionOutcome(allFindings, candidateTypes, drivenUrlsByType);
     }
 
     private TargetOutcome driveTarget(Browser browser,

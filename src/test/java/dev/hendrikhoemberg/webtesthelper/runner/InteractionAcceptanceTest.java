@@ -125,7 +125,7 @@ class InteractionAcceptanceTest extends AbstractPostgresTest {
         // Assert: rendered German text is the one from Task 5's table, resolved through real MessageSource
         FindingView view1 = findingViewFactory.of(finding1, Locale.GERMAN);
         assertThat(view1.title()).isEqualTo("Cookie-Hinweis");
-        assertThat(view1.message()).isEqualTo("Der Cookie-Hinweis „cookie-hinweis\" lässt sich nicht wegklicken. Besucher kommen nicht an den Inhalt der Seite.");
+        assertThat(view1.message()).isEqualTo("Der Cookie-Hinweis „cookie-hinweis“ lässt sich nicht wegklicken. Besucher kommen nicht an den Inhalt der Seite.");
         assertThat(view1.remediation()).isEqualTo("Die Seite selbst aufrufen und den Zustimmen-Knopf drücken. Passiert nichts, lädt das Skript des Cookie-Werkzeugs nicht mehr — Einbindung und Konto beim Anbieter prüfen.");
 
         // Assert: containing no identifier (§13.1)

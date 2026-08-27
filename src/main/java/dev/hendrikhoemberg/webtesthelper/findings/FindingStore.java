@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * The findings tables. Every write is the spec's lifecycle or resolution rule written down
@@ -489,6 +490,12 @@ public class FindingStore {
     /** Resolve the findings this run did not re-observe, scoped to what the run actually covered. */
     public int resolveOutsideRun(long siteId, long runId, RunCoverage coverage) {
         int resolved = 0;
+
+        // Every interaction type the run was allowed to drive leaves the crawl-scoped statement,
+        // driven or not (D74/D79). A check that threw, timed out, or never found a reachable
+        // target must resolve nothing — but its type is still in the run's covered check types,
+        // so filtering on what was *driven* here would silently resolve it against every crawled
+        // page, which is precisely the false resolution spec 6.4 exists to prevent.
         String[] standardCheckTypes = coverage.checkTypes().stream()
                 .filter(t -> !coverage.interactionCheckTypes().contains(t))
                 .map(CheckType::name)
@@ -498,13 +505,17 @@ public class FindingStore {
             resolved += jdbc.update(RESOLVE_SQL, runId, siteId, runId, standardCheckTypes, locationKeys,
                     coverage.wholeSite());
         }
-        if (!coverage.interactionCheckTypes().isEmpty() && !coverage.interactionLocationKeys().isEmpty()) {
-            String[] interactionCheckTypes = coverage.interactionCheckTypes().stream()
-                    .map(CheckType::name)
-                    .toArray(String[]::new);
-            String[] interactionLocationKeys = coverage.interactionLocationKeys().toArray(String[]::new);
+
+        // One statement per type rather than one over both arrays: two types driven on two
+        // different pages would otherwise form a cartesian product and let each resolve the
+        // other's page (D74).
+        for (Map.Entry<CheckType, Set<String>> entry : coverage.interactionLocationKeys().entrySet()) {
+            if (entry.getValue().isEmpty()) {
+                continue;
+            }
             resolved += jdbc.update(RESOLVE_INTERACTION_SQL, runId, siteId, runId,
-                    interactionCheckTypes, interactionLocationKeys);
+                    new String[] {entry.getKey().name()},
+                    entry.getValue().toArray(String[]::new));
         }
         return resolved;
     }

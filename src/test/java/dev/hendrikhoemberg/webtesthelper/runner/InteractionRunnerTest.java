@@ -99,7 +99,7 @@ class InteractionRunnerTest {
         assertThat(finding.evidence().screenshotPath()).isNotNull();
         assertThat(tempArtifacts.resolve(finding.evidence().screenshotPath())).exists();
         assertThat(outcome.drivenTypes()).containsExactly(CheckType.COOKIE_BANNER);
-        assertThat(outcome.drivenLocationKeys()).containsExactly(home.locationKey());
+        assertThat(outcome.drivenUrls()).containsExactly(home.value());
     }
 
     @Test
@@ -148,7 +148,7 @@ class InteractionRunnerTest {
         assertThat(outcome.findings()).isEmpty();
         assertThat(outcome.drivenTypes()).containsExactly(CheckType.COOKIE_BANNER);
         assertThat(outcome.drivenTypes()).doesNotContain(CheckType.MIXED_CONTENT);
-        assertThat(outcome.drivenLocationKeys()).containsExactly(home.locationKey());
+        assertThat(outcome.drivenUrls()).containsExactly(home.value());
     }
 
     @Test
@@ -254,7 +254,7 @@ class InteractionRunnerTest {
 
         assertThat(bannerVisibleInFollowUpCheck.get()).isFalse();
         assertThat(outcome.drivenTypes()).containsExactlyInAnyOrder(CheckType.COOKIE_BANNER, CheckType.IFRAME_EMBED);
-        assertThat(outcome.drivenLocationKeys()).containsExactly(home.locationKey());
+        assertThat(outcome.drivenUrls()).containsExactly(home.value());
     }
 
     @Test
@@ -305,7 +305,7 @@ class InteractionRunnerTest {
 
         assertThat(bannerVisibleInFollowUpCheck.get()).isFalse();
         assertThat(outcome.drivenTypes()).containsExactly(CheckType.IFRAME_EMBED);
-        assertThat(outcome.drivenLocationKeys()).containsExactly(home.locationKey());
+        assertThat(outcome.drivenUrls()).containsExactly(home.value());
     }
 
     @Test
@@ -328,7 +328,7 @@ class InteractionRunnerTest {
 
         assertThat(outcome.findings()).isEmpty();
         assertThat(outcome.drivenTypes()).isEmpty();
-        assertThat(outcome.drivenLocationKeys()).isEmpty();
+        assertThat(outcome.drivenUrls()).isEmpty();
     }
 
     @Test
@@ -351,6 +351,9 @@ class InteractionRunnerTest {
 
         assertThat(outcome.findings()).isEmpty();
         assertThat(outcome.drivenTypes()).isEmpty();
-        assertThat(outcome.drivenLocationKeys()).isEmpty();
+        assertThat(outcome.drivenUrls()).isEmpty();
+        // D74/D79: the check was in scope and enabled, it simply could not see. Coverage still has
+        // to know it is an interaction type, or the crawl-scoped resolve will claim its findings.
+        assertThat(outcome.candidateTypes()).containsExactly(CheckType.COOKIE_BANNER);
     }
 }

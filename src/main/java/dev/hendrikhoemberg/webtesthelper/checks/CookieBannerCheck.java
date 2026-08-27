@@ -11,7 +11,6 @@ import dev.hendrikhoemberg.webtesthelper.model.Severity;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
 import dev.hendrikhoemberg.webtesthelper.model.UrlNormalizer;
 
-import java.time.Duration;
 import java.util.List;
 import java.util.Set;
 
@@ -52,12 +51,17 @@ public final class CookieBannerCheck implements InteractionCheck {
             return List.of();
         }
 
-        BannerOutcome outcome = CookieBanner.accept(page, Duration.ofSeconds(2));
+        BannerOutcome outcome = CookieBanner.accept(page, CookieBanner.DISMISSAL_WAIT);
         if (outcome.present() && !outcome.dismissed()) {
             String subjectKey = outcome.containerId() != null ? outcome.containerId() : "cookie-banner";
+            // Never null: CheckFinding maps a null observedOn to the site-wide location key "*",
+            // and RESOLVE_INTERACTION_SQL has no "*" branch by design (D75), so such a finding
+            // would be unresolvable forever. If the page navigated somewhere unparseable, the
+            // target we were pointed at is the honest location.
+            NormalizedUrl fallback = site != null ? site.baseUrl() : null;
             NormalizedUrl observedOn = page.url() != null
-                    ? UrlNormalizer.normalize(page.url()).orElse(null)
-                    : (site != null ? site.baseUrl() : null);
+                    ? UrlNormalizer.normalize(page.url()).orElse(fallback)
+                    : fallback;
 
             return List.of(new CheckFinding(
                     type(),

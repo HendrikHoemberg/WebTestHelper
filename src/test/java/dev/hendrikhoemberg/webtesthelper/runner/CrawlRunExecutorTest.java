@@ -24,6 +24,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -76,14 +77,18 @@ class CrawlRunExecutorTest extends AbstractPostgresTest {
                                 CheckType.COOKIE_BANNER,
                                 Severity.ERROR,
                                 "cookie-hinweis",
-                                UrlNormalizer.normalize(site.baseUrl() + "interaktiv/banner.html").orElseThrow(),
+                                UrlNormalizer.normalize(site.baseUrl()).orElseThrow(),
                                 "finding.COOKIE_BANNER.undismissable",
                                 List.of("cookie-hinweis"),
                                 new Evidence("screenshot.png", null, null, null, List.of()))),
                         Set.of(CheckType.COOKIE_BANNER),
-                        Set.of("/interaktiv/banner.html"));
+                        Map.of(CheckType.COOKIE_BANNER, Set.of(site.baseUrl())));
             }
-            return new InteractionOutcome(List.of(), Set.of(), Set.of());
+            // Run 3 drives nothing (it is the budget-capped crawl), but COOKIE_BANNER is enabled
+            // and in scope, so it is still a candidate type. Reporting an empty candidate set here
+            // would be a lie the real runner never tells — and it would hand the crawl-scoped
+            // resolve an interaction type to sweep (D74/D79).
+            return new InteractionOutcome(List.of(), Set.of(CheckType.COOKIE_BANNER), Map.of());
         });
 
         jdbc.update("DELETE FROM crawl_queue_item");
@@ -114,7 +119,7 @@ class CrawlRunExecutorTest extends AbstractPostgresTest {
     @org.junit.jupiter.api.BeforeEach
     void resetMockDefault() {
         when(interactionRunner.run(any(), any(), any(), any()))
-                .thenReturn(new InteractionOutcome(List.of(), Set.of(), Set.of()));
+                .thenReturn(InteractionOutcome.NONE);
     }
 
     @Test
@@ -325,7 +330,7 @@ class CrawlRunExecutorTest extends AbstractPostgresTest {
     void theInteractionPassMaterialisesItsFindingsAndRecordsCoverage() {
         int interactionCount = jdbc.queryForObject(
                 "SELECT count(*) FROM finding WHERE site_id = ? AND check_type = 'COOKIE_BANNER' "
-                        + "AND subject_key = 'cookie-hinweis' AND location_key = '/interaktiv/banner.html'",
+                        + "AND subject_key = 'cookie-hinweis' AND location_key = '/'",
                 Integer.class, siteId);
         assertThat(interactionCount).isEqualTo(1);
 
@@ -335,7 +340,41 @@ class CrawlRunExecutorTest extends AbstractPostgresTest {
 
         String coveredInteractionUrls = jdbc.queryForObject(
                 "SELECT covered_interaction_urls::text FROM run WHERE id = ?", String.class, runId2);
-        assertThat(coveredInteractionUrls).contains("/interaktiv/banner.html");
+        assertThat(coveredInteractionUrls).contains(site.baseUrl());
+    }
+
+    /**
+     * D74/D79 end to end: a FULL run whose interaction pass drove nothing — the check threw, timed
+     * out, or found no reachable target — must leave the existing COOKIE_BANNER finding alone. The
+     * type is in the run's covered check types either way, so the only thing standing between that
+     * finding and a silent false resolution is coverage knowing it is an interaction type.
+     */
+    @Test
+    void anInteractionPassThatDroveNothingResolvesNothing() {
+        // The interaction finding from run 2 is ACTIVE.
+        Long findingId = jdbc.queryForObject(
+                "SELECT id FROM finding WHERE site_id = ? AND check_type = 'COOKIE_BANNER' "
+                        + "AND location_key = '/'", Long.class, siteId);
+        assertThat(jdbc.queryForObject("SELECT observed_status FROM finding WHERE id = ?",
+                String.class, findingId)).isEqualTo("ACTIVE");
+
+        // Run 4: the pass runs but every target fails, so it reports its candidate type and no
+        // pages — exactly what InteractionRunner returns for an unreachable homepage.
+        when(interactionRunner.run(any(), any(), any(), any())).thenReturn(
+                new InteractionOutcome(List.of(), Set.of(CheckType.COOKIE_BANNER), Map.of()));
+
+        long runId4 = runs.enqueue(siteId, RunTrigger.MANUAL, RunScope.FULL);
+        assertThat(worker.workOnce()).isTrue();
+
+        assertThat(jdbc.queryForObject("SELECT observed_status FROM finding WHERE id = ?",
+                String.class, findingId)).isEqualTo("ACTIVE");
+        assertThat(jdbc.queryForObject("SELECT resolved_at_run FROM finding WHERE id = ?",
+                Long.class, findingId)).isNull();
+
+        // And the run says honestly that it drove nothing.
+        assertThat(jdbc.queryForObject(
+                "SELECT covered_interaction_check_types::text FROM run WHERE id = ?", String.class, runId4))
+                .isEqualTo("[]");
     }
 
     @Test
