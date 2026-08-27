@@ -2,6 +2,7 @@ package dev.hendrikhoemberg.webtesthelper.catalog;
 
 import dev.hendrikhoemberg.webtesthelper.model.CheckType;
 import dev.hendrikhoemberg.webtesthelper.model.CrawlBudget;
+import dev.hendrikhoemberg.webtesthelper.model.FormTestMode;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
 import dev.hendrikhoemberg.webtesthelper.support.AbstractPostgresTest;
 import org.junit.jupiter.api.Test;
@@ -65,4 +66,24 @@ class SiteServiceTest extends AbstractPostgresTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("nicht-mal-eine-url");
     }
+
+    @Test
+    void siteCreatedWithExplicitFormTestModeIsExposedInContext() {
+        SiteForm custom = new SiteForm("Kunde Mail", "https://www.kunde-mail.de/", 300, 5,
+                Duration.ofMinutes(30), List.of(), List.of(), true, null, true, List.of(),
+                FormTestMode.SUBMIT_AND_VERIFY_MAIL);
+        long id = sites.create(custom);
+
+        SiteContext context = sites.contextFor(id);
+        assertThat(context.formTestMode()).isEqualTo(FormTestMode.SUBMIT_AND_VERIFY_MAIL);
+    }
+
+    @Test
+    void siteCreatedWithOldConstructorArityDefaultsToNoSubmit() {
+        long id = sites.create(form());
+
+        SiteContext context = sites.contextFor(id);
+        assertThat(context.formTestMode()).isEqualTo(FormTestMode.NO_SUBMIT);
+    }
 }
+

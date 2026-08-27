@@ -1,6 +1,7 @@
 package dev.hendrikhoemberg.webtesthelper.web;
 
 import dev.hendrikhoemberg.webtesthelper.catalog.SiteForm;
+import dev.hendrikhoemberg.webtesthelper.model.FormTestMode;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -40,17 +41,32 @@ public record SiteFormModel(
 
         Boolean enabled,
 
-        String pinnedKeyPages) {
+        String pinnedKeyPages,
+
+        String formTestMode) {
+
+    public SiteFormModel {
+        if (formTestMode == null || formTestMode.isBlank()) {
+            formTestMode = FormTestMode.NO_SUBMIT.name();
+        }
+    }
 
     public SiteFormModel(String name, String baseUrl, int maxPages, int maxDepth, int maxDurationMinutes,
                          String includePatterns, String excludePatterns, boolean respectRobots, String userAgent,
                          boolean enabled) {
         this(name, baseUrl, maxPages, maxDepth, maxDurationMinutes, includePatterns, excludePatterns,
-                (Boolean) respectRobots, userAgent, (Boolean) enabled, "");
+                (Boolean) respectRobots, userAgent, (Boolean) enabled, "", FormTestMode.NO_SUBMIT.name());
+    }
+
+    public SiteFormModel(String name, String baseUrl, int maxPages, int maxDepth, int maxDurationMinutes,
+                         String includePatterns, String excludePatterns, boolean respectRobots, String userAgent,
+                         boolean enabled, String pinnedKeyPages) {
+        this(name, baseUrl, maxPages, maxDepth, maxDurationMinutes, includePatterns, excludePatterns,
+                (Boolean) respectRobots, userAgent, (Boolean) enabled, pinnedKeyPages, FormTestMode.NO_SUBMIT.name());
     }
 
     public static SiteFormModel empty() {
-        return new SiteFormModel("", "", 300, 5, 30, "", "", true, null, true);
+        return new SiteFormModel("", "", 300, 5, 30, "", "", true, null, true, "", FormTestMode.NO_SUBMIT.name());
     }
 
     public static SiteFormModel of(SiteContext context, boolean enabled) {
@@ -65,7 +81,8 @@ public record SiteFormModel(
                 context.respectRobots(),
                 context.userAgent(),
                 enabled,
-                context.pinnedKeyPages() != null ? String.join("\n", context.pinnedKeyPages()) : "");
+                context.pinnedKeyPages() != null ? String.join("\n", context.pinnedKeyPages()) : "",
+                context.formTestMode() != null ? context.formTestMode().name() : FormTestMode.NO_SUBMIT.name());
     }
 
     public SiteForm toForm() {
@@ -80,7 +97,19 @@ public record SiteFormModel(
                 Boolean.TRUE.equals(respectRobots),
                 userAgent != null && !userAgent.isBlank() ? userAgent.trim() : null,
                 Boolean.TRUE.equals(enabled),
-                splitPatterns(pinnedKeyPages));
+                splitPatterns(pinnedKeyPages),
+                parseFormTestMode(formTestMode));
+    }
+
+    private static FormTestMode parseFormTestMode(String mode) {
+        if (mode == null || mode.isBlank()) {
+            return FormTestMode.NO_SUBMIT;
+        }
+        try {
+            return FormTestMode.valueOf(mode.trim());
+        } catch (IllegalArgumentException e) {
+            return FormTestMode.NO_SUBMIT;
+        }
     }
 
     private static List<String> splitPatterns(String patterns) {

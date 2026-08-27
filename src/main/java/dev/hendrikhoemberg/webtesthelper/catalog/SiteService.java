@@ -7,6 +7,7 @@ import dev.hendrikhoemberg.webtesthelper.catalog.persistence.SiteRepository;
 import dev.hendrikhoemberg.webtesthelper.model.CheckSetting;
 import dev.hendrikhoemberg.webtesthelper.model.CheckType;
 import dev.hendrikhoemberg.webtesthelper.model.CrawlBudget;
+import dev.hendrikhoemberg.webtesthelper.model.FormTestMode;
 import dev.hendrikhoemberg.webtesthelper.model.NormalizedUrl;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
 import dev.hendrikhoemberg.webtesthelper.model.UrlNormalizer;
@@ -104,7 +105,8 @@ public class SiteService {
                 site.getPinnedKeyPages(),
                 site.isRespectRobots(),
                 site.getUserAgent(),
-                checkSettingsMap);
+                checkSettingsMap,
+                site.getFormTestMode() == null ? FormTestMode.NO_SUBMIT : site.getFormTestMode());
     }
 
     public void setCheckEnabled(long siteId, CheckType type, boolean enabled) {
@@ -172,6 +174,7 @@ public class SiteService {
         site.setRespectRobots(form.respectRobots());
         site.setUserAgent(form.userAgent());
         site.setEnabled(form.enabled());
+        site.setFormTestMode(form.formTestMode() == null ? FormTestMode.NO_SUBMIT : form.formTestMode());
     }
 
     private SiteEntity requireSite(long id) {

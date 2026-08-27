@@ -17,13 +17,32 @@ public record SiteContext(
         List<String> pinnedKeyPages,
         boolean respectRobots,
         String userAgent,
-        Map<CheckType, CheckSetting> checkSettings) {
+        Map<CheckType, CheckSetting> checkSettings,
+        FormTestMode formTestMode) {
 
     public SiteContext {
         includePatterns = List.copyOf(includePatterns);
         excludePatterns = List.copyOf(excludePatterns);
         pinnedKeyPages = List.copyOf(pinnedKeyPages);
         checkSettings = Map.copyOf(checkSettings);
+        if (formTestMode == null) {
+            formTestMode = FormTestMode.NO_SUBMIT;
+        }
+    }
+
+    public SiteContext(
+            long siteId,
+            String name,
+            NormalizedUrl baseUrl,
+            CrawlBudget budget,
+            List<String> includePatterns,
+            List<String> excludePatterns,
+            List<String> pinnedKeyPages,
+            boolean respectRobots,
+            String userAgent,
+            Map<CheckType, CheckSetting> checkSettings) {
+        this(siteId, name, baseUrl, budget, includePatterns, excludePatterns, pinnedKeyPages,
+                respectRobots, userAgent, checkSettings, FormTestMode.NO_SUBMIT);
     }
 
     public boolean enabled(CheckType type) {

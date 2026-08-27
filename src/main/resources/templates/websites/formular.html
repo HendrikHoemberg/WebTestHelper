@@ -84,6 +84,27 @@
             <textarea id="pinnedKeyPages" th:field="*{pinnedKeyPages}" rows="4" placeholder="https://example.com/leistungen.html"></textarea>
         </div>
 
+        <div class="form-gruppe"
+             th:data-mode="*{formTestMode} ?: 'NO_SUBMIT'"
+             x-data="{ mode: $el.dataset.mode || 'NO_SUBMIT' }">
+            <label for="formTestMode" th:text="#{ui.websites.formular.formTestMode}">Kontaktformular-Prüfung</label>
+            <select id="formTestMode" th:field="*{formTestMode}" x-model="mode">
+                <option value="NO_SUBMIT" th:text="#{ui.websites.formular.formTestMode.NO_SUBMIT}">Nur ausfüllen, nicht absenden</option>
+                <option value="SUBMIT" th:text="#{ui.websites.formular.formTestMode.SUBMIT}">Ausfüllen und absenden</option>
+                <option value="SUBMIT_AND_VERIFY_MAIL" th:text="#{ui.websites.formular.formTestMode.SUBMIT_AND_VERIFY_MAIL}">Absenden und Zustellung im Prüfpostfach nachweisen</option>
+            </select>
+            <p class="hinweis-text" x-show="mode === 'NO_SUBMIT'" th:text="#{ui.websites.formular.formTestMode.folge.NO_SUBMIT}">Es wird nichts abgeschickt. Diese Prüfung hat keine Auswirkung auf den Kunden.</p>
+            <div x-show="mode === 'SUBMIT'" style="display: none;">
+                <p class="hinweis-text" th:text="#{ui.websites.formular.formTestMode.folge.SUBMIT}">Dies verschickt beim Monatslauf eine als Test gekennzeichnete Nachricht über das Kontaktformular dieser Website. Sie landet im Postfach, das dieses Formular bedient.</p>
+                <p class="hinweis-text" th:text="#{ui.websites.formular.formTestMode.nurTief}">Abgeschickt wird ausschließlich beim monatlichen Tiefenlauf.</p>
+            </div>
+            <div x-show="mode === 'SUBMIT_AND_VERIFY_MAIL'" style="display: none;">
+                <p class="hinweis-text" th:text="#{ui.websites.formular.formTestMode.folge.SUBMIT_AND_VERIFY_MAIL}">Wie „Ausfüllen und absenden“, zusätzlich wird geprüft, ob eine Kopie im Prüfpostfach ankommt. Dafür muss das Formular eine Blindkopie an die in den Einstellungen hinterlegte Prüfadresse senden.</p>
+                <p class="hinweis-text" th:text="#{ui.websites.formular.formTestMode.nurTief}">Abgeschickt wird ausschließlich beim monatlichen Tiefenlauf.</p>
+            </div>
+            <span th:if="${#fields.hasErrors('formTestMode')}" th:errors="*{formTestMode}" class="feld-fehler">Fehler</span>
+        </div>
+
         <div class="form-aktionen">
             <button type="submit" class="button primär" th:text="#{ui.websites.formular.speichern}">Speichern</button>
             <a th:href="@{/websites}" class="button sekundär" th:text="#{ui.websites.formular.abbrechen}">Abbrechen</a>

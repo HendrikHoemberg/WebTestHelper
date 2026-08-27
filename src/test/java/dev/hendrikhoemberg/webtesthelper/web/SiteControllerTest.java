@@ -7,6 +7,7 @@ import dev.hendrikhoemberg.webtesthelper.catalog.SiteService;
 import dev.hendrikhoemberg.webtesthelper.catalog.SiteSummary;
 import dev.hendrikhoemberg.webtesthelper.model.CheckType;
 import dev.hendrikhoemberg.webtesthelper.model.CrawlBudget;
+import dev.hendrikhoemberg.webtesthelper.model.FormTestMode;
 import dev.hendrikhoemberg.webtesthelper.model.NormalizedUrl;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
 import dev.hendrikhoemberg.webtesthelper.model.UrlNormalizer;
@@ -144,7 +145,8 @@ class SiteControllerTest {
                         .param("pinnedKeyPages", " https://example.com/leistungen.html \n\n/kontakt.html\n ")
                         .param("respectRobots", "true")
                         .param("userAgent", "CustomBot/1.0")
-                        .param("enabled", "true"))
+                        .param("enabled", "true")
+                        .param("formTestMode", "SUBMIT_AND_VERIFY_MAIL"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/websites/42/einrichtung"));
 
@@ -163,6 +165,7 @@ class SiteControllerTest {
                 .containsExactly("https://example.com/leistungen.html", "/kontakt.html");
         assertThat(created.respectRobots()).isTrue();
         assertThat(created.userAgent()).isEqualTo("CustomBot/1.0");
+        assertThat(created.formTestMode()).isEqualTo(FormTestMode.SUBMIT_AND_VERIFY_MAIL);
     }
 
     @Test
@@ -209,16 +212,21 @@ class SiteControllerTest {
                 List.of(),
                 false,
                 "MyBot",
-                Map.of()
+                Map.of(),
+                FormTestMode.SUBMIT
         );
         when(siteService.contextFor(42L)).thenReturn(context);
         when(siteService.summary(42L)).thenReturn(new SiteSummary(42L, "Bestehender Kunde", "https://example.com/", true, 2));
 
-        mvc.perform(get("/websites/42/bearbeiten"))
+        var result = mvc.perform(get("/websites/42/bearbeiten"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("websites/formular"))
                 .andExpect(model().attributeExists("form"))
-                .andExpect(model().attribute("siteId", 42L));
+                .andExpect(model().attribute("siteId", 42L))
+                .andReturn();
+
+        SiteFormModel form = (SiteFormModel) result.getModelAndView().getModel().get("form");
+        assertThat(form.formTestMode()).isEqualTo("SUBMIT");
     }
 
     @Test
@@ -233,7 +241,8 @@ class SiteControllerTest {
                         .param("maxDurationMinutes", "10")
                         .param("includePatterns", "")
                         .param("excludePatterns", "")
-                        .param("respectRobots", "true"))
+                        .param("respectRobots", "true")
+                        .param("formTestMode", "SUBMIT"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/websites/42"));
 
@@ -244,6 +253,7 @@ class SiteControllerTest {
         assertThat(updated.name()).isEqualTo("Kunde Aktualisiert");
         assertThat(updated.includePatterns()).isEmpty();
         assertThat(updated.excludePatterns()).isEmpty();
+        assertThat(updated.formTestMode()).isEqualTo(FormTestMode.SUBMIT);
     }
 
     @Test
