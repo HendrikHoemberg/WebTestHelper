@@ -367,6 +367,22 @@ class ContactFormsTest {
         );
     }
 
+    @Test
+    void classifyDoesNotFalselyMatchSubstringsLikeSupportAntwortHotel() {
+        HarvestedField supportField = visibleField(0, "input", "text", "support", "support", "Support", "Support", "");
+        HarvestedField antwortField = visibleField(1, "input", "text", "antwort", "antwort", "Ihre Antwort", "Antwort", "");
+        HarvestedField hotelField = visibleField(2, "input", "text", "hotel", "hotel", "Hotelname", "Hotel", "");
+        HarvestedForm form = new HarvestedForm(0, "f", "/submit", "POST", null, false,
+                List.of(supportField, antwortField, hotelField));
+
+        List<ClassifiedField> classified = ContactForms.classify(form, VIEWPORT_WIDTH);
+
+        assertThat(classified).hasSize(3);
+        assertThat(classified.get(0).kind()).isNull();
+        assertThat(classified.get(1).kind()).isNull();
+        assertThat(classified.get(2).kind()).isNull();
+    }
+
     // --- Plausible Values Tests ---
 
     @Test
@@ -407,6 +423,16 @@ class ContactFormsTest {
         assertThat(ContactForms.plausible(streetField, email, token)).isEqualTo("Teststraße 1");
         assertThat(ContactForms.plausible(zipField, email, token)).isEqualTo("10115");
         assertThat(ContactForms.plausible(cityField, email, token)).isEqualTo("Berlin");
+    }
+
+    @Test
+    void plausibleAddressDoesNotFalselyMatchSubstringsLikeSupport() {
+        ClassifiedField supportAddressField = new ClassifiedField(
+                visibleField(0, "input", "text", "support_address", "support_address", "Support Address", "", ""),
+                FieldKind.ADDRESS);
+
+        assertThat(ContactForms.plausible(supportAddressField, "test@example.com", "WTH-123"))
+                .isEqualTo("Teststraße 1");
     }
 
     @Test

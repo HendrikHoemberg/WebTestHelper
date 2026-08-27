@@ -1,5 +1,6 @@
 package dev.hendrikhoemberg.webtesthelper.checks;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -160,16 +161,17 @@ public final class ContactForms {
         // Source 1: autocomplete
         if (field.autocomplete() != null && !field.autocomplete().isBlank()) {
             String auto = fold(field.autocomplete());
-            if (auto.contains("email")) {
+            List<String> autoTokens = extractTokens(field.autocomplete());
+            if (auto.contains("email") || hasToken(autoTokens, "email")) {
                 return FieldKind.EMAIL;
             }
-            if (auto.contains("tel")) {
+            if (auto.contains("tel") || hasToken(autoTokens, "tel")) {
                 return FieldKind.PHONE;
             }
-            if (auto.contains("given-name") || auto.contains("family-name") || containsWord(auto, "name")) {
+            if (auto.contains("given-name") || auto.contains("family-name") || hasToken(autoTokens, "name")) {
                 return FieldKind.NAME;
             }
-            if (auto.contains("organization")) {
+            if (auto.contains("organization") || hasToken(autoTokens, "organization")) {
                 return FieldKind.COMPANY;
             }
             if (auto.contains("street-address") || auto.contains("postal-code") || auto.contains("address-level2")) {
@@ -200,15 +202,15 @@ public final class ContactForms {
         }
 
         // Source 3: words in name + id
-        String nameAndId = (fold(field.name()) + " " + fold(field.id())).trim();
-        FieldKind byNameAndId = matchWords(nameAndId);
+        List<String> nameAndIdTokens = extractTokens(field.name(), field.id());
+        FieldKind byNameAndId = matchTokens(nameAndIdTokens);
         if (byNameAndId != null) {
             return byNameAndId;
         }
 
         // Source 4: words in label + placeholder
-        String labelAndPlaceholder = (fold(field.label()) + " " + fold(field.placeholder())).trim();
-        FieldKind byLabelAndPlaceholder = matchWords(labelAndPlaceholder);
+        List<String> labelAndPlaceholderTokens = extractTokens(field.label(), field.placeholder());
+        FieldKind byLabelAndPlaceholder = matchTokens(labelAndPlaceholderTokens);
         if (byLabelAndPlaceholder != null) {
             return byLabelAndPlaceholder;
         }
@@ -216,29 +218,35 @@ public final class ContactForms {
         return null;
     }
 
-    private static FieldKind matchWords(String text) {
-        if (text == null || text.isBlank()) {
+    private static FieldKind matchTokens(List<String> tokens) {
+        if (tokens == null || tokens.isEmpty()) {
             return null;
         }
-        if (containsAny(text, "email", "e-mail", "mail")) {
+        if (hasToken(tokens, "email") || hasToken(tokens, "mail") || hasTokenPrefix(tokens, "email") || hasTokenSequence(tokens, "e", "mail")) {
             return FieldKind.EMAIL;
         }
-        if (containsAny(text, "telefon", "phone", "tel", "mobil")) {
+        if (hasToken(tokens, "tel") || hasToken(tokens, "telefon") || hasToken(tokens, "phone") || hasToken(tokens, "mobil")
+                || hasTokenPrefix(tokens, "telefon") || hasTokenPrefix(tokens, "phone") || hasTokenPrefix(tokens, "mobil")) {
             return FieldKind.PHONE;
         }
-        if (containsAny(text, "vorname", "nachname", "name")) {
+        if (hasToken(tokens, "name") || hasToken(tokens, "vorname") || hasToken(tokens, "nachname") || hasToken(tokens, "username")
+                || hasTokenPrefix(tokens, "vorname") || hasTokenPrefix(tokens, "nachname")) {
             return FieldKind.NAME;
         }
-        if (containsAny(text, "unternehmen", "company", "firma")) {
+        if (hasToken(tokens, "unternehmen") || hasToken(tokens, "company") || hasToken(tokens, "firma")
+                || hasTokenPrefix(tokens, "unternehmen") || hasTokenPrefix(tokens, "company") || hasTokenPrefix(tokens, "firma")) {
             return FieldKind.COMPANY;
         }
-        if (containsAny(text, "strasse", "plz", "ort", "adresse")) {
+        if (hasToken(tokens, "strasse") || hasToken(tokens, "plz") || hasToken(tokens, "ort") || hasToken(tokens, "adresse")
+                || hasTokenSuffix(tokens, "strasse") || hasTokenPrefix(tokens, "adresse") || hasTokenPrefix(tokens, "postleitzahl")) {
             return FieldKind.ADDRESS;
         }
-        if (containsAny(text, "betreff", "subject", "thema")) {
+        if (hasToken(tokens, "betreff") || hasToken(tokens, "subject") || hasToken(tokens, "thema")
+                || hasTokenPrefix(tokens, "betreff") || hasTokenPrefix(tokens, "subject") || hasTokenPrefix(tokens, "thema")) {
             return FieldKind.SUBJECT;
         }
-        if (containsAny(text, "nachricht", "message", "anliegen", "kommentar")) {
+        if (hasToken(tokens, "nachricht") || hasToken(tokens, "message") || hasToken(tokens, "anliegen") || hasToken(tokens, "kommentar")
+                || hasTokenPrefix(tokens, "nachricht") || hasTokenPrefix(tokens, "message") || hasTokenPrefix(tokens, "anliegen") || hasTokenPrefix(tokens, "kommentar")) {
             return FieldKind.MESSAGE;
         }
         return null;
@@ -269,16 +277,20 @@ public final class ContactForms {
         if (field == null) {
             return "Teststraße 1";
         }
-        String combined = (fold(field.autocomplete()) + " "
-                + fold(field.name()) + " "
-                + fold(field.id()) + " "
-                + fold(field.label()) + " "
-                + fold(field.placeholder())).trim();
-
-        if (combined.contains("postal-code") || combined.contains("plz")) {
+        String auto = fold(field.autocomplete());
+        if (auto.contains("postal-code")) {
             return "10115";
         }
-        if (combined.contains("address-level2") || combined.contains("ort")) {
+        if (auto.contains("address-level2")) {
+            return "Berlin";
+        }
+
+        List<String> tokens = extractTokens(field.name(), field.id(), field.label(), field.placeholder());
+
+        if (hasToken(tokens, "plz") || hasTokenPrefix(tokens, "postleitzahl")) {
+            return "10115";
+        }
+        if (hasToken(tokens, "ort") || hasToken(tokens, "stadt") || hasTokenPrefix(tokens, "wohnort")) {
             return "Berlin";
         }
         return "Teststraße 1";
@@ -331,21 +343,48 @@ public final class ContactForms {
         return folded.contains("such") || folded.contains("search");
     }
 
-    private static boolean containsWord(String text, String word) {
-        if (text == null || word == null) {
-            return false;
+    private static List<String> extractTokens(String... sources) {
+        List<String> tokens = new ArrayList<>();
+        for (String source : sources) {
+            if (source == null || source.isBlank()) {
+                continue;
+            }
+            String camelSplit = source.replaceAll("([a-z])([A-Z])", "$1 $2");
+            String folded = fold(camelSplit);
+            for (String part : folded.split("[^a-z0-9]+")) {
+                if (!part.isBlank()) {
+                    tokens.add(part);
+                }
+            }
         }
-        for (String token : text.split("[^a-z0-9_-]+")) {
-            if (token.equals(word)) {
+        return tokens;
+    }
+
+    private static boolean hasToken(List<String> tokens, String target) {
+        return tokens.contains(target);
+    }
+
+    private static boolean hasTokenPrefix(List<String> tokens, String prefix) {
+        for (String token : tokens) {
+            if (token.startsWith(prefix)) {
                 return true;
             }
         }
         return false;
     }
 
-    private static boolean containsAny(String text, String... candidates) {
-        for (String candidate : candidates) {
-            if (text.contains(candidate)) {
+    private static boolean hasTokenSuffix(List<String> tokens, String suffix) {
+        for (String token : tokens) {
+            if (token.endsWith(suffix)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean hasTokenSequence(List<String> tokens, String first, String second) {
+        for (int i = 0; i < tokens.size() - 1; i++) {
+            if (tokens.get(i).equals(first) && tokens.get(i + 1).equals(second)) {
                 return true;
             }
         }
