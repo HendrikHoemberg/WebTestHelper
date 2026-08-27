@@ -151,7 +151,8 @@ class ButtonReachabilityCheckTest {
     void checkDescriptorProperties() {
         assertThat(check.type()).isEqualTo(CheckType.BUTTON_REACHABILITY);
         assertThat(check.defaultSeverity()).isEqualTo(Severity.WARN);
-        assertThat(check.messageKeys()).containsExactly("finding.BUTTON_REACHABILITY.dead");
+        assertThat(check.messageKeys()).containsExactlyInAnyOrder(
+                "finding.BUTTON_REACHABILITY.dead", "finding.BUTTON_REACHABILITY.deadTarget");
     }
 
     @Test
@@ -169,5 +170,32 @@ class ButtonReachabilityCheckTest {
         SiteContext siteWithPins = siteContextWithPins(List.of(fixtureSite.url("interaktiv/knoepfe.html")));
         List<NormalizedUrl> pinnedTargets = check.targets(snapshots, siteWithPins, 5);
         assertThat(pinnedTargets).containsExactly(Snapshots.url(fixtureSite.url("interaktiv/knoepfe.html")));
+    }
+
+    @Test
+    void aButtonNavigatingToA404IsReportedAndOneReachingARealPageIsNot() {
+        // Spec 7.2 asks that a control "navigates somewhere valid or produces a visible DOM
+        // change". A script-driven location.href is invisible to the crawl, so DEAD_LINK never
+        // resolves its destination and "it navigated" is not enough on its own.
+        try (BrowserContext context = browser.newContext()) {
+            Page page = context.newPage();
+            String initialUrl = fixtureSite.url("interaktiv/knoepfe-totes-ziel.html");
+            page.navigate(initialUrl);
+
+            List<CheckFinding> findings = check.evaluate(page, siteContext(), checkConfig());
+
+            assertThat(findings).hasSize(1);
+            CheckFinding finding = findings.get(0);
+            assertThat(finding.type()).isEqualTo(CheckType.BUTTON_REACHABILITY);
+            assertThat(finding.severity()).isEqualTo(Severity.WARN);
+            assertThat(finding.subjectKey()).isEqualTo("Zum Angebot");
+            assertThat(finding.messageKey()).isEqualTo("finding.BUTTON_REACHABILITY.deadTarget");
+            assertThat(finding.observedOn()).isEqualTo(Snapshots.url(initialUrl));
+            assertThat(finding.messageArgs()).containsExactly(
+                    "Zum Angebot", fixtureSite.url("hart-404"), "404");
+
+            // D88: back on the page it was handed, so the runner's screenshot shows it.
+            assertThat(page.url()).isEqualTo(initialUrl);
+        }
     }
 }

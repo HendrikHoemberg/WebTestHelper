@@ -4,6 +4,7 @@ import com.microsoft.playwright.Dialog;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.PlaywrightException;
+import com.microsoft.playwright.Response;
 import dev.hendrikhoemberg.webtesthelper.model.CheckFinding;
 import dev.hendrikhoemberg.webtesthelper.model.CheckType;
 import dev.hendrikhoemberg.webtesthelper.model.Evidence;
@@ -17,6 +18,7 @@ import org.springframework.core.io.ClassPathResource;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -25,14 +27,16 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 /**
- * Button reachability interaction check (spec 7.2, D77, D83, D85, D86, D87, D88).
+ * Button reachability interaction check (spec 7.2, D77, D83, D85, D86, D87, D88, D104).
  *
  * <p>Clicks safe interactive controls on key pages and verifies whether any observable
- * change occurred (URL navigation, DOM digest change, modal dialog, or popup window).
+ * change occurred (URL navigation, DOM digest change, modal dialog, or popup window) —
+ * and, when the click navigated, whether the page it landed on actually exists (D104).
  */
 public final class ButtonReachabilityCheck implements InteractionCheck {
 
     static final String DEAD = "finding.BUTTON_REACHABILITY.dead";
+    static final String DEAD_TARGET = "finding.BUTTON_REACHABILITY.deadTarget";
 
     private static final String CLICKABLES_SCRIPT;
     private static final String DOM_DIGEST_SCRIPT;
@@ -60,7 +64,7 @@ public final class ButtonReachabilityCheck implements InteractionCheck {
 
     @Override
     public Set<String> messageKeys() {
-        return Set.of(DEAD);
+        return Set.of(DEAD, DEAD_TARGET);
     }
 
     @Override
@@ -124,8 +128,25 @@ public final class ButtonReachabilityCheck implements InteractionCheck {
                 }
             };
 
+            // Spec 7.2 asks whether the control "navigates somewhere valid", and the destination of
+            // a script-driven navigation is never a link in the DOM — so DEAD_LINK never resolves
+            // it and the crawl never visits it. The response status is the only place the answer
+            // exists, and it exists only while the navigation is happening.
+            List<NavigationResponse> navigations = Collections.synchronizedList(new ArrayList<>());
+            Consumer<Response> responseHandler = response -> {
+                try {
+                    if (response.request().isNavigationRequest()
+                            && page.mainFrame().equals(response.frame())) {
+                        navigations.add(new NavigationResponse(response.url(), response.status()));
+                    }
+                } catch (PlaywrightException ignored) {
+                    // The response object outlived its frame; nothing to record.
+                }
+            };
+
             page.onDialog(dialogHandler);
             page.onPopup(popupHandler);
+            page.onResponse(responseHandler);
 
             boolean navigated = false;
             try {
@@ -160,11 +181,11 @@ public final class ButtonReachabilityCheck implements InteractionCheck {
 
                 boolean hadEffect = urlChanged || digestChanged || dialogAppeared || popupOpened;
 
-                if (!hadEffect) {
-                    String subjectKey = candidate.label() != null && !candidate.label().isBlank()
-                            ? candidate.label().trim()
-                            : candidate.tag() + "#" + candidate.index();
+                String subjectKey = candidate.label() != null && !candidate.label().isBlank()
+                        ? candidate.label().trim()
+                        : candidate.tag() + "#" + candidate.index();
 
+                if (!hadEffect) {
                     findings.add(new CheckFinding(
                             type(),
                             severity,
@@ -173,6 +194,22 @@ public final class ButtonReachabilityCheck implements InteractionCheck {
                             DEAD,
                             List.of(subjectKey, targetUrl.value()),
                             Evidence.NONE));
+                } else if (urlChanged) {
+                    // A navigation with no response at all is a same-document one (pushState, a
+                    // fragment router): there is no status to judge, and silence is the honest
+                    // answer rather than a finding.
+                    NavigationResponse destination = destinationOf(navigations, afterUrl);
+                    if (destination != null && destination.status() >= 400) {
+                        findings.add(new CheckFinding(
+                                type(),
+                                severity,
+                                subjectKey,
+                                targetUrl,
+                                DEAD_TARGET,
+                                List.of(subjectKey, destination.url(),
+                                        String.valueOf(destination.status())),
+                                Evidence.NONE));
+                    }
                 }
 
                 if (urlChanged) {
@@ -182,6 +219,8 @@ public final class ButtonReachabilityCheck implements InteractionCheck {
             } finally {
                 page.offDialog(dialogHandler);
                 page.offPopup(popupHandler);
+                // Before navigating back, or the return trip records itself as the destination.
+                page.offResponse(responseHandler);
 
                 if (navigated) {
                     try {
@@ -206,6 +245,29 @@ public final class ButtonReachabilityCheck implements InteractionCheck {
         }
 
         return List.copyOf(findings);
+    }
+
+    private record NavigationResponse(String url, int status) {
+    }
+
+    /**
+     * The response the browser finally landed on. Redirects arrive as their own navigation
+     * responses, so the one matching the URL the page ended up at is the destination; when nothing
+     * matches — a rewritten history entry, an unusual redirect — the last one recorded is the
+     * closest available answer.
+     */
+    private static NavigationResponse destinationOf(List<NavigationResponse> navigations, String finalUrl) {
+        synchronized (navigations) {
+            if (navigations.isEmpty()) {
+                return null;
+            }
+            for (int i = navigations.size() - 1; i >= 0; i--) {
+                if (Objects.equals(navigations.get(i).url(), finalUrl)) {
+                    return navigations.get(i);
+                }
+            }
+            return navigations.get(navigations.size() - 1);
+        }
     }
 
     private static List<Clickables.Clickable> harvest(Page page) {

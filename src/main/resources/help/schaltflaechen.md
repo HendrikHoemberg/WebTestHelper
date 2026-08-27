@@ -13,6 +13,8 @@ WebTestHelper untersucht sichtbare Schaltflächen und Verweise auf den Schlüsse
 
 Erfolgt nach dem Klick keinerlei dieser Reaktionen, meldet die Prüfung eine Warnung (`WARN`).
 
+Führt der Klick auf eine neue Seite, wird zusätzlich geprüft, **ob diese Seite überhaupt vorhanden ist**. Antwortet die Website dort mit einem Fehler (etwa 404 „Seite nicht gefunden“ oder 500), meldet die Prüfung dies ebenfalls. Das ist der Grund für diese zweite Regel: Solche Ziele werden von einem Skript gesetzt und stehen nirgends als Verweis im Seitenquelltext — die Prüfung auf tote Links kann sie deshalb nicht finden.
+
 ## Was die Prüfung niemals anklickt (Sicherheitsregeln)
 
 Um ungewollte Seiteneffekte, Datenverluste oder Kosten auf echten Websites sicher auszuschließen, werden potenziell gefährliche Bedienelemente grundsätzlich nicht angeklickt:
@@ -30,3 +32,4 @@ Wenn die Prüfung eine Warnung für eine Schaltfläche ausgibt, sollten Sie folg
 * **Dekorative Schaltflächen:** Gelegentlich werden Knöpfe rein als Gestaltungselement oder Platzhalter eingesetzt, ohne dass eine Funktion dahinter liegen soll. Solche Befunde können nach kurzer Prüfung stummgeschaltet oder zur Kenntnis genommen werden.
 * **Fehlendes oder blockiertes JavaScript:** Wenn ein Klick wirkungslos bleibt, fehlt oft die Verknüpfung zu einer JavaScript-Funktion, oder ein vorgeschalteter Skriptfehler hat die Ausführung verhindert.
 * **Leere Ankerverweise (`href="#"`):** Ein Link mit Ziel `#` ohne hinterlegten Klick-Handler führt ins Leere und bietet Besuchern keinen Mehrwert.
+* **Fehlerseite als Ziel:** Führt die Schaltfläche auf eine Adresse, die es nicht mehr gibt, wurde meist eine Seite umbenannt oder gelöscht, während das Skript hinter dem Knopf unverändert blieb. Das Ziel gehört im Redaktionssystem korrigiert.

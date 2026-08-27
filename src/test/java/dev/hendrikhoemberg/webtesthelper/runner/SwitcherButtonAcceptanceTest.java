@@ -168,7 +168,9 @@ class SwitcherButtonAcceptanceTest extends AbstractPostgresTest {
         assertThat(buttonFindingView.message()).isEqualTo(
                 "Die Schaltfläche „Mehr erfahren“ auf " + site.url("interaktiv/sprachen-kaputt.html") + " bewirkt nichts.");
         assertThat(buttonFindingView.remediation()).isEqualTo(
-                "Die Schaltfläche selbst anklicken. Passiert nichts, fehlt die Verknüpfung, oder das Skript dahinter wird nicht mehr geladen.");
+                "Die Schaltfläche selbst anklicken. Passiert nichts, fehlt die Verknüpfung, oder das Skript "
+                        + "dahinter wird nicht mehr geladen. Öffnet sich eine Fehlerseite, zeigt die Schaltfläche "
+                        + "auf eine Adresse, die es nicht mehr gibt — das Ziel im Redaktionssystem korrigieren.");
         assertThat(buttonFindingView.title()).doesNotContain("BUTTON_REACHABILITY");
         assertThat(buttonFindingView.message()).doesNotContain("BUTTON_REACHABILITY");
         assertThat(buttonFindingView.remediation()).doesNotContain("BUTTON_REACHABILITY");

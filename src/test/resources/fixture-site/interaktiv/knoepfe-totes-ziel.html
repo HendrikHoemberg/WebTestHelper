@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Knöpfe mit totem Ziel — Fixture</title>
+</head>
+<body>
+  <h1>Schaltflächen, die irgendwohin führen</h1>
+
+  <!-- Script-driven navigation: the crawl never sees this destination as a link, so DEAD_LINK
+       cannot cover it. §7.2 asks for "navigates somewhere valid", not merely "navigates". -->
+  <button id="ziel-fehlt" type="button" onclick="window.location.href='/hart-404'">Zum Angebot</button>
+
+  <!-- The healthy control: same shape, real destination. Proves the rule does not fire on it. -->
+  <button id="ziel-ok" type="button" onclick="window.location.href='/ziel.html'">Zur Übersicht</button>
+</body>
+</html>
