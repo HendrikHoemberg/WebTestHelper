@@ -759,5 +759,7 @@ git commit -am "test(runner): acceptance for the switcher, the buttons, and per-
 
 ## Execution findings
 
-*(Filled in during execution. Never edit anything above this line once the plan has run —
-`CLAUDE.md`: the code is the truth.)*
+- **Clickables Language Exclusion:** In `Clickables.java`, links carrying language switcher vocabulary labels are excluded from `BUTTON_REACHABILITY` candidates to avoid duplicate findings with `LANGUAGE_SWITCHER` and prevent redundant same-page reloads.
+- **DOM Tag Resilience:** In `ButtonReachabilityCheck.java`, DOM tags are re-harvested if an in-page interaction reloaded the document without URL change, and locator clicks are bounded with a 2000ms timeout.
+- **Suite Growth:** Total test suite increased from 949 to 1048 tests (+99 tests across unit, browser, and acceptance tests), running in 2m49s.
+
