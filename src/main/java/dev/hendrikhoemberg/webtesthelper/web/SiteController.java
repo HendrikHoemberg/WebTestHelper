@@ -6,6 +6,7 @@ import dev.hendrikhoemberg.webtesthelper.model.RunScope;
 import dev.hendrikhoemberg.webtesthelper.model.RunTrigger;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
 import dev.hendrikhoemberg.webtesthelper.runner.RunService;
+import dev.hendrikhoemberg.webtesthelper.scheduling.ScheduleService;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 
+import java.time.Instant;
 import java.util.List;
 
 @Controller
@@ -22,11 +24,14 @@ public class SiteController {
 
     private final SiteService siteService;
     private final RunService runService;
+    private final ScheduleService scheduleService;
     private final SiteDetailModel siteDetailModel;
 
-    public SiteController(SiteService siteService, RunService runService, SiteDetailModel siteDetailModel) {
+    public SiteController(SiteService siteService, RunService runService,
+                          ScheduleService scheduleService, SiteDetailModel siteDetailModel) {
         this.siteService = siteService;
         this.runService = runService;
+        this.scheduleService = scheduleService;
         this.siteDetailModel = siteDetailModel;
     }
 
@@ -51,6 +56,13 @@ public class SiteController {
             return "websites/formular";
         }
         long id = siteService.create(form.toForm());
+        // Spec 9: "Defaults are applied when a site is created." The dispatcher's D38 backfill
+        // stays as the net for a site that arrives by any other route, but it cannot be the only
+        // seeder: tick() short-circuits on the global pause (spec 14) before it reaches the seed
+        // step, so a site added while the clock is paused would have no tiers to edit. Seeding is
+        // not scheduling — the rows sit still until the pause lifts, exactly like every other
+        // site's.
+        scheduleService.seedDefaults(id, Instant.now());
         return "redirect:/websites/" + id + "/einrichtung";
     }
 

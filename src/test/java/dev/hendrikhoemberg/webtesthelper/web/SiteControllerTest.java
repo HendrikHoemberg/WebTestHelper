@@ -23,6 +23,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -162,6 +163,30 @@ class SiteControllerTest {
                 .containsExactly("https://example.com/leistungen.html", "/kontakt.html");
         assertThat(created.respectRobots()).isTrue();
         assertThat(created.userAgent()).isEqualTo("CustomBot/1.0");
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void creatingASiteSeedsItsThreeTiersImmediately() throws Exception {
+        // Spec 9: "Defaults are applied when a site is created." D38's lazy backfill in the
+        // dispatcher cannot stand in for that, because tick() short-circuits on the global pause
+        // (spec 14) *before* it seeds — so a site added while scheduling is paused would show
+        // "(noch keine Zeitpläne)" and offer no form, and the one thing an administrator cannot
+        // then do is configure the schedules they paused the clock to sort out.
+        when(siteService.create(any())).thenReturn(42L);
+
+        mvc.perform(post("/websites")
+                        .with(csrf())
+                        .param("name", "Neuer Kunde")
+                        .param("baseUrl", "https://example.com/")
+                        .param("maxPages", "250")
+                        .param("maxDepth", "4")
+                        .param("maxDurationMinutes", "15")
+                        .param("respectRobots", "true")
+                        .param("enabled", "true"))
+                .andExpect(status().is3xxRedirection());
+
+        verify(scheduleService).seedDefaults(eq(42L), any(Instant.class));
     }
 
     @Test
