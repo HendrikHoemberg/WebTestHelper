@@ -763,3 +763,34 @@ git commit -am "test(runner): acceptance for the switcher, the buttons, and per-
 - **DOM Tag Resilience:** In `ButtonReachabilityCheck.java`, DOM tags are re-harvested if an in-page interaction reloaded the document without URL change, and locator clicks are bounded with a 2000ms timeout.
 - **Suite Growth:** Total test suite increased from 949 to 1048 tests (+99 tests across unit, browser, and acceptance tests), running in 2m49s.
 
+### Post-execution audit (2026-08-27, phase-3 spec-fidelity review)
+
+- **D104 — `BUTTON_REACHABILITY` judges where the click landed, not only that it moved.** §7.2 asks
+  that a control *"navigates somewhere valid or produces a visible DOM change"*, and this plan
+  implemented the second half and the verb of the first, never the adjective. `urlChanged` alone
+  counted as healthy. D85's reasoning for dropping off-page anchors — *"`DEAD_LINK` already resolves
+  those every run"* — is sound for anchors and does not carry to what the check actually keeps: a
+  `<button onclick="location.href='…'">`'s destination is set by a script, is nowhere in the DOM as
+  a link, and is therefore never in the crawl's verification set. So nothing in the system looked at
+  it, and a button pointing at a deleted page read as healthy. The check now records main-frame
+  navigation responses across the click and emits `finding.BUTTON_REACHABILITY.deadTarget` when the
+  destination answers ≥ 400. **A navigation with no response at all — `pushState`, a fragment router
+  — is silence, not a finding:** there is no status to judge and inventing one would be a false
+  positive on every SPA. `interaktiv/knoepfe-totes-ziel.html` carries both cases, the dead target
+  and the healthy control, because a rule with only a failing fixture cannot show it stays quiet.
+  Soft 404s are explicitly *not* covered here — that needs the run's not-found probe, which is
+  `PAGE_STATUS`'s, and it is a measurement in front of a plan rather than a line inside one.
+- **D105 — an interaction finding is never re-probed over HTTP, and `CheckType.interaction()` is how
+  everything outside `checks` knows that.** `FindingReverifier` selects its suspects by subject key
+  and drops every finding whose subject recovers. `LANGUAGE_SWITCHER`'s subject *is* a URL (the
+  locale target), so a switcher finding whose target was `DEAD` in the first pass and answered `OK`
+  on re-probe was silently discarded — by a probe that never looked at whether the page was
+  translated, which is the only thing the finding is about. The roadmap already says the second pass
+  *"leaves interaction findings alone"*; nothing enforced it. The direction was safe (a suppressed
+  finding, not an invented one) and that is exactly why it would never have been noticed.
+  `CheckType.interaction()` now carries the answer, because `findings` and `crawler` may not see
+  `checks` (§5.1) and both need it; `CheckRegistryTest` fails the build when the enum and the
+  registry disagree, the same shape `ScopeCheckSetTest` uses for the tier sets.
+- **Metrics after the audit:** 1204 tests / 0 failures (from 1193). `-Pfast` is 1065 of them, so
+  the two rules added here cost one browser test between them — `Clickables`, the verdict logic and
+  `CheckType.interaction()` are all pure and stay in the fast profile.

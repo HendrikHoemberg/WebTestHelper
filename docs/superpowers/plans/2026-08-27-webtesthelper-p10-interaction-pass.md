@@ -718,3 +718,12 @@ git commit -am "test(runner): acceptance for the interaction pass and the cookie
   are thread-confined, but a check that hangs on non-Playwright work is still unbounded.
 - **Metrics after the review:** 949 tests / 2m13s (+4 tests over the 945 recorded above; all four are
   `-Pfast` coverage tests, no new Chromium).
+
+### Post-execution audit (2026-08-27, phase-3 spec-fidelity review)
+
+- **Finding 10 (the dismissal wait was still duplicated — fixed):** Finding 8 above records that
+  the two dismissal waits were unified into `CookieBanner.DISMISSAL_WAIT`, and the reporting check
+  does read it. The runner's consent-only path did not: `InteractionRunner` still passed a literal
+  `Duration.ofSeconds(3)`. Same number, so nothing behaved differently, but the constant Finding 8
+  promises was one edit away from being wrong again. It now reads `CookieBanner.DISMISSAL_WAIT`,
+  and `git grep "ofSeconds(3)"` in `runner` returns nothing.

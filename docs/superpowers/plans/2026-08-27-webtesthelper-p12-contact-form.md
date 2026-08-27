@@ -1013,3 +1013,22 @@ git commit -am "test(runner): acceptance for delivery, non-delivery, and the run
   passes the context's real width.
 - **`SUCCESS_WORDS` was duplicated** verbatim in `ContactForms` and `ContactFormCheck`. It is now
   package-private on `ContactForms` and read from there by `extractSuccessText`.
+
+### Post-execution audit (2026-08-27, phase-3 spec-fidelity review)
+
+- **D103 — the verification token falls back to the subject field, and a form that can carry it
+  nowhere abstains.** Task 1 fixed the token to the `MESSAGE` value and asserted it appears
+  *"nowhere else"*, which reads as a tidy invariant and is a false-positive generator: `triage`
+  admits a form as `CONTACT` on **three fillable fields alone**, with no textarea required, so a
+  name / e-mail / telephone / subject callback form is submitted for real. With the token confined
+  to `MESSAGE` that form has no token in its body, `awaitToken` cannot find one, and
+  `SUBMIT_AND_VERIFY_MAIL` reports `notDelivered` **every month against a form that works** — the
+  precise false positive §8 calls the thing that destroys trust, produced by the check §7.2 calls
+  the one that catches the most common real failure. `ContactForms.tokenCarrier` now answers
+  `MESSAGE`, else `SUBJECT`, else nothing; `withToken` appends it idempotently, so the existing
+  `MESSAGE` wording is untouched and the invariant Task 1 asserted still holds wherever a textarea
+  exists. With no carrier at all the check **abstains** rather than submitting: it cannot observe
+  delivery, and D89's rule that an unobservable answer is an abstention is the same rule.
+  `formular-ohne-nachricht.html` and `formular-ohne-kennungsfeld.html` are the two missing fixtures
+  — neither shape existed anywhere in the suite, which is why the plan and the implementation shared
+  the blind spot.
