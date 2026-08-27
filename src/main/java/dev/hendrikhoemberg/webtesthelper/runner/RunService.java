@@ -150,10 +150,10 @@ public class RunService {
     }
 
     private RunSummary toSummary(RunEntity run) {
-        Set<CheckType> covered = run.getCoveredCheckTypes().isEmpty()
+        Set<CheckType> covered = run.getCoveredCheckTypes() == null || run.getCoveredCheckTypes().isEmpty()
                 ? EnumSet.noneOf(CheckType.class)
                 : run.getCoveredCheckTypes().stream().map(CheckType::valueOf).collect(Collectors.toSet());
-        Set<CheckType> coveredInteractions = run.getCoveredInteractionCheckTypes().isEmpty()
+        Set<CheckType> coveredInteractions = run.getCoveredInteractionCheckTypes() == null || run.getCoveredInteractionCheckTypes().isEmpty()
                 ? EnumSet.noneOf(CheckType.class)
                 : run.getCoveredInteractionCheckTypes().stream().map(CheckType::valueOf).collect(Collectors.toSet());
         return new RunSummary(

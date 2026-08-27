@@ -7,6 +7,7 @@ import dev.hendrikhoemberg.webtesthelper.model.Evidence;
 import dev.hendrikhoemberg.webtesthelper.model.NormalizedUrl;
 import dev.hendrikhoemberg.webtesthelper.model.RunCoverage;
 import dev.hendrikhoemberg.webtesthelper.model.RunScope;
+import dev.hendrikhoemberg.webtesthelper.model.RunStatus;
 import dev.hendrikhoemberg.webtesthelper.model.RunTrigger;
 import dev.hendrikhoemberg.webtesthelper.model.Severity;
 import dev.hendrikhoemberg.webtesthelper.support.AbstractPostgresTest;
@@ -116,6 +117,55 @@ class RunServiceTest extends AbstractPostgresTest {
     void acceptBaselineOfAnUnknownRunIdRaises() {
         assertThatThrownBy(() -> runs.acceptBaseline(9_999_999L))
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void summaryHandlesNullAndEmptyCoveredFieldsDefensively() {
+        long runId = jdbc.queryForObject(
+                "INSERT INTO run (site_id, status, trigger_type, scope) "
+                        + "VALUES (?, 'COMPLETED', 'MANUAL', 'FULL') RETURNING id",
+                Long.class, siteId);
+
+        RunSummary summary = runs.summary(runId);
+        assertThat(summary.coveredCheckTypes()).isEmpty();
+        assertThat(summary.coveredInteractionCheckTypes()).isEmpty();
+        assertThat(summary.coveredInteractionUrls()).isEmpty();
+
+        List<RunSummary> recent = runs.recentForSite(siteId, 10);
+        assertThat(recent).hasSize(1);
+        assertThat(recent.get(0).coveredInteractionCheckTypes()).isEmpty();
+        assertThat(recent.get(0).coveredInteractionUrls()).isEmpty();
+
+        List<RunSummary> undigested = runs.undigested(RunScope.FULL);
+        assertThat(undigested).hasSize(1);
+        assertThat(undigested.get(0).coveredInteractionCheckTypes()).isEmpty();
+        assertThat(undigested.get(0).coveredInteractionUrls()).isEmpty();
+    }
+
+    @Test
+    void summaryMapsCoveredInteractionFieldsCorrectly() {
+        long runId = jdbc.queryForObject(
+                "INSERT INTO run (site_id, status, trigger_type, scope, covered_check_types, covered_interaction_check_types, covered_interaction_urls) "
+                        + "VALUES (?, 'COMPLETED', 'MANUAL', 'FULL', '[\"PAGE_STATUS\", \"DEAD_LINK\"]', '[\"COOKIE_BANNER\", \"IFRAME_EMBED\"]', '[\"https://a.example.com/\"]') RETURNING id",
+                Long.class, siteId);
+
+        RunSummary summary = runs.summary(runId);
+        assertThat(summary.coveredCheckTypes()).containsExactlyInAnyOrder(CheckType.PAGE_STATUS, CheckType.DEAD_LINK);
+        assertThat(summary.coveredInteractionCheckTypes()).containsExactlyInAnyOrder(CheckType.COOKIE_BANNER, CheckType.IFRAME_EMBED);
+        assertThat(summary.coveredInteractionUrls()).containsExactly("https://a.example.com/");
+    }
+
+    @Test
+    void runSummaryCompactConstructorGuaranteesNonNullCollections() {
+        RunSummary summary = new RunSummary(
+                1L, siteId, RunStatus.COMPLETED, RunTrigger.MANUAL, RunScope.FULL,
+                Instant.now(), Instant.now(), Instant.now(),
+                10, 0, 0, 0, 0, false, null, false, null,
+                null, null, null);
+
+        assertThat(summary.coveredCheckTypes()).isNotNull().isEmpty();
+        assertThat(summary.coveredInteractionCheckTypes()).isNotNull().isEmpty();
+        assertThat(summary.coveredInteractionUrls()).isNotNull().isEmpty();
     }
 
     private <T> List<T> inParallel(int threads, Callable<T> work) throws Exception {

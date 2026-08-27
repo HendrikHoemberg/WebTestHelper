@@ -241,6 +241,46 @@ class RunControllerTest {
 
     @Test
     @WithMockUser(roles = "USER")
+    void coverageLineRendersInteractiveChecksNoneWhenCollectionsAreNull() throws Exception {
+        long runId = 1032L;
+        long siteId = 42L;
+        RunSummary summary = new RunSummary(
+                runId,
+                siteId,
+                RunStatus.COMPLETED,
+                RunTrigger.MANUAL,
+                RunScope.FULL,
+                Instant.parse("2026-08-25T10:00:00Z"),
+                Instant.parse("2026-08-25T10:00:05Z"),
+                Instant.parse("2026-08-25T10:02:30Z"),
+                85,
+                0,
+                4,
+                2,
+                1,
+                false,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null
+        );
+        SiteContext site = sampleSite(siteId);
+        RunDiff diff = new RunDiff(runId, Map.of());
+
+        when(runService.summary(runId)).thenReturn(summary);
+        when(siteService.contextFor(siteId)).thenReturn(site);
+        when(findingService.diffOf(siteId, runId)).thenReturn(diff);
+        when(findingViewFactory.of(eq(diff), any(Locale.class))).thenReturn(Map.of());
+
+        mvc.perform(get("/laeufe/" + runId))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Interaktive Prüfungen: keine")));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
     void failedRunRendersErrorMessageInTechnicalBlockNotHeadline() throws Exception {
         long runId = 104L;
         long siteId = 42L;

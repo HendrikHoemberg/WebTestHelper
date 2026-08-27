@@ -32,6 +32,12 @@ public record RunSummary(
         Set<CheckType> coveredInteractionCheckTypes,
         List<String> coveredInteractionUrls) {
 
+    public RunSummary {
+        coveredCheckTypes = coveredCheckTypes != null ? coveredCheckTypes : Set.of();
+        coveredInteractionCheckTypes = coveredInteractionCheckTypes != null ? coveredInteractionCheckTypes : Set.of();
+        coveredInteractionUrls = coveredInteractionUrls != null ? coveredInteractionUrls : List.of();
+    }
+
     public RunSummary(
             long id,
             long siteId,

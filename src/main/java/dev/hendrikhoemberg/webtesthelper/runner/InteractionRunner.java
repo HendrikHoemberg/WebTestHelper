@@ -144,14 +144,7 @@ public class InteractionRunner {
 
             if (cookieBannerCheck.isPresent()) {
                 InteractionCheck cbCheck = cookieBannerCheck.get();
-                try (Page setupPage = context.newPage()) {
-                    setupPage.setDefaultTimeout(interactionProperties.timeout().toMillis());
-                    setupPage.setDefaultNavigationTimeout(crawlerProperties.navigationTimeout().toMillis());
-
-                    setupPage.navigate(targetUrl.value(), new Page.NavigateOptions()
-                            .setTimeout(crawlerProperties.navigationTimeout().toMillis())
-                            .setWaitUntil(WaitUntilState.LOAD));
-
+                try (Page setupPage = createAndNavigatePage(context, targetUrl)) {
                     executeCheck(setupPage, cbCheck, targetUrl, site, facts, runArtifacts,
                             targetFindings, targetDrivenTypes);
                 } catch (RuntimeException e) {
@@ -159,14 +152,7 @@ public class InteractionRunner {
                             facts.runId(), cbCheck.type(), targetUrl.value(), e.getMessage(), e);
                 }
             } else {
-                try (Page setupPage = context.newPage()) {
-                    setupPage.setDefaultTimeout(interactionProperties.timeout().toMillis());
-                    setupPage.setDefaultNavigationTimeout(crawlerProperties.navigationTimeout().toMillis());
-
-                    setupPage.navigate(targetUrl.value(), new Page.NavigateOptions()
-                            .setTimeout(crawlerProperties.navigationTimeout().toMillis())
-                            .setWaitUntil(WaitUntilState.LOAD));
-
+                try (Page setupPage = createAndNavigatePage(context, targetUrl)) {
                     CookieBanner.accept(setupPage, Duration.ofSeconds(3));
                 } catch (RuntimeException e) {
                     log.warn("Lauf {} Cookie-Banner Setup auf {} fehlgeschlagen: {}",
@@ -178,14 +164,7 @@ public class InteractionRunner {
                 if (check.type() == CheckType.COOKIE_BANNER) {
                     continue;
                 }
-                try (Page page = context.newPage()) {
-                    page.setDefaultTimeout(interactionProperties.timeout().toMillis());
-                    page.setDefaultNavigationTimeout(crawlerProperties.navigationTimeout().toMillis());
-
-                    page.navigate(targetUrl.value(), new Page.NavigateOptions()
-                            .setTimeout(crawlerProperties.navigationTimeout().toMillis())
-                            .setWaitUntil(WaitUntilState.LOAD));
-
+                try (Page page = createAndNavigatePage(context, targetUrl)) {
                     executeCheck(page, check, targetUrl, site, facts, runArtifacts,
                             targetFindings, targetDrivenTypes);
                 } catch (RuntimeException e) {
@@ -196,6 +175,21 @@ public class InteractionRunner {
         }
 
         return new TargetOutcome(targetFindings, targetDrivenTypes);
+    }
+
+    private Page createAndNavigatePage(BrowserContext context, NormalizedUrl targetUrl) {
+        Page page = context.newPage();
+        try {
+            page.setDefaultTimeout(interactionProperties.timeout().toMillis());
+            page.setDefaultNavigationTimeout(crawlerProperties.navigationTimeout().toMillis());
+            page.navigate(targetUrl.value(), new Page.NavigateOptions()
+                    .setTimeout(crawlerProperties.navigationTimeout().toMillis())
+                    .setWaitUntil(WaitUntilState.LOAD));
+            return page;
+        } catch (RuntimeException e) {
+            page.close();
+            throw e;
+        }
     }
 
     private void executeCheck(Page page,
