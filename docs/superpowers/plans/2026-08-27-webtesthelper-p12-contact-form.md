@@ -984,4 +984,6 @@ git commit -am "test(runner): acceptance for delivery, non-delivery, and the run
 
 ## Execution findings
 
-<!-- Filled in during execution. Do not edit anything above this line after the plan has run. -->
+- **Word-Boundary Matching in Field Classification:** In `ContactForms.java`, field matching was refined to use word/token boundaries with camelCase and delimiter splitting rather than unanchored substring containment, preventing false-positive classifications on tokens like `"ort"`, `"tel"`, and `"mail"` embedded in words like `"support"`, `"antwort"`, or `"hotel"`.
+- **Suite Growth & Timing:** Total test suite increased from 1048 to 1137 tests (+89 tests across unit, browser, and acceptance tests). Full suite wall time is 4m24s (+1m35s over Plan 11 baseline: ~60s is the intentional non-delivery mailbox timeout in Run 1 of `ContactFormAcceptanceTest`, ~35s is Playwright/Chromium execution across contact form test scenarios). All 1137 tests passing with 0 failures and 0 errors.
+
