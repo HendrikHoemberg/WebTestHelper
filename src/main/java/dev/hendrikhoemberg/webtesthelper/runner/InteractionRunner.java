@@ -223,10 +223,14 @@ public class InteractionRunner {
         List<CheckFinding> rawFindings = check.evaluate(page, site, config);
         long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
 
-        if (elapsedMillis > interactionProperties.timeout().toMillis()) {
+        Duration effectiveTimeout = check.timeout() != null
+                ? check.timeout()
+                : interactionProperties.timeout();
+
+        if (elapsedMillis > effectiveTimeout.toMillis()) {
             log.warn("Lauf {} Check {} auf {} überschritt Zeitlimit ({} ms > {} ms)",
                     facts.runId(), check.type(), targetUrl.value(), elapsedMillis,
-                    interactionProperties.timeout().toMillis());
+                    effectiveTimeout.toMillis());
             return;
         }
 

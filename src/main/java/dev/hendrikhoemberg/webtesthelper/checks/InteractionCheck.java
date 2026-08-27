@@ -6,6 +6,7 @@ import dev.hendrikhoemberg.webtesthelper.model.NormalizedUrl;
 import dev.hendrikhoemberg.webtesthelper.model.RunSnapshots;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
 
+import java.time.Duration;
 import java.util.List;
 
 /**
@@ -29,5 +30,17 @@ public interface InteractionCheck extends CheckDescriptor {
 
     default List<NormalizedUrl> targets(RunSnapshots snapshots, SiteContext site, int maxTargets) {
         return InteractionTargets.homepage(snapshots, site);
+    }
+
+    /**
+     * Optional execution timeout override for checks that perform external or long-running verification
+     * (e.g. mail verification, spec 7.2, D92).
+     *
+     * <p>Returning {@code null} means the runner will apply the pass default timeout ({@code interactionProperties.timeout()}).
+     * When a check exceeds its timeout, the runner discards its findings and excludes the check type
+     * from {@code drivenTypes}.
+     */
+    default Duration timeout() {
+        return null;
     }
 }

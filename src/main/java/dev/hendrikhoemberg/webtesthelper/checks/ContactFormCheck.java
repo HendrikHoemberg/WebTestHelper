@@ -14,6 +14,7 @@ import dev.hendrikhoemberg.webtesthelper.model.CheckFinding;
 import dev.hendrikhoemberg.webtesthelper.model.CheckType;
 import dev.hendrikhoemberg.webtesthelper.model.Evidence;
 import dev.hendrikhoemberg.webtesthelper.model.FormTestMode;
+import dev.hendrikhoemberg.webtesthelper.model.Mailbox;
 import dev.hendrikhoemberg.webtesthelper.model.NormalizedUrl;
 import dev.hendrikhoemberg.webtesthelper.model.RunScope;
 import dev.hendrikhoemberg.webtesthelper.model.RunSnapshots;
@@ -24,11 +25,14 @@ import org.springframework.core.io.ClassPathResource;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Random;
 import java.util.Set;
 
 /**
@@ -37,7 +41,8 @@ import java.util.Set;
  * <p>Harvests forms, selects the contact form, classifies its fields, and fills them with plausible
  * test values. In {@link FormTestMode#NO_SUBMIT} mode, verifies whether the form can validate and
  * rejects invalid emails, without submitting anything. In {@link FormTestMode#SUBMIT} mode, submits
- * the form and evaluates whether the submission succeeded.
+ * the form and evaluates whether the submission succeeded. In {@link FormTestMode#SUBMIT_AND_VERIFY_MAIL}
+ * mode, also awaits a verification token in the configured test mailbox.
  */
 public final class ContactFormCheck implements InteractionCheck {
 
@@ -46,6 +51,12 @@ public final class ContactFormCheck implements InteractionCheck {
     static final String NO_SUCCESS = "finding.CONTACT_FORM.noSuccess";
     static final String ERROR_SHOWN = "finding.CONTACT_FORM.errorShown";
     static final String NOT_DELIVERED = "finding.CONTACT_FORM.notDelivered";
+
+    private static final String BASE32_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+    private static final Random RANDOM = new SecureRandom();
+    private static final List<String> SUCCESS_WORDS = List.of(
+            "vielen dank", "danke", "erfolgreich", "gesendet", "versendet", "verschickt",
+            "ubermittelt", "erhalten", "bestatigung", "wir melden uns", "nachricht ist unterwegs");
 
     private static final String SCRIPT;
     private static final String FORM_OUTCOME_SCRIPT;
@@ -59,6 +70,21 @@ public final class ContactFormCheck implements InteractionCheck {
         } catch (IOException e) {
             throw new IllegalStateException("checks/contact-form.js oder checks/form-outcome.js fehlt im Klassenpfad", e);
         }
+    }
+
+    private final Mailbox mailbox;
+
+    public ContactFormCheck() {
+        this(Mailbox.UNCONFIGURED);
+    }
+
+    public ContactFormCheck(Mailbox mailbox) {
+        this.mailbox = mailbox != null ? mailbox : Mailbox.UNCONFIGURED;
+    }
+
+    @Override
+    public Duration timeout() {
+        return Duration.ofSeconds(90);
     }
 
     @Override
@@ -100,6 +126,12 @@ public final class ContactFormCheck implements InteractionCheck {
             throw new CheckAbstainedException(type(), page.url(), "submit-modus ausserhalb des Tiefenlaufs");
         }
 
+        if (effectiveMode == FormTestMode.SUBMIT_AND_VERIFY_MAIL) {
+            if (mailbox.address() == null || mailbox.address().isBlank()) {
+                throw new CheckAbstainedException(type(), page.url(), "kein Prüfpostfach konfiguriert");
+            }
+        }
+
         List<HarvestedForm> forms = harvest(page);
         Optional<HarvestedForm> chosen = ContactForms.choose(forms);
 
@@ -114,8 +146,10 @@ public final class ContactFormCheck implements InteractionCheck {
         int viewportWidth = page.viewportSize() != null ? page.viewportSize().width : 1366;
         List<ClassifiedField> classified = ContactForms.classify(form, viewportWidth);
 
-        String email = "pruefung@webtesthelper.invalid";
-        String token = "WTH-TESTTOKEN1";
+        String email = effectiveMode == FormTestMode.SUBMIT_AND_VERIFY_MAIL
+                ? mailbox.address()
+                : "pruefung@webtesthelper.invalid";
+        String token = mintToken();
 
         for (ClassifiedField cf : classified) {
             String value = ContactForms.plausible(cf, email, token);
@@ -237,6 +271,24 @@ public final class ContactFormCheck implements InteractionCheck {
                             List.of(location),
                             Evidence.NONE));
                 }
+
+                if (effectiveMode == FormTestMode.SUBMIT_AND_VERIFY_MAIL) {
+                    Mailbox.Result result = mailbox.awaitToken(token, Duration.ofSeconds(60));
+                    if (result == Mailbox.Result.UNAVAILABLE) {
+                        // D89: Mailbox failure (wrong password, unreachable IMAP server, etc.) must abstain
+                        throw new CheckAbstainedException(type(), page.url(), "Prüfpostfach nicht erreichbar");
+                    } else if (result == Mailbox.Result.NOT_FOUND) {
+                        String successText = extractSuccessText(outcome);
+                        return List.of(new CheckFinding(
+                                type(),
+                                severity,
+                                subjectKey,
+                                observedOn,
+                                NOT_DELIVERED,
+                                List.of(location, successText, "60"),
+                                Evidence.NONE));
+                    }
+                }
             } finally {
                 if (initialUrl != null && !Objects.equals(page.url(), initialUrl)) {
                     try {
@@ -249,6 +301,41 @@ public final class ContactFormCheck implements InteractionCheck {
         }
 
         return List.of();
+    }
+
+    private static String mintToken() {
+        StringBuilder sb = new StringBuilder("WTH-");
+        for (int i = 0; i < 12; i++) {
+            sb.append(BASE32_ALPHABET.charAt(RANDOM.nextInt(BASE32_ALPHABET.length())));
+        }
+        return sb.toString();
+    }
+
+    private static String extractSuccessText(Outcome outcome) {
+        if (outcome == null || outcome.textAfter() == null || outcome.textAfter().isBlank()) {
+            return "";
+        }
+        String textBeforeFolded = outcome.textBefore() != null ? LanguageSwitchers.fold(outcome.textBefore()) : "";
+        String[] lines = outcome.textAfter().split("\\R+");
+        for (String line : lines) {
+            String trimmed = line.trim();
+            if (trimmed.isEmpty()) continue;
+            String folded = LanguageSwitchers.fold(trimmed);
+            boolean containsSuccess = SUCCESS_WORDS.stream().anyMatch(folded::contains);
+            boolean wasInBefore = !textBeforeFolded.isEmpty() && textBeforeFolded.contains(folded);
+            if (containsSuccess && !wasInBefore) {
+                return trimmed;
+            }
+        }
+        for (String line : lines) {
+            String trimmed = line.trim();
+            if (trimmed.isEmpty()) continue;
+            String folded = LanguageSwitchers.fold(trimmed);
+            if (SUCCESS_WORDS.stream().anyMatch(folded::contains)) {
+                return trimmed;
+            }
+        }
+        return outcome.textAfter().trim();
     }
 
     private static String getBodyText(Page page) {

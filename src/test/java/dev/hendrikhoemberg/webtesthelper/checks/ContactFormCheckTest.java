@@ -9,6 +9,7 @@ import dev.hendrikhoemberg.webtesthelper.model.CheckFinding;
 import dev.hendrikhoemberg.webtesthelper.model.CheckType;
 import dev.hendrikhoemberg.webtesthelper.model.CrawlBudget;
 import dev.hendrikhoemberg.webtesthelper.model.FormTestMode;
+import dev.hendrikhoemberg.webtesthelper.model.Mailbox;
 import dev.hendrikhoemberg.webtesthelper.model.NormalizedUrl;
 import dev.hendrikhoemberg.webtesthelper.model.PageSnapshot;
 import dev.hendrikhoemberg.webtesthelper.model.RunSnapshots;
@@ -27,6 +28,7 @@ import dev.hendrikhoemberg.webtesthelper.model.RunScope;
 import dev.hendrikhoemberg.webtesthelper.model.TlsCertificateFact;
 import dev.hendrikhoemberg.webtesthelper.model.UrlVerifications;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -247,4 +249,158 @@ class ContactFormCheckTest {
                     .hasMessageContaining("kein Absende-Knopf gefunden");
         }
     }
+
+    private static class FakeMailbox implements Mailbox {
+        private final String address;
+        private final Result result;
+        private String receivedToken;
+        private Duration receivedBudget;
+
+        FakeMailbox(String address, Result result) {
+            this.address = address;
+            this.result = result;
+        }
+
+        @Override
+        public String address() {
+            return address;
+        }
+
+        @Override
+        public Result awaitToken(String token, Duration budget) {
+            this.receivedToken = token;
+            this.receivedBudget = budget;
+            return result;
+        }
+    }
+
+    @Test
+    void timeoutReturns90Seconds() {
+        assertThat(check.timeout()).isEqualTo(Duration.ofSeconds(90));
+    }
+
+    @Test
+    void submitAndVerifyMailAgainstSilentFormEmitsNotDeliveredFindingWithGermanSuccessText() {
+        FakeMailbox mailbox = new FakeMailbox("pruefpostfach@example.com", Mailbox.Result.NOT_FOUND);
+        ContactFormCheck checkWithMailbox = new ContactFormCheck(mailbox);
+
+        try (BrowserContext context = browser.newContext()) {
+            Page page = context.newPage();
+            String initialUrl = fixtureSite.url("interaktiv/formular-still.html");
+            page.navigate(initialUrl);
+
+            int requestsBefore = fixtureSite.requestCount("/kontakt/still");
+            List<CheckFinding> findings = checkWithMailbox.evaluate(page, siteContext(FormTestMode.SUBMIT_AND_VERIFY_MAIL), checkConfig(RunScope.DEEP));
+            int requestsAfter = fixtureSite.requestCount("/kontakt/still");
+
+            assertThat(requestsAfter - requestsBefore).isEqualTo(1);
+            assertThat(findings).hasSize(1);
+            CheckFinding finding = findings.get(0);
+            assertThat(finding.type()).isEqualTo(CheckType.CONTACT_FORM);
+            assertThat(finding.severity()).isEqualTo(Severity.ERROR);
+            assertThat(finding.messageKey()).isEqualTo("finding.CONTACT_FORM.notDelivered");
+            assertThat(finding.observedOn()).isEqualTo(Snapshots.url(initialUrl));
+            assertThat(finding.messageArgs()).hasSize(3);
+            assertThat(finding.messageArgs().get(0)).isEqualTo(Snapshots.url(initialUrl).value());
+            assertThat(finding.messageArgs().get(1)).isEqualTo("Vielen Dank, Ihre Nachricht wurde versendet.");
+            assertThat(finding.messageArgs().get(2)).isEqualTo("60");
+            assertThat(page.url()).isEqualTo(initialUrl);
+
+            assertThat(mailbox.receivedToken).isNotNull();
+            assertThat(mailbox.receivedToken).startsWith("WTH-");
+            assertThat(mailbox.receivedBudget).isEqualTo(Duration.ofSeconds(60));
+
+            // Verify email field contained the mailbox address
+            String postedBody = fixtureSite.lastPostedBody("/kontakt/still");
+            assertThat(postedBody).contains("email=pruefpostfach%40example.com");
+        }
+    }
+
+    @Test
+    void submitAndVerifyMailAgainstSilentFormWithFoundMailboxEmitsNoFindings() {
+        FakeMailbox mailbox = new FakeMailbox("pruefpostfach@example.com", Mailbox.Result.FOUND);
+        ContactFormCheck checkWithMailbox = new ContactFormCheck(mailbox);
+
+        try (BrowserContext context = browser.newContext()) {
+            Page page = context.newPage();
+            String initialUrl = fixtureSite.url("interaktiv/formular-still.html");
+            page.navigate(initialUrl);
+
+            int requestsBefore = fixtureSite.requestCount("/kontakt/still");
+            List<CheckFinding> findings = checkWithMailbox.evaluate(page, siteContext(FormTestMode.SUBMIT_AND_VERIFY_MAIL), checkConfig(RunScope.DEEP));
+            int requestsAfter = fixtureSite.requestCount("/kontakt/still");
+
+            assertThat(requestsAfter - requestsBefore).isEqualTo(1);
+            assertThat(findings).isEmpty();
+            assertThat(page.url()).isEqualTo(initialUrl);
+
+            assertThat(mailbox.receivedToken).isNotNull();
+            assertThat(mailbox.receivedToken).startsWith("WTH-");
+            assertThat(mailbox.receivedBudget).isEqualTo(Duration.ofSeconds(60));
+        }
+    }
+
+    @Test
+    void submitAndVerifyMailAgainstFormWithoutSuccessEmitsNoSuccessAndNeverAwaitsToken() {
+        FakeMailbox mailbox = new FakeMailbox("pruefpostfach@example.com", Mailbox.Result.NOT_FOUND);
+        ContactFormCheck checkWithMailbox = new ContactFormCheck(mailbox);
+
+        try (BrowserContext context = browser.newContext()) {
+            Page page = context.newPage();
+            String initialUrl = fixtureSite.url("interaktiv/formular-ohne-erfolg.html");
+            page.navigate(initialUrl);
+
+            List<CheckFinding> findings = checkWithMailbox.evaluate(page, siteContext(FormTestMode.SUBMIT_AND_VERIFY_MAIL), checkConfig(RunScope.DEEP));
+
+            // Step 3's rule: verdict is not SUCCESS -> emit noSuccess and stop (no notDelivered)
+            assertThat(findings).hasSize(1);
+            CheckFinding finding = findings.get(0);
+            assertThat(finding.type()).isEqualTo(CheckType.CONTACT_FORM);
+            assertThat(finding.severity()).isEqualTo(Severity.ERROR);
+            assertThat(finding.messageKey()).isEqualTo("finding.CONTACT_FORM.noSuccess");
+            assertThat(finding.observedOn()).isEqualTo(Snapshots.url(initialUrl));
+            assertThat(page.url()).isEqualTo(initialUrl);
+
+            assertThat(mailbox.receivedToken).isNull();
+        }
+    }
+
+    /**
+     * D89: Mailbox failure (wrong password, unreachable IMAP server, etc.) must abstain,
+     * not emit false-positive notDelivered findings.
+     */
+    @Test
+    void submitAndVerifyMailWhenMailboxUnavailableAbstains() {
+        FakeMailbox mailbox = new FakeMailbox("pruefpostfach@example.com", Mailbox.Result.UNAVAILABLE);
+        ContactFormCheck checkWithMailbox = new ContactFormCheck(mailbox);
+
+        try (BrowserContext context = browser.newContext()) {
+            Page page = context.newPage();
+            String initialUrl = fixtureSite.url("interaktiv/formular-still.html");
+            page.navigate(initialUrl);
+
+            assertThatThrownBy(() -> checkWithMailbox.evaluate(page, siteContext(FormTestMode.SUBMIT_AND_VERIFY_MAIL), checkConfig(RunScope.DEEP)))
+                    .isInstanceOf(CheckAbstainedException.class)
+                    .hasMessageContaining("Prüfpostfach nicht erreichbar");
+
+            // Page must still be restored (D88)
+            assertThat(page.url()).isEqualTo(initialUrl);
+        }
+    }
+
+    @Test
+    void submitAndVerifyMailWhenMailboxUnconfiguredAbstains() {
+        ContactFormCheck checkWithoutMailbox = new ContactFormCheck(Mailbox.UNCONFIGURED);
+
+        try (BrowserContext context = browser.newContext()) {
+            Page page = context.newPage();
+            String initialUrl = fixtureSite.url("interaktiv/formular-still.html");
+            page.navigate(initialUrl);
+
+            assertThatThrownBy(() -> checkWithoutMailbox.evaluate(page, siteContext(FormTestMode.SUBMIT_AND_VERIFY_MAIL), checkConfig(RunScope.DEEP)))
+                    .isInstanceOf(CheckAbstainedException.class)
+                    .hasMessageContaining("kein Prüfpostfach konfiguriert");
+        }
+    }
 }
+

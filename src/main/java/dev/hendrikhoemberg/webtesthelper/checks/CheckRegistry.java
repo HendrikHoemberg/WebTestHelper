@@ -56,7 +56,7 @@ public final class CheckRegistry {
                 List.of(new CookieBannerCheck(),
                         new LanguageSwitcherCheck(),
                         new ButtonReachabilityCheck(),
-                        new ContactFormCheck()));
+                        new ContactFormCheck(mailbox)));
     }
 
     public List<PageCheck> pageChecks() {

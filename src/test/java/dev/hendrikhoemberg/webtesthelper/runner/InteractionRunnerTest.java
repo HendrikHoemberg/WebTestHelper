@@ -262,6 +262,65 @@ class InteractionRunnerTest {
     }
 
     @Test
+    void fakeCheckWithCustomTimeoutKeepsFindingsWhenSleepingWithinItsOwnBudget(@TempDir Path tempArtifacts) {
+        String url = fixtureSite.url("interaktiv/ohne-banner.html");
+        NormalizedUrl home = Snapshots.url(url);
+        SiteContext site = siteContext(home);
+        PageSnapshot homeSnapshot = Snapshots.page(url).build();
+        RunSnapshots snapshots = new RunSnapshots(1L, site, List.of(homeSnapshot), SoftNotFoundProbe.NONE);
+        RunFacts facts = RunFacts.of(snapshots, RunScope.FULL, Instant.now());
+
+        InteractionCheck longRunningCheck = new InteractionCheck() {
+            @Override
+            public CheckType type() {
+                return CheckType.CONTACT_FORM;
+            }
+
+            @Override
+            public Severity defaultSeverity() {
+                return Severity.ERROR;
+            }
+
+            @Override
+            public Set<String> messageKeys() {
+                return Set.of();
+            }
+
+            @Override
+            public Duration timeout() {
+                return Duration.ofSeconds(5);
+            }
+
+            @Override
+            public List<NormalizedUrl> targets(RunSnapshots s, SiteContext sc, int max) {
+                return InteractionTargets.homepage(s, sc);
+            }
+
+            @Override
+            public List<CheckFinding> evaluate(Page page, SiteContext sc, CheckConfig config) {
+                try {
+                    Thread.sleep(300);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                return List.of(new CheckFinding(type(), Severity.ERROR, "test",
+                        UrlNormalizer.normalize(page.url()).orElse(null), "msg", List.of(), Evidence.NONE));
+            }
+        };
+
+        CheckRegistry registry = new CheckRegistry(List.of(), List.of(),
+                List.of(new CookieBannerCheck(), longRunningCheck));
+        // Default timeout is 150ms, which would drop longRunningCheck without the timeout() override
+        InteractionRunner runner = new InteractionRunner(pool, registry, crawlerProperties,
+                new InteractionProperties(3, Duration.ofMillis(150)));
+
+        InteractionOutcome outcome = runner.run(snapshots, site, facts, tempArtifacts);
+
+        assertThat(outcome.findings()).hasSize(1);
+        assertThat(outcome.drivenTypes()).containsExactlyInAnyOrder(CheckType.COOKIE_BANNER, CheckType.CONTACT_FORM);
+    }
+
+    @Test
     void fakeCheckRunningAfterCookieBannerCheckInSameContextSeesNoBanner(@TempDir Path tempArtifacts) {
         String url = fixtureSite.url("interaktiv/banner.html");
         NormalizedUrl home = Snapshots.url(url);

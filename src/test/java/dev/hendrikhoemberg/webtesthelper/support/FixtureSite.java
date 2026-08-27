@@ -138,6 +138,11 @@ public final class FixtureSite implements AutoCloseable {
                         <title>Vielen Dank</title></head>
                         <body><h1>Vielen Dank, Ihre Nachricht wurde erfolgreich versendet.</h1></body></html>
                         """);
+                case "/kontakt/still" -> sendHtml(exchange, 200, """
+                        <!doctype html><html lang="de"><head><meta charset="utf-8">
+                        <title>Vielen Dank</title></head>
+                        <body><h1>Vielen Dank, Ihre Nachricht wurde versendet.</h1></body></html>
+                        """);
                 case "/kontakt/schweigt" -> serveStaticOrSoft404(exchange, "/interaktiv/formular-ohne-erfolg.html");
                 case "/assets/logo.png" -> send(exchange, 200, "image/png", PNG_1X1);
                 case "/assets/fehlt.png" -> send(exchange, 404, "text/plain", "nicht gefunden".getBytes(StandardCharsets.UTF_8));
