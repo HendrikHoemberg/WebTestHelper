@@ -94,9 +94,13 @@ class CheckEngineTest {
     }
 
     @Test
-    void aCheckOutsideTheRunScopeDoesNotRun() {
-        // Spec 6.4: a run's coverage is the set of check types it ran. A pulse that quietly ran
-        // a full crawl's checks would resolve findings it has no business resolving.
+    void aPulseRunsThePageChecksSpecNineGivesIt() {
+        // Spec 9's pulse is "page checks only, no submits", and spec 1 counts a non-playing video
+        // among the seven things this product exists to catch. The crawl captures the media state
+        // into the snapshot whatever the tier, so a pulse that skipped the check would discard
+        // evidence it had already paid for. The scope filter still bites on the site checks —
+        // see aSiteCheckOutsideTheRunScopeDoesNotRun, which is where spec 6.4's coverage
+        // argument now lives.
         PageSnapshot page = Snapshots.page("https://example.com/medien")
                 .media(dev.hendrikhoemberg.webtesthelper.model.MediaKind.VIDEO,
                         "https://example.com/fehlt.mp4", 0, 0.0, "MEDIA_ERR_SRC_NOT_SUPPORTED")
@@ -105,7 +109,7 @@ class CheckEngineTest {
         assertThat(engine.evaluatePage(page, site(allEnabled()), facts(RunScope.FULL)))
                 .extracting(CheckFinding::type).contains(CheckType.MEDIA_PLAYABLE);
         assertThat(engine.evaluatePage(page, site(allEnabled()), facts(RunScope.PULSE)))
-                .isEmpty();
+                .extracting(CheckFinding::type).contains(CheckType.MEDIA_PLAYABLE);
     }
 
     @Test
