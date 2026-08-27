@@ -171,7 +171,7 @@ public final class LanguageSwitchers {
         return LANGUAGE_WORDS.get(folded);
     }
 
-    private static String fold(String text) {
+    static String fold(String text) {
         if (text == null) {
             return "";
         }

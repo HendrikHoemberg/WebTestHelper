@@ -43,7 +43,7 @@ public final class CookieBanner {
         }
     }
 
-    private static final List<String> ACCEPT_LABELS = List.of(
+    static final List<String> ACCEPT_LABELS = List.of(
             "Alle akzeptieren", "Alle Cookies akzeptieren", "Alle zulassen", "Alle auswählen",
             "Accept all", "Allow all", "Akzeptieren", "Zustimmen", "Einverstanden",
             "Verstanden", "Ich stimme zu", "Accept", "Agree", "OK");
