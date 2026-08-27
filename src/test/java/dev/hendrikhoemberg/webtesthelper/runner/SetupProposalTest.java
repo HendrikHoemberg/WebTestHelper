@@ -21,7 +21,8 @@ class SetupProposalTest {
             CheckType.PAGE_UNREACHABLE,
             CheckType.DEAD_LINK,
             CheckType.REDIRECT_CHAIN,
-            CheckType.IMAGE_BROKEN);
+            CheckType.IMAGE_BROKEN,
+            CheckType.COOKIE_BANNER);
 
     @Test
     void everyCheckTypeAppearsExactlyOnceWithAReason() {

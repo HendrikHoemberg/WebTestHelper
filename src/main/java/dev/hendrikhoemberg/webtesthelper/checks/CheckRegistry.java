@@ -47,7 +47,7 @@ public final class CheckRegistry {
                 List.of(new TlsCertCheck(),
                         new HreflangCheck(),
                         new SitemapConsistencyCheck()),
-                List.of());
+                List.of(new CookieBannerCheck()));
     }
 
     public List<PageCheck> pageChecks() {

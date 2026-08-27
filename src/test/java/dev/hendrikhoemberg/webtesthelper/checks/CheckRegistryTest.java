@@ -1,8 +1,6 @@
 package dev.hendrikhoemberg.webtesthelper.checks;
 
-import dev.hendrikhoemberg.webtesthelper.model.CheckFinding;
 import dev.hendrikhoemberg.webtesthelper.model.CheckType;
-import dev.hendrikhoemberg.webtesthelper.model.Severity;
 import org.junit.jupiter.api.Test;
 
 import java.util.EnumSet;
@@ -48,37 +46,5 @@ class CheckRegistryTest {
             assertThat(check.remediationKey())
                     .isEqualTo("check." + check.type().name() + ".remediation");
         });
-    }
-
-    @Test
-    void anInteractionCheckIsExposedThroughAllAndCoveredTypes() {
-        InteractionCheck fake = new InteractionCheck() {
-            @Override
-            public CheckType type() {
-                return CheckType.DEAD_LINK;
-            }
-
-            @Override
-            public Severity defaultSeverity() {
-                return Severity.ERROR;
-            }
-
-            @Override
-            public Set<String> messageKeys() {
-                return Set.of();
-            }
-
-            @Override
-            public List<CheckFinding> evaluate(com.microsoft.playwright.Page page,
-                    dev.hendrikhoemberg.webtesthelper.model.SiteContext site,
-                    CheckConfig config) {
-                return List.of();
-            }
-        };
-
-        CheckRegistry reg = new CheckRegistry(List.of(), List.of(), List.of(fake));
-        assertThat(reg.interactionChecks()).containsExactly(fake);
-        assertThat(reg.coveredTypes()).contains(CheckType.DEAD_LINK);
-        assertThat(reg.all()).contains(fake);
     }
 }

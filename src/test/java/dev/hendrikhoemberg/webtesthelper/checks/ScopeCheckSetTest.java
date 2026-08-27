@@ -36,6 +36,12 @@ class ScopeCheckSetTest {
     }
 
     @Test
+    void pulseRunsNoInteractionCheck() {
+        // Spec 9's "page checks only": PULSE runs no interaction check.
+        assertThat(RunScope.PULSE.checkTypes()).doesNotContainAnyElementsOf(typesOf(REGISTRY.interactionChecks()));
+    }
+
+    @Test
     void fullAndDeepRunEverything() {
         assertThat(RunScope.FULL.checkTypes()).containsExactlyInAnyOrderElementsOf(Set.of(CheckType.values()));
         assertThat(RunScope.DEEP.checkTypes()).containsExactlyInAnyOrderElementsOf(Set.of(CheckType.values()));

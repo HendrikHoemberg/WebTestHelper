@@ -34,6 +34,7 @@ final class SetupProposals {
         checks.add(suggested(CheckType.DEAD_LINK, REASON_BASIS, List.of()));
         checks.add(suggested(CheckType.REDIRECT_CHAIN, REASON_BASIS, List.of()));
         checks.add(suggested(CheckType.IMAGE_BROKEN, REASON_BASIS, List.of()));
+        checks.add(suggested(CheckType.COOKIE_BANNER, REASON_BASIS, List.of()));
 
         checks.add(conditional(CheckType.MEDIA_PLAYABLE,
                 evidence.reachable() && !evidence.mediaPages().isEmpty(),
