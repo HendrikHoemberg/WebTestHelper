@@ -175,7 +175,8 @@ public final class LanguageSwitchers {
         if (text == null) {
             return "";
         }
-        String normalized = Normalizer.normalize(text.trim(), Normalizer.Form.NFD);
+        String replaced = text.trim().replace("ß", "ss").replace("ẞ", "ss");
+        String normalized = Normalizer.normalize(replaced, Normalizer.Form.NFD);
         return COMBINING_MARKS.matcher(normalized).replaceAll("").toLowerCase(Locale.ROOT);
     }
 
