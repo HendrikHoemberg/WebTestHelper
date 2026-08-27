@@ -132,6 +132,28 @@ public class CredentialService {
         return SecretText.of(sb.toString(), template);
     }
 
+    @Transactional(readOnly = true)
+    public Redactor redactorFor(long siteId) {
+        List<CredentialEntity> list = credentials.findBySiteIdOrderByNameAsc(siteId);
+        if (list.isEmpty()) {
+            return Redactor.NONE;
+        }
+        List<String> secrets = new java.util.ArrayList<>();
+        for (CredentialEntity entity : list) {
+            if (entity.getSecret() != null) {
+                try {
+                    String decrypted = secretBox.decrypt(entity.getSecret());
+                    if (decrypted != null && !decrypted.isBlank()) {
+                        secrets.add(decrypted);
+                    }
+                } catch (RuntimeException ignored) {
+                    // Skips unreadable secrets
+                }
+            }
+        }
+        return Redactor.of(secrets);
+    }
+
 
     private Credential toCredential(CredentialEntity entity) {
         boolean readable = isReadable(entity.getSecret());
