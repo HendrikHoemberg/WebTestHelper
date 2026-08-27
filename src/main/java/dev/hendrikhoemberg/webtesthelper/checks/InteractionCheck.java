@@ -2,6 +2,8 @@ package dev.hendrikhoemberg.webtesthelper.checks;
 
 import com.microsoft.playwright.Page;
 import dev.hendrikhoemberg.webtesthelper.model.CheckFinding;
+import dev.hendrikhoemberg.webtesthelper.model.NormalizedUrl;
+import dev.hendrikhoemberg.webtesthelper.model.RunSnapshots;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
 
 import java.util.List;
@@ -16,4 +18,8 @@ import java.util.List;
 public interface InteractionCheck extends CheckDescriptor {
 
     List<CheckFinding> evaluate(Page page, SiteContext site, CheckConfig config);
+
+    default List<NormalizedUrl> targets(RunSnapshots snapshots, SiteContext site, int maxTargets) {
+        return InteractionTargets.homepage(snapshots, site);
+    }
 }

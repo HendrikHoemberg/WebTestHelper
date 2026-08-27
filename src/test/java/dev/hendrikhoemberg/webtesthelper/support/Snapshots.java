@@ -91,6 +91,7 @@ public final class Snapshots {
         private final List<FrameRef> frames = new ArrayList<>();
         private final List<AlternateRef> alternates = new ArrayList<>();
         private final List<SubresourceRef> subresources = new ArrayList<>();
+        private final List<FormRef> forms = new ArrayList<>();
         private final List<ConsoleMessage> console = new ArrayList<>();
         private final List<FailedRequest> failed = new ArrayList<>();
 
@@ -186,6 +187,16 @@ public final class Snapshots {
             return this;
         }
 
+        public Builder form(FormRef form) {
+            forms.add(form);
+            return this;
+        }
+
+        public Builder form(String id, String action, String method) {
+            forms.add(new FormRef(id, action, method, List.of()));
+            return this;
+        }
+
         public Builder consoleError(String message) {
             console.add(new ConsoleMessage("error", message, url.value()));
             return this;
@@ -214,7 +225,7 @@ public final class Snapshots {
                     Map.copyOf(headers),
                     redirectChain == null ? List.of(url.value()) : redirectChain,
                     120L, "Titel", "de", text, SimHash.of(text), links, images, media, frames,
-                    alternates, subresources, List.<FormRef>of(), console, failed, "seite.png");
+                    alternates, subresources, forms, console, failed, "seite.png");
         }
 
         public PageSnapshot unreachable(String reason) {
