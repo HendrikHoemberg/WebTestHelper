@@ -57,6 +57,7 @@ public final class FixtureSite implements AutoCloseable {
     private final AtomicInteger maxConcurrent = new AtomicInteger();
     private final Map<String, AtomicInteger> requestCounts = new ConcurrentHashMap<>();
     private final AtomicBoolean cookieBannerDismissable = new AtomicBoolean(false);
+    private final AtomicBoolean languageSwitcherHealed = new AtomicBoolean(false);
 
     private FixtureSite(HttpServer server) {
         this.server = server;
@@ -105,6 +106,10 @@ public final class FixtureSite implements AutoCloseable {
 
     public void setCookieBannerDismissable(boolean dismissable) {
         cookieBannerDismissable.set(dismissable);
+    }
+
+    public void setLanguageSwitcherHealed(boolean healed) {
+        languageSwitcherHealed.set(healed);
     }
 
     @Override
@@ -192,6 +197,9 @@ public final class FixtureSite implements AutoCloseable {
         String effectivePath = path;
         if ("/interaktiv/banner-hartnaeckig.html".equals(path) && cookieBannerDismissable.get()) {
             effectivePath = "/interaktiv/banner.html";
+        }
+        if ("/interaktiv/en/sprachen-kaputt.html".equals(path) && languageSwitcherHealed.get()) {
+            effectivePath = "/interaktiv/en/sprachen.html";
         }
         String resource = "fixture-site" + (effectivePath.endsWith("/") ? effectivePath + "index.html" : effectivePath);
         try (InputStream in = FixtureSite.class.getClassLoader().getResourceAsStream(resource)) {

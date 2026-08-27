@@ -116,6 +116,11 @@ public final class Clickables {
             return false;
         }
 
+        // 7. Label matches language switcher vocabulary -> drop
+        if (LanguageSwitchers.matchesLabelVocabulary(c.label())) {
+            return false;
+        }
+
         return true;
     }
 

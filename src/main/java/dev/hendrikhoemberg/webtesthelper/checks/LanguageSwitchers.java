@@ -155,7 +155,7 @@ public final class LanguageSwitchers {
         return looksLikeLanguageHref(link.href());
     }
 
-    private static boolean matchesLabelVocabulary(String label) {
+    static boolean matchesLabelVocabulary(String label) {
         return languageFromLabel(label) != null;
     }
 

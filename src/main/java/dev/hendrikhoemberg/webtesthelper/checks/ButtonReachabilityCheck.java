@@ -135,8 +135,12 @@ public final class ButtonReachabilityCheck implements InteractionCheck {
                         : null;
                 String beforeDigest = readDigest(page);
 
+                if (page.locator("[data-wth-btn]").count() == 0) {
+                    harvest(page);
+                }
+
                 Locator locator = page.locator("[data-wth-btn='" + candidate.index() + "']");
-                locator.click();
+                locator.click(new Locator.ClickOptions().setTimeout(2000));
                 page.waitForTimeout(500);
 
                 String afterUrl = page.url();
