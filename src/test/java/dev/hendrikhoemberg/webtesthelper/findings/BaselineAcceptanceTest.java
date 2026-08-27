@@ -175,7 +175,7 @@ class BaselineAcceptanceTest extends AbstractPostgresTest {
     private RunCoverage fullCoverage(List<CheckFinding> findings) {
         List<String> urls = findings.stream()
                 .map(f -> "https://www.example.com" + f.locationKey()).toList();
-        return RunCoverage.of(RunScope.FULL.checkTypes().stream().map(CheckType::name).toList(),
+        return RunCoverage.of(RunScope.FULL, RunScope.FULL.checkTypes().stream().map(CheckType::name).toList(),
                 urls, List.of(), false);
     }
 

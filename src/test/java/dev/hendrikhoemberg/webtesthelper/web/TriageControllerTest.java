@@ -116,6 +116,7 @@ class TriageControllerTest extends AbstractPostgresTest {
         CheckFinding cf = new CheckFinding(CheckType.DEAD_LINK, Severity.ERROR, "dead:" + path, page,
                 "finding.DEAD_LINK.dead", List.of("https://www.example.com" + path, "404 Not Found"), Evidence.NONE);
         RunCoverage coverage = RunCoverage.of(
+                RunScope.FULL,
                 RunScope.FULL.checkTypes().stream().map(CheckType::name).toList(),
                 List.of("https://www.example.com" + path),
                 List.of(),

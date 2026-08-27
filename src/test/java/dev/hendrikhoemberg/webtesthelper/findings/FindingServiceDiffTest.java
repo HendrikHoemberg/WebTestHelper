@@ -129,6 +129,7 @@ class FindingServiceDiffTest extends AbstractPostgresTest {
         service.record(1, siteId, List.of(fileDownload), fullCoverage(List.of("/other")), observedAt);
 
         RunCoverage pulse = RunCoverage.of(
+                RunScope.PULSE,
                 RunScope.PULSE.checkTypes().stream().map(CheckType::name).toList(),
                 List.of("https://www.example.com/pulse"), List.of(), false);
         CheckFinding pulseFinding = new CheckFinding(CheckType.PAGE_STATUS, Severity.WARN, "status:pulse",
@@ -139,6 +140,35 @@ class FindingServiceDiffTest extends AbstractPostgresTest {
         assertThat(observedStatus(fp)).isEqualTo(dev.hendrikhoemberg.webtesthelper.model.ObservedStatus.ACTIVE);
         assertThat(lastSeenRun(fp)).isEqualTo(1);
         assertThat(noSectionContains(pulseDiff, fp)).isTrue();
+    }
+
+    @Test
+    void aPulseRunDoesNotResolveASiteWideFinding() {
+        // A pulse frontier is seeded from the pinned set and never discovers, so it always drains
+        // and reports partialCoverage=false. Reading that as "complete coverage" would let eleven
+        // key pages disprove a finding the full crawl saw on six hundred (spec 6.2's '*', spec
+        // 6.4): the next full crawl re-promotes it and reports it REGRESSED, every week forever.
+        List<CheckFinding> onSixPages = perPage(CheckType.DEAD_LINK, "dead:partner", 6);
+        RunDiff full = service.record(1, siteId, onSixPages, fullCoverage(pageKeys(6)), observedAt);
+        assertThat(locationOf(full, ReportSection.NEW)).containsExactly("*");
+
+        RunDiff pulse = service.record(2, siteId, List.of(), pulseCoverage(List.of("/", "/kontakt")), observedAt);
+
+        String fp = Fingerprint.of(siteId, CheckType.DEAD_LINK, "dead:partner", "*");
+        assertThat(observedStatus(fp)).isEqualTo(dev.hendrikhoemberg.webtesthelper.model.ObservedStatus.ACTIVE);
+        assertThat(pulse.count(ReportSection.FIXED)).isZero();
+    }
+
+    @Test
+    void aCompletedFullCrawlStillResolvesASiteWideFinding() {
+        // The other half of the rule: silence from a run that did crawl the whole site is
+        // evidence, and a site-wide finding it no longer sees is fixed.
+        service.record(1, siteId, perPage(CheckType.DEAD_LINK, "dead:partner", 6),
+                fullCoverage(pageKeys(6)), observedAt);
+
+        RunDiff run2 = service.record(2, siteId, List.of(), fullCoverage(pageKeys(6)), observedAt);
+
+        assertThat(locationOf(run2, ReportSection.FIXED)).containsExactly("*");
     }
 
     @Test
@@ -246,9 +276,15 @@ class FindingServiceDiffTest extends AbstractPostgresTest {
         return keys;
     }
 
+    private RunCoverage pulseCoverage(List<String> locationKeys) {
+        List<String> urls = locationKeys.stream().map(k -> "https://www.example.com" + k).toList();
+        return RunCoverage.of(RunScope.PULSE,
+                RunScope.PULSE.checkTypes().stream().map(CheckType::name).toList(), urls, List.of(), false);
+    }
+
     private RunCoverage fullCoverage(List<String> locationKeys) {
         List<String> urls = locationKeys.stream().map(k -> "https://www.example.com" + k).toList();
-        return RunCoverage.of(RunScope.FULL.checkTypes().stream().map(CheckType::name).toList(), urls, List.of(), false);
+        return RunCoverage.of(RunScope.FULL, RunScope.FULL.checkTypes().stream().map(CheckType::name).toList(), urls, List.of(), false);
     }
 
     private List<String> fingerprints(RunDiff diff, ReportSection section) {

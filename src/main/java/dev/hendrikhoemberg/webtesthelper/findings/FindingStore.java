@@ -83,6 +83,8 @@ public class FindingStore {
                AND last_seen_run <> ?
                AND check_type = ANY(?)
                AND (location_key = ANY(?)
+                    -- Site-wide (spec 6.2): only a run that crawled the whole site and finished
+                    -- can disprove "on 312 pages". A pulse over a dozen pinned pages cannot.
                     OR (location_key = '*' AND ?))
             """;
 
@@ -479,7 +481,7 @@ public class FindingStore {
         String[] checkTypes = coverage.checkTypes().stream().map(CheckType::name).toArray(String[]::new);
         String[] locationKeys = coverage.locationKeys().toArray(String[]::new);
         return jdbc.update(RESOLVE_SQL, runId, siteId, runId, checkTypes, locationKeys,
-                coverage.complete());
+                coverage.wholeSite());
     }
 
     /** Move every UNTRIAGED finding observed in the run to ACKNOWLEDGED. */

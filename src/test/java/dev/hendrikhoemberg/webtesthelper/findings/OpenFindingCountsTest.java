@@ -120,6 +120,7 @@ class OpenFindingCountsTest extends AbstractPostgresTest {
     private static RunCoverage fullCoverage(String baseUrl, List<String> paths) {
         List<String> urls = paths.stream().map(p -> baseUrl + p).toList();
         return RunCoverage.of(
+                RunScope.FULL,
                 RunScope.FULL.checkTypes().stream().map(CheckType::name).toList(),
                 urls, List.of(), false);
     }

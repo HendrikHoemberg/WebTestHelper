@@ -142,7 +142,7 @@ public class CrawlRunExecutor implements RunExecutor {
         // Materialise the survivors into fingerprints, promote site-wide where the check decides,
         // and diff against the previous run. observedAt is the run's start so every observation a
         // run makes is stamped with one instant (spec 6.4).
-        RunCoverage coverage = RunCoverage.of(coveredCheckTypes, result.coveredUrls(),
+        RunCoverage coverage = RunCoverage.of(lease.scope(), coveredCheckTypes, result.coveredUrls(),
                 result.snapshots().visitedUrls(), result.partialCoverage());
         RunDiff diff = findings.record(lease.runId(), site.siteId(), surviving, coverage, startedAt);
 

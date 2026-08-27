@@ -11,7 +11,7 @@ class RunCoverageTest {
 
     @Test
     void unifiesCrawledAndSnapshotUrlsAsLocationKeys() {
-        RunCoverage coverage = RunCoverage.of(
+        RunCoverage coverage = RunCoverage.of(RunScope.FULL,
                 List.of("PAGE_STATUS"),
                 List.of("https://example.com/kontakt.html"),
                 List.of("https://example.com/kontakt"),
@@ -21,28 +21,45 @@ class RunCoverageTest {
 
     @Test
     void keepsTheQueryOnALocationKey() {
-        RunCoverage coverage = RunCoverage.of(
+        RunCoverage coverage = RunCoverage.of(RunScope.FULL,
                 List.of(), List.of("https://example.com/suche?q=x"), List.of(), false);
         assertThat(coverage.locationKeys()).containsExactly("/suche?q=x");
     }
 
     @Test
-    void partialCoverageIsIncomplete() {
-        RunCoverage coverage = RunCoverage.of(
+    void aBudgetCappedFullCrawlDoesNotCoverTheWholeSite() {
+        RunCoverage coverage = RunCoverage.of(RunScope.FULL,
                 List.of(), List.of("/a"), List.of(), true);
-        assertThat(coverage.complete()).isFalse();
+        assertThat(coverage.wholeSite()).isFalse();
+    }
+
+    @Test
+    void aCompletedFullCrawlCoversTheWholeSite() {
+        RunCoverage coverage = RunCoverage.of(RunScope.FULL,
+                List.of(), List.of("https://example.com/a"), List.of(), false);
+        assertThat(coverage.wholeSite()).isTrue();
+    }
+
+    @Test
+    void aPulseRunNeverCoversTheWholeSiteEvenWhenItsFrontierDrains() {
+        // A pulse frontier is the pinned key-page set and nothing else, so it always runs dry and
+        // always reports partialCoverage=false. Reading that as whole-site coverage would let a
+        // dozen pages resolve a finding the full crawl saw on six hundred (spec 9, spec 6.4).
+        RunCoverage coverage = RunCoverage.of(RunScope.PULSE,
+                List.of(), List.of("https://example.com/a"), List.of(), false);
+        assertThat(coverage.wholeSite()).isFalse();
     }
 
     @Test
     void dropsUnparseableUrlsRatherThanThrowing() {
-        RunCoverage coverage = RunCoverage.of(
+        RunCoverage coverage = RunCoverage.of(RunScope.FULL,
                 List.of(), List.of("mailto:hallo@example.com"), List.of(), false);
         assertThat(coverage.locationKeys()).isEmpty();
     }
 
     @Test
     void ignoresUnknownCheckTypeNames() {
-        RunCoverage coverage = RunCoverage.of(
+        RunCoverage coverage = RunCoverage.of(RunScope.FULL,
                 List.of("PAGE_STATUS", "NOT_A_REAL_CHECK"), List.of(), List.of(), false);
         assertThat(coverage.checkTypes()).containsExactly(CheckType.PAGE_STATUS);
     }

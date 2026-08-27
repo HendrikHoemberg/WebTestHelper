@@ -158,6 +158,7 @@ class FindingTriageSectionTest extends AbstractPostgresTest {
     private RunCoverage fullCoverage(List<String> paths) {
         List<String> urls = paths.stream().map(p -> "https://www.example.com" + p).toList();
         return RunCoverage.of(
+                RunScope.FULL,
                 RunScope.FULL.checkTypes().stream().map(CheckType::name).toList(),
                 urls, List.of(), false);
     }

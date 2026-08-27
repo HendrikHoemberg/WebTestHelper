@@ -5,6 +5,7 @@ import dev.hendrikhoemberg.webtesthelper.model.CheckType;
 import dev.hendrikhoemberg.webtesthelper.model.Evidence;
 import dev.hendrikhoemberg.webtesthelper.model.ObservedStatus;
 import dev.hendrikhoemberg.webtesthelper.model.RunCoverage;
+import dev.hendrikhoemberg.webtesthelper.model.RunScope;
 import dev.hendrikhoemberg.webtesthelper.model.Severity;
 import dev.hendrikhoemberg.webtesthelper.support.AbstractPostgresTest;
 import org.junit.jupiter.api.BeforeEach;
@@ -109,7 +110,7 @@ class FindingStoreTest extends AbstractPostgresTest {
 
         store.upsertAll(siteId, 1, List.of(covered, wrongType, wrongLocation, siteWide), observedAt);
 
-        RunCoverage partial = RunCoverage.of(
+        RunCoverage partial = RunCoverage.of(RunScope.FULL,
                 List.of(CheckType.DEAD_LINK.name()),
                 List.of("https://www.example.com/p1"), List.of(), true);
         int resolvedPartial = store.resolveOutsideRun(siteId, 2, partial);
@@ -120,7 +121,7 @@ class FindingStoreTest extends AbstractPostgresTest {
         assertThat(observedStatus(wrongLocation.fingerprint())).isEqualTo(ObservedStatus.ACTIVE);
         assertThat(observedStatus(siteWide.fingerprint())).isEqualTo(ObservedStatus.ACTIVE);
 
-        RunCoverage complete = RunCoverage.of(
+        RunCoverage complete = RunCoverage.of(RunScope.FULL,
                 List.of(CheckType.DEAD_LINK.name()),
                 List.of("https://www.example.com/p1"), List.of(), false);
         assertThat(store.resolveOutsideRun(siteId, 3, complete)).isEqualTo(1);

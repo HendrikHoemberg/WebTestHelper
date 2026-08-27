@@ -380,6 +380,6 @@ class DigestAcceptanceTest extends AbstractPostgresTest {
 
     private RunCoverage coverage(String base, List<String> paths) {
         List<String> urls = paths.stream().map(p -> base + p).toList();
-        return RunCoverage.of(RunScope.FULL.checkTypes().stream().map(CheckType::name).toList(), urls, List.of(), false);
+        return RunCoverage.of(RunScope.FULL, RunScope.FULL.checkTypes().stream().map(CheckType::name).toList(), urls, List.of(), false);
     }
 }

@@ -324,6 +324,7 @@ class TriageAcceptanceTest extends AbstractPostgresTest {
                 .distinct()
                 .toList();
         return RunCoverage.of(
+                RunScope.FULL,
                 RunScope.FULL.checkTypes().stream().map(CheckType::name).toList(),
                 urls,
                 List.of(),

@@ -179,7 +179,7 @@ class DashboardAcceptanceTest extends AbstractPostgresTest {
                 "https://www.example.com/dead-link", page, "finding.DEAD_LINK.dead",
                 List.of("https://www.example.com/dead-link", "404 Not Found"), Evidence.NONE);
         findingService.record(run.getId(), siteId, List.of(error),
-                RunCoverage.of(run.getCoveredCheckTypes(), run.getCoveredUrls(), List.of(), false),
+                RunCoverage.of(run.getScope(), run.getCoveredCheckTypes(), run.getCoveredUrls(), List.of(), false),
                 Instant.now());
 
         String grid = mvc.perform(get("/uebersicht/kacheln"))

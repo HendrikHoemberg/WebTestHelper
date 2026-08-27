@@ -368,6 +368,6 @@ class MuteRuleApplicationTest extends AbstractPostgresTest {
 
     private RunCoverage fullCoverage(List<String> locationKeys) {
         List<String> urls = locationKeys.stream().map(k -> "https://www.site-a.com" + k).toList();
-        return RunCoverage.of(RunScope.FULL.checkTypes().stream().map(CheckType::name).toList(), urls, List.of(), false);
+        return RunCoverage.of(RunScope.FULL, RunScope.FULL.checkTypes().stream().map(CheckType::name).toList(), urls, List.of(), false);
     }
 }

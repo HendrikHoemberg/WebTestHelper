@@ -121,6 +121,7 @@ class RunReportAcceptanceTest extends AbstractPostgresTest {
         long runId1 = run1.getId();
 
         RunCoverage fullCoverageRun1 = RunCoverage.of(
+                RunScope.FULL,
                 RunScope.FULL.checkTypes().stream().map(CheckType::name).toList(),
                 List.of("https://www.example.com/seite1", "https://www.example.com/seite2", "https://www.example.com/seite3"),
                 List.of(),
@@ -169,6 +170,7 @@ class RunReportAcceptanceTest extends AbstractPostgresTest {
         long runId2 = run2.getId();
 
         RunCoverage fullCoverageRun2 = RunCoverage.of(
+                RunScope.FULL,
                 RunScope.FULL.checkTypes().stream().map(CheckType::name).toList(),
                 List.of("https://www.example.com/seite1", "https://www.example.com/seite2", "https://www.example.com/seite3"),
                 List.of(),
@@ -227,6 +229,7 @@ class RunReportAcceptanceTest extends AbstractPostgresTest {
         long runId3 = run3.getId();
 
         RunCoverage partialCoverageRun3 = RunCoverage.of(
+                RunScope.FULL,
                 RunScope.FULL.checkTypes().stream().map(CheckType::name).toList(),
                 List.of("https://www.example.com/seite1"),
                 List.of(),

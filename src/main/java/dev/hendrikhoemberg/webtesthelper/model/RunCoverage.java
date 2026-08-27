@@ -14,8 +14,16 @@ import java.util.Set;
  * page reached by both the live crawl and the snapshot is counted once (D25). A check-type
  * name that is not a {@link CheckType} is ignored — the column is historical data, and a
  * renamed enum constant must not make old runs unreadable.
+ *
+ * <p>{@code wholeSite} answers one question and only that one: may this run's silence resolve a
+ * <em>site-wide</em> finding, the {@code locationKey = "*"} of spec 6.2? Per-page findings are
+ * scoped by {@link #locationKeys}, which needs no such flag. Two conditions have to hold, and
+ * the second one is easy to lose: the run must have crawled the whole site
+ * ({@link RunScope#crawlsWholeSite()}) <em>and</em> it must have finished doing so. A budget-capped
+ * full crawl saw an arbitrary slice; a pulse run saw a pinned list of a dozen URLs and drained its
+ * frontier doing it, so "the frontier ran dry" alone says nothing about site coverage.
  */
-public record RunCoverage(Set<CheckType> checkTypes, Set<String> locationKeys, boolean complete) {
+public record RunCoverage(Set<CheckType> checkTypes, Set<String> locationKeys, boolean wholeSite) {
 
     /**
      * Copies both sets: coverage decides what a run is allowed to resolve, so a caller holding
@@ -26,7 +34,8 @@ public record RunCoverage(Set<CheckType> checkTypes, Set<String> locationKeys, b
         locationKeys = Set.copyOf(locationKeys);
     }
 
-    public static RunCoverage of(Collection<String> checkTypeNames,
+    public static RunCoverage of(RunScope scope,
+                                 Collection<String> checkTypeNames,
                                  Collection<String> coveredUrls,
                                  Collection<String> snapshotUrls,
                                  boolean partialCoverage) {
@@ -51,6 +60,6 @@ public record RunCoverage(Set<CheckType> checkTypes, Set<String> locationKeys, b
             snapshotUrls.stream().map(UrlNormalizer::normalize).filter(Optional::isPresent)
                     .map(o -> o.get().locationKey()).forEach(locationKeys::add);
         }
-        return new RunCoverage(checkTypes, locationKeys, !partialCoverage);
+        return new RunCoverage(checkTypes, locationKeys, scope.crawlsWholeSite() && !partialCoverage);
     }
 }

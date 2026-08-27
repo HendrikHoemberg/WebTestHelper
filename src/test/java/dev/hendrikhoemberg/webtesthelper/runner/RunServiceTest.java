@@ -97,7 +97,7 @@ class RunServiceTest extends AbstractPostgresTest {
         CheckFinding finding = new CheckFinding(CheckType.DEAD_LINK, Severity.ERROR, "dead:/x",
                 page, "m", List.of(), Evidence.NONE);
         findings.record(runId, siteId, List.of(finding),
-                RunCoverage.of(RunScope.FULL.checkTypes().stream().map(CheckType::name).toList(),
+                RunCoverage.of(RunScope.FULL, RunScope.FULL.checkTypes().stream().map(CheckType::name).toList(),
                         List.of("https://a.example.com/x"), List.of(), false),
                 Instant.now().truncatedTo(ChronoUnit.MICROS));
 

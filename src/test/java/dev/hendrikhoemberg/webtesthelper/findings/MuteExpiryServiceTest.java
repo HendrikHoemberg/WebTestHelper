@@ -306,11 +306,11 @@ class MuteExpiryServiceTest extends AbstractPostgresTest {
 
     private RunCoverage fullCoverage(List<String> pages) {
         List<String> urls = pages.stream().map(p -> "https://www.example.com" + p).toList();
-        return RunCoverage.of(RunScope.FULL.checkTypes().stream().map(CheckType::name).toList(), urls, List.of(), false);
+        return RunCoverage.of(RunScope.FULL, RunScope.FULL.checkTypes().stream().map(CheckType::name).toList(), urls, List.of(), false);
     }
 
     private RunCoverage pulseCoverage(List<String> pages) {
         List<String> urls = pages.stream().map(p -> "https://www.example.com" + p).toList();
-        return RunCoverage.of(RunScope.PULSE.checkTypes().stream().map(CheckType::name).toList(), urls, List.of(), false);
+        return RunCoverage.of(RunScope.PULSE, RunScope.PULSE.checkTypes().stream().map(CheckType::name).toList(), urls, List.of(), false);
     }
 }
