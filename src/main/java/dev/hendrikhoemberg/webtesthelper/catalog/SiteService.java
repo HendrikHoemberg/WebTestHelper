@@ -31,7 +31,7 @@ import java.util.Set;
 public class SiteService {
 
     private static final Set<CheckType> NOISY_BY_DEFAULT = EnumSet.of(
-            CheckType.CONSOLE_ERRORS, CheckType.SITEMAP_CONSISTENCY);
+            CheckType.CONSOLE_ERRORS, CheckType.SITEMAP_CONSISTENCY, CheckType.BUTTON_REACHABILITY);
 
     private final SiteRepository sites;
     private final SiteCheckSettingRepository checkSettings;

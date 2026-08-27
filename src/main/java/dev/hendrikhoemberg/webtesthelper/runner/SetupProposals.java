@@ -22,6 +22,7 @@ final class SetupProposals {
     private static final String REASON_SITEMAP = "ui.einrichtung.grund.sitemap";
     private static final String REASON_HTTPS = "ui.einrichtung.grund.https";
     private static final String REASON_STANDARD = "ui.einrichtung.grund.standard";
+    private static final String REASON_KLICKT = "ui.einrichtung.grund.klickt";
 
     private SetupProposals() {
     }
@@ -64,6 +65,7 @@ final class SetupProposals {
         // The other NOISY_BY_DEFAULT check: it ships off and no probe signal justifies turning it
         // on, so it is always present with its reason stated but never suggested.
         checks.add(new CheckProposal(CheckType.CONSOLE_ERRORS, false, REASON_STANDARD, List.of()));
+        checks.add(new CheckProposal(CheckType.BUTTON_REACHABILITY, false, REASON_KLICKT, List.of()));
 
         return List.copyOf(checks);
     }

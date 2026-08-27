@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Knöpfe — Fixture</title>
+  <style>
+    .panel { display: none; }
+    .panel.open { display: block; }
+  </style>
+</head>
+<body>
+  <h1>Interaktive Schaltflächen</h1>
+
+  <!-- 1. Akkordeon: toggles class on panel -->
+  <button id="akkordeon" type="button" onclick="document.getElementById('panel').classList.toggle('open')">Akkordeon umschalten</button>
+  <div id="panel" class="panel"><p>Akkordeon-Inhalt ausgeklappt</p></div>
+
+  <!-- 2. Navigiert: navigates to /ziel.html -->
+  <button id="navigiert" type="button" onclick="window.location.href='/ziel.html'">Seite wechseln</button>
+
+  <!-- 3. Dialog-Öffner: <a href="#"> setting open on <dialog> -->
+  <a id="dialog-oeffner" href="#" onclick="document.getElementById('mein-dialog').setAttribute('open', ''); return false;">Dialog öffnen</a>
+  <dialog id="mein-dialog"><p>Dialoginhalt sichtbar</p></dialog>
+
+  <!-- 4. Tut nichts: button with no handler -->
+  <button id="tut-nichts" type="button">Tut nichts</button>
+
+  <!-- 5. Anker tut nichts: <a href="#"> with no handler (fragment trap) -->
+  <a id="anker-tut-nichts" href="#">Anker tut nichts</a>
+
+  <!-- 6. Gefährlicher Löschknopf: darf niemals geklickt werden -->
+  <button id="loeschen" type="button" onclick="fetch('/verboten-geklickt')">Bestellung löschen</button>
+
+  <!-- 7. Formular: Submit-Button darf niemals geklickt werden -->
+  <form action="/formular" method="post">
+    <button type="submit" id="form-submit">Absenden</button>
+  </form>
+</body>
+</html>

@@ -48,7 +48,8 @@ public final class CheckRegistry {
                         new HreflangCheck(),
                         new SitemapConsistencyCheck()),
                 List.of(new CookieBannerCheck(),
-                        new LanguageSwitcherCheck()));
+                        new LanguageSwitcherCheck(),
+                        new ButtonReachabilityCheck()));
     }
 
     public List<PageCheck> pageChecks() {

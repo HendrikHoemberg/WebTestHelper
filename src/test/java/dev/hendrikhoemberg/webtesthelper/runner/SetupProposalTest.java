@@ -142,6 +142,16 @@ class SetupProposalTest {
         assertThat(console.reasonKey()).startsWith("ui.einrichtung.grund.");
     }
 
+    @Test
+    void buttonReachabilityIsPresentWithConsequencesStatedButNeverSuggested() {
+        List<CheckProposal> proposals = SetupProposals.of(allSignals());
+
+        CheckProposal button = proposalFor(proposals, CheckType.BUTTON_REACHABILITY);
+        assertThat(button.suggested()).isFalse();
+        assertThat(button.reasonKey()).isEqualTo("ui.einrichtung.grund.klickt");
+        assertThat(button.reasonArgs()).isEmpty();
+    }
+
     private static List<CheckType> suggested(List<CheckProposal> proposals) {
         return proposals.stream().filter(CheckProposal::suggested).map(CheckProposal::type).toList();
     }

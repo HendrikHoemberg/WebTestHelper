@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Unruhige Seite — Fixture</title>
+</head>
+<body>
+  <h1>Unruhige Seite</h1>
+  <button id="tot" type="button">Klick mich</button>
+  <p>Laufende Zeit: <span id="zeit">0</span></p>
+  <script>
+    setInterval(() => {
+      const el = document.getElementById('zeit');
+      if (el) {
+        el.textContent = String(Date.now());
+      }
+    }, 100);
+  </script>
+</body>
+</html>

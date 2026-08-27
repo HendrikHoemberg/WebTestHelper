@@ -46,4 +46,13 @@ class SiteCheckDefaultsTest extends AbstractPostgresTest {
         SiteContext context = sites.contextFor(id);
         assertThat(context.enabled(CheckType.DEAD_LINK)).isFalse();
     }
+
+    @Test
+    void newlyCreatedSiteHasButtonReachabilityDisabledAndLanguageSwitcherEnabled() {
+        long id = sites.create(form());
+
+        SiteContext context = sites.contextFor(id);
+        assertThat(context.enabled(CheckType.BUTTON_REACHABILITY)).isFalse();
+        assertThat(context.enabled(CheckType.LANGUAGE_SWITCHER)).isTrue();
+    }
 }
