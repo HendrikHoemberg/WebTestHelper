@@ -36,6 +36,13 @@ public class SettingsBootstrap implements ApplicationRunner {
         bootstrapSetting(AppSettings.KEY_SMTP_PASSWORD, "WTH_SMTP_PASSWORD", "webtesthelper.smtp.password", true);
         bootstrapSetting(AppSettings.KEY_SMTP_FROM, "WTH_SMTP_FROM", "webtesthelper.smtp.from", false);
         bootstrapSetting(AppSettings.KEY_MAIL_BASE_URL, "WTH_BASE_URL", "webtesthelper.base-url", false);
+        bootstrapSetting(AppSettings.KEY_IMAP_HOST, "WTH_IMAP_HOST", "webtesthelper.imap.host", false);
+        bootstrapSetting(AppSettings.KEY_IMAP_PORT, "WTH_IMAP_PORT", "webtesthelper.imap.port", false);
+        bootstrapSetting(AppSettings.KEY_IMAP_TLS, "WTH_IMAP_TLS", "webtesthelper.imap.tls", false);
+        bootstrapSetting(AppSettings.KEY_IMAP_USERNAME, "WTH_IMAP_USER", "webtesthelper.imap.user", false);
+        bootstrapSetting(AppSettings.KEY_IMAP_PASSWORD, "WTH_IMAP_PASSWORD", "webtesthelper.imap.password", true);
+        bootstrapSetting(AppSettings.KEY_IMAP_FOLDER, "WTH_IMAP_FOLDER", "webtesthelper.imap.folder", false);
+        bootstrapSetting(AppSettings.KEY_IMAP_VERIFICATION_ADDRESS, "WTH_IMAP_ADDRESS", "webtesthelper.imap.verification-address", false);
     }
 
     private void bootstrapSetting(String settingKey, String envKey, String propertyKey, boolean encrypted) {

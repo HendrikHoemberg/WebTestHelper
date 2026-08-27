@@ -19,6 +19,13 @@ public class AppSettings {
     public static final String KEY_SMTP_USERNAME = "smtp.username";
     public static final String KEY_SMTP_PASSWORD = "smtp.password";
     public static final String KEY_SMTP_FROM = "smtp.from";
+    public static final String KEY_IMAP_HOST = "imap.host";
+    public static final String KEY_IMAP_PORT = "imap.port";
+    public static final String KEY_IMAP_TLS = "imap.tls";
+    public static final String KEY_IMAP_USERNAME = "imap.username";
+    public static final String KEY_IMAP_PASSWORD = "imap.password";
+    public static final String KEY_IMAP_FOLDER = "imap.folder";
+    public static final String KEY_IMAP_VERIFICATION_ADDRESS = "imap.verification-address";
     public static final String KEY_MAIL_BASE_URL = "mail.base-url";
     public static final String KEY_MAIL_REDIRECT_ALL_TO = "mail.redirect-all-to";
     public static final String KEY_MAIL_FALLBACK_RECIPIENTS = "mail.fallback-recipients";
@@ -84,6 +91,63 @@ public class AppSettings {
         saveSetting(KEY_SMTP_PASSWORD, encryptedPassword, true);
 
         saveSetting(KEY_SMTP_FROM, smtp.fromAddress(), false);
+    }
+
+    @Transactional(readOnly = true)
+    public ImapSettings imap() {
+        String host = getSetting(KEY_IMAP_HOST).orElse(null);
+
+        int port = 993;
+        Optional<String> portStr = getSetting(KEY_IMAP_PORT);
+        if (portStr.isPresent() && !portStr.get().isBlank()) {
+            try {
+                port = Integer.parseInt(portStr.get().trim());
+            } catch (NumberFormatException ignored) {
+            }
+        }
+
+        TlsMode tls = TlsMode.STARTTLS;
+        Optional<String> tlsStr = getSetting(KEY_IMAP_TLS);
+        if (tlsStr.isPresent() && !tlsStr.get().isBlank()) {
+            try {
+                tls = TlsMode.valueOf(tlsStr.get().trim());
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+
+        String username = getSetting(KEY_IMAP_USERNAME).orElse(null);
+
+        String password = null;
+        Optional<AppSettingEntity> passwordEntity = repository.findById(KEY_IMAP_PASSWORD);
+        if (passwordEntity.isPresent() && passwordEntity.get().getSettingValue() != null) {
+            String raw = passwordEntity.get().getSettingValue();
+            if (passwordEntity.get().isEncrypted()) {
+                password = secretBox.decrypt(raw);
+            } else {
+                password = raw;
+            }
+        }
+
+        String folder = getSetting(KEY_IMAP_FOLDER).orElse("INBOX");
+        String verificationAddress = getSetting(KEY_IMAP_VERIFICATION_ADDRESS).orElse(null);
+
+        return new ImapSettings(host, port, tls, username, password, folder, verificationAddress);
+    }
+
+    public void saveImap(ImapSettings imap) {
+        saveSetting(KEY_IMAP_HOST, imap.host(), false);
+        saveSetting(KEY_IMAP_PORT, String.valueOf(imap.port()), false);
+        saveSetting(KEY_IMAP_TLS, imap.tls() != null ? imap.tls().name() : TlsMode.STARTTLS.name(), false);
+        saveSetting(KEY_IMAP_USERNAME, imap.username(), false);
+
+        if (imap.password() != null && !imap.password().isBlank()) {
+            saveSetting(KEY_IMAP_PASSWORD, secretBox.encrypt(imap.password()), true);
+        } else if (!repository.findById(KEY_IMAP_PASSWORD).isPresent()) {
+            saveSetting(KEY_IMAP_PASSWORD, null, true);
+        }
+
+        saveSetting(KEY_IMAP_FOLDER, imap.folder() != null && !imap.folder().isBlank() ? imap.folder() : "INBOX", false);
+        saveSetting(KEY_IMAP_VERIFICATION_ADDRESS, imap.verificationAddress(), false);
     }
 
     @Transactional(readOnly = true)

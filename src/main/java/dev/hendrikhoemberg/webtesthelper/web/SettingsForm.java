@@ -1,5 +1,6 @@
 package dev.hendrikhoemberg.webtesthelper.web;
 
+import dev.hendrikhoemberg.webtesthelper.catalog.ImapSettings;
 import dev.hendrikhoemberg.webtesthelper.catalog.SmtpSettings;
 import dev.hendrikhoemberg.webtesthelper.catalog.TlsMode;
 import lombok.Getter;
@@ -20,12 +21,19 @@ public class SettingsForm {
     private String username;
     private String password = "";
     private String fromAddress;
+    private String imapHost;
+    private int imapPort = 993;
+    private TlsMode imapTls = TlsMode.STARTTLS;
+    private String imapUsername;
+    private String imapPassword = "";
+    private String imapFolder = "INBOX";
+    private String imapVerificationAddress;
     private String baseUrl;
     private String redirectAllMailTo;
     private Boolean schedulingPaused;
     private String fallbackRecipients = "";
 
-    public static SettingsForm from(SmtpSettings smtp, String baseUrl, Optional<String> redirectAllMailTo,
+    public static SettingsForm from(SmtpSettings smtp, ImapSettings imap, String baseUrl, Optional<String> redirectAllMailTo,
                                     boolean schedulingPaused, List<String> fallbackRecipients) {
         SettingsForm form = new SettingsForm();
         if (smtp != null) {
@@ -36,6 +44,16 @@ public class SettingsForm {
             // Password is intentionally left empty ("") on read/render
             form.setPassword("");
             form.setFromAddress(smtp.fromAddress());
+        }
+        if (imap != null) {
+            form.setImapHost(imap.host());
+            form.setImapPort(imap.port() > 0 ? imap.port() : 993);
+            form.setImapTls(imap.tls() != null ? imap.tls() : TlsMode.STARTTLS);
+            form.setImapUsername(imap.username());
+            // Password is intentionally left empty ("") on read/render
+            form.setImapPassword("");
+            form.setImapFolder(imap.folder() != null && !imap.folder().isBlank() ? imap.folder() : "INBOX");
+            form.setImapVerificationAddress(imap.verificationAddress());
         }
         form.setBaseUrl(baseUrl);
         form.setRedirectAllMailTo(redirectAllMailTo.orElse(""));

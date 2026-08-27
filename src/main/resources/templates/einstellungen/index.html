@@ -8,6 +8,8 @@
     <div th:if="${gespeichert}" class="hinweis" th:text="#{ui.einstellungen.gespeichert}">Einstellungen wurden erfolgreich gespeichert.</div>
     <div th:if="${testmailErfolg}" class="hinweis erfolg" th:text="#{ui.einstellungen.testmail.erfolg}">Testnachricht zugestellt.</div>
     <div th:if="${testmailFehler}" class="hinweis fehler" th:text="#{ui.einstellungen.testmail.fehler(${testmailFehler})}">E-Mail-Versand fehlgeschlagen: Fehler</div>
+    <div th:if="${postfachErfolg != null}" class="hinweis erfolg" th:text="#{ui.einstellungen.imap.testErfolg(${postfachErfolg})}">Verbindung erfolgreich. 0 Nachrichten im Ordner.</div>
+    <div th:if="${postfachFehler}" class="hinweis fehler" th:text="#{ui.einstellungen.imap.testFehler(${postfachFehler})}">Verbindung fehlgeschlagen: Fehler</div>
 
     <header class="seiten-kopf">
         <h1 th:text="#{ui.einstellungen.titel}">Einstellungen</h1>
@@ -19,7 +21,9 @@
           class="formular"
           th:data-tls="*{tls}"
           th:data-username="*{username} ?: ''"
-          x-data="{ tls: $el.dataset.tls || 'STARTTLS', username: $el.dataset.username || '' }">
+          th:data-imap-tls="*{imapTls}"
+          th:data-imap-username="*{imapUsername} ?: ''"
+          x-data="{ tls: $el.dataset.tls || 'STARTTLS', username: $el.dataset.username || '', imapTls: $el.dataset.imapTls || 'STARTTLS', imapUsername: $el.dataset.imapUsername || '' }">
 
         <section class="form-bereich">
             <h2 th:text="#{ui.einstellungen.allgemein.titel}">Allgemeine Einstellungen</h2>
@@ -112,6 +116,64 @@
             </div>
         </section>
 
+        <section class="form-bereich">
+            <div class="abschnitt-ueberschrift-zeile">
+                <h2 th:text="#{ui.einstellungen.imap.titel}">Prüfpostfach</h2>
+                <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
+                        th:data-hx-get="@{/hilfe/hinweis/{id}(id='pruefpostfach')}"
+                        data-hx-target="next .hinweis" data-hx-swap="innerHTML">?</button>
+                <div class="hinweis" aria-live="polite"></div>
+            </div>
+            <p class="hinweis-text" th:text="#{ui.einstellungen.imap.hinweis}">In dieses Postfach muss eine Kopie der Formularnachricht gelangen — in der Regel als Blindkopie, die der Kunde im Kontaktformular hinterlegt. Ohne diese Kopie kann die Zustellung nicht nachgewiesen werden.</p>
+
+            <div class="form-gruppe form-gruppe-inline">
+                <div>
+                    <label for="imapHost" th:text="#{ui.einstellungen.imap.host}">IMAP-Server (Host)</label>
+                    <input type="text" id="imapHost" th:field="*{imapHost}" placeholder="imap.example.com">
+                    <span th:if="${#fields.hasErrors('imapHost')}" th:errors="*{imapHost}" class="feld-fehler">Fehler</span>
+                </div>
+                <div>
+                    <label for="imapPort" th:text="#{ui.einstellungen.imap.port}">Port</label>
+                    <input type="number" id="imapPort" th:field="*{imapPort}" min="1" max="65535">
+                    <span th:if="${#fields.hasErrors('imapPort')}" th:errors="*{imapPort}" class="feld-fehler">Fehler</span>
+                </div>
+                <div>
+                    <label for="imapTls" th:text="#{ui.einstellungen.imap.tls}">Verschlüsselung (TLS)</label>
+                    <select id="imapTls" th:field="*{imapTls}" x-model="imapTls">
+                        <option th:each="mode : ${tlsModes}" th:value="${mode}" th:text="#{${'ui.tlsmode.' + mode}}">STARTTLS</option>
+                    </select>
+                    <span th:if="${#fields.hasErrors('imapTls')}" th:errors="*{imapTls}" class="feld-fehler">Fehler</span>
+                </div>
+            </div>
+
+            <div x-show="imapTls !== 'NONE' || (imapUsername && imapUsername.trim().length > 0)" class="form-gruppe-zugangsdaten">
+                <div class="form-gruppe">
+                    <label for="imapUsername" th:text="#{ui.einstellungen.imap.username}">Benutzername</label>
+                    <input type="text" id="imapUsername" th:field="*{imapUsername}" x-model="imapUsername" placeholder="benutzer@example.com">
+                    <span th:if="${#fields.hasErrors('imapUsername')}" th:errors="*{imapUsername}" class="feld-fehler">Fehler</span>
+                </div>
+
+                <div class="form-gruppe">
+                    <label for="imapPassword" th:text="#{ui.einstellungen.imap.password}">Passwort</label>
+                    <input type="password" id="imapPassword" th:field="*{imapPassword}" th:placeholder="#{ui.einstellungen.imap.password.platzhalter}" autocomplete="new-password">
+                    <span class="feld-hinweis" th:text="#{ui.einstellungen.imap.password.hinweis}">Leer lassen, um das bestehende Passwort beizubehalten.</span>
+                    <span th:if="${#fields.hasErrors('imapPassword')}" th:errors="*{imapPassword}" class="feld-fehler">Fehler</span>
+                </div>
+            </div>
+
+            <div class="form-gruppe">
+                <label for="imapFolder" th:text="#{ui.einstellungen.imap.folder}">Ordner</label>
+                <input type="text" id="imapFolder" th:field="*{imapFolder}" placeholder="INBOX">
+                <span th:if="${#fields.hasErrors('imapFolder')}" th:errors="*{imapFolder}" class="feld-fehler">Fehler</span>
+            </div>
+
+            <div class="form-gruppe">
+                <label for="imapVerificationAddress" th:text="#{ui.einstellungen.imap.pruefadresse}">Prüfadresse (wird ins E-Mail-Feld des Formulars eingetragen)</label>
+                <input type="text" id="imapVerificationAddress" th:field="*{imapVerificationAddress}" placeholder="pruefpostfach@example.com">
+                <span th:if="${#fields.hasErrors('imapVerificationAddress')}" th:errors="*{imapVerificationAddress}" class="feld-fehler">Fehler</span>
+            </div>
+        </section>
+
         <div class="form-aktionen">
             <button type="submit" class="button primär" th:text="#{ui.einstellungen.speichern}">Einstellungen speichern</button>
             <a th:href="@{/websites}" class="button sekundär" th:text="#{ui.einstellungen.abbrechen}">Abbrechen</a>
@@ -121,6 +183,12 @@
     <div th:if="${smtpConfigured}" class="testmail-bereich">
         <form th:action="@{/einstellungen/testmail}" method="post" class="inline-form">
             <button type="submit" class="button sekundär" th:text="#{ui.einstellungen.testmail.senden}">Test-E-Mail senden</button>
+        </form>
+    </div>
+
+    <div th:if="${imapConfigured}" class="testmail-bereich">
+        <form th:action="@{/einstellungen/postfach-test}" method="post" class="inline-form">
+            <button type="submit" class="button sekundär" th:text="#{ui.einstellungen.imap.test}">Postfach prüfen</button>
         </form>
     </div>
 

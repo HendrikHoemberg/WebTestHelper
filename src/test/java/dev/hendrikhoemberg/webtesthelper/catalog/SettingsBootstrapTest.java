@@ -40,7 +40,14 @@ class SettingsBootstrapTest extends AbstractPostgresTest {
                 .withProperty("WTH_SMTP_USER", "boot-user")
                 .withProperty("WTH_SMTP_PASSWORD", "boot-pass-456")
                 .withProperty("WTH_SMTP_FROM", "boot@bootstrapped.org")
-                .withProperty("WTH_BASE_URL", "https://bootstrapped.org/");
+                .withProperty("WTH_BASE_URL", "https://bootstrapped.org/")
+                .withProperty("WTH_IMAP_HOST", "imap.bootstrapped.org")
+                .withProperty("WTH_IMAP_PORT", "1993")
+                .withProperty("WTH_IMAP_TLS", "SSL")
+                .withProperty("WTH_IMAP_USER", "boot-imap-user")
+                .withProperty("WTH_IMAP_PASSWORD", "boot-imap-pass-789")
+                .withProperty("WTH_IMAP_FOLDER", "INBOX")
+                .withProperty("WTH_IMAP_ADDRESS", "verify@bootstrapped.org");
 
         SettingsBootstrap bootstrap = new SettingsBootstrap(appSettingRepository, secretBox, env);
         bootstrap.run(new DefaultApplicationArguments());
@@ -56,6 +63,19 @@ class SettingsBootstrapTest extends AbstractPostgresTest {
         AppSettingEntity passwordRow = appSettingRepository.findById("smtp.password").orElseThrow();
         assertThat(passwordRow.isEncrypted()).isTrue();
         assertThat(passwordRow.getSettingValue()).isNotEqualTo("boot-pass-456");
+
+        ImapSettings imap = appSettings.imap();
+        assertThat(imap.host()).isEqualTo("imap.bootstrapped.org");
+        assertThat(imap.port()).isEqualTo(1993);
+        assertThat(imap.tls()).isEqualTo(TlsMode.SSL);
+        assertThat(imap.username()).isEqualTo("boot-imap-user");
+        assertThat(imap.password()).isEqualTo("boot-imap-pass-789");
+        assertThat(imap.folder()).isEqualTo("INBOX");
+        assertThat(imap.verificationAddress()).isEqualTo("verify@bootstrapped.org");
+
+        AppSettingEntity imapPasswordRow = appSettingRepository.findById("imap.password").orElseThrow();
+        assertThat(imapPasswordRow.isEncrypted()).isTrue();
+        assertThat(imapPasswordRow.getSettingValue()).isNotEqualTo("boot-imap-pass-789");
 
         assertThat(appSettings.baseUrl()).isEqualTo("https://bootstrapped.org");
     }

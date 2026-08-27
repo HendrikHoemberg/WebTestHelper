@@ -1,8 +1,11 @@
 package dev.hendrikhoemberg.webtesthelper.web;
 
 import dev.hendrikhoemberg.webtesthelper.catalog.AppSettings;
+import dev.hendrikhoemberg.webtesthelper.catalog.ImapSettings;
 import dev.hendrikhoemberg.webtesthelper.catalog.SmtpSettings;
 import dev.hendrikhoemberg.webtesthelper.catalog.TlsMode;
+import com.icegreen.greenmail.util.GreenMail;
+import com.icegreen.greenmail.util.ServerSetupTest;
 import dev.hendrikhoemberg.webtesthelper.reporting.DeliveryResult;
 import dev.hendrikhoemberg.webtesthelper.reporting.MailRenderer;
 import dev.hendrikhoemberg.webtesthelper.reporting.OutboundMail;
@@ -463,4 +466,136 @@ class SettingsControllerTest {
                 .doesNotContain("<input")
                 .doesNotContain("<form");
     }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void getSettingsRendersImapSectionAndPasswordIsRenderedEmpty() throws Exception {
+        when(appSettings.smtp()).thenReturn(new SmtpSettings(
+                "smtp.example.com", 587, TlsMode.STARTTLS, "admin-smtp", "", "alerts@example.com"));
+        when(appSettings.imap()).thenReturn(new ImapSettings(
+                "imap.example.com", 993, TlsMode.SSL, "admin-imap", "SuperSecretImapPassword", "INBOX", "verify@example.com"));
+        when(appSettings.baseUrl()).thenReturn("https://webtesthelper.example.com");
+        when(appSettings.redirectAllMailTo()).thenReturn(Optional.empty());
+
+        mvc.perform(get("/einstellungen"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("einstellungen/index"))
+                .andExpect(content().string(containsString("imap.example.com")))
+                .andExpect(content().string(containsString("admin-imap")))
+                .andExpect(content().string(containsString("verify@example.com")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("SuperSecretImapPassword"))));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void postSettingsWithBlankImapPasswordKeepsExistingPassword() throws Exception {
+        when(appSettings.smtp()).thenReturn(new SmtpSettings(
+                "smtp.example.com", 587, TlsMode.STARTTLS, "admin", "secret", "alerts@example.com"));
+        when(appSettings.imap()).thenReturn(new ImapSettings(
+                "imap.example.com", 993, TlsMode.SSL, "old-imap-user", "ExistingSecretImapPassword", "INBOX", "verify@example.com"));
+
+        mvc.perform(post("/einstellungen")
+                        .with(csrf())
+                        .param("host", "smtp.example.com")
+                        .param("port", "587")
+                        .param("tls", "STARTTLS")
+                        .param("fromAddress", "alerts@example.com")
+                        .param("baseUrl", "https://webtesthelper.example.com")
+                        .param("imapHost", "imap.example.com")
+                        .param("imapPort", "993")
+                        .param("imapTls", "SSL")
+                        .param("imapUsername", "new-imap-user")
+                        .param("imapPassword", "")
+                        .param("imapFolder", "INBOX")
+                        .param("imapVerificationAddress", "verify@example.com"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/einstellungen"));
+
+        ArgumentCaptor<ImapSettings> captor = ArgumentCaptor.forClass(ImapSettings.class);
+        verify(appSettings).saveImap(captor.capture());
+        assertThat(captor.getValue().password()).isEqualTo("ExistingSecretImapPassword");
+        assertThat(captor.getValue().username()).isEqualTo("new-imap-user");
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void postSettingsWithNewImapPasswordUpdatesPassword() throws Exception {
+        when(appSettings.smtp()).thenReturn(new SmtpSettings(
+                "smtp.example.com", 587, TlsMode.STARTTLS, "admin", "secret", "alerts@example.com"));
+        when(appSettings.imap()).thenReturn(new ImapSettings(
+                "imap.example.com", 993, TlsMode.SSL, "old-imap-user", "OldImapPassword", "INBOX", "verify@example.com"));
+
+        mvc.perform(post("/einstellungen")
+                        .with(csrf())
+                        .param("host", "smtp.example.com")
+                        .param("port", "587")
+                        .param("tls", "STARTTLS")
+                        .param("fromAddress", "alerts@example.com")
+                        .param("baseUrl", "https://webtesthelper.example.com")
+                        .param("imapHost", "imap.example.com")
+                        .param("imapPort", "993")
+                        .param("imapTls", "SSL")
+                        .param("imapUsername", "admin-imap")
+                        .param("imapPassword", "BrandNewImapPassword123")
+                        .param("imapFolder", "INBOX")
+                        .param("imapVerificationAddress", "verify@example.com"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/einstellungen"));
+
+        ArgumentCaptor<ImapSettings> captor = ArgumentCaptor.forClass(ImapSettings.class);
+        verify(appSettings).saveImap(captor.capture());
+        assertThat(captor.getValue().password()).isEqualTo("BrandNewImapPassword123");
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void postPostfachTestAsUserIsForbidden() throws Exception {
+        mvc.perform(post("/einstellungen/postfach-test").with(csrf()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void postPostfachTestWithoutCsrfIsForbidden() throws Exception {
+        mvc.perform(post("/einstellungen/postfach-test"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void postPostfachTestUnconfiguredFlashesError() throws Exception {
+        when(appSettings.imap()).thenReturn(new ImapSettings(null, 993, TlsMode.SSL, null, null, "INBOX", null));
+
+        mvc.perform(post("/einstellungen/postfach-test").with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/einstellungen"))
+                .andExpect(flash().attributeExists("postfachFehler"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void postPostfachTestSuccessFlashesMessageCount() throws Exception {
+        GreenMail greenMail = new GreenMail(ServerSetupTest.IMAP);
+        greenMail.start();
+        try {
+            greenMail.setUser("verify@example.com", "imap-user", "test-pass");
+            when(appSettings.imap()).thenReturn(new ImapSettings(
+                    "127.0.0.1",
+                    greenMail.getImap().getPort(),
+                    TlsMode.NONE,
+                    "imap-user",
+                    "test-pass",
+                    "INBOX",
+                    "verify@example.com"
+            ));
+
+            mvc.perform(post("/einstellungen/postfach-test").with(csrf()))
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(redirectedUrl("/einstellungen"))
+                    .andExpect(flash().attribute("postfachErfolg", 0));
+        } finally {
+            greenMail.stop();
+        }
+    }
 }
+
