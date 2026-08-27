@@ -106,6 +106,29 @@ class ButtonReachabilityCheckTest {
         }
     }
 
+    /**
+     * A control that reloads the document in place leaves the URL untouched, so the check does not
+     * navigate back — but every {@code data-wth-btn} tag is gone and has to be re-harvested. That
+     * re-harvest writes attributes onto every control and so changes {@code outerHTML}: performed
+     * after the baseline digest is read, it makes every later candidate look alive no matter what
+     * its click did, and the dead button behind the reload is silently never reported.
+     */
+    @Test
+    void deadButtonBehindAnInPlaceReloadIsStillReported() {
+        try (BrowserContext context = browser.newContext()) {
+            Page page = context.newPage();
+            String initialUrl = fixtureSite.url("interaktiv/neuladen.html");
+            page.navigate(initialUrl);
+
+            List<CheckFinding> findings = check.evaluate(page, siteContext(), checkConfig());
+
+            assertThat(findings).extracting(CheckFinding::subjectKey)
+                    .as("the reload button had an effect; the button behind it did not")
+                    .containsExactly("Nichts passiert");
+            assertThat(page.url()).isEqualTo(initialUrl);
+        }
+    }
+
     @Test
     void unruhigHtmlThrowsCheckAbstainedExceptionDueToRestlessDom() {
         try (BrowserContext context = browser.newContext()) {

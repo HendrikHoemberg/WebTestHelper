@@ -49,6 +49,9 @@ public final class Clickables {
      *   <li>Drop anchor tags whose href resolves to anything other than the current page.</li>
      *   <li>Drop controls whose folded label contains a never-click token.</li>
      *   <li>Drop controls whose folded label matches the cookie consent vocabulary.</li>
+     *   <li>Drop controls whose label is a language switcher word. {@code LANGUAGE_SWITCHER} owns
+     *       those, and clicking one here reloads the page and costs the remaining candidates their
+     *       {@code data-wth-btn} tags.</li>
      *   <li>Dedupe by {@code (label, index)}, sort by {@code index}, and truncate to {@code max}.</li>
      * </ol>
      */

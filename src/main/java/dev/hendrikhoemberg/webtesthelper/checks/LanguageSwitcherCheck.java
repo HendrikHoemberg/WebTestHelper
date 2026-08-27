@@ -37,6 +37,13 @@ public final class LanguageSwitcherCheck implements InteractionCheck {
     static final String LANG_UNCHANGED = "finding.LANGUAGE_SWITCHER.langUnchanged";
     static final String SAME_CONTENT = "finding.LANGUAGE_SWITCHER.sameContent";
 
+    /**
+     * Bounds a single locale click, matching {@code ButtonReachabilityCheck}. A switcher link that
+     * cannot be clicked must not consume the runner's whole per-check budget and starve the
+     * locales behind it.
+     */
+    private static final int CLICK_TIMEOUT_MS = 2000;
+
     private static final String SCRIPT;
 
     static {
@@ -103,7 +110,7 @@ public final class LanguageSwitcherCheck implements InteractionCheck {
         for (LocaleTarget target : targets) {
             try {
                 Locator locator = page.locator("[data-wth-locale='" + target.index() + "']");
-                locator.click();
+                locator.click(new Locator.ClickOptions().setTimeout(CLICK_TIMEOUT_MS));
                 page.waitForLoadState();
 
                 NormalizedUrl afterUrl = page.url() != null

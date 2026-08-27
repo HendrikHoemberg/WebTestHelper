@@ -129,15 +129,19 @@ public final class ButtonReachabilityCheck implements InteractionCheck {
 
             boolean navigated = false;
             try {
+                // Re-tag first when an earlier in-page interaction reloaded the document without
+                // changing the URL. Harvesting writes data-wth-btn onto every control, which alters
+                // outerHTML; doing it after the baseline digest would make every later candidate
+                // look alive no matter what its click did.
+                if (page.locator("[data-wth-btn]").count() == 0) {
+                    harvest(page);
+                }
+
                 String beforeUrl = page.url();
                 NormalizedUrl beforeNormalized = beforeUrl != null
                         ? UrlNormalizer.normalize(beforeUrl).orElse(null)
                         : null;
                 String beforeDigest = readDigest(page);
-
-                if (page.locator("[data-wth-btn]").count() == 0) {
-                    harvest(page);
-                }
 
                 Locator locator = page.locator("[data-wth-btn='" + candidate.index() + "']");
                 locator.click(new Locator.ClickOptions().setTimeout(2000));

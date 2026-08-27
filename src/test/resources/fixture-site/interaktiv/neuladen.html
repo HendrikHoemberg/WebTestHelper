@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Neu laden — Fixture</title>
+</head>
+<body>
+  <h1>Seite lädt sich selbst neu</h1>
+
+  <!-- 1. Reloads the document in place: the URL never changes, so the check does not navigate
+       back, but every data-wth-btn tag is gone afterwards and must be re-harvested. -->
+  <button id="neu-laden" type="button" onclick="location.reload()">Neu aufbauen</button>
+
+  <!-- 2. Dead button sitting behind the reload. Re-harvesting rewrites the tags and therefore
+       changes outerHTML; if that happens after the baseline digest is read, this button looks
+       alive and is never reported. -->
+  <button id="tot-nach-neuaufbau" type="button">Nichts passiert</button>
+</body>
+</html>
