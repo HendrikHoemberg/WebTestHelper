@@ -19,7 +19,7 @@ class HelpServiceTest {
         List<HelpTopic> topics = helpService.all();
 
         assertThat(topics)
-                .hasSize(11)
+                .hasSize(12)
                 .extracting(HelpTopic::title)
                 .isSortedAccordingTo(germanOrder);
 
@@ -27,7 +27,8 @@ class HelpServiceTest {
                 .extracting(HelpTopic::id)
                 .containsExactlyInAnyOrder("bericht-lesen", "ausgangsbestand", "smtp-einrichten",
                         "zeitplaene", "stummschaltungen", "benachrichtigungen", "uebersicht",
-                        "einrichtung", "cookie-hinweis", "sprachumschalter", "schaltflaechen");
+                        "einrichtung", "cookie-hinweis", "sprachumschalter", "schaltflaechen",
+                        "kontaktformular");
     }
 
     @Test

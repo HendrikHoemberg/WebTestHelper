@@ -49,7 +49,8 @@ public final class CheckRegistry {
                         new SitemapConsistencyCheck()),
                 List.of(new CookieBannerCheck(),
                         new LanguageSwitcherCheck(),
-                        new ButtonReachabilityCheck()));
+                        new ButtonReachabilityCheck(),
+                        new ContactFormCheck()));
     }
 
     public List<PageCheck> pageChecks() {

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Mehrere Formulare — Fixture</title>
+</head>
+<body>
+  <h1>Mehrere Formulare</h1>
+
+  <!-- 1. Suche -->
+  <form id="suche" role="search" action="/suche">
+    <label for="suchbegriff">Suche</label>
+    <input type="search" id="suchbegriff" name="q">
+    <button type="submit">Suchen</button>
+  </form>
+
+  <!-- 2. Newsletter -->
+  <form id="newsletter" action="/newsletter" method="post">
+    <label for="newsletter-email">Newsletter</label>
+    <input type="email" id="newsletter-email" name="email">
+    <button type="submit">Abonnieren</button>
+  </form>
+
+  <!-- 3. Login -->
+  <form id="login" action="/login" method="post">
+    <label for="username">Benutzername</label>
+    <input type="text" id="username" name="username">
+    <label for="password">Passwort</label>
+    <input type="password" id="password" name="password">
+    <button type="submit">Anmelden</button>
+  </form>
+
+  <!-- 4. Kontaktformular -->
+  <form id="kontaktformular" action="/kontakt/gesendet" method="post">
+    <label for="name">Name</label>
+    <input type="text" id="name" name="name" autocomplete="name" required>
+    <label for="email">E-Mail</label>
+    <input type="email" id="email" name="email" autocomplete="email" required>
+    <label for="nachricht">Nachricht</label>
+    <textarea id="nachricht" name="nachricht" required></textarea>
+    <button type="submit">Absenden</button>
+  </form>
+
+  <!-- 5. Captcha-geschütztes Formular -->
+  <form id="captcha-form" action="/anfrage" method="post">
+    <div class="g-recaptcha" data-sitekey="6Lc-test"></div>
+    <label for="captcha-nachricht">Nachricht</label>
+    <textarea id="captcha-nachricht" name="nachricht"></textarea>
+    <button type="submit">Senden</button>
+  </form>
+</body>
+</html>

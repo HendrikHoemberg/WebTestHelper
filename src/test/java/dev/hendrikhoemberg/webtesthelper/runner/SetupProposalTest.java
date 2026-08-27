@@ -46,14 +46,24 @@ class SetupProposalTest {
     }
 
     @Test
-    void aFormFoundIsInformationOnlyAndChangesNothing() {
+    void formPagesSuggestContactForm() {
         List<CheckProposal> proposals = SetupProposals.of(reachable(
                 List.of("https://example.com/kontakt"), List.of(), List.of(),
                 Set.of(), List.of(), false, false));
 
-        assertThat(suggested(proposals))
-                .containsExactlyInAnyOrderElementsOf(ALWAYS_ON)
-                .hasSize(ALWAYS_ON.size());
+        assertThat(suggested(proposals)).contains(CheckType.CONTACT_FORM);
+        CheckProposal contact = proposalFor(proposals, CheckType.CONTACT_FORM);
+        assertThat(contact.suggested()).isTrue();
+        assertThat(contact.reasonArgs()).containsExactly("https://example.com/kontakt");
+    }
+
+    @Test
+    void noFormPagesDoesNotSuggestContactForm() {
+        List<CheckProposal> proposals = SetupProposals.of(reachable(
+                List.of(), List.of(), List.of(),
+                Set.of(), List.of(), false, false));
+
+        assertThat(suggested(proposals)).doesNotContain(CheckType.CONTACT_FORM);
     }
 
     @Test

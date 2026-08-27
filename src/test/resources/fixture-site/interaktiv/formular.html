@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Kontaktformular — Fixture</title>
+</head>
+<body>
+  <h1>Kontaktformular</h1>
+  <form id="kontaktformular" action="/kontakt/gesendet" method="post">
+    <!-- Honeypot 1: display: none -->
+    <input type="text" name="website" id="website" style="display:none">
+
+    <!-- Honeypot 2: position: absolute; left: -9999px -->
+    <input type="text" name="fax" id="fax" style="position:absolute; left:-9999px">
+
+    <!-- Honeypot 3: visibility: hidden -->
+    <input type="text" name="url2" id="url2" style="visibility:hidden">
+
+    <!-- Honeypot 4: opacity: 0; height: 0 -->
+    <input type="text" name="company2" id="company2" style="opacity:0; height:0px">
+
+    <!-- CSRF hidden field -->
+    <input type="hidden" name="csrf" value="abc123">
+
+    <!-- Visible fields -->
+    <label for="anrede">Anrede</label>
+    <select id="anrede" name="anrede" required>
+      <option value="herr">Herr</option>
+      <option value="frau">Frau</option>
+    </select>
+
+    <label for="name">Name</label>
+    <input type="text" id="name" name="name" autocomplete="name" required>
+
+    <label for="email">E-Mail</label>
+    <input type="email" id="email" name="email" autocomplete="email" required>
+
+    <label for="telefon">Telefon</label>
+    <input type="tel" id="telefon" name="telefon" autocomplete="tel">
+
+    <label for="betreff">Betreff</label>
+    <input type="text" id="betreff" name="betreff">
+
+    <label for="nachricht">Nachricht</label>
+    <textarea id="nachricht" name="nachricht" required></textarea>
+
+    <label for="datenschutz">Datenschutz akzeptieren</label>
+    <input type="checkbox" id="datenschutz" name="datenschutz" required>
+
+    <button type="submit" id="submit-btn">Absenden</button>
+  </form>
+</body>
+</html>

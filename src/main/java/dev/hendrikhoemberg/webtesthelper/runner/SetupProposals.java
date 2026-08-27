@@ -23,6 +23,7 @@ final class SetupProposals {
     private static final String REASON_HTTPS = "ui.einrichtung.grund.https";
     private static final String REASON_STANDARD = "ui.einrichtung.grund.standard";
     private static final String REASON_KLICKT = "ui.einrichtung.grund.klickt";
+    private static final String REASON_FORMULAR = "ui.einrichtung.grund.formular";
 
     private SetupProposals() {
     }
@@ -37,6 +38,9 @@ final class SetupProposals {
         checks.add(suggested(CheckType.IMAGE_BROKEN, REASON_BASIS, List.of()));
         checks.add(suggested(CheckType.COOKIE_BANNER, REASON_BASIS, List.of()));
 
+        checks.add(conditional(CheckType.CONTACT_FORM,
+                evidence.reachable() && !evidence.formPages().isEmpty(),
+                REASON_FORMULAR, firstOf(evidence.formPages())));
         checks.add(conditional(CheckType.MEDIA_PLAYABLE,
                 evidence.reachable() && !evidence.mediaPages().isEmpty(),
                 REASON_MEDIA, firstOf(evidence.mediaPages())));
