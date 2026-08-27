@@ -1,0 +1,145 @@
+package dev.hendrikhoemberg.webtesthelper.checks;
+
+import com.microsoft.playwright.Frame;
+import com.microsoft.playwright.Locator;
+import com.microsoft.playwright.Page;
+import com.microsoft.playwright.PlaywrightException;
+import com.microsoft.playwright.options.AriaRole;
+import com.microsoft.playwright.options.WaitForSelectorState;
+import org.springframework.core.io.ClassPathResource;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.List;
+
+/**
+ * Heuristic cookie banner detection and consent acceptance (spec 7.2, D69, D57).
+ *
+ * <p>Shared between {@code CookieBannerCheck} (reporting undismissable overlays) and
+ * the interaction runner (establishing consent so subsequent checks see an unblocked DOM).
+ */
+public final class CookieBanner {
+
+    public record BannerOutcome(boolean present, String containerId, boolean dismissed, String acceptLabel) {
+    }
+
+    private static final String SCRIPT;
+
+    static {
+        try {
+            SCRIPT = new ClassPathResource("checks/cookie-banner.js")
+                    .getContentAsString(StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new IllegalStateException("checks/cookie-banner.js fehlt im Klassenpfad", e);
+        }
+    }
+
+    private static final List<String> ACCEPT_LABELS = List.of(
+            "Alle akzeptieren", "Alle Cookies akzeptieren", "Alle zulassen", "Alle auswählen",
+            "Accept all", "Allow all", "Akzeptieren", "Zustimmen", "Einverstanden",
+            "Verstanden", "Ich stimme zu", "Accept", "Agree", "OK");
+
+    private CookieBanner() {
+    }
+
+    /**
+     * Detects an overlay matching common CMP patterns and attempts to accept it.
+     *
+     * <p>Idempotent and side-effect-free when no banner is present. Never throws for a page-level
+     * reason; a Playwright timeout on dismissal wait is {@code dismissed=false}, not an exception.
+     */
+    public static BannerOutcome accept(Page page, Duration dismissalWait) {
+        if (page == null) {
+            return new BannerOutcome(false, null, false, null);
+        }
+
+        Frame targetFrame = null;
+        String containerId = null;
+
+        try {
+            Object res = page.mainFrame().evaluate(SCRIPT);
+            if (res != null) {
+                targetFrame = page.mainFrame();
+                containerId = res.toString();
+            }
+        } catch (PlaywrightException ignored) {
+            // Page navigation or evaluation failed
+        }
+
+        if (targetFrame == null) {
+            for (Frame frame : page.frames()) {
+                if (frame.equals(page.mainFrame())) {
+                    continue;
+                }
+                try {
+                    Object res = frame.evaluate(SCRIPT);
+                    if (res != null) {
+                        targetFrame = frame;
+                        containerId = res.toString();
+                        break;
+                    }
+                } catch (PlaywrightException ignored) {
+                    // Frame may be detached, navigating, or cross-origin restricted
+                }
+            }
+        }
+
+        if (targetFrame == null) {
+            return new BannerOutcome(false, null, false, null);
+        }
+
+        Locator banner = targetFrame.locator("[data-wth-banner]");
+        Locator chosenLocator = null;
+        String chosenLabel = null;
+
+        for (String label : ACCEPT_LABELS) {
+            try {
+                Locator button = banner.getByRole(AriaRole.BUTTON,
+                        new Locator.GetByRoleOptions().setName(label));
+                if (button.count() > 0 && button.first().isVisible()) {
+                    chosenLocator = button.first();
+                    chosenLabel = label;
+                    break;
+                }
+                Locator link = banner.getByRole(AriaRole.LINK,
+                        new Locator.GetByRoleOptions().setName(label));
+                if (link.count() > 0 && link.first().isVisible()) {
+                    chosenLocator = link.first();
+                    chosenLabel = label;
+                    break;
+                }
+            } catch (PlaywrightException ignored) {
+                // DOM mutated or element invalid
+            }
+        }
+
+        if (chosenLocator == null) {
+            return new BannerOutcome(true, containerId, false, null);
+        }
+
+        try {
+            chosenLocator.click();
+        } catch (PlaywrightException e) {
+            return new BannerOutcome(true, containerId, false, chosenLabel);
+        }
+
+        boolean dismissed = false;
+        long timeoutMs = dismissalWait == null ? 2000L : Math.max(0, dismissalWait.toMillis());
+        try {
+            banner.waitFor(new Locator.WaitForOptions()
+                    .setState(WaitForSelectorState.HIDDEN)
+                    .setTimeout(timeoutMs));
+            dismissed = true;
+        } catch (PlaywrightException e) {
+            // On timeout, re-read the container once (D78's in-check retry) before answering dismissed=false
+            try {
+                dismissed = banner.count() == 0 || !banner.first().isVisible();
+            } catch (Exception ignored) {
+                dismissed = true;
+            }
+        }
+
+        return new BannerOutcome(true, containerId, dismissed, chosenLabel);
+    }
+}

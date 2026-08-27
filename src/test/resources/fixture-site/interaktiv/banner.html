@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Banner — Fixture</title>
+</head>
+<body>
+  <h1>Interaktive Testseite</h1>
+  <p>Inhalt der Seite hinter dem Cookie-Banner.</p>
+  <div id="cookie-hinweis" style="position: fixed; z-index: 9999; bottom: 0; left: 0; width: 100%; height: 120px; background: #e0e0e0; padding: 16px; box-sizing: border-box;">
+    <p>Wir verwenden Cookies zur Verbesserung unserer Website.</p>
+    <button type="button">Nur notwendige</button>
+    <button type="button" onclick="document.getElementById('cookie-hinweis').remove()">Alle akzeptieren</button>
+  </div>
+</body>
+</html>
