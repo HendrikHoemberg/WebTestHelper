@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<body>
+<section class="detail-bereich" th:fragment="zugangsdaten">
+    <div class="abschnitt-ueberschrift-zeile">
+        <h2 th:text="#{ui.websites.detail.zugangsdaten.titel}">Zugangsdaten</h2>
+        <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
+                th:data-hx-get="@{/hilfe/hinweis/{id}(id='zugangsdaten')}"
+                data-hx-target="next .hinweis" data-hx-swap="innerHTML">?</button>
+        <div class="hinweis" aria-live="polite"></div>
+    </div>
+
+    <p class="hinweis-text" th:text="#{ui.websites.detail.zugangsdaten.hinweis}">
+        Passwörter für Abläufe, die sich auf dieser Website anmelden müssen. Das Passwort wird verschlüsselt gespeichert und danach nie wieder angezeigt.
+    </p>
+
+    <!-- Case 1: Site has no credentials -->
+    <p th:if="${#lists.isEmpty(credentials)}" class="text-gedaempft" th:text="#{ui.websites.detail.zugangsdaten.leer}">
+        Für diese Website sind keine Zugangsdaten hinterlegt.
+    </p>
+
+    <!-- Case 2: Site has credentials -->
+    <ul th:if="${not #lists.isEmpty(credentials)}" class="muster-liste zugangsdaten-liste">
+        <li th:each="c : ${credentials}" class="zugangsdaten-zeile">
+            <div class="zugangsdaten-kopf">
+                <strong class="zugangsdaten-name" th:text="${c.name}">login</strong>
+                <span th:if="${c.username != null and !c.username.isEmpty()}" class="zugangsdaten-benutzername" th:text="${c.username}">admin</span>
+                <span th:if="${c.updatedAt != null}" class="zugangsdaten-datum" th:text="${#temporals.format(c.updatedAt, 'dd.MM.yyyy HH:mm')}">27.08.2026 12:00</span>
+            </div>
+
+            <div th:if="${!c.readable}" class="feld-fehler" th:text="#{ui.websites.detail.zugangsdaten.unlesbar}">
+                Dieses Passwort lässt sich nicht mehr entschlüsseln — vermutlich wurde die Schlüsseldatei ersetzt. Bitte neu eintragen.
+            </div>
+
+            <div class="zugangsdaten-tokens">
+                <p class="hinweis-text">
+                    <span th:text="#{ui.websites.detail.zugangsdaten.verweis(${'{{cred.' + c.name + '.username}}'})}">Im Ablauf verweisen Sie darauf mit {{cred.login.username}}</span>
+                    <br>
+                    <span th:text="#{ui.websites.detail.zugangsdaten.verweis(${'{{cred.' + c.name + '.password}}'})}">Im Ablauf verweisen Sie darauf mit {{cred.login.password}}</span>
+                </p>
+            </div>
+
+            <!-- Rotate/Edit form (ADMIN only) -->
+            <form sec:authorize="hasRole('ADMIN')" th:action="@{/websites/{id}/zugangsdaten/{cid}(id=${site.siteId}, cid=${c.id})}" method="post" class="zugangsdaten-bearbeiten-formular">
+                <div class="form-gruppe">
+                    <label th:for="${'benutzername-' + c.id}" th:text="#{ui.websites.detail.zugangsdaten.benutzername}">Benutzername</label>
+                    <input type="text" th:id="${'benutzername-' + c.id}" name="benutzername" th:value="${c.username}">
+                </div>
+                <div class="form-gruppe">
+                    <label th:for="${'passwort-' + c.id}" th:text="#{ui.websites.detail.zugangsdaten.passwort}">Passwort</label>
+                    <input type="password" th:id="${'passwort-' + c.id}" name="passwort" th:placeholder="#{ui.websites.detail.zugangsdaten.passwort.platzhalter}">
+                </div>
+                <div class="form-aktionen">
+                    <button type="submit" class="button sekundär klein" th:text="#{ui.websites.detail.zugangsdaten.speichern}">Speichern</button>
+                </div>
+            </form>
+
+            <!-- Delete form (ADMIN only) -->
+            <form sec:authorize="hasRole('ADMIN')" th:action="@{/websites/{id}/zugangsdaten/{cid}/loeschen(id=${site.siteId}, cid=${c.id})}" method="post" class="inline-form">
+                <button type="submit" class="button sekundär klein" th:text="#{ui.websites.detail.zugangsdaten.loeschen}">Löschen</button>
+            </form>
+        </li>
+    </ul>
+
+    <!-- Add credential form (ADMIN only) -->
+    <form sec:authorize="hasRole('ADMIN')" th:action="@{/websites/{id}/zugangsdaten(id=${site.siteId})}" method="post" class="zugangsdaten-formular">
+        <span th:if="${credentialError != null}" th:text="${credentialError}" class="feld-fehler">Fehler</span>
+        <div class="form-gruppe">
+            <label for="credential-name" th:text="#{ui.websites.detail.zugangsdaten.name}">Name</label>
+            <input type="text" id="credential-name" name="name" th:value="${name}" placeholder="login">
+            <small class="form-hinweis" th:text="#{ui.websites.detail.zugangsdaten.namefest}">Der Name kann später nicht geändert werden, weil Abläufe darüber auf diese Zugangsdaten verweisen.</small>
+        </div>
+        <div class="form-gruppe">
+            <label for="credential-benutzername" th:text="#{ui.websites.detail.zugangsdaten.benutzername}">Benutzername</label>
+            <input type="text" id="credential-benutzername" name="benutzername" th:value="${benutzername}">
+        </div>
+        <div class="form-gruppe">
+            <label for="credential-passwort" th:text="#{ui.websites.detail.zugangsdaten.passwort}">Passwort</label>
+            <input type="password" id="credential-passwort" name="passwort">
+        </div>
+        <div class="form-aktionen">
+            <button type="submit" class="button primär" th:text="#{ui.websites.detail.zugangsdaten.neu.button}">Zugangsdaten hinzufügen</button>
+        </div>
+    </form>
+</section>
+</body>
+</html>

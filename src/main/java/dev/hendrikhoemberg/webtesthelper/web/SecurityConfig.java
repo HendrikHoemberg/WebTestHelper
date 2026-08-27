@@ -28,7 +28,8 @@ public class SecurityConfig implements WebMvcConfigurer {
                         "/postausgang", "/actuator/**",
                         "/websites/neu", "/websites/*/bearbeiten").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/websites", "/websites/*", "/websites/*/zeitplaene",
-                        "/websites/*/empfaenger", "/websites/*/empfaenger/**").hasRole("ADMIN")
+                        "/websites/*/empfaenger", "/websites/*/empfaenger/**",
+                        "/websites/*/zugangsdaten", "/websites/*/zugangsdaten/**").hasRole("ADMIN")
                 .requestMatchers("/stummschaltungen/**", "/stummschaltungen").authenticated()
                 .requestMatchers(HttpMethod.GET, "/websites/*/einrichtung", "/websites/*/einrichtung/stand")
                         .authenticated()

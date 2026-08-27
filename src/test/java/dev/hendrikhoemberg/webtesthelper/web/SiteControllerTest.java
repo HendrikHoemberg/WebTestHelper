@@ -1,6 +1,7 @@
 package dev.hendrikhoemberg.webtesthelper.web;
 
 import dev.hendrikhoemberg.webtesthelper.catalog.AppSettings;
+import dev.hendrikhoemberg.webtesthelper.catalog.CredentialService;
 import dev.hendrikhoemberg.webtesthelper.catalog.RecipientService;
 import dev.hendrikhoemberg.webtesthelper.catalog.SiteForm;
 import dev.hendrikhoemberg.webtesthelper.catalog.SiteService;
@@ -63,6 +64,9 @@ class SiteControllerTest {
 
     @MockitoBean
     RecipientService recipientService;
+
+    @MockitoBean
+    CredentialService credentialService;
 
     @MockitoBean
     AppSettings appSettings;

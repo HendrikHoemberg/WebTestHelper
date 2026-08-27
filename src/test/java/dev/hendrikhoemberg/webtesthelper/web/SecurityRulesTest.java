@@ -137,6 +137,32 @@ class SecurityRulesTest {
 
     @Test
     @WithMockUser(roles = "USER")
+    void userCannotAccessCredentialMutationEndpoints() throws Exception {
+        mvc.perform(post("/websites/1/zugangsdaten").with(csrf()))
+                .andExpect(status().isForbidden());
+
+        mvc.perform(post("/websites/1/zugangsdaten/1").with(csrf()))
+                .andExpect(status().isForbidden());
+
+        mvc.perform(post("/websites/1/zugangsdaten/1/loeschen").with(csrf()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void adminCanAccessCredentialMutationEndpoints() throws Exception {
+        mvc.perform(post("/websites/1/zugangsdaten").with(csrf()))
+                .andExpect(status().isNotFound());
+
+        mvc.perform(post("/websites/1/zugangsdaten/1").with(csrf()))
+                .andExpect(status().isNotFound());
+
+        mvc.perform(post("/websites/1/zugangsdaten/1/loeschen").with(csrf()))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
     void userCannotAccessUserAdministration() throws Exception {
         mvc.perform(get("/einstellungen/benutzer"))
                 .andExpect(status().isForbidden());
