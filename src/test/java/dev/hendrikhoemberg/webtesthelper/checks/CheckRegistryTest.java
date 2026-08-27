@@ -47,4 +47,19 @@ class CheckRegistryTest {
                     .isEqualTo("check." + check.type().name() + ".remediation");
         });
     }
+
+    @Test
+    void theEnumAgreesWithTheRegistryAboutWhichTypesDriveABrowser() {
+        // CheckType.interaction() is read outside this module — findings resolution and the
+        // reverifier both need it and neither may see the registry (spec 5.1). The registry stays
+        // the truth, and this is what stops the enum from drifting away from it.
+        Set<CheckType> fromRegistry = registry.interactionChecks().stream()
+                .map(CheckDescriptor::type)
+                .collect(java.util.stream.Collectors.toSet());
+        Set<CheckType> fromEnum = EnumSet.allOf(CheckType.class).stream()
+                .filter(CheckType::interaction)
+                .collect(java.util.stream.Collectors.toSet());
+
+        assertThat(fromEnum).containsExactlyInAnyOrderElementsOf(fromRegistry);
+    }
 }

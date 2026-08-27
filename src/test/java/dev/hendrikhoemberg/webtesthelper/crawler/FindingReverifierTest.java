@@ -117,6 +117,12 @@ class FindingReverifierTest extends AbstractPostgresTest {
                 Evidence.NONE);
     }
 
+    private CheckFinding switcherFinding(String subject, String observedOn) {
+        return new CheckFinding(CheckType.LANGUAGE_SWITCHER, Severity.ERROR, subject,
+                UrlNormalizer.normalize(observedOn).orElseThrow(),
+                "finding.LANGUAGE_SWITCHER.sameContent", List.of("English", subject), Evidence.NONE);
+    }
+
     @Test
     void aDeadLinkThatHealsIsDroppedAndTheCacheRowReadsOk() {
         SiteContext ctx = ctx();
@@ -273,5 +279,43 @@ class FindingReverifierTest extends AbstractPostgresTest {
         assertThat(outcome.rechecked()).isZero();
         assertThat(jdbc.queryForObject("SELECT count(*) FROM external_url_check", Integer.class))
                 .isZero();
+    }
+
+    @Test
+    void anInteractionFindingIsNeverReProbedAndNeverDroppedByRecovery() {
+        // An interaction check cannot be re-driven over HTTP (roadmap, plan 10 D78), and
+        // LANGUAGE_SWITCHER's subject happens to be a URL — so without a type guard a switcher
+        // finding would be re-fetched and then dropped by a recovery that says nothing about
+        // whether the page was translated.
+        SiteContext ctx = ctx();
+        String subject = site.externalBase() + "extern/flatterhaft";
+
+        UrlVerifications firstPass = firstPass(ctx, subject);
+        assertThat(firstPass.byUrl().get(subject).status()).isEqualTo(UrlStatus.DEAD);
+
+        CheckFinding finding = switcherFinding(subject, site.url("index.html"));
+        int before = site.requestCount("/extern/flatterhaft");
+        ReverificationOutcome outcome = reverter.reverify(ctx, noSnapshots(ctx), firstPass,
+                List.of(finding));
+
+        assertThat(site.requestCount("/extern/flatterhaft")).isEqualTo(before);
+        assertThat(outcome.surviving()).containsExactly(finding);
+        assertThat(outcome.rechecked()).isZero();
+    }
+
+    @Test
+    void aSharedSubjectDropsTheDeadLinkFindingAndKeepsTheInteractionOne() {
+        SiteContext ctx = ctx();
+        String subject = site.externalBase() + "extern/flatterhaft";
+
+        UrlVerifications firstPass = firstPass(ctx, subject);
+        CheckFinding dead = deadFinding(subject, site.url("index.html"));
+        CheckFinding switcher = switcherFinding(subject, site.url("index.html"));
+
+        ReverificationOutcome outcome = reverter.reverify(ctx, noSnapshots(ctx), firstPass,
+                List.of(dead, switcher));
+
+        assertThat(outcome.recoveredSubjects()).containsExactly(subject);
+        assertThat(outcome.surviving()).containsExactly(switcher);
     }
 }

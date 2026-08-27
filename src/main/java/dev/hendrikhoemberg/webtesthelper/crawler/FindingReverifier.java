@@ -36,6 +36,11 @@ import java.util.stream.Collectors;
  *
  * <p>Re-checked results for external subjects are written back to the shared cache, so a transient
  * failure does not sit there for its full TTL — exactly the handoff from plan 3b.
+ *
+ * <p>Interaction findings are excluded outright (D105). Their subject is not always a URL, and
+ * where it is — {@code LANGUAGE_SWITCHER} names the locale it clicked through to — re-fetching it
+ * answers a different question than the one the finding asked, so a recovery there would drop a
+ * finding nothing had re-examined.
  */
 @Component
 public class FindingReverifier {
@@ -54,7 +59,13 @@ public class FindingReverifier {
     public ReverificationOutcome reverify(SiteContext site, RunSnapshots snapshots,
                                           UrlVerifications firstPass, List<CheckFinding> findings) {
         Set<String> visited = snapshots.visitedUrls();                    // browser verdicts stay (D23)
-        Set<String> suspects = findings.stream().map(CheckFinding::subjectKey).distinct()
+        Set<String> suspects = findings.stream()
+                // An interaction check's verdict cannot be re-probed over HTTP (D78): fetching
+                // LANGUAGE_SWITCHER's subject URL says nothing about whether the page was
+                // translated. Its subject *is* a URL, so without this the whole finding would be
+                // dropped by a recovery that never examined the thing it is about.
+                .filter(finding -> !finding.type().interaction())
+                .map(CheckFinding::subjectKey).distinct()
                 .filter(subject -> !visited.contains(subject))
                 .filter(subject -> {
                     UrlVerification first = firstPass.byUrl().get(subject);
@@ -108,7 +119,8 @@ public class FindingReverifier {
         }
 
         List<CheckFinding> surviving = new ArrayList<>(findings);
-        surviving.removeIf(finding -> recovered.contains(finding.subjectKey()));
+        surviving.removeIf(finding ->
+                !finding.type().interaction() && recovered.contains(finding.subjectKey()));
 
         return new ReverificationOutcome(List.copyOf(surviving), Set.copyOf(recovered),
                 urls.size());
