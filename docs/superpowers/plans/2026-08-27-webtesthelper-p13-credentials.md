@@ -684,5 +684,8 @@ Named so a reviewer can tell a gap from a decision.
 
 ## Execution findings
 
-_To be filled in after execution — measured constants, surprises, and anything the plan got wrong.
-Per `CLAUDE.md`, nothing above this line is edited once the plan has run._
+- **Suite Growth & Timing:** Total fast test suite (`-Pfast`) increased from 1005 to 1058 tests (+53 tests across `CredentialServiceTest`, `CredentialReferenceTest`, `CredentialResolutionTest`, `RedactorTest`, `CredentialControllerTest`, `SecurityRulesTest`, and `CredentialAcceptanceTest`; running in ~27s). Full pre-merge test suite (`./mvnw test`) increased from 1140 to 1193 tests (+53 tests, 0 failures, 0 errors, wall time 4m27s).
+- **Regex Replacement Safety in `CredentialService.resolve`:** Decrypted secret strings and usernames substituted via `Matcher.appendReplacement` require `Matcher.quoteReplacement(value)` to prevent special regex replacement symbols (`$` and `\`) within passwords or usernames from being interpreted as group references or escape sequences.
+- **Fault-Tolerant Redaction:** In `CredentialService.redactorFor`, decryption errors on individual credentials (e.g. from corrupted ciphertext or replaced keyfile) are caught per row so that corrupted credentials do not break the logging/redaction pipeline for unaffected secrets or general log rendering.
+- **Structural UI Secrecy:** Verified that `CredentialController.reject` strictly avoids echoing submitted passwords back to the model or view, and `Credential` records structurally exclude password components (verified via reflection in tests), eliminating password leakage in UI re-renders and list screens.
+
