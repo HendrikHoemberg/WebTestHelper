@@ -22,16 +22,29 @@ import java.util.Set;
  * ({@link RunScope#crawlsWholeSite()}) <em>and</em> it must have finished doing so. A budget-capped
  * full crawl saw an arbitrary slice; a pulse run saw a pinned list of a dozen URLs and drained its
  * frontier doing it, so "the frontier ran dry" alone says nothing about site coverage.
+ * <p>Interaction checks are recorded separately (D74): an interaction check runs on a handful of
+ * pages, so {@link #interactionCheckTypes} and {@link #interactionLocationKeys} carry the types and
+ * pages this run actually drove.
  */
-public record RunCoverage(Set<CheckType> checkTypes, Set<String> locationKeys, boolean wholeSite) {
+public record RunCoverage(Set<CheckType> checkTypes,
+                          Set<String> locationKeys,
+                          boolean wholeSite,
+                          Set<CheckType> interactionCheckTypes,
+                          Set<String> interactionLocationKeys) {
 
     /**
-     * Copies both sets: coverage decides what a run is allowed to resolve, so a caller holding
+     * Copies all sets: coverage decides what a run is allowed to resolve, so a caller holding
      * on to the collections it passed must not be able to widen that scope afterwards.
      */
     public RunCoverage {
         checkTypes = Set.copyOf(checkTypes);
         locationKeys = Set.copyOf(locationKeys);
+        interactionCheckTypes = Set.copyOf(interactionCheckTypes);
+        interactionLocationKeys = Set.copyOf(interactionLocationKeys);
+    }
+
+    public RunCoverage(Set<CheckType> checkTypes, Set<String> locationKeys, boolean wholeSite) {
+        this(checkTypes, locationKeys, wholeSite, Set.of(), Set.of());
     }
 
     public static RunCoverage of(RunScope scope,
@@ -39,27 +52,51 @@ public record RunCoverage(Set<CheckType> checkTypes, Set<String> locationKeys, b
                                  Collection<String> coveredUrls,
                                  Collection<String> snapshotUrls,
                                  boolean partialCoverage) {
-        Set<CheckType> checkTypes = new LinkedHashSet<>();
-        if (checkTypeNames != null) {
-            for (String name : checkTypeNames) {
+        return of(scope, checkTypeNames, coveredUrls, snapshotUrls, partialCoverage, java.util.List.of(), java.util.List.of());
+    }
+
+    public static RunCoverage of(RunScope scope,
+                                 Collection<String> checkTypeNames,
+                                 Collection<String> coveredUrls,
+                                 Collection<String> snapshotUrls,
+                                 boolean partialCoverage,
+                                 Collection<String> interactionCheckTypeNames,
+                                 Collection<String> interactionUrls) {
+        Set<CheckType> checkTypes = parseCheckTypes(checkTypeNames);
+        Set<String> locationKeys = parseLocationKeys(coveredUrls, snapshotUrls);
+        Set<CheckType> interactionCheckTypes = parseCheckTypes(interactionCheckTypeNames);
+        Set<String> interactionLocationKeys = parseLocationKeys(interactionUrls, null);
+
+        return new RunCoverage(checkTypes, locationKeys, scope.crawlsWholeSite() && !partialCoverage,
+                interactionCheckTypes, interactionLocationKeys);
+    }
+
+    private static Set<CheckType> parseCheckTypes(Collection<String> names) {
+        Set<CheckType> types = new LinkedHashSet<>();
+        if (names != null) {
+            for (String name : names) {
                 if (name == null) {
                     continue;
                 }
                 try {
-                    checkTypes.add(CheckType.valueOf(name));
+                    types.add(CheckType.valueOf(name));
                 } catch (IllegalArgumentException ignored) {
                 }
             }
         }
-        Set<String> locationKeys = new LinkedHashSet<>();
-        if (coveredUrls != null) {
-            coveredUrls.stream().map(UrlNormalizer::normalize).filter(Optional::isPresent)
-                    .map(o -> o.get().locationKey()).forEach(locationKeys::add);
+        return types;
+    }
+
+    private static Set<String> parseLocationKeys(Collection<String> urls1, Collection<String> urls2) {
+        Set<String> keys = new LinkedHashSet<>();
+        if (urls1 != null) {
+            urls1.stream().map(UrlNormalizer::normalize).filter(Optional::isPresent)
+                    .map(o -> o.get().locationKey()).forEach(keys::add);
         }
-        if (snapshotUrls != null) {
-            snapshotUrls.stream().map(UrlNormalizer::normalize).filter(Optional::isPresent)
-                    .map(o -> o.get().locationKey()).forEach(locationKeys::add);
+        if (urls2 != null) {
+            urls2.stream().map(UrlNormalizer::normalize).filter(Optional::isPresent)
+                    .map(o -> o.get().locationKey()).forEach(keys::add);
         }
-        return new RunCoverage(checkTypes, locationKeys, scope.crawlsWholeSite() && !partialCoverage);
+        return keys;
     }
 }

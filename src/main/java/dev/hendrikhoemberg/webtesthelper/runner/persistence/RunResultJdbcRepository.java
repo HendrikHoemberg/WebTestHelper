@@ -22,18 +22,20 @@ public class RunResultJdbcRepository {
 
     private static final String OUTCOME_SQL = """
             UPDATE run
-               SET pages_visited       = ?,
-                   pages_failed        = ?,
-                   findings_total      = ?,
-                   findings_new        = ?,
-                   findings_resolved   = ?,
-                   covered_check_types = ?::jsonb,
-                   covered_urls        = ?::jsonb,
-                   partial_coverage    = ?,
-                   budget_stop_reason  = ?,
-                   soft404_status      = ?,
-                   soft404_simhash     = ?,
-                   soft404_text_length = ?
+               SET pages_visited                   = ?,
+                   pages_failed                    = ?,
+                   findings_total                  = ?,
+                   findings_new                    = ?,
+                   findings_resolved               = ?,
+                   covered_check_types             = ?::jsonb,
+                   covered_urls                    = ?::jsonb,
+                   covered_interaction_urls        = ?::jsonb,
+                   covered_interaction_check_types = ?::jsonb,
+                   partial_coverage                = ?,
+                   budget_stop_reason              = ?,
+                   soft404_status                  = ?,
+                   soft404_simhash                 = ?,
+                   soft404_text_length             = ?
              WHERE id = ?
             """;
 
@@ -60,6 +62,13 @@ public class RunResultJdbcRepository {
 
     public void saveCrawlOutcome(long runId, CrawlResult result, List<String> coveredCheckTypes,
             SoftNotFoundProbe probe, int findingsTotal, int findingsNew, int findingsResolved) {
+        saveCrawlOutcome(runId, result, coveredCheckTypes, List.of(), List.of(), probe,
+                findingsTotal, findingsNew, findingsResolved);
+    }
+
+    public void saveCrawlOutcome(long runId, CrawlResult result, List<String> coveredCheckTypes,
+            List<String> coveredInteractionCheckTypes, List<String> coveredInteractionUrls,
+            SoftNotFoundProbe probe, int findingsTotal, int findingsNew, int findingsResolved) {
         try {
             jdbc.update(OUTCOME_SQL,
                     result.pagesVisited(),
@@ -69,6 +78,8 @@ public class RunResultJdbcRepository {
                     findingsResolved,
                     objectMapper.writeValueAsString(coveredCheckTypes),
                     objectMapper.writeValueAsString(result.coveredUrls()),
+                    objectMapper.writeValueAsString(coveredInteractionUrls != null ? coveredInteractionUrls : List.of()),
+                    objectMapper.writeValueAsString(coveredInteractionCheckTypes != null ? coveredInteractionCheckTypes : List.of()),
                     result.partialCoverage(),
                     result.budgetStopReason(),
                     probe.httpStatus(),

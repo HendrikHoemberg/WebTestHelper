@@ -88,6 +88,16 @@ public class FindingStore {
                     OR (location_key = '*' AND ?))
             """;
 
+    private static final String RESOLVE_INTERACTION_SQL = """
+            UPDATE finding
+               SET observed_status = 'RESOLVED', resolved_at_run = ?, version = version + 1
+             WHERE site_id = ?
+               AND observed_status = 'ACTIVE'
+               AND last_seen_run <> ?
+               AND check_type = ANY(?)
+               AND location_key = ANY(?)
+            """;
+
     private static final String ACCEPT_BASELINE_SQL = """
             UPDATE finding
                SET triage_status = 'ACKNOWLEDGED',
@@ -478,10 +488,25 @@ public class FindingStore {
 
     /** Resolve the findings this run did not re-observe, scoped to what the run actually covered. */
     public int resolveOutsideRun(long siteId, long runId, RunCoverage coverage) {
-        String[] checkTypes = coverage.checkTypes().stream().map(CheckType::name).toArray(String[]::new);
-        String[] locationKeys = coverage.locationKeys().toArray(String[]::new);
-        return jdbc.update(RESOLVE_SQL, runId, siteId, runId, checkTypes, locationKeys,
-                coverage.wholeSite());
+        int resolved = 0;
+        String[] standardCheckTypes = coverage.checkTypes().stream()
+                .filter(t -> !coverage.interactionCheckTypes().contains(t))
+                .map(CheckType::name)
+                .toArray(String[]::new);
+        if (standardCheckTypes.length > 0) {
+            String[] locationKeys = coverage.locationKeys().toArray(String[]::new);
+            resolved += jdbc.update(RESOLVE_SQL, runId, siteId, runId, standardCheckTypes, locationKeys,
+                    coverage.wholeSite());
+        }
+        if (!coverage.interactionCheckTypes().isEmpty() && !coverage.interactionLocationKeys().isEmpty()) {
+            String[] interactionCheckTypes = coverage.interactionCheckTypes().stream()
+                    .map(CheckType::name)
+                    .toArray(String[]::new);
+            String[] interactionLocationKeys = coverage.interactionLocationKeys().toArray(String[]::new);
+            resolved += jdbc.update(RESOLVE_INTERACTION_SQL, runId, siteId, runId,
+                    interactionCheckTypes, interactionLocationKeys);
+        }
+        return resolved;
     }
 
     /** Move every UNTRIAGED finding observed in the run to ACKNOWLEDGED. */

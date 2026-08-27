@@ -11,6 +11,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Turns transient {@link CheckFinding}s into persisted-shaped {@link MaterialisedFinding}s.
@@ -37,25 +38,31 @@ public final class FindingMaterializer {
 
     public static List<MaterialisedFinding> materialise(long siteId, List<CheckFinding> findings,
             int siteWideThreshold) {
+        return materialise(siteId, findings, siteWideThreshold, Set.of());
+    }
+
+    public static List<MaterialisedFinding> materialise(long siteId, List<CheckFinding> findings,
+            int siteWideThreshold, Set<CheckType> interactionTypes) {
         Map<GroupKey, List<CheckFinding>> groups = new LinkedHashMap<>();
         for (CheckFinding f : findings) {
             GroupKey key = new GroupKey(f.type(), f.subjectKey());
             groups.computeIfAbsent(key, k -> new ArrayList<>()).add(f);
         }
         List<MaterialisedFinding> result = new ArrayList<>();
+        Set<CheckType> interactions = interactionTypes == null ? Set.of() : interactionTypes;
         for (Map.Entry<GroupKey, List<CheckFinding>> entry : groups.entrySet()) {
-            result.addAll(materialiseGroup(siteId, entry.getKey(), entry.getValue(), siteWideThreshold));
+            result.addAll(materialiseGroup(siteId, entry.getKey(), entry.getValue(), siteWideThreshold, interactions));
         }
         return List.copyOf(result);
     }
 
     private static List<MaterialisedFinding> materialiseGroup(long siteId, GroupKey key,
-            List<CheckFinding> group, int threshold) {
+            List<CheckFinding> group, int threshold, Set<CheckType> interactionTypes) {
         LinkedHashSet<String> distinctLocations = new LinkedHashSet<>();
         for (CheckFinding f : group) {
             distinctLocations.add(f.locationKey());
         }
-        if (distinctLocations.size() > threshold) {
+        if (distinctLocations.size() > threshold && !interactionTypes.contains(key.type())) {
             return List.of(buildFinding(siteId, key, "*", group));
         }
         List<MaterialisedFinding> out = new ArrayList<>();

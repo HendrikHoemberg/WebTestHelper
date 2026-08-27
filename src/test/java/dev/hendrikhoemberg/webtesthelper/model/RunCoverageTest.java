@@ -78,4 +78,55 @@ class RunCoverageTest {
         assertThat(coverage.checkTypes()).containsExactly(CheckType.PAGE_STATUS);
         assertThat(coverage.locationKeys()).containsExactly("/a");
     }
+
+    @Test
+    void normalisesInteractionUrlsAndDropsUnparseableOnes() {
+        RunCoverage coverage = RunCoverage.of(RunScope.FULL,
+                List.of(), List.of(), List.of(), false,
+                List.of("DEAD_LINK"),
+                List.of("https://example.com/kontakt.html", "mailto:hallo@example.com", "https://example.com/a?q=1"));
+        assertThat(coverage.interactionLocationKeys())
+                .containsExactlyInAnyOrder("/kontakt.html", "/a?q=1");
+        assertThat(coverage.interactionCheckTypes()).containsExactly(CheckType.DEAD_LINK);
+    }
+
+    @Test
+    void ignoresUnknownInteractionCheckTypes() {
+        RunCoverage coverage = RunCoverage.of(RunScope.FULL,
+                List.of(), List.of(), List.of(), false,
+                List.of("DEAD_LINK", "UNKNOWN_CHECK", "INVALID"),
+                List.of());
+        assertThat(coverage.interactionCheckTypes()).containsExactly(CheckType.DEAD_LINK);
+    }
+
+    @Test
+    void wholeSiteIsUnaffectedByInteractionSets() {
+        RunCoverage fullWithInteractions = RunCoverage.of(RunScope.FULL,
+                List.of(), List.of("https://example.com/a"), List.of(), false,
+                List.of("DEAD_LINK"), List.of("https://example.com/a"));
+        assertThat(fullWithInteractions.wholeSite()).isTrue();
+
+        RunCoverage partialWithInteractions = RunCoverage.of(RunScope.FULL,
+                List.of(), List.of("https://example.com/a"), List.of(), true,
+                List.of("DEAD_LINK"), List.of("https://example.com/a"));
+        assertThat(partialWithInteractions.wholeSite()).isFalse();
+
+        RunCoverage pulseWithInteractions = RunCoverage.of(RunScope.PULSE,
+                List.of(), List.of("https://example.com/a"), List.of(), false,
+                List.of("DEAD_LINK"), List.of("https://example.com/a"));
+        assertThat(pulseWithInteractions.wholeSite()).isFalse();
+    }
+
+    @Test
+    void doesNotAliasInteractionSets() {
+        Set<CheckType> interactionTypes = new java.util.LinkedHashSet<>(Set.of(CheckType.PAGE_STATUS));
+        Set<String> interactionKeys = new java.util.LinkedHashSet<>(Set.of("/a"));
+
+        RunCoverage coverage = new RunCoverage(Set.of(), Set.of(), true, interactionTypes, interactionKeys);
+        interactionTypes.add(CheckType.DEAD_LINK);
+        interactionKeys.add("/b");
+
+        assertThat(coverage.interactionCheckTypes()).containsExactly(CheckType.PAGE_STATUS);
+        assertThat(coverage.interactionLocationKeys()).containsExactly("/a");
+    }
 }
