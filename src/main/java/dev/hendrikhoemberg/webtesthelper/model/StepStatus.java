@@ -1,4 +1,4 @@
-package dev.hendrikhoemberg.webtesthelper.runner;
+package dev.hendrikhoemberg.webtesthelper.model;
 
 /**
  * The execution status of a single journey step (§10.3).

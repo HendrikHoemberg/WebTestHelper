@@ -8,6 +8,8 @@ import dev.hendrikhoemberg.webtesthelper.model.JourneyStep;
 import dev.hendrikhoemberg.webtesthelper.model.LocatorCandidate;
 import dev.hendrikhoemberg.webtesthelper.model.StepAction;
 import dev.hendrikhoemberg.webtesthelper.model.StepAssertion;
+import dev.hendrikhoemberg.webtesthelper.model.StepOutcome;
+import dev.hendrikhoemberg.webtesthelper.model.StepStatus;
 
 import java.util.List;
 import java.util.Objects;

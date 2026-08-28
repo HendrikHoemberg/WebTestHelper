@@ -1,4 +1,4 @@
-package dev.hendrikhoemberg.webtesthelper.runner;
+package dev.hendrikhoemberg.webtesthelper.model;
 
 import java.util.List;
 import java.util.Objects;

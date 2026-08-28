@@ -1,4 +1,4 @@
-package dev.hendrikhoemberg.webtesthelper.runner;
+package dev.hendrikhoemberg.webtesthelper.model;
 
 /**
  * Overall status of a journey replay (§10.4, D106).

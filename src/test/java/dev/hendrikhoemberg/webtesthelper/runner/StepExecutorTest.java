@@ -10,6 +10,8 @@ import dev.hendrikhoemberg.webtesthelper.model.LocatorCandidate;
 import dev.hendrikhoemberg.webtesthelper.model.LocatorStrategy;
 import dev.hendrikhoemberg.webtesthelper.model.StepAction;
 import dev.hendrikhoemberg.webtesthelper.model.StepAssertion;
+import dev.hendrikhoemberg.webtesthelper.model.StepOutcome;
+import dev.hendrikhoemberg.webtesthelper.model.StepStatus;
 import dev.hendrikhoemberg.webtesthelper.support.FixtureSite;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
