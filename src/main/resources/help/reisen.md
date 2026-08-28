@@ -78,8 +78,9 @@ Sobald der Ablauf neu aufgezeichnet oder angepasst wurde und wieder erfolgreich 
 Mit dem interaktiven Live-Recorder können Sie neue Benutzerabläufe direkt in Ihrer WebTestHelper-Oberfläche aufzeichnen:
 
 * **Live-Ansicht (Screencast):** Der gesteuerte Chromium-Browser sendet in Echtzeit hochauflösende Bild-Frames an die Web-Oberfläche, die im Canvas-Bereich dargestellt werden.
-* **Direkte Interaktion:** Klicks und Tastatureingaben auf der Leinwand werden an den gesteuerten Browser übertragen und dort verzögerungsfrei ausgeführt.
+* **Direkte Interaktion:** Klicks, Mausrad-Scrollen und Tastatureingaben auf der Leinwand werden an den gesteuerten Browser übertragen und dort verzögerungsfrei ausgeführt. Über das Scrollen erreichen Sie auch Elemente, die nicht im ersten Bildschirmbereich liegen.
 * **Gleichzeitige Sitzungen (Kapazitätsgrenze):** Um die Systemleistung und Ressourcen für reguläre Prüfläufe stabil zu halten, sind maximal **2 Aufzeichnungssitzungen gleichzeitig** möglich. Ist diese Kapazitätsgrenze erreicht, weist das System darauf hin und fordert dazu auf, eine laufende Sitzung zu beenden oder es später erneut zu versuchen (§13.4).
-* **Automatisches Timeout:** Jede Aufzeichnungssitzung verfügt über ein Leerlauf-Zeitlimit von **15 Minuten**. Erfolgen innerhalb dieses Zeitfensters keine Klicks oder Tastatureingaben, wird die Sitzung automatisch beendet und der Browser-Worker freigegeben.
+* **Automatisches Timeout:** Jede Aufzeichnungssitzung verfügt über ein Leerlauf-Zeitlimit von **15 Minuten**. Erfolgen innerhalb dieses Zeitfensters keine Eingaben, wird die Sitzung automatisch beendet und der Browser-Worker freigegeben.
+* **Browser lässt sich nicht starten:** Schlägt der Start des Aufnahme-Browsers fehl, ist das keine Kapazitätsfrage — Warten hilft dann nicht. Die Oberfläche weist gesondert darauf hin; bitte wenden Sie sich in diesem Fall an die Administration.
 * **Aufzeichnung beenden:** Über die Schaltfläche „Aufzeichnung beenden“ oder beim Verlassen der Seite wird die Sitzung sofort geschlossen, sodass der Browser-Worker nicht erst auf den Timeout warten muss.
 
