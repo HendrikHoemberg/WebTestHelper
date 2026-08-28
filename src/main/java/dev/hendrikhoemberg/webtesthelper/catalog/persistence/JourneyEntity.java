@@ -37,6 +37,12 @@ public class JourneyEntity {
     @JdbcTypeCode(SqlTypes.JSON)
     private List<JourneyStep> steps = new ArrayList<>();
 
+    private Instant lastSuccessAt;
+
+    private int consecutiveFailures = 0;
+
+    private int driftCount = 0;
+
     private Instant createdAt = Instant.now();
 
     private Instant updatedAt = Instant.now();

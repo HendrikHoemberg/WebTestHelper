@@ -1,5 +1,6 @@
 package dev.hendrikhoemberg.webtesthelper.runner;
 
+import dev.hendrikhoemberg.webtesthelper.catalog.JourneyHealthService;
 import dev.hendrikhoemberg.webtesthelper.catalog.JourneyService;
 import dev.hendrikhoemberg.webtesthelper.findings.MaterialisedFinding;
 import dev.hendrikhoemberg.webtesthelper.model.CheckType;
@@ -29,6 +30,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -43,13 +45,16 @@ class JourneyPassTest {
     @Mock
     private JourneyReplayer journeyReplayer;
 
+    @Mock
+    private JourneyHealthService journeyHealthService;
+
     private JourneyPass journeyPass;
     private SiteContext site;
     private Path artifactsPath;
 
     @BeforeEach
     void setUp() {
-        journeyPass = new JourneyPass(journeyService, journeyReplayer);
+        journeyPass = new JourneyPass(journeyService, journeyReplayer, journeyHealthService);
         site = new SiteContext(
                 42L,
                 "Test Site",
@@ -72,14 +77,17 @@ class JourneyPassTest {
         JourneyDefinition enabledJourney = new JourneyDefinition(101L, site.siteId(), "Checkout Flow", true, List.of(step1));
         JourneyDefinition disabledJourney = new JourneyDefinition(102L, site.siteId(), "Login Flow", false, List.of(step1));
 
+        JourneyReplayResult replayResult = new JourneyReplayResult(101L, "Checkout Flow", ReplayStatus.PASSED, List.of(StepOutcome.passed(step1.id(), null)), 0, Optional.empty(), Optional.empty());
         when(journeyService.findBySite(site.siteId())).thenReturn(List.of(enabledJourney, disabledJourney));
         when(journeyReplayer.replay(eq(enabledJourney), eq(site), eq(artifactsPath)))
-                .thenReturn(new JourneyReplayResult(101L, "Checkout Flow", ReplayStatus.PASSED, List.of(StepOutcome.passed(step1.id(), null)), 0, Optional.empty(), Optional.empty()));
+                .thenReturn(replayResult);
 
         JourneyPassResult result = journeyPass.run(site, RunScope.FULL, artifactsPath);
 
         verify(journeyReplayer).replay(enabledJourney, site, artifactsPath);
         verify(journeyReplayer, never()).replay(eq(disabledJourney), any(), any());
+        verify(journeyHealthService).record(101L, replayResult);
+        verify(journeyHealthService, never()).record(eq(102L), any());
 
         assertThat(result.completedJourneyIds()).containsExactly(101L);
         assertThat(result.completedJourneyIds()).doesNotContain(102L);
@@ -96,6 +104,7 @@ class JourneyPassTest {
 
         verify(journeyService, never()).findBySite(any(Long.class));
         verify(journeyReplayer, never()).replay(any(), any(), any());
+        verify(journeyHealthService, never()).record(anyLong(), any());
 
         assertThat(result.completedJourneyIds()).isEmpty();
         assertThat(result.findings()).isEmpty();
@@ -108,16 +117,19 @@ class JourneyPassTest {
         JourneyDefinition brokenJourney = new JourneyDefinition(201L, site.siteId(), "Broken Journey", true, List.of(step1));
         JourneyDefinition healthyJourney = new JourneyDefinition(202L, site.siteId(), "Healthy Journey", true, List.of(step1));
 
+        JourneyReplayResult healthyResult = new JourneyReplayResult(202L, "Healthy Journey", ReplayStatus.PASSED, List.of(StepOutcome.passed(step1.id(), null)), 0, Optional.empty(), Optional.empty());
         when(journeyService.findBySite(site.siteId())).thenReturn(List.of(brokenJourney, healthyJourney));
         when(journeyReplayer.replay(eq(brokenJourney), eq(site), eq(artifactsPath)))
                 .thenThrow(new RuntimeException("Playwright browser crash"));
         when(journeyReplayer.replay(eq(healthyJourney), eq(site), eq(artifactsPath)))
-                .thenReturn(new JourneyReplayResult(202L, "Healthy Journey", ReplayStatus.PASSED, List.of(StepOutcome.passed(step1.id(), null)), 0, Optional.empty(), Optional.empty()));
+                .thenReturn(healthyResult);
 
         JourneyPassResult result = journeyPass.run(site, RunScope.FULL, artifactsPath);
 
         verify(journeyReplayer).replay(brokenJourney, site, artifactsPath);
         verify(journeyReplayer).replay(healthyJourney, site, artifactsPath);
+        verify(journeyHealthService, never()).record(eq(201L), any());
+        verify(journeyHealthService).record(202L, healthyResult);
 
         assertThat(result.completedJourneyIds()).containsExactly(202L);
         assertThat(result.completedJourneyIds()).doesNotContain(201L);
@@ -162,9 +174,13 @@ class JourneyPassTest {
 
         JourneyPassResult passResult = journeyPass.run(site, RunScope.FULL, artifactsPath);
 
+        verify(journeyHealthService).record(301L, result1);
+        verify(journeyHealthService).record(302L, result2);
+
         assertThat(passResult.completedJourneyIds()).containsExactlyInAnyOrder(301L, 302L);
         assertThat(passResult.findings()).hasSize(2);
         assertThat(passResult.findings()).extracting(MaterialisedFinding::type)
                 .containsExactlyInAnyOrder(CheckType.JOURNEY_STEP_FAILED, CheckType.SELECTOR_DRIFT);
     }
 }
+

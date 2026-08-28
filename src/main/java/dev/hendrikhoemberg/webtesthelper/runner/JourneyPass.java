@@ -1,5 +1,6 @@
 package dev.hendrikhoemberg.webtesthelper.runner;
 
+import dev.hendrikhoemberg.webtesthelper.catalog.JourneyHealthService;
 import dev.hendrikhoemberg.webtesthelper.catalog.JourneyService;
 import dev.hendrikhoemberg.webtesthelper.findings.JourneyFindingMapper;
 import dev.hendrikhoemberg.webtesthelper.findings.MaterialisedFinding;
@@ -29,6 +30,7 @@ import java.util.Set;
  *       The failed journey is omitted from {@code completedJourneyIds} so its prior findings are not resolved,
  *       and the pass continues with other journeys.</li>
  *   <li>Completed replays have their findings mapped via {@link JourneyFindingMapper#map} and aggregated.</li>
+ *   <li>Completed replays have their health statistics updated via {@link JourneyHealthService#record}.</li>
  * </ul>
  */
 @Component
@@ -38,10 +40,12 @@ public class JourneyPass {
 
     private final JourneyService journeyService;
     private final JourneyReplayer replayer;
+    private final JourneyHealthService healthService;
 
-    public JourneyPass(JourneyService journeyService, JourneyReplayer replayer) {
+    public JourneyPass(JourneyService journeyService, JourneyReplayer replayer, JourneyHealthService healthService) {
         this.journeyService = Objects.requireNonNull(journeyService, "journeyService");
         this.replayer = Objects.requireNonNull(replayer, "replayer");
+        this.healthService = Objects.requireNonNull(healthService, "healthService");
     }
 
     public JourneyPassResult run(SiteContext site, RunScope scope, Path artifacts) {
@@ -70,6 +74,7 @@ public class JourneyPass {
                 if (result != null) {
                     if (journey.id() != null) {
                         completedJourneyIds.add(journey.id());
+                        healthService.record(journey.id(), result);
                     }
                     List<MaterialisedFinding> mapped = JourneyFindingMapper.map(journey, result);
                     allFindings.addAll(mapped);

@@ -295,6 +295,10 @@ class** (`CLAUDE.md`).
 
 ## Execution findings
 
-*(Filled in during execution. Record the health threshold and its reasoning, and anything that
-contradicts plans 16–17, which were written ahead of execution. Do not edit the tasks above once
-they have run.)*
+### Task 5: Journey Health Threshold Rationale (§10.4, D106)
+- **Threshold for `needsRerecording`:** `consecutiveFailures >= 3 && driftCount > 0`
+- **Reasoning:**
+  - Repeated failure alone (`consecutiveFailures >= 3 && driftCount == 0`) means the target website itself is broken or throwing errors. This is an active finding and is already reported as a triageable defect (`JOURNEY_STEP_FAILED`).
+  - Selector drift alone (`driftCount > 0 && consecutiveFailures == 0`) means one or more locators had to fall back to secondary candidates, but the replay ultimately passed.
+  - The combination of repeated failure *and* recorded selector drift (`consecutiveFailures >= 3 && driftCount > 0`) indicates that the journey definition's recorded locator candidates are degraded/stale and the test can no longer navigate reliably, requiring the user to re-record the journey rather than treating it as a regression on the site.
+  - The value of 3 consecutive failures prevents a single flaky run from triggering a re-recording prompt while ensuring persistent locator decay is promptly surfaced to the user.
