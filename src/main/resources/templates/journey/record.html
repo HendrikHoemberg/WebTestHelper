@@ -55,8 +55,8 @@
             <canvas id="recorder-canvas" tabindex="0" width="1280" height="720" class="recorder-canvas" aria-label="Live-Vorschau der Website"></canvas>
         </div>
 
-        <p class="hinweis-text mt-2" th:text="#{ui.recorder.hinweis.tastatur}">
-            Klicken Sie in das Bild, um die Website zu steuern. Tastatureingaben werden an die Seite gesendet, sobald das Bild fokussiert ist.
+        <p class="hinweis-text mt-2" th:text="#{ui.recorder.hinweis.bedienung}">
+            Klicken und scrollen Sie im Bild, um die Website zu steuern. Tastatureingaben werden an die Seite gesendet, sobald das Bild fokussiert ist.
         </p>
     </div>
 
@@ -182,6 +182,20 @@
                 geometry: geom
             });
         });
+
+        canvas.addEventListener('wheel', function(e) {
+            e.preventDefault();
+            const coords = getCanvasCoordinates(e);
+            sendInputEvent({
+                type: 'wheel',
+                canvasX: coords.x,
+                canvasY: coords.y,
+                deltaX: e.deltaX,
+                deltaY: e.deltaY,
+                modifiers: getModifiers(e),
+                geometry: getGeometry()
+            });
+        }, { passive: false });
 
         canvas.addEventListener('keydown', function(e) {
             e.preventDefault();

@@ -108,6 +108,45 @@ class RecorderInputTest {
         }
     }
 
+    @Test
+    void aWheelEventScrollsThePageSoElementsBelowTheFoldCanBeReached() throws Exception {
+        session.worker().submit(browser -> {
+            session.page().navigate(fixtureSite.url("reise/lang.html"));
+            session.page().evaluate("window.scrollTo(0, 0)");
+            return null;
+        });
+
+        WebSocketSession wsSession = createMockWebSocketSession("ws-wheel-test");
+        try {
+            JsonObject wheel = new JsonObject();
+            wheel.addProperty("type", "wheel");
+            wheel.addProperty("canvasX", 320.0);
+            wheel.addProperty("canvasY", 180.0);
+            wheel.addProperty("deltaX", 0.0);
+            wheel.addProperty("deltaY", 600.0);
+            JsonObject g = new JsonObject();
+            g.addProperty("canvasWidth", 640);
+            g.addProperty("canvasHeight", 360);
+            g.addProperty("frameWidth", 1280);
+            g.addProperty("frameHeight", 720);
+            g.addProperty("pageScaleFactor", 1.0);
+            g.addProperty("offsetTop", 0.0);
+            wheel.add("geometry", g);
+
+            socketHandler.handleTextMessage(wsSession, new TextMessage(wheel.toString()));
+
+            session.worker().submit(browser -> {
+                session.page().waitForFunction("window.scrollY > 100");
+                return null;
+            });
+            Double scrollY = session.worker().submit(browser ->
+                    ((Number) session.page().evaluate("window.scrollY")).doubleValue());
+            assertThat(scrollY).as("Wheel event scrolled the page down").isGreaterThan(100.0);
+        } finally {
+            socketHandler.afterConnectionClosed(wsSession, CloseStatus.NORMAL);
+        }
+    }
+
     private static JsonObject clickMessage(double canvasX, double canvasY, CanvasGeometry geometry) {
         JsonObject msg = new JsonObject();
         msg.addProperty("type", "click");

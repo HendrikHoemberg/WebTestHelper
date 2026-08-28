@@ -115,6 +115,7 @@ public class RecorderSocketHandler extends TextWebSocketHandler {
             switch (type) {
                 case "click", "mouseClick" -> handleClick(recordingSession, json);
                 case "mousePressed", "mouseReleased", "mouseMoved" -> handleMouseEvent(recordingSession, json, type);
+                case "wheel", "scroll" -> handleWheel(recordingSession, json);
                 case "key", "press" -> handleKey(recordingSession, json);
                 case "keyDown", "keyUp", "rawKeyDown", "char" -> handleKeyEvent(recordingSession, json, type);
                 default -> log.debug("WebSocket-Nachricht mit Typ '{}' in Sitzung {} empfangen", type, recordingSession.sessionId());
@@ -165,6 +166,40 @@ public class RecorderSocketHandler extends TextWebSocketHandler {
                     release.addProperty("modifiers", json.get("modifiers").getAsInt());
                 }
                 cdp.send("Input.dispatchMouseEvent", release);
+            }
+            return null;
+        });
+    }
+
+    /**
+     * Scrolls the page under the cursor (§10.1).
+     *
+     * <p>§10.5 excludes multiple tabs, uploads, downloads and drag - not scrolling, and without it
+     * a recorder can only reach what happens to be above the fold on a 720px viewport.
+     */
+    private void handleWheel(RecordingSession recordingSession, JsonObject json) {
+        double x = json.has("canvasX") ? json.get("canvasX").getAsDouble() : 0.0;
+        double y = json.has("canvasY") ? json.get("canvasY").getAsDouble() : 0.0;
+        ViewportPoint vp = InputTranslator.toViewport(x, y, parseGeometry(json));
+
+        double deltaX = json.has("deltaX") ? json.get("deltaX").getAsDouble() : 0.0;
+        double deltaY = json.has("deltaY") ? json.get("deltaY").getAsDouble() : 0.0;
+
+        recordingSession.worker().submit(browser -> {
+            CDPSession cdp = ensureCdp(recordingSession);
+            if (cdp != null) {
+                JsonObject event = new JsonObject();
+                event.addProperty("type", "mouseWheel");
+                event.addProperty("x", vp.x());
+                event.addProperty("y", vp.y());
+                event.addProperty("deltaX", deltaX);
+                event.addProperty("deltaY", deltaY);
+                event.addProperty("button", "none");
+                event.addProperty("buttons", 0);
+                if (json.has("modifiers")) {
+                    event.addProperty("modifiers", json.get("modifiers").getAsInt());
+                }
+                cdp.send("Input.dispatchMouseEvent", event);
             }
             return null;
         });
