@@ -148,6 +148,7 @@ class ScreencastBridgeTest {
         // Detach screencast
         bridge.detach(session);
         frames.clear();
+        assertThat(bridge.ackCount(session)).as("Historical acks pruned on detach").isEqualTo(0L);
 
         // Trigger visual changes after detach
         session.worker().submit(browser -> {

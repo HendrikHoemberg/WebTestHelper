@@ -154,6 +154,7 @@ public class ScreencastBridge {
         if (session == null) {
             return;
         }
+        historicalAcks.remove(session.sessionId());
         Attachment attachment = activeAttachments.remove(session.sessionId());
         if (attachment == null) {
             return;

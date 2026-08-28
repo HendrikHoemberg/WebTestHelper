@@ -65,7 +65,6 @@ public class RecorderController {
             model.addAttribute("site", site);
             model.addAttribute("capacityExceeded", true);
             model.addAttribute("capacityLimit", 2);
-            model.addAttribute("errorMessage", "Maximale Anzahl gleichzeitiger Aufzeichnungssitzungen (2) erreicht. Bitte beenden Sie eine laufende Sitzung oder versuchen Sie es später erneut.");
             return "journey/record";
         }
     }

@@ -135,7 +135,7 @@ public class RecordingSessionRegistry implements AutoCloseable {
         List<UUID> toReap = new ArrayList<>();
         for (RecordingSession session : sessions.values()) {
             Duration idleTime = Duration.between(session.lastActivity(), now);
-            if (!idleTime.minus(idleTimeout).isNegative()) {
+            if (idleTime.compareTo(idleTimeout) >= 0) {
                 toReap.add(session.sessionId());
             }
         }
