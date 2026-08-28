@@ -13,6 +13,7 @@
             <a th:href="@{/websites/{id}(id=${site.siteId})}" th:text="${site.name}" class="basis-url-link">Website Name</a>
         </div>
         <div class="seiten-kopf-aktionen">
+            <a th:href="@{/websites/{id}/aufzeichnen(id=${site.siteId})}" class="button primär" th:text="#{ui.journey.liste.aufzeichnen}">Ablauf aufzeichnen</a>
             <a th:href="@{/websites/{id}(id=${site.siteId})}" class="button sekundär" th:text="#{ui.journey.detail.zurueck_website}">Zurück zur Website</a>
         </div>
     </header>

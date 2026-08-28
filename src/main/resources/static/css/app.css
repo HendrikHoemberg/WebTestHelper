@@ -1111,5 +1111,56 @@ main {
     color: var(--text-muted);
 }
 
+/* Interaktiver Recorder (§10.1, §12) */
+.recorder-wrapper {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+}
 
+.recorder-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+}
 
+.recorder-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.recorder-canvas-container {
+    width: 100%;
+    max-width: 100%;
+    overflow: auto;
+    background-color: #0f172a;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.recorder-canvas {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    cursor: crosshair;
+    outline: none;
+}
+
+.recorder-canvas:focus {
+    box-shadow: 0 0 0 2px var(--primary-color);
+}
+
+.warnung-kasten {
+    background-color: var(--warning-bg);
+    border: 1px solid var(--warning-border);
+}

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html th:replace="~{layout :: seite(${site.name} + ' – ' + #{ui.recorder.titel}, ~{::main})}"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title th:text="${site.name} + ' – ' + #{ui.recorder.titel}">Ablauf aufzeichnen</title>
+</head>
+<body>
+<main>
+    <header class="seiten-kopf">
+        <div>
+            <h1 th:text="#{ui.recorder.ueberschrift(${site.name})}">Ablauf aufzeichnen – Website Name</h1>
+            <a th:href="${site.baseUrl.value}" th:text="${site.baseUrl.value}" target="_blank" rel="noopener noreferrer" class="basis-url-link">https://example.com/</a>
+        </div>
+        <div class="seiten-kopf-aktionen">
+            <div th:if="${not capacityExceeded}">
+                <form th:action="@{/recorder/{id}/beenden(id=${sessionId})}" method="post" class="inline-form">
+                    <input type="hidden" name="siteId" th:value="${site.siteId}">
+                    <button type="submit" class="button sekundär" th:text="#{ui.recorder.beenden}">Aufzeichnung beenden</button>
+                </form>
+            </div>
+            <a th:if="${capacityExceeded}" th:href="@{/sites/{id}/journeys(id=${site.siteId})}" class="button sekundär" th:text="#{ui.recorder.zurueck_reisen}">Zurück zu den Abläufen</a>
+            <a th:href="@{/websites/{id}(id=${site.siteId})}" class="button sekundär" th:text="#{ui.recorder.zurueck}">Zurück zur Website</a>
+        </div>
+    </header>
+
+    <!-- Kapazitätsgrenze erreicht (§13.4) -->
+    <div th:if="${capacityExceeded}" class="detail-bereich warnung-kasten">
+        <h2 th:text="#{ui.recorder.kapazitaet.titel}">Maximale Anzahl gleichzeitiger Aufzeichnungen erreicht</h2>
+        <p class="hinweis-text" th:text="#{ui.recorder.kapazitaet.text}">
+            Maximale Anzahl gleichzeitiger Aufzeichnungssitzungen (2) erreicht. Bitte beenden Sie eine laufende Sitzung oder versuchen Sie es später erneut.
+        </p>
+        <div class="mt-4">
+            <a th:href="@{/sites/{id}/journeys(id=${site.siteId})}" class="button primär" th:text="#{ui.recorder.zurueck_reisen}">Zurück zu den Abläufen</a>
+            <a th:href="@{/websites/{id}(id=${site.siteId})}" class="button sekundär" th:text="#{ui.recorder.zurueck}">Zurück zur Website</a>
+        </div>
+    </div>
+
+    <!-- Aktive Aufzeichnungssitzung -->
+    <div th:unless="${capacityExceeded}" class="recorder-wrapper">
+        <div class="recorder-toolbar">
+            <div class="recorder-info">
+                <span id="connection-status" class="status-badge status-inaktiv" th:text="#{ui.recorder.status.verbinden}">Verbindung wird aufgebaut...</span>
+                <span class="text-gedaempft ml-3" th:text="#{ui.recorder.hinweis.timeout}">Inaktive Sitzungen werden nach 15 Minuten automatisch beendet.</span>
+            </div>
+            <div class="recorder-actions">
+                <form th:action="@{/recorder/{id}/beenden(id=${sessionId})}" method="post" class="inline-form">
+                    <input type="hidden" name="siteId" th:value="${site.siteId}">
+                    <button type="submit" class="button sekundär" th:text="#{ui.recorder.beenden}">Aufzeichnung beenden</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="recorder-canvas-container" id="recorder-container" th:data-ws-url="${wsUrl}" th:data-session-id="${sessionId}">
+            <canvas id="recorder-canvas" tabindex="0" width="1280" height="720" class="recorder-canvas" aria-label="Live-Vorschau der Website"></canvas>
+        </div>
+
+        <p class="hinweis-text mt-2" th:text="#{ui.recorder.hinweis.tastatur}">
+            Klicken Sie in das Bild, um die Website zu steuern. Tastatureingaben werden an die Seite gesendet, sobald das Bild fokussiert ist.
+        </p>
+    </div>
+
+    <script th:if="${not capacityExceeded}" th:inline="javascript">
+    document.addEventListener('DOMContentLoaded', function() {
+        const canvas = document.getElementById('recorder-canvas');
+        if (!canvas) return;
+
+        const container = document.getElementById('recorder-container');
+        const ctx = canvas.getContext('2d');
+        const statusBadge = document.getElementById('connection-status');
+        const wsRelativeUrl = container ? container.dataset.wsUrl : '';
+        const sessionId = container ? container.dataset.sessionId : '';
+        const csrfToken = /*[[${_csrf?.token}]]*/ '';
+        const csrfHeader = /*[[${_csrf?.headerName}]]*/ 'X-CSRF-TOKEN';
+
+        let latestMetadata = null;
+        let sessionClosed = false;
+
+        const loc = window.location;
+        const wsProto = loc.protocol === 'https:' ? 'wss://' : 'ws://';
+        const wsUrl = wsProto + loc.host + wsRelativeUrl;
+
+        let ws = null;
+        try {
+            ws = new WebSocket(wsUrl);
+        } catch (err) {
+            if (statusBadge) {
+                statusBadge.textContent = /*[[#{ui.recorder.status.fehler}]]*/ 'Verbindungsfehler';
+                statusBadge.className = 'status-badge status-inaktiv';
+            }
+        }
+
+        if (ws) {
+            ws.onopen = function() {
+                if (statusBadge) {
+                    statusBadge.textContent = /*[[#{ui.recorder.status.verbunden}]]*/ 'Live-Verbindung aktiv';
+                    statusBadge.className = 'status-badge status-aktiv';
+                }
+            };
+
+            ws.onclose = function() {
+                if (statusBadge) {
+                    statusBadge.textContent = /*[[#{ui.recorder.status.getrennt}]]*/ 'Verbindung getrennt';
+                    statusBadge.className = 'status-badge status-inaktiv';
+                }
+            };
+
+            ws.onerror = function() {
+                if (statusBadge) {
+                    statusBadge.textContent = /*[[#{ui.recorder.status.fehler}]]*/ 'Verbindungsfehler';
+                    statusBadge.className = 'status-badge status-inaktiv';
+                }
+            };
+
+            ws.onmessage = function(event) {
+                try {
+                    const msg = JSON.parse(event.data);
+                    if (msg.type === 'frame' && msg.data) {
+                        if (msg.metadata) {
+                            latestMetadata = msg.metadata;
+                        }
+                        const img = new Image();
+                        img.onload = function() {
+                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        };
+                        img.src = 'data:image/jpeg;base64,' + msg.data;
+                    }
+                } catch (e) {
+                    console.error('Frame decode error:', e);
+                }
+            };
+        }
+
+        function sendInputEvent(evtPayload) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify(evtPayload));
+            }
+        }
+
+        function getModifiers(e) {
+            let modifiers = 0;
+            if (e.altKey) modifiers |= 1;
+            if (e.ctrlKey) modifiers |= 2;
+            if (e.metaKey) modifiers |= 4;
+            if (e.shiftKey) modifiers |= 8;
+            return modifiers;
+        }
+
+        function getGeometry() {
+            const cw = canvas.width || 1280;
+            const ch = canvas.height || 720;
+            return {
+                canvasWidth: cw,
+                canvasHeight: ch,
+                frameWidth: (latestMetadata && latestMetadata.deviceWidth) ? latestMetadata.deviceWidth : cw,
+                frameHeight: (latestMetadata && latestMetadata.deviceHeight) ? latestMetadata.deviceHeight : ch,
+                pageScaleFactor: (latestMetadata && latestMetadata.pageScaleFactor) ? latestMetadata.pageScaleFactor : 1.0,
+                offsetTop: (latestMetadata && latestMetadata.offsetTop) ? latestMetadata.offsetTop : 0.0,
+                scrollOffsetX: (latestMetadata && latestMetadata.scrollOffsetX) ? latestMetadata.scrollOffsetX : 0.0,
+                scrollOffsetY: (latestMetadata && latestMetadata.scrollOffsetY) ? latestMetadata.scrollOffsetY : 0.0
+            };
+        }
+
+        function getCanvasCoordinates(e) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            return {
+                x: (e.clientX - rect.left) * scaleX,
+                y: (e.clientY - rect.top) * scaleY
+            };
+        }
+
+        canvas.addEventListener('click', function(e) {
+            const coords = getCanvasCoordinates(e);
+            const button = e.button === 2 ? 'right' : (e.button === 1 ? 'middle' : 'left');
+            const geom = getGeometry();
+            sendInputEvent({
+                type: 'click',
+                canvasX: coords.x,
+                canvasY: coords.y,
+                button: button,
+                modifiers: getModifiers(e),
+                geometry: geom
+            });
+        });
+
+        canvas.addEventListener('keydown', function(e) {
+            e.preventDefault();
+            sendInputEvent({
+                type: 'key',
+                key: e.key,
+                code: e.code,
+                text: e.key.length === 1 ? e.key : '',
+                modifiers: getModifiers(e),
+                windowsVirtualKeyCode: e.keyCode || e.which || 0
+            });
+        });
+
+        function closeSession() {
+            if (sessionClosed || !sessionId) return;
+            sessionClosed = true;
+            const closeUrl = '/recorder/' + sessionId + '/beenden';
+            if (navigator.sendBeacon) {
+                const formData = new FormData();
+                if (csrfToken) formData.append('_csrf', csrfToken);
+                navigator.sendBeacon(closeUrl, formData);
+            } else {
+                fetch(closeUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        [csrfHeader]: csrfToken
+                    },
+                    body: '_csrf=' + encodeURIComponent(csrfToken),
+                    keepalive: true
+                }).catch(function() {});
+            }
+        }
+
+        window.addEventListener('beforeunload', closeSession);
+    });
+    </script>
+</main>
+</body>
+</html>
