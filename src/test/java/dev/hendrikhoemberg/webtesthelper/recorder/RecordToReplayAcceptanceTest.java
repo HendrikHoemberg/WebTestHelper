@@ -27,9 +27,11 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.locks.LockSupport;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -68,9 +70,20 @@ class RecordToReplayAcceptanceTest extends AbstractPostgresTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    private static final Duration CAPTURE_BARRIER_DEADLINE = Duration.ofSeconds(5);
+    private static final long POLL_PARK_NANOS = Duration.ofMillis(10).toNanos();
+
     private FixtureSite fixtureSite;
     private long siteId;
 
+    /**
+     * No table clearing: this class is non-{@code @Transactional} and {@code PER_CLASS}, but it
+     * never reads by name — every row it touches (the site and the journeys) is created here in
+     * this same {@code @BeforeAll} and read back by id. Surefire runs classes sequentially in one
+     * JVM, so the rows it leaves behind can interleave with no other class; a wholesale
+     * {@code DELETE FROM site} would be worse than the rows it leaves, because other classes'
+     * journeys reference their sites and would trip FK violations.
+     */
     @BeforeAll
     void startFixture() {
         fixtureSite = FixtureSite.start();
@@ -201,16 +214,29 @@ class RecordToReplayAcceptanceTest extends AbstractPostgresTest {
             // Type secret password
             typeString(wsSession, plaintextPassword);
 
-            // Drain captured events and build steps
-            List<CapturedEvent> events = session.intentCapture().drain();
+            // Deterministic barrier: the keystroke dispatch runs synchronously on the worker, but
+            // the captured events only reach Java via Playwright's exposeBinding callback on its
+            // reader thread. Unlike the journey test there is no submit/`waitForURL` to join on, so
+            // drain until capture has actually observed an INPUT (or fail loudly after the deadline
+            // rather than silently build an empty journey).
+            List<CapturedEvent> events = drainUntilInputObserved(session.intentCapture());
             List<JourneyStep> steps = StepBuilder.build(events, formUrl);
+
+            // Anti-vacuity: the typing must have produced exactly one (redacted) FILL step, so a
+            // drain-before-arrival break or a redaction break both fail this test.
+            List<JourneyStep> fillSteps = steps.stream()
+                    .filter(step -> step.action() == StepAction.FILL)
+                    .toList();
+            assertThat(fillSteps)
+                    .as("Password typing must produce exactly one FILL step, but produced %d", fillSteps.size())
+                    .hasSize(1);
+            assertThat(fillSteps.get(0).value())
+                    .as("Password step value must be redacted to empty")
+                    .isEmpty();
 
             // Assert: Plaintext password appears nowhere in step objects
             assertThat(steps).isNotEmpty();
             for (JourneyStep step : steps) {
-                if (step.action() == StepAction.FILL) {
-                    assertThat(step.value()).isEmpty();
-                }
                 assertThat(step.value()).doesNotContain(plaintextPassword);
                 assertThat(step.toString()).doesNotContain(plaintextPassword);
                 for (LocatorCandidate candidate : step.locatorCandidates()) {
@@ -230,6 +256,29 @@ class RecordToReplayAcceptanceTest extends AbstractPostgresTest {
             socketHandler.afterConnectionClosed(wsSession, CloseStatus.NORMAL);
             sessionRegistry.close(session.sessionId());
         }
+    }
+
+    /**
+     * Drains captured events until capture has reported an {@code INPUT}, then returns everything
+     * accumulated so far in arrival order.
+     *
+     * <p>{@link IntentCapture#drain()} is synchronized and clears the list it returns, so the only
+     * safe way to wait for the reader-thread callback to deliver an event is to keep re-draining
+     * into one accumulation list. Deadline-based with a short, bounded pause; fails rather than
+     * returning an empty capture if the typing was never observed.
+     */
+    private List<CapturedEvent> drainUntilInputObserved(IntentCapture capture) {
+        long deadline = System.nanoTime() + CAPTURE_BARRIER_DEADLINE.toNanos();
+        List<CapturedEvent> accumulated = new ArrayList<>();
+        while (System.nanoTime() < deadline) {
+            accumulated.addAll(capture.drain());
+            if (accumulated.stream().anyMatch(event -> event.kind() == CapturedEvent.EventKind.INPUT)) {
+                return accumulated;
+            }
+            LockSupport.parkNanos(POLL_PARK_NANOS);
+        }
+        throw new AssertionError("Aufnahme hat die Eingabe nie beobachtet: kein INPUT-Event innerhalb "
+                + "von " + CAPTURE_BARRIER_DEADLINE.toSeconds() + " s — typing was not captured");
     }
 
     private void clickElement(RecordingSession session, WebSocketSession wsSession, String selector) throws Exception {
