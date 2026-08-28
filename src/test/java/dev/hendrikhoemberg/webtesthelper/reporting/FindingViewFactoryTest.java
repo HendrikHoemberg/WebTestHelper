@@ -252,5 +252,36 @@ class FindingViewFactoryTest {
         assertThat(detail.pageTotal()).isEqualTo(312);
         assertThat(detail.triageReason()).isEqualTo("Bekanntes Wartungsfenster");
     }
+
+    @Test
+    void journeyFindingsResolveTitleDescriptionRemediationAndMessage() {
+        Finding failedStep = new Finding(
+                201L, 42L, "fp-journey-failed",
+                CheckType.JOURNEY_STEP_FAILED,
+                "step-uuid-1",
+                "10",
+                Severity.ERROR,
+                "journey.step.failed.not_found",
+                List.of(),
+                new Evidence("abc.png", null, null, null, List.of()),
+                ObservedStatus.ACTIVE,
+                TriageStatus.UNTRIAGED,
+                null,
+                10L, 10L, null, null,
+                1, 1,
+                Instant.parse("2026-08-25T10:00:00Z"),
+                Instant.parse("2026-08-25T10:00:00Z")
+        );
+
+        FindingView view = factory.of(failedStep, Locale.GERMAN);
+        assertThat(view.title()).isEqualTo("Benutzerabläufe");
+        assertThat(view.remediation()).contains("Website-Details prüfen");
+        assertThat(view.message()).isEqualTo("Das Element konnte auf der Seite nicht gefunden werden.");
+        assertThat(view.locationText()).isEqualTo("10");
+
+        FindingDetailView detail = factory.detailOf(failedStep, List.of(), Locale.GERMAN);
+        assertThat(detail.description()).contains("Führt mehrstufige Benutzerinteraktionen");
+    }
 }
+
 

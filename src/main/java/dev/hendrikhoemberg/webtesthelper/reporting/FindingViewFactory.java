@@ -35,10 +35,12 @@ public class FindingViewFactory {
         CheckDescriptor descriptor = checkRegistry.all().stream()
                 .filter(check -> check.type() == finding.type())
                 .findFirst()
-                .orElseThrow(() -> new IllegalStateException("Unbekannter Prüfungs-Typ: " + finding.type()));
+                .orElse(null);
 
-        String title = messageSource.getMessage(descriptor.titleKey(), null, locale);
-        String remediation = messageSource.getMessage(descriptor.remediationKey(), null, locale);
+        String titleKey = descriptor != null ? descriptor.titleKey() : "check." + finding.type().name() + ".title";
+        String remediationKey = descriptor != null ? descriptor.remediationKey() : "check." + finding.type().name() + ".remediation";
+        String title = messageSource.getMessage(titleKey, null, locale);
+        String remediation = messageSource.getMessage(remediationKey, null, locale);
         Object[] formattedArgs = finding.messageArgs().stream()
                 .map(arg -> TechnicalText.humanise(arg, messageSource, locale))
                 .toArray();
@@ -76,9 +78,10 @@ public class FindingViewFactory {
         CheckDescriptor descriptor = checkRegistry.all().stream()
                 .filter(check -> check.type() == finding.type())
                 .findFirst()
-                .orElseThrow(() -> new IllegalStateException("Unbekannter Prüfungs-Typ: " + finding.type()));
+                .orElse(null);
 
-        String description = messageSource.getMessage(descriptor.descriptionKey(), null, locale);
+        String descriptionKey = descriptor != null ? descriptor.descriptionKey() : "check." + finding.type().name() + ".description";
+        String description = messageSource.getMessage(descriptionKey, null, locale);
 
         String rawTechnicalDetail = finding.messageArgs().stream()
                 .filter(TechnicalText::isTechnical)
