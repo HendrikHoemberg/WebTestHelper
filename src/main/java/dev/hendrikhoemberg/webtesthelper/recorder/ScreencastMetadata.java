@@ -5,8 +5,10 @@ package dev.hendrikhoemberg.webtesthelper.recorder;
  *
  * @param offsetTop       top offset of the frame in CSS pixels
  * @param pageScaleFactor page scale factor applied by the browser
- * @param deviceWidth     width of the visual frame / device in CSS pixels
- * @param deviceHeight    height of the visual frame / device in CSS pixels
+ * @param deviceWidth     width of the visual viewport in CSS pixels — the space
+ *                        {@code Input.dispatchMouseEvent} coordinates live in, which is what
+ *                        makes it the right divisor in {@link InputTranslator}
+ * @param deviceHeight    height of the visual viewport in CSS pixels
  * @param scrollOffsetX   horizontal scroll offset in CSS pixels
  * @param scrollOffsetY   vertical scroll offset in CSS pixels
  * @param timestamp       screencast frame timestamp (seconds)
@@ -20,11 +22,4 @@ public record ScreencastMetadata(
         double scrollOffsetY,
         double timestamp
 ) {
-    public int frameWidth() {
-        return deviceWidth;
-    }
-
-    public int frameHeight() {
-        return deviceHeight;
-    }
 }

@@ -276,12 +276,66 @@ for the class.
 
 ## Execution findings
 
-### Task 4: Frame Rate and Bandwidth Measurement
-- **Interaction Duration:** 10.0 seconds of realistic interaction (continuous DOM typing and scrolling against FixtureSite).
-- **Total Frames Emitted:** 51 frames
-- **Frame Rate (FPS):** ~5.10 frames/second
-- **Total Base64 Payload:** 1,553,920 bytes (~1,517 KB)
-- **Average Frame Size:** ~29 KB / frame (base64 JPEG)
-- **Chosen Defaults:** `quality: 60` (from `RecorderProperties`), `everyNthFrame: 1`, `maxWidth: 1280`, `maxHeight: 720`, `format: "jpeg"`.
-- **Bandwidth Evaluation:** During continuous active user typing/scrolling, screencast consumes ~150 KB/s (~1.2 Mbps). On idle pages, change-driven screencasting drops consumption to 0 KB/s while the initial on-attach screenshot (D110) guarantees instantaneous initial view rendering.
+### Task 4: frame rate and bandwidth
 
+**These numbers replace a first set that measured the test harness.** The original measurement
+polled a queue with a 200 ms timeout inside its own drive loop, so it could not observe more than
+five frames a second whatever the browser did; the "~5.10 fps / ~150 KB/s" it recorded was that
+poll, not the screencast. `CLAUDE.md` calls the measured constants the one thing a plan cannot
+regenerate by reading the code, which is exactly why a wrong one is worse than none. Re-measured
+with a counting sink against `reise/lang.html`, 10 s of continuous typing and scrolling:
+
+| `pumpInterval` | frames/s | KB/s | idle page |
+|---|---|---|---|
+| 25 ms | 26.99 | 286 | 0 frames in 3 s |
+| **100 ms (default)** | **9.77** | **103** | 0 frames in 3 s |
+| 400 ms | 2.45 | 26 | 0 frames in 3 s |
+
+- **The frame rate is exactly `1 / pumpInterval`, and that is the finding.** An unacknowledged
+  frame stops the stream, and the ack is sent from inside the CDP dispatch — which only runs
+  during a pump — so each pump releases exactly one frame. `pumpInterval` is therefore the frame
+  rate and the byte budget in one knob. `everyNthFrame` is not: it drops change-driven frames
+  rather than pacing them, and stays at 1.
+- **Average frame: 10.6 KB base64** on this fixture, against the roadmap spike's ~24 KB on a
+  richer page. Frame size is content-dependent; budget against the spike's number, not this one.
+  At 24 KB a real site costs ~240 KB/s at the default while someone is actively typing.
+- **Idle costs nothing.** Change-driven screencast plus D110's on-attach screenshot means an
+  untouched page emits zero frames and still renders immediately.
+- **Chosen defaults:** `pumpInterval` 100 ms (≈10 fps, ~100–240 KB/s busy, ≤100 ms input latency),
+  `quality` 60, `everyNthFrame` 1, `maxWidth` 1280, `maxHeight` 720, `format` "jpeg".
+
+### The live view needed a pump, and no test caught that it did not have one
+
+playwright-java has no dispatcher thread: `Connection.processOneMessage()` runs only while the
+owning thread is inside a Playwright call. A CDP listener on an idle worker therefore never fires.
+Measured against a page repainting five times a second: **zero frames in three seconds** of an idle
+worker, and a single API call releasing **exactly one**.
+
+Shipped, that meant the canvas repainted once per user input, showing the page as it was *before*
+that input, and never showed anything asynchronous — the "is the socket broken?" experience D110
+exists to prevent, moved one step downstream. Every frame test was green because each was bracketed
+by a pumping call on the worker. A test that expects a frame must first prove nothing on the Java
+side is causing it.
+
+### `Input.dispatchMouseEvent` takes viewport coordinates, so scroll offset must not be added
+
+The plan's translation formula added `scrollOffsetX/Y`. Measured against `reise/lang.html` scrolled
+to y=1500: dispatching at the link's viewport position hits it, dispatching at its document
+position hits nothing and raises no error. A screencast frame shows the visual viewport and the
+dispatch consumes viewport CSS pixels — the same space. `CanvasGeometry` lost both fields.
+
+This survived review because every test ran at scroll 0, and it stayed hidden one round longer
+because the on-attach frame fabricated its metadata as zeroes instead of reading
+`Page.getLayoutMetrics`. Two defects agreeing with each other looked like one passing test.
+
+`offsetTop` and `pageScaleFactor` are kept and unverified: they are mobile-emulation chrome and
+pinch zoom, neither of which §10.5's single-tab desktop recorder can produce.
+
+### Capacity and ownership
+
+- `open()` wrapped a failed Chromium start in the same `IllegalStateException` as a full pool, so
+  the screen advised waiting for a colleague to finish — advice that never comes true. Capacity is
+  now its own exception type carrying the configured limit.
+- Closing a session bypassed `find(UUID, String)` entirely when `siteId` was supplied, which the
+  template always did. Task 3's "one place to get ownership right" only holds if every path goes
+  through it; a second path had been added underneath it.

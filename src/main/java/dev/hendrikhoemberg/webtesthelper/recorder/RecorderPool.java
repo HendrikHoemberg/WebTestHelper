@@ -1,7 +1,5 @@
 package dev.hendrikhoemberg.webtesthelper.recorder;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayDeque;
@@ -23,8 +21,6 @@ import java.util.Set;
  */
 @Component
 public class RecorderPool implements AutoCloseable {
-
-    private static final Logger log = LoggerFactory.getLogger(RecorderPool.class);
 
     private final List<RecorderWorker> workers;
     private final Deque<RecorderWorker> available = new ArrayDeque<>();

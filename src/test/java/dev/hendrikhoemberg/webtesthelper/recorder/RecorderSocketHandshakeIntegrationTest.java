@@ -3,6 +3,7 @@ package dev.hendrikhoemberg.webtesthelper.recorder;
 import dev.hendrikhoemberg.webtesthelper.support.AbstractPostgresTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.socket.WebSocketHttpHeaders;
@@ -31,6 +32,9 @@ class RecorderSocketHandshakeIntegrationTest extends AbstractPostgresTest {
     @LocalServerPort
     int port;
 
+    @Autowired
+    org.springframework.context.ApplicationContext context;
+
     @Test
     void anUnauthenticatedHandshakeIsRefusedBeforeAnyFrameIsSent() {
         assertThatThrownBy(() -> connect(UUID.randomUUID()))
@@ -43,6 +47,21 @@ class RecorderSocketHandshakeIntegrationTest extends AbstractPostgresTest {
         // Both arrive as a failed handshake, so a caller cannot probe which session ids exist.
         assertThatThrownBy(() -> connect(UUID.randomUUID()))
                 .isInstanceOf(ExecutionException.class);
+    }
+
+    @Test
+    void theIdleReaperIsActuallyScheduled() throws Exception {
+        // The unit test drives RecorderIdleReaperJob.reapIdle() directly, which stays green even
+        // if nothing ever calls it. A session that is never reaped leaks half the recorder's
+        // capacity without failing a test, so the wiring is asserted here.
+        org.assertj.core.api.Assertions.assertThat(context.getBeansOfType(RecorderIdleReaperJob.class))
+                .as("The idle reaper is a live bean in the running application")
+                .isNotEmpty();
+        org.assertj.core.api.Assertions.assertThat(
+                        RecorderIdleReaperJob.class.getMethod("reapIdle")
+                                .getAnnotation(org.springframework.scheduling.annotation.Scheduled.class))
+                .as("...and something drives it on a schedule")
+                .isNotNull();
     }
 
     private void connect(UUID sessionId) throws Exception {

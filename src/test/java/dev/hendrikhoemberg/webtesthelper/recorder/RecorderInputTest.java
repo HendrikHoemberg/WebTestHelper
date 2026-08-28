@@ -72,6 +72,7 @@ class RecorderInputTest {
         session.worker().submit(browser -> {
             session.page().navigate(fixtureSite.url("reise/lang.html"));
             session.page().evaluate("window.scrollTo(0, 1500)");
+            session.page().waitForFunction("window.scrollY === 1500");
             return null;
         });
 
@@ -113,6 +114,7 @@ class RecorderInputTest {
         session.worker().submit(browser -> {
             session.page().navigate(fixtureSite.url("reise/lang.html"));
             session.page().evaluate("window.scrollTo(0, 0)");
+            session.page().waitForFunction("document.body.scrollHeight > 2000");
             return null;
         });
 

@@ -84,6 +84,9 @@ class ScreencastBridgeTest {
         session.worker().submit(browser -> {
             session.page().navigate(fixtureSite.url("reise/lang.html"));
             session.page().evaluate("window.scrollTo(0, 1500)");
+            // The page must be laid out before it can scroll; without this the scroll is a no-op
+            // whenever navigation has not settled, and the assertion below reads 0.
+            session.page().waitForFunction("window.scrollY === 1500");
             return null;
         });
 
@@ -224,71 +227,70 @@ class ScreencastBridgeTest {
 
     @Test
     void measureInteractionFpsAndByteBudget() throws Exception {
-        BlockingQueue<ScreencastFrame> frames = new LinkedBlockingQueue<>();
-        bridge.attach(session, frames::add);
+        // The sink counts directly. The previous version of this measurement polled a queue with
+        // a 200ms timeout inside its drive loop, so it could never observe more than five frames
+        // a second whatever the browser did - the "~5.1 fps" it recorded was the harness, not the
+        // screencast.
+        java.util.concurrent.atomic.AtomicInteger frameCount = new java.util.concurrent.atomic.AtomicInteger();
+        java.util.concurrent.atomic.AtomicLong totalBytes = new java.util.concurrent.atomic.AtomicLong();
+        FrameSink counting = frame -> {
+            frameCount.incrementAndGet();
+            totalBytes.addAndGet(frame.data().length());
+        };
+
+        session.worker().submit(browser -> {
+            session.page().navigate(fixtureSite.url("reise/lang.html"));
+            return null;
+        });
+
+        bridge.attach(session, counting);
         try {
-            // Navigate to fixture reise start page
+            Thread.sleep(300);
+            frameCount.set(0);
+            totalBytes.set(0);
+
+            long startNano = System.nanoTime();
+            long deadline = System.currentTimeMillis() + 10_000;
+            int step = 0;
+            while (System.currentTimeMillis() < deadline) {
+                final int i = step++;
+                session.worker().submit(browser -> {
+                    if (i % 3 == 0) {
+                        session.page().evaluate("document.querySelector('h1').textContent = 'Eingabe " + i + "';");
+                    } else if (i % 3 == 1) {
+                        session.page().evaluate("window.scrollBy(0, 40);");
+                    } else {
+                        session.page().evaluate("window.scrollBy(0, -40);");
+                    }
+                    return null;
+                });
+            }
+            double elapsed = (System.nanoTime() - startNano) / 1_000_000_000.0;
+            int busyFrames = frameCount.get();
+            long busyBytes = totalBytes.get();
+
+            // And the idle half of the budget: change-driven means an untouched page costs nothing.
+            Thread.sleep(500); // let the last scroll's frames drain
+            frameCount.set(0);
+            Thread.sleep(3_000);
+            int idleFrames = frameCount.get();
+
+            System.out.println("=== Screencast measurement (pumped) ===");
+            System.out.printf("Busy: %.1f s, %d frames, %.2f fps%n", elapsed, busyFrames, busyFrames / elapsed);
+            System.out.printf("Busy bytes: %d base64 (%.0f KB), avg %.1f KB/frame, %.0f KB/s%n",
+                    busyBytes, busyBytes / 1024.0,
+                    busyFrames > 0 ? busyBytes / 1024.0 / busyFrames : 0.0,
+                    busyBytes / 1024.0 / elapsed);
+            System.out.printf("Idle: %d frames in 3 s on an untouched page%n", idleFrames);
+
+            assertThat(busyFrames).as("Interactive flow produced frames").isPositive();
+            assertThat(idleFrames).as("A static page costs nothing (change-driven)").isZero();
+        } finally {
+            bridge.detach(session);
             session.worker().submit(browser -> {
                 session.page().navigate(fixtureSite.url("reise/start.html"));
                 return null;
             });
-
-            // Drain initial frames
-            Thread.sleep(200);
-            frames.clear();
-
-            long startNano = System.nanoTime();
-            long totalBytes = 0;
-            int frameCount = 0;
-
-            // Drive 10 seconds of realistic interaction (typing, clicking, scrolling)
-            long deadline = System.currentTimeMillis() + 10_000;
-            int step = 0;
-            while (System.currentTimeMillis() < deadline) {
-                final int s = step++;
-                session.worker().submit(browser -> {
-                    var page = session.page();
-                    // Typing into input or mutating elements
-                    if (s % 3 == 0) {
-                        page.evaluate("document.body.innerHTML += '<p>Eingabe Schritt " + s + "</p>';");
-                    } else if (s % 3 == 1) {
-                        page.evaluate("window.scrollBy(0, 50);");
-                    } else {
-                        page.evaluate("window.scrollBy(0, -50);");
-                    }
-                    return null;
-                });
-
-                // Poll frames delivered during this interval
-                ScreencastFrame f = frames.poll(200, TimeUnit.MILLISECONDS);
-                if (f != null) {
-                    frameCount++;
-                    totalBytes += f.data().length();
-                }
-            }
-
-            // Drain remaining frames
-            ScreencastFrame remaining;
-            while ((remaining = frames.poll(100, TimeUnit.MILLISECONDS)) != null) {
-                frameCount++;
-                totalBytes += remaining.data().length();
-            }
-
-            long elapsedSeconds = TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - startNano);
-            double fps = elapsedSeconds > 0 ? (double) frameCount / elapsedSeconds : frameCount;
-
-            System.out.println("=== Screencast Interaction Measurement ===");
-            System.out.println("Duration: " + elapsedSeconds + " s");
-            System.out.println("Total Frames: " + frameCount);
-            System.out.println("FPS: " + String.format("%.2f", fps));
-            System.out.println("Total Base64 Bytes: " + totalBytes + " (" + (totalBytes / 1024) + " KB)");
-            if (frameCount > 0) {
-                System.out.println("Avg Frame Size: " + (totalBytes / frameCount / 1024) + " KB");
-            }
-
-            assertThat(frameCount).as("Interactive flow produced frames").isGreaterThan(0);
-        } finally {
-            bridge.detach(session);
         }
     }
 

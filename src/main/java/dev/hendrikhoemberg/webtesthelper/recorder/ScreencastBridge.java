@@ -73,7 +73,7 @@ public class ScreencastBridge {
         // If an attachment already exists for this session, detach it first
         detach(session);
 
-        Attachment attachment = new Attachment(session, sink);
+        Attachment attachment = new Attachment(sink);
         activeAttachments.put(session.sessionId(), attachment);
         historicalAcks.computeIfAbsent(session.sessionId(), k -> new AtomicLong(0));
 
@@ -115,7 +115,6 @@ public class ScreencastBridge {
                     cdp.send("Page.screencastFrameAck", ack);
                     log.debug("ScreencastBridge sendet screencastFrameAck für sessionId={}", frameSessionId);
 
-                    attachment.ackCount.incrementAndGet();
                     AtomicLong total = historicalAcks.get(session.sessionId());
                     if (total != null) {
                         total.incrementAndGet();
@@ -300,16 +299,13 @@ public class ScreencastBridge {
     }
 
     private static class Attachment {
-        final RecordingSession session;
         final FrameSink sink;
         final AtomicBoolean detached = new AtomicBoolean(false);
-        final AtomicLong ackCount = new AtomicLong(0);
         volatile CDPSession cdpSession;
         volatile Consumer<JsonObject> frameListener;
         volatile Future<?> pumpTask;
 
-        Attachment(RecordingSession session, FrameSink sink) {
-            this.session = session;
+        Attachment(FrameSink sink) {
             this.sink = sink;
         }
     }
