@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Reise buchen — Schritt 2</title>
+</head>
+<body>
+  <h1>Reiseangaben</h1>
+  <form action="ziel.html" method="get" id="reise-form">
+    <div>
+      <label for="reise-name">Name</label>
+      <input type="text" id="reise-name" name="name" data-testid="reise-name" required>
+    </div>
+    <div>
+      <label for="reise-ziel">Reiseziel</label>
+      <select id="reise-ziel" name="ziel" data-testid="reise-ziel">
+        <option value="berlin">Berlin</option>
+        <option value="paris">Paris</option>
+        <option value="rom">Rom</option>
+      </select>
+    </div>
+    <div>
+      <label for=":r7:">E-Mail</label>
+      <input type="email" id=":r7:" name="email" required>
+    </div>
+    <div>
+      <button type="submit" id="reise-submit" data-testid="reise-submit">Buchung abschließen</button>
+    </div>
+  </form>
+</body>
+</html>
