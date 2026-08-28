@@ -69,7 +69,7 @@ public final class LocatorResolver {
         return Optional.empty();
     }
 
-    private static Locator toLocator(Page page, LocatorCandidate candidate) {
+    static Locator toLocator(Page page, LocatorCandidate candidate) {
         return switch (candidate.strategy()) {
             case TEST_ID -> page.getByTestId(candidate.value());
             case ROLE -> resolveRole(page, candidate.value());
