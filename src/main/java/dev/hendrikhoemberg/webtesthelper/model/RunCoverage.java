@@ -41,12 +41,16 @@ import java.util.Set;
  * A type present in {@link #interactionCheckTypes} but absent (or empty) in
  * {@link #interactionLocationKeys} therefore resolves nothing at all, which is the honest answer
  * for a check that could not see.
+ * <p>Journey checks are scoped by completed journey replay (D107): a run that replayed 3 of 5
+ * journeys resolves findings only within those 3 journeys. Location key is the journey ID as a
+ * string.
  */
 public record RunCoverage(Set<CheckType> checkTypes,
                           Set<String> locationKeys,
                           boolean wholeSite,
                           Set<CheckType> interactionCheckTypes,
-                          Map<CheckType, Set<String>> interactionLocationKeys) {
+                          Map<CheckType, Set<String>> interactionLocationKeys,
+                          Set<Long> journeyIds) {
 
     /**
      * Copies all sets: coverage decides what a run is allowed to resolve, so a caller holding
@@ -59,10 +63,19 @@ public record RunCoverage(Set<CheckType> checkTypes,
         Map<CheckType, Set<String>> copiedLocations = new EnumMap<>(CheckType.class);
         interactionLocationKeys.forEach((type, keys) -> copiedLocations.put(type, Set.copyOf(keys)));
         interactionLocationKeys = Map.copyOf(copiedLocations);
+        journeyIds = Set.copyOf(journeyIds);
     }
 
     public RunCoverage(Set<CheckType> checkTypes, Set<String> locationKeys, boolean wholeSite) {
-        this(checkTypes, locationKeys, wholeSite, Set.of(), Map.of());
+        this(checkTypes, locationKeys, wholeSite, Set.of(), Map.of(), Set.of());
+    }
+
+    public RunCoverage(Set<CheckType> checkTypes,
+                       Set<String> locationKeys,
+                       boolean wholeSite,
+                       Set<CheckType> interactionCheckTypes,
+                       Map<CheckType, Set<String>> interactionLocationKeys) {
+        this(checkTypes, locationKeys, wholeSite, interactionCheckTypes, interactionLocationKeys, Set.of());
     }
 
     public static RunCoverage of(RunScope scope,
@@ -70,7 +83,16 @@ public record RunCoverage(Set<CheckType> checkTypes,
                                  Collection<String> coveredUrls,
                                  Collection<String> snapshotUrls,
                                  boolean partialCoverage) {
-        return of(scope, checkTypeNames, coveredUrls, snapshotUrls, partialCoverage, Set.of(), Map.of());
+        return of(scope, checkTypeNames, coveredUrls, snapshotUrls, partialCoverage, Set.of(), Map.of(), Set.of());
+    }
+
+    public static RunCoverage of(RunScope scope,
+                                 Collection<String> checkTypeNames,
+                                 Collection<String> coveredUrls,
+                                 Collection<String> snapshotUrls,
+                                 boolean partialCoverage,
+                                 Set<Long> journeyIds) {
+        return of(scope, checkTypeNames, coveredUrls, snapshotUrls, partialCoverage, Set.of(), Map.of(), journeyIds);
     }
 
     /**
@@ -85,6 +107,17 @@ public record RunCoverage(Set<CheckType> checkTypes,
                                  boolean partialCoverage,
                                  Set<CheckType> interactionCheckTypes,
                                  Map<CheckType, ? extends Collection<String>> interactionUrlsByType) {
+        return of(scope, checkTypeNames, coveredUrls, snapshotUrls, partialCoverage, interactionCheckTypes, interactionUrlsByType, Set.of());
+    }
+
+    public static RunCoverage of(RunScope scope,
+                                 Collection<String> checkTypeNames,
+                                 Collection<String> coveredUrls,
+                                 Collection<String> snapshotUrls,
+                                 boolean partialCoverage,
+                                 Set<CheckType> interactionCheckTypes,
+                                 Map<CheckType, ? extends Collection<String>> interactionUrlsByType,
+                                 Set<Long> journeyIds) {
         Set<CheckType> checkTypes = parseCheckTypes(checkTypeNames);
         Set<String> locationKeys = parseLocationKeys(coveredUrls, snapshotUrls);
 
@@ -99,7 +132,8 @@ public record RunCoverage(Set<CheckType> checkTypes,
 
         return new RunCoverage(checkTypes, locationKeys, scope.crawlsWholeSite() && !partialCoverage,
                 interactionCheckTypes == null ? Set.of() : interactionCheckTypes,
-                interactionLocationKeys);
+                interactionLocationKeys,
+                journeyIds == null ? Set.of() : journeyIds);
     }
 
     private static Set<CheckType> parseCheckTypes(Collection<String> names) {

@@ -155,4 +155,31 @@ class RunCoverageTest {
         assertThat(coverage.interactionLocationKeys()).containsOnlyKeys(CheckType.PAGE_STATUS);
         assertThat(coverage.interactionLocationKeys().get(CheckType.PAGE_STATUS)).containsExactly("/a");
     }
+
+    @Test
+    void journeyIdsIsCopiedDefensively() {
+        Set<Long> ids = new java.util.LinkedHashSet<>(Set.of(1L, 2L));
+        RunCoverage coverage = new RunCoverage(Set.of(), Set.of(), true, Set.of(), Map.of(), ids);
+        ids.add(3L);
+        assertThat(coverage.journeyIds()).containsExactlyInAnyOrder(1L, 2L);
+    }
+
+    @Test
+    void aRunWithNoJourneysYieldsAnEmptySetNotNull() {
+        RunCoverage coverage = RunCoverage.of(RunScope.FULL, List.of(), List.of(), List.of(), false);
+        assertThat(coverage.journeyIds()).isNotNull().isEmpty();
+
+        RunCoverage coverageWithNullJourneys = RunCoverage.of(RunScope.FULL, List.of(), List.of(), List.of(), false,
+                Set.of(), Map.of(), null);
+        assertThat(coverageWithNullJourneys.journeyIds()).isNotNull().isEmpty();
+    }
+
+    @Test
+    void ofWithJourneyIdsPopulatesJourneyCoverage() {
+        RunCoverage coverage = RunCoverage.of(RunScope.FULL,
+                List.of(), List.of(), List.of(), false,
+                Set.of(10L, 20L));
+        assertThat(coverage.journeyIds()).containsExactlyInAnyOrder(10L, 20L);
+    }
 }
+

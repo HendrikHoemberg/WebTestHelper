@@ -74,6 +74,9 @@ public class RunEntity {
     @JdbcTypeCode(SqlTypes.JSON)
     private List<String> coveredInteractionCheckTypes = List.of();
 
+    @JdbcTypeCode(SqlTypes.JSON)
+    private List<Long> coveredJourneyIds = List.of();
+
     private boolean partialCoverage;
 
     private String budgetStopReason;

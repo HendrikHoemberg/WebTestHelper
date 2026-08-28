@@ -99,6 +99,16 @@ public class FindingStore {
                AND location_key = ANY(?)
             """;
 
+    private static final String RESOLVE_JOURNEY_SQL = """
+            UPDATE finding
+               SET observed_status = 'RESOLVED', resolved_at_run = ?, version = version + 1
+             WHERE site_id = ?
+               AND observed_status = 'ACTIVE'
+               AND last_seen_run <> ?
+               AND check_type = ANY(?)
+               AND location_key = ANY(?)
+            """;
+
     private static final String ACCEPT_BASELINE_SQL = """
             UPDATE finding
                SET triage_status = 'ACKNOWLEDGED',
@@ -496,8 +506,10 @@ public class FindingStore {
         // target must resolve nothing — but its type is still in the run's covered check types,
         // so filtering on what was *driven* here would silently resolve it against every crawled
         // page, which is precisely the false resolution spec 6.4 exists to prevent.
+        // Journey types are also excluded: they resolve strictly within completed journeys (D107).
         String[] standardCheckTypes = coverage.checkTypes().stream()
                 .filter(t -> !coverage.interactionCheckTypes().contains(t))
+                .filter(t -> !t.journey())
                 .map(CheckType::name)
                 .toArray(String[]::new);
         if (standardCheckTypes.length > 0) {
@@ -516,6 +528,21 @@ public class FindingStore {
             resolved += jdbc.update(RESOLVE_INTERACTION_SQL, runId, siteId, runId,
                     new String[] {entry.getKey().name()},
                     entry.getValue().toArray(String[]::new));
+        }
+
+        // D107: Journey findings resolve only within the journeys a run actually finished replaying.
+        // A run that replayed 3 of 5 journeys must leave the other two alone.
+        if (!coverage.journeyIds().isEmpty()) {
+            String[] journeyTypes = java.util.Arrays.stream(CheckType.values())
+                    .filter(CheckType::journey)
+                    .map(CheckType::name)
+                    .toArray(String[]::new);
+            String[] journeyLocationKeys = coverage.journeyIds().stream()
+                    .map(String::valueOf)
+                    .toArray(String[]::new);
+            resolved += jdbc.update(RESOLVE_JOURNEY_SQL, runId, siteId, runId,
+                    journeyTypes,
+                    journeyLocationKeys);
         }
         return resolved;
     }
