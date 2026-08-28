@@ -253,6 +253,48 @@ This is the phase's closing test and the only one that proves the recorder produ
 
 ## Execution findings
 
-*(Filled in during execution. Record any §10.2 candidate strategy that turned out not to be
-derivable from a `CapturedEvent`, and the id-rejection rule as finally shipped. Do not edit the tasks
-above once they have run.)*
+**§10.2 candidate strategies: all six are derivable from a single `CapturedEvent`.** No strategy
+needed a value the capture script did not already report: `TEST_ID` from `testId`, `ROLE` (+ appended
+`[name="…"]`) from `role`/`accessibleName`, `LABEL` from `labelText`, `ID` from `id` (gated by
+`AuthoredId`), `TEXT` from `textContent`, `CSS` from `cssPath`. Nothing had to be added to the event
+record or the script.
+
+**Role grammar.** The recorder emits `role[name="…"]` with double quotes
+(`CandidateBuilder`), and plan 14's `LocatorResolver.resolveRole`/`stripQuotes` accepts both quote
+styles, so the re-journey replays green without any translation. `CandidateBuilderTest` pins the
+double-quoted form.
+
+**The id-rejection rule as shipped (`AuthoredId.looksAuthored`):** reject when any holds — blank or
+longer than 64 chars; contains a character outside `[A-Za-z0-9_-]`; matches `^[0-9a-f]{8,}$`
+case-insensitive (long hex, which also swallows digit-only ids); digits are more than half the
+characters (digit-heavy, e.g. `ember123`, `id-4815162342`); or matches a known generator prefix
+`ember, react-, ng-, mui-, radix-, headlessui-, svelte-` (case-insensitive). `AuthoredIdTest` is
+table-driven and covers every §10.2 example plus the fixture's real ids and the plan's requested
+examples (`kontakt-formular`, `absenden`, `:r7:`, `a3f9b2c81d`, `x1`). Notably `:r7:` — the email
+input's id in `reise/schritt2.html` — is rejected, so that step comes out with no `ID` candidate and
+`ROLE`/`LABEL` carry it.
+
+**select/CHANGE and click-then-type collapsing.** Plan 16's input path reports a select interaction as
+a `CHANGE` on a `<select>`, and the click-then-type shape as a `CLICK` followed by per-keystroke
+`INPUT`s. `StepBuilder.mapAction` now looks at the whole event: `SELECT` when `tagName` is `select` or
+`role` is `combobox`, else `FILL` for `INPUT`/`CHANGE` (so a `CHANGE` on a text field is a `FILL`,
+not a bogus `SELECT`); and the collapse rule folds a `CLICK` into a same-element `INPUT`/`CHANGE`,
+so `CLICK`+`INPUT` becomes one `FILL` and `CLICK`+`CHANGE` on a select becomes one `SELECT`. Without
+these, the recorded journey carries a spurious step per action and breaks assertion (a) and the
+replay. All of this is pinned by new `StepBuilderTest` cases (verified to fail against the pre-change
+`StepBuilder`).
+
+**Mutation check (measured, and it matters):** with `CandidateBuilder` temporarily emitting only the
+CSS candidate, the acceptance test still **fails** — but at assertion (b), **not (c)**. The replay
+(c) a journey driven with only CSS locators **still returns `PASSED`**: the fixture's scoped CSS paths
+are stable enough for plan 14's engine. So (b) ("each step carries at least two candidates") is the
+operative guard against a candidate-strategy regression, while (c) remains the honest end-to-end proof
+that the recorded journey is executable. The test is well-designed as written; nothing was redesigned.
+
+**Password redaction.** A typed password never reaches a `FILL` value, the built step objects, or the
+persisted `journey.steps` row (the password test greps the stored JSON, not just the built list).
+
+**"One session for the class" caveat.** The class opens a separate recording session per test method —
+one for the `reise` journey, one for the password journey — sharing a single fixture site and DB context
+via `@BeforeAll`/`@AfterAll`. A single session cannot hold two distinct journeys, so "one session for
+the class" is realised as one fixture/crawler lifecycle for the class, not one shared recording.

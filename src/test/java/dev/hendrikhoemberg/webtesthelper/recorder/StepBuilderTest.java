@@ -208,6 +208,99 @@ class StepBuilderTest {
     }
 
     @Test
+    void clickThenInputOnSameElementCollapsesIntoOneFillStep() {
+        CapturedEvent click = new CapturedEvent(
+                EventKind.CLICK, "input", "name", "input-name", "textbox",
+                "Name", "Vorname", null, null, "input#name"
+        );
+        CapturedEvent input = new CapturedEvent(
+                EventKind.INPUT, "input", "name", "input-name", "textbox",
+                "Name", "Vorname", null, "Erika Mustermann", "input#name"
+        );
+
+        List<JourneyStep> steps = StepBuilder.build(List.of(click, input), START_URL);
+
+        assertThat(steps).hasSize(2);
+        JourneyStep step = steps.get(1);
+        assertThat(step.ordinal()).isEqualTo(1);
+        assertThat(step.action()).isEqualTo(StepAction.FILL);
+        assertThat(step.value()).isEqualTo("Erika Mustermann");
+    }
+
+    @Test
+    void clickThenChangeOnSameSelectCollapsesIntoOneSelectStep() {
+        CapturedEvent click = new CapturedEvent(
+                EventKind.CLICK, "select", "reise-ziel", null, "combobox",
+                "Ziel", "Ziel", null, null, "select#reise-ziel"
+        );
+        CapturedEvent change = new CapturedEvent(
+                EventKind.CHANGE, "select", "reise-ziel", null, "combobox",
+                "Ziel", "Ziel", null, "paris", "select#reise-ziel"
+        );
+
+        List<JourneyStep> steps = StepBuilder.build(List.of(click, change), START_URL);
+
+        assertThat(steps).hasSize(2);
+        JourneyStep step = steps.get(1);
+        assertThat(step.ordinal()).isEqualTo(1);
+        assertThat(step.action()).isEqualTo(StepAction.SELECT);
+        assertThat(step.value()).isEqualTo("paris");
+    }
+
+    @Test
+    void changeOnNonSelectElementProducesFillStepNotSelect() {
+        CapturedEvent change = new CapturedEvent(
+                EventKind.CHANGE, "input", "name", null, "textbox",
+                "Name", "Vorname", null, "Alice", "input#name"
+        );
+
+        List<JourneyStep> steps = StepBuilder.build(List.of(change), START_URL);
+
+        assertThat(steps).hasSize(2);
+        JourneyStep step = steps.get(1);
+        assertThat(step.action()).isEqualTo(StepAction.FILL);
+        assertThat(step.value()).isEqualTo("Alice");
+    }
+
+    @Test
+    void changeFollowingInputOnSameTextFieldCollapsesIntoOneFillStep() {
+        CapturedEvent input = new CapturedEvent(
+                EventKind.INPUT, "input", "name", null, "textbox",
+                "Name", "Vorname", null, "Alice", "input#name"
+        );
+        CapturedEvent change = new CapturedEvent(
+                EventKind.CHANGE, "input", "name", null, "textbox",
+                "Name", "Vorname", null, "Alice", "input#name"
+        );
+
+        List<JourneyStep> steps = StepBuilder.build(List.of(input, change), START_URL);
+
+        assertThat(steps).hasSize(2);
+        JourneyStep step = steps.get(1);
+        assertThat(step.action()).isEqualTo(StepAction.FILL);
+        assertThat(step.value()).isEqualTo("Alice");
+    }
+
+    @Test
+    void consecutiveChangeOnSameSelectCollapsesIntoOneSelectStepWithFinalValue() {
+        CapturedEvent c1 = new CapturedEvent(
+                EventKind.CHANGE, "select", "ziel", null, "combobox",
+                "Ziel", "Ziel", null, "berlin", "select#ziel"
+        );
+        CapturedEvent c2 = new CapturedEvent(
+                EventKind.CHANGE, "select", "ziel", null, "combobox",
+                "Ziel", "Ziel", null, "paris", "select#ziel"
+        );
+
+        List<JourneyStep> steps = StepBuilder.build(List.of(c1, c2), START_URL);
+
+        assertThat(steps).hasSize(2);
+        JourneyStep step = steps.get(1);
+        assertThat(step.action()).isEqualTo(StepAction.SELECT);
+        assertThat(step.value()).isEqualTo("paris");
+    }
+
+    @Test
     void submitFollowingClickOnSubmitButtonIsSuppressed() {
         CapturedEvent clickSubmit = new CapturedEvent(
                 EventKind.CLICK, "button", "submit-btn", "btn-submit", "button",

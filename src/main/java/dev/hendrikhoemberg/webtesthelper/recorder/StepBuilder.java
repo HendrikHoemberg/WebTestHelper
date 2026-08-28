@@ -80,10 +80,12 @@ public final class StepBuilder {
                     }
                 }
             }
-            if (event.kind() == CapturedEvent.EventKind.INPUT) {
+            if (event.kind() == CapturedEvent.EventKind.INPUT || event.kind() == CapturedEvent.EventKind.CHANGE) {
                 if (!collapsed.isEmpty()) {
                     CapturedEvent last = collapsed.get(collapsed.size() - 1);
-                    if (last.kind() == CapturedEvent.EventKind.INPUT && isSameElement(last, event)) {
+                    if (isSameElement(last, event) && (last.kind() == CapturedEvent.EventKind.INPUT
+                            || last.kind() == CapturedEvent.EventKind.CHANGE
+                            || last.kind() == CapturedEvent.EventKind.CLICK)) {
                         collapsed.set(collapsed.size() - 1, event);
                         continue;
                     }
@@ -95,7 +97,7 @@ public final class StepBuilder {
     }
 
     private static JourneyStep toStep(CapturedEvent event, int ordinal) {
-        StepAction action = mapAction(event.kind());
+        StepAction action = mapAction(event);
         List<LocatorCandidate> candidates = CandidateBuilder.build(event);
         String value = resolveValue(event, action);
 
@@ -111,11 +113,13 @@ public final class StepBuilder {
         );
     }
 
-    private static StepAction mapAction(CapturedEvent.EventKind kind) {
-        return switch (kind) {
+    private static StepAction mapAction(CapturedEvent event) {
+        if ("select".equalsIgnoreCase(event.tagName()) || "combobox".equalsIgnoreCase(event.role())) {
+            return StepAction.SELECT;
+        }
+        return switch (event.kind()) {
             case CLICK, SUBMIT -> StepAction.CLICK;
-            case INPUT -> StepAction.FILL;
-            case CHANGE -> StepAction.SELECT;
+            case INPUT, CHANGE -> StepAction.FILL;
         };
     }
 
