@@ -40,18 +40,33 @@
                 <th th:text="#{ui.journey.liste.tabelle.name}">Name</th>
                 <th th:text="#{ui.journey.liste.tabelle.schritte}">Schritte</th>
                 <th th:text="#{ui.journey.liste.tabelle.status}">Status</th>
+                <th th:text="#{ui.journey.liste.tabelle.letzter_erfolg}">Letzter Erfolg</th>
+                <th th:text="#{ui.journey.liste.tabelle.fehlschlaege}">Fehlschläge</th>
                 <th th:text="#{ui.journey.liste.tabelle.aktionen}">Aktionen</th>
             </tr>
         </thead>
         <tbody>
-            <tr th:each="journey : ${journeys}">
+            <tr th:each="journey : ${journeys}" th:with="health=${healthByJourneyId != null ? healthByJourneyId.get(journey.id) : null}">
                 <td>
                     <a th:href="@{/sites/{siteId}/journeys/{journeyId}(siteId=${site.siteId}, journeyId=${journey.id})}" th:text="${journey.name}">Ablauf Name</a>
+                    <div th:if="${health != null and health.needsRerecording}" class="feld-warnung runder-kasten mt-2">
+                        <strong th:text="#{ui.journey.health.neuaufzeichnung_erforderlich}">Neuaufzeichnung erforderlich</strong>
+                        <p class="hinweis-text" th:text="#{ui.journey.health.neuaufzeichnung_hinweis}">
+                            Dieser Ablauf schlägt nach wiederholten Selektor-Abweichungen (Drift) fehl. Die gespeicherten Selektoren passen nicht mehr zur aktuellen Website. Bitte zeichnen Sie diesen Ablauf neu auf.
+                        </p>
+                    </div>
                 </td>
                 <td th:text="${#lists.size(journey.steps)}">0</td>
                 <td>
                     <span th:if="${journey.enabled}" class="status-badge status-aktiv" th:text="#{ui.journey.status.aktiv}">Aktiv</span>
                     <span th:unless="${journey.enabled}" class="status-badge status-inaktiv" th:text="#{ui.journey.status.inaktiv}">Inaktiv</span>
+                </td>
+                <td>
+                    <span th:if="${health != null and health.lastSuccessAt != null}" th:text="${#temporals.format(health.lastSuccessAt, 'dd.MM.yyyy HH:mm')}">28.08.2026 10:00</span>
+                    <span th:if="${health == null or health.lastSuccessAt == null}" class="text-gedaempft" th:text="#{ui.journey.health.nie}">Noch nie</span>
+                </td>
+                <td>
+                    <span th:text="${health != null ? health.consecutiveFailures : 0}">0</span>
                 </td>
                 <td>
                     <a th:href="@{/sites/{siteId}/journeys/{journeyId}(siteId=${site.siteId}, journeyId=${journey.id})}" th:text="#{ui.journey.liste.ansehen}">Ansehen</a>

@@ -1,5 +1,7 @@
 package dev.hendrikhoemberg.webtesthelper.web;
 
+import dev.hendrikhoemberg.webtesthelper.catalog.JourneyHealth;
+import dev.hendrikhoemberg.webtesthelper.catalog.JourneyHealthService;
 import dev.hendrikhoemberg.webtesthelper.catalog.JourneyService;
 import dev.hendrikhoemberg.webtesthelper.catalog.SiteService;
 import dev.hendrikhoemberg.webtesthelper.model.JourneyDefinition;
@@ -11,26 +13,40 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Controller
 public class JourneyController {
 
     private final JourneyService journeyService;
     private final SiteService siteService;
+    private final JourneyHealthService journeyHealthService;
 
-    public JourneyController(JourneyService journeyService, SiteService siteService) {
+    public JourneyController(JourneyService journeyService, SiteService siteService, JourneyHealthService journeyHealthService) {
         this.journeyService = journeyService;
         this.siteService = siteService;
+        this.journeyHealthService = journeyHealthService;
     }
 
     @GetMapping({"/sites/{siteId}/journeys", "/websites/{siteId}/reisen"})
     public String list(@PathVariable("siteId") long siteId, Model model) {
         SiteContext site = siteService.contextFor(siteId);
         List<JourneyDefinition> journeys = journeyService.findBySite(siteId);
+        Map<Long, JourneyHealth> healthByJourneyId = journeys.stream()
+                .filter(j -> j.id() != null)
+                .collect(Collectors.toMap(
+                        JourneyDefinition::id,
+                        j -> journeyHealthService.health(j.id()).orElse(new JourneyHealth(null, 0, 0)),
+                        (a, b) -> a,
+                        LinkedHashMap::new
+                ));
         model.addAttribute("site", site);
         model.addAttribute("journeys", journeys);
+        model.addAttribute("healthByJourneyId", healthByJourneyId);
         return "journey/list";
     }
 
@@ -42,8 +58,11 @@ public class JourneyController {
         JourneyDefinition journey = journeyService.findDefinition(journeyId)
                 .filter(j -> Objects.equals(j.siteId(), siteId))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ablauf nicht gefunden: " + journeyId));
+        JourneyHealth health = journeyHealthService.health(journeyId)
+                .orElse(new JourneyHealth(null, 0, 0));
         model.addAttribute("site", site);
         model.addAttribute("journey", journey);
+        model.addAttribute("health", health);
         return "journey/detail";
     }
 }

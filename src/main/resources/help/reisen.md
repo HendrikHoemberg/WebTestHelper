@@ -53,3 +53,21 @@ Werden Benutzerabläufe während eines automatischen oder manuellen Prüflaufs a
 * **Selektor-Drift:** Der Schritt war erfolgreich, das Element wurde jedoch erst über einen Ausweich-Selektor gefunden. Dies wird als Warnung gemeldet, damit die Selektoren des Ablaufs rechtzeitig aktualisiert werden können, bevor weitere Änderungen der Website zum Ausfall führen.
 
 Beide Befunde können wie alle anderen Feststellungen bewertet (triagiert), zur Kenntnis genommen oder bei Bedarf stummgeschaltet werden.
+
+## Zuverlässigkeit und Ablauf-Gesundheit (Journey Health)
+
+WebTestHelper erfasst für jeden Ablauf statistische Kennzahlen zur Zuverlässigkeit über mehrere Prüfläufe hinweg:
+
+* **Letzter Erfolg:** Der Zeitpunkt, an dem der Ablauf zuletzt vollständig (oder mit Selektor-Drift) fehlerfrei durchgelaufen ist.
+* **Fehlschläge in Folge:** Wie oft der Ablauf seit dem letzten erfolgreichen Durchlauf hintereinander gescheitert ist. Ein erfolgreicher Durchlauf setzt diesen Zähler sofort wieder auf 0 zurück.
+* **Selektor-Abweichungen (Drift-Anzahl):** Die Gesamtzahl aller Schritte, bei denen auf einen nachrangigen Ausweich-Selektor zurückgegriffen werden musste.
+
+### Wann eine Neuaufzeichnung erforderlich ist
+
+Tritt bei einem Ablauf wiederholt ein Fehler auf, nachdem bereits Selektor-Abweichungen verzeichnet wurden (mindestens 3 Fehlschläge in Folge und mindestens 1 Drift), markiert WebTestHelper den Ablauf in der Übersicht und der Detailansicht mit dem Hinweis **„Neuaufzeichnung erforderlich“**.
+
+Dieser Status wird bewusst als Hinweiszustand in der Oberfläche und nicht als dauerhafte Feststellung dargestellt:
+* Wiederholte Fehler *ohne* vorherigen Drift deuten darauf hin, dass die Website selbst gestört ist (z. B. ein Serverfehler oder ein fehlerhaftes Formular) — dies wird als reguläre Feststellung gemeldet.
+* Wiederholte Fehler *nach* aufgetretenem Drift deuten darauf hin, dass die hinterlegten Selektoren und Interaktionsschritte nicht mehr zur veränderten Website passen. Eine dauerhafte Feststellung würde jede Nacht dieselbe Fehlermeldung im Bericht erzeugen, obwohl die Ursache in einer veralteten Testaufzeichnung liegt.
+
+Sobald der Ablauf neu aufgezeichnet oder angepasst wurde und wieder erfolgreich durchläuft, wird der Hinweis automatisch aufgehoben.

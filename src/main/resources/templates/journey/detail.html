@@ -42,7 +42,28 @@
                 <dt th:text="#{ui.journey.detail.schrittanzahl}">Anzahl Schritte</dt>
                 <dd th:text="${#lists.size(journey.steps)}">5</dd>
             </div>
+            <div>
+                <dt th:text="#{ui.journey.detail.letzter_erfolg}">Letzter Erfolg</dt>
+                <dd>
+                    <span th:if="${health != null and health.lastSuccessAt != null}" th:text="${#temporals.format(health.lastSuccessAt, 'dd.MM.yyyy HH:mm')}">28.08.2026 10:00</span>
+                    <span th:if="${health == null or health.lastSuccessAt == null}" class="text-gedaempft" th:text="#{ui.journey.health.nie}">Noch nie</span>
+                </dd>
+            </div>
+            <div>
+                <dt th:text="#{ui.journey.detail.fehlschlaege}">Fehlschläge in Folge</dt>
+                <dd th:text="${health != null ? health.consecutiveFailures : 0}">0</dd>
+            </div>
+            <div>
+                <dt th:text="#{ui.journey.detail.drift_anzahl}">Selektor-Abweichungen (Drift)</dt>
+                <dd th:text="${health != null ? health.driftCount : 0}">0</dd>
+            </div>
         </dl>
+        <div th:if="${health != null and health.needsRerecording}" class="feld-warnung runder-kasten mt-2">
+            <strong th:text="#{ui.journey.health.neuaufzeichnung_erforderlich}">Neuaufzeichnung erforderlich</strong>
+            <p class="hinweis-text" th:text="#{ui.journey.health.neuaufzeichnung_hinweis}">
+                Dieser Ablauf schlägt nach wiederholten Selektor-Abweichungen (Drift) fehl. Die gespeicherten Selektoren passen nicht mehr zur aktuellen Website. Bitte zeichnen Sie diesen Ablauf neu auf.
+            </p>
+        </div>
     </div>
 
     <section class="detail-bereich">

@@ -1,5 +1,7 @@
 package dev.hendrikhoemberg.webtesthelper.web;
 
+import dev.hendrikhoemberg.webtesthelper.catalog.JourneyHealth;
+import dev.hendrikhoemberg.webtesthelper.catalog.JourneyHealthService;
 import dev.hendrikhoemberg.webtesthelper.catalog.JourneyService;
 import dev.hendrikhoemberg.webtesthelper.catalog.SiteService;
 import dev.hendrikhoemberg.webtesthelper.model.AssertionType;
@@ -21,6 +23,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -47,6 +50,9 @@ class JourneyControllerTest {
 
     @MockitoBean
     JourneyService journeyService;
+
+    @MockitoBean
+    JourneyHealthService journeyHealthService;
 
     @MockitoBean
     AppUserService appUserService;
@@ -76,6 +82,8 @@ class JourneyControllerTest {
         JourneyDefinition j2 = new JourneyDefinition(20L, 1L, "Wunschliste-Ablauf", false, List.of(step1));
 
         when(journeyService.findBySite(1L)).thenReturn(List.of(j1, j2));
+        when(journeyHealthService.health(10L)).thenReturn(Optional.of(new JourneyHealth(Instant.parse("2026-08-28T10:00:00Z"), 0, 0)));
+        when(journeyHealthService.health(20L)).thenReturn(Optional.of(new JourneyHealth(null, 2, 0)));
 
         mvc.perform(get("/sites/1/journeys"))
                 .andExpect(status().isOk())
@@ -88,7 +96,33 @@ class JourneyControllerTest {
                 .andExpect(content().string(containsString("Aktiv")))
                 .andExpect(content().string(containsString("Inaktiv")))
                 .andExpect(content().string(containsString("/sites/1/journeys/10")))
-                .andExpect(content().string(containsString("/sites/1/journeys/20")));
+                .andExpect(content().string(containsString("/sites/1/journeys/20")))
+                // Health info: last success and failure streak
+                .andExpect(content().string(containsString("28.08.2026")))
+                .andExpect(content().string(containsString("Noch nie")))
+                .andExpect(content().string(not(containsString("Neuaufzeichnung erforderlich"))));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void listJourneys_whenJourneyNeedsRerecording_rendersExplainingState() throws Exception {
+        JourneyStep step1 = new JourneyStep(UUID.randomUUID(), 0, StepAction.GOTO, List.of(), "https://acme.example.com/login", null, false, 5000);
+        JourneyDefinition j1 = new JourneyDefinition(10L, 1L, "Checkout-Ablauf", true, List.of(step1));
+        JourneyDefinition j2 = new JourneyDefinition(20L, 1L, "Wunschliste-Ablauf", true, List.of(step1));
+
+        when(journeyService.findBySite(1L)).thenReturn(List.of(j1, j2));
+        // j1 meets threshold: 3 failures >= 3 && drift 2 > 0 -> needsRerecording = true
+        when(journeyHealthService.health(10L)).thenReturn(Optional.of(new JourneyHealth(Instant.parse("2026-08-28T10:00:00Z"), 3, 2)));
+        // j2 below threshold: 3 failures >= 3 && drift 0 == 0 -> needsRerecording = false
+        when(journeyHealthService.health(20L)).thenReturn(Optional.of(new JourneyHealth(Instant.parse("2026-08-28T10:00:00Z"), 3, 0)));
+
+        mvc.perform(get("/sites/1/journeys"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("journey/list"))
+                .andExpect(model().attributeExists("site", "journeys"))
+                // Explanatory copy for needsRerecording (§13.2)
+                .andExpect(content().string(containsString("Neuaufzeichnung erforderlich")))
+                .andExpect(content().string(containsString("Dieser Ablauf schlägt nach wiederholten Selektor-Abweichungen (Drift) fehl.")));
     }
 
     @Test
@@ -137,13 +171,20 @@ class JourneyControllerTest {
                 List.of(step0, step1, step2, step3, step4));
 
         when(journeyService.findDefinition(10L)).thenReturn(Optional.of(journey));
+        when(journeyHealthService.health(10L)).thenReturn(Optional.of(new JourneyHealth(Instant.parse("2026-08-28T10:00:00Z"), 3, 2)));
 
         mvc.perform(get("/sites/1/journeys/10"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("journey/detail"))
-                .andExpect(model().attributeExists("site", "journey"))
+                .andExpect(model().attributeExists("site", "journey", "health"))
                 .andExpect(content().string(containsString("Anmeldung")))
                 .andExpect(content().string(containsString("Aktiv")))
+                // Health stats: drift count, last success, consecutive failures, needs re-recording
+                .andExpect(content().string(containsString("2")))
+                .andExpect(content().string(containsString("3")))
+                .andExpect(content().string(containsString("28.08.2026")))
+                .andExpect(content().string(containsString("Neuaufzeichnung erforderlich")))
+                .andExpect(content().string(containsString("Dieser Ablauf schlägt nach wiederholten Selektor-Abweichungen (Drift) fehl.")))
                 // Actions
                 .andExpect(content().string(containsString("GOTO")))
                 .andExpect(content().string(containsString("FILL")))
@@ -170,6 +211,25 @@ class JourneyControllerTest {
                 .andExpect(content().string(containsString("Optional")))
                 // Timeout
                 .andExpect(content().string(containsString("3000")));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void detailJourney_whenHealthy_rendersZeroDriftAndNoRerecordingWarning() throws Exception {
+        JourneyStep step0 = new JourneyStep(
+                UUID.randomUUID(), 0, StepAction.GOTO,
+                List.of(), "https://acme.example.com/login", null, false, 5000);
+        JourneyDefinition journey = new JourneyDefinition(10L, 1L, "Anmeldung", true, List.of(step0));
+
+        when(journeyService.findDefinition(10L)).thenReturn(Optional.of(journey));
+        when(journeyHealthService.health(10L)).thenReturn(Optional.of(new JourneyHealth(Instant.parse("2026-08-28T10:00:00Z"), 0, 0)));
+
+        mvc.perform(get("/sites/1/journeys/10"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("journey/detail"))
+                .andExpect(model().attributeExists("site", "journey", "health"))
+                .andExpect(content().string(containsString("Anmeldung")))
+                .andExpect(content().string(not(containsString("Neuaufzeichnung erforderlich"))));
     }
 
     @Test
