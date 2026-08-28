@@ -93,7 +93,18 @@ class ScreencastBridgeTest {
         BlockingQueue<ScreencastFrame> frames = new LinkedBlockingQueue<>();
         bridge.attach(session, frames::add);
         try {
-            ScreencastFrame initial = frames.poll(3, TimeUnit.SECONDS);
+            // The screencast's own first event frame can arrive before the on-attach frame, and
+            // its metadata comes from Chromium's compositor — which under load still reports the
+            // pre-scroll state. The frame whose metadata this test exists for is the on-attach
+            // capture (sessionId 0, no ack), which reads Page.getLayoutMetrics synchronously.
+            ScreencastFrame initial = null;
+            long deadline = System.currentTimeMillis() + 3_000;
+            while (initial == null && System.currentTimeMillis() < deadline) {
+                ScreencastFrame frame = frames.poll(100, TimeUnit.MILLISECONDS);
+                if (frame != null && !frame.requiresAck()) {
+                    initial = frame;
+                }
+            }
             assertThat(initial).as("On-attach frame delivered").isNotNull();
             assertThat(initial.metadata().scrollOffsetY())
                     .as("On-attach metadata carries the page's real scroll position")
