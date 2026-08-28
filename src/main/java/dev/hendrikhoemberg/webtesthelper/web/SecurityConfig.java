@@ -35,6 +35,7 @@ public class SecurityConfig implements WebMvcConfigurer {
                         .authenticated()
                 .requestMatchers(HttpMethod.POST, "/websites/*/einrichtung", "/websites/*/einrichtung/neu")
                         .authenticated()
+                .requestMatchers("/recorder/ws/**", "/recorder/ws/*").authenticated()
                 .anyRequest().authenticated())
             .formLogin(login -> login.loginPage("/anmelden").defaultSuccessUrl("/", false).permitAll())
             .logout(out -> out.logoutUrl("/abmelden").logoutSuccessUrl("/anmelden?abgemeldet"));

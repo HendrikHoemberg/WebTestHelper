@@ -176,4 +176,19 @@ class SecurityRulesTest {
         mvc.perform(post("/einstellungen/benutzer/1/loeschen").with(csrf()))
                 .andExpect(status().isForbidden());
     }
+
+    @Test
+    void anonymousRecorderWebSocketRedirectsToAnmelden() throws Exception {
+        mvc.perform(get("/recorder/ws/5f01ffa4-9864-4996-b761-bef67e716e76"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/anmelden"));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void userCanAccessRecorderWebSocketEndpointInSecurityFilter() throws Exception {
+        // Authenticated user passes Spring Security filter chain (returns 404 in mock MVC without controller)
+        mvc.perform(get("/recorder/ws/5f01ffa4-9864-4996-b761-bef67e716e76"))
+                .andExpect(status().isNotFound());
+    }
 }
