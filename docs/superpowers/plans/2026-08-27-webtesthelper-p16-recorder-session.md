@@ -276,6 +276,12 @@ for the class.
 
 ## Execution findings
 
-*(Filled in during execution. Record the frame-rate measurement and the chosen screencast constants.
-Note anything that contradicts plan 17, which was written ahead of execution. Do not edit the tasks
-above once they have run.)*
+### Task 4: Frame Rate and Bandwidth Measurement
+- **Interaction Duration:** 10.0 seconds of realistic interaction (continuous DOM typing and scrolling against FixtureSite).
+- **Total Frames Emitted:** 51 frames
+- **Frame Rate (FPS):** ~5.10 frames/second
+- **Total Base64 Payload:** 1,553,920 bytes (~1,517 KB)
+- **Average Frame Size:** ~29 KB / frame (base64 JPEG)
+- **Chosen Defaults:** `quality: 60` (from `RecorderProperties`), `everyNthFrame: 1`, `maxWidth: 1280`, `maxHeight: 720`, `format: "jpeg"`.
+- **Bandwidth Evaluation:** During continuous active user typing/scrolling, screencast consumes ~150 KB/s (~1.2 Mbps). On idle pages, change-driven screencasting drops consumption to 0 KB/s while the initial on-attach screenshot (D110) guarantees instantaneous initial view rendering.
+
