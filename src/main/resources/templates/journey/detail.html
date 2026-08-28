@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html th:replace="~{layout :: seite(${journey.name} + ' – ' + #{ui.journey.detail.titel}, ~{::main})}"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title th:text="${journey.name} + ' – ' + #{ui.journey.detail.titel}">Ablauf-Details</title>
+</head>
+<body>
+<main>
+    <header class="seiten-kopf">
+        <div>
+            <h1 th:text="${journey.name}">Ablauf Name</h1>
+            <a th:href="@{/websites/{id}(id=${site.siteId})}" th:text="${site.name}" class="basis-url-link">Website Name</a>
+        </div>
+        <div class="seiten-kopf-aktionen">
+            <a th:href="@{/sites/{siteId}/journeys(siteId=${site.siteId})}" class="button sekundär" th:text="#{ui.journey.detail.zurueck_liste}">Zurück zur Übersicht</a>
+            <a th:href="@{/websites/{id}(id=${site.siteId})}" class="button sekundär" th:text="#{ui.journey.detail.zurueck_website}">Zurück zur Website</a>
+        </div>
+    </header>
+
+    <div class="detail-bereich">
+        <div class="abschnitt-ueberschrift-zeile">
+            <h2 th:text="#{ui.journey.detail.uebersicht}">Übersicht</h2>
+            <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
+                    th:data-hx-get="@{/hilfe/hinweis/{id}(id='reisen')}"
+                    data-hx-target="next .hinweis" data-hx-swap="innerHTML">?</button>
+            <div class="hinweis" aria-live="polite"></div>
+        </div>
+        <dl class="schluessel-werte">
+            <div>
+                <dt th:text="#{ui.journey.detail.name}">Name</dt>
+                <dd th:text="${journey.name}">Anmeldung</dd>
+            </div>
+            <div>
+                <dt th:text="#{ui.journey.detail.status}">Status</dt>
+                <dd>
+                    <span th:if="${journey.enabled}" class="status-badge status-aktiv" th:text="#{ui.journey.status.aktiv}">Aktiv</span>
+                    <span th:unless="${journey.enabled}" class="status-badge status-inaktiv" th:text="#{ui.journey.status.inaktiv}">Inaktiv</span>
+                </dd>
+            </div>
+            <div>
+                <dt th:text="#{ui.journey.detail.schrittanzahl}">Anzahl Schritte</dt>
+                <dd th:text="${#lists.size(journey.steps)}">5</dd>
+            </div>
+        </dl>
+    </div>
+
+    <section class="detail-bereich">
+        <h2 th:text="#{ui.journey.detail.schritte.titel}">Schritte</h2>
+        <div th:if="${#lists.isEmpty(journey.steps)}" class="leer-zustand">
+            <p th:text="#{ui.journey.detail.schritte.leer}">Dieser Ablauf enthält noch keine Schritte.</p>
+        </div>
+        <table th:if="${not #lists.isEmpty(journey.steps)}" class="daten-tabelle">
+            <thead>
+                <tr>
+                    <th th:text="#{ui.journey.detail.schritte.nr}">#</th>
+                    <th th:text="#{ui.journey.detail.schritte.aktion}">Aktion</th>
+                    <th th:text="#{ui.journey.detail.schritte.ziel}">Ziel / Selektoren</th>
+                    <th th:text="#{ui.journey.detail.schritte.wert}">Wert</th>
+                    <th th:text="#{ui.journey.detail.schritte.pruefung}">Prüfung</th>
+                    <th th:text="#{ui.journey.detail.schritte.optional}">Optional</th>
+                    <th th:text="#{ui.journey.detail.schritte.timeout}">Zeitlimit</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="step : ${journey.steps}">
+                    <td th:text="${step.ordinal + 1}">1</td>
+                    <td>
+                        <strong th:text="${step.action}">GOTO</strong>
+                    </td>
+                    <td>
+                        <div th:if="${#lists.isEmpty(step.locatorCandidates)}" class="text-gedaempft">-</div>
+                        <ul th:if="${not #lists.isEmpty(step.locatorCandidates)}" class="muster-liste">
+                            <li th:each="candidate : ${step.locatorCandidates}">
+                                <span class="status-badge status-inaktiv" th:text="${candidate.strategy}">TEST_ID</span>
+                                <code th:text="${candidate.value}">element-id</code>
+                            </li>
+                        </ul>
+                    </td>
+                    <td>
+                        <code th:if="${step.value != null and !step.value.isEmpty()}" th:text="${step.value}">https://example.com</code>
+                        <span th:if="${step.value == null or step.value.isEmpty()}" class="text-gedaempft">-</span>
+                    </td>
+                    <td>
+                        <span th:if="${step.assertion != null}">
+                            <span th:text="${step.assertion.type}">VISIBLE</span>
+                            <span th:if="${step.assertion.expected != null and !step.assertion.expected.isEmpty()}">
+                                : <code th:text="${step.assertion.expected}">text</code>
+                            </span>
+                        </span>
+                        <span th:if="${step.assertion == null}" class="text-gedaempft">-</span>
+                    </td>
+                    <td>
+                        <span th:if="${step.optional}" class="status-badge status-inaktiv" th:text="#{ui.journey.detail.schritte.optional}">Optional</span>
+                        <span th:unless="${step.optional}" class="text-gedaempft" th:text="#{ui.journey.detail.schritte.nein}">Nein</span>
+                    </td>
+                    <td>
+                        <span th:text="${step.timeoutMs} + ' ms'">5000 ms</span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+</main>
+</body>
+</html>

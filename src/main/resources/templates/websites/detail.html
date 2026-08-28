@@ -12,6 +12,7 @@
         </div>
         <div class="seiten-kopf-aktionen">
             <a th:href="@{/websites/{id}/befunde(id=${site.siteId})}" class="button sekundär" th:text="#{ui.websites.detail.befunde}">Feststellungen</a>
+            <a th:href="@{/sites/{id}/journeys(id=${site.siteId})}" class="button sekundär" th:text="#{ui.websites.detail.journeys}">Abläufe</a>
             <form th:action="@{/websites/{id}/pruefen(id=${site.siteId})}" method="post" class="inline-form">
                 <button type="submit" class="button primär" th:text="#{ui.websites.detail.pruefen}">Jetzt prüfen</button>
             </form>

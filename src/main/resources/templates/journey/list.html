@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html th:replace="~{layout :: seite(${site.name} + ' – ' + #{ui.journey.liste.titel}, ~{::main})}"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title th:text="${site.name} + ' – ' + #{ui.journey.liste.titel}">Abläufe</title>
+</head>
+<body>
+<main>
+    <header class="seiten-kopf">
+        <div>
+            <h1 th:text="#{ui.journey.liste.ueberschrift(${site.name})}">Abläufe für Website</h1>
+            <a th:href="@{/websites/{id}(id=${site.siteId})}" th:text="${site.name}" class="basis-url-link">Website Name</a>
+        </div>
+        <div class="seiten-kopf-aktionen">
+            <a th:href="@{/websites/{id}(id=${site.siteId})}" class="button sekundär" th:text="#{ui.journey.detail.zurueck_website}">Zurück zur Website</a>
+        </div>
+    </header>
+
+    <div class="detail-bereich">
+        <div class="abschnitt-ueberschrift-zeile">
+            <h2 th:text="#{ui.journey.liste.titel}">Abläufe</h2>
+            <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
+                    th:data-hx-get="@{/hilfe/hinweis/{id}(id='reisen')}"
+                    data-hx-target="next .hinweis" data-hx-swap="innerHTML">?</button>
+            <div class="hinweis" aria-live="polite"></div>
+        </div>
+        <p class="hinweis-text" th:text="#{ui.journey.liste.hinweis}">
+            Abläufe prüfen interaktive Benutzerpfade (z. B. Anmeldung, Warenkorb) über mehrere Schritte hinweg.
+        </p>
+    </div>
+
+    <div th:if="${#lists.isEmpty(journeys)}" class="leer-zustand">
+        <p th:text="#{ui.journey.liste.leer}">Für diese Website sind noch keine Abläufe hinterlegt.</p>
+    </div>
+
+    <table th:if="${not #lists.isEmpty(journeys)}" class="daten-tabelle">
+        <thead>
+            <tr>
+                <th th:text="#{ui.journey.liste.tabelle.name}">Name</th>
+                <th th:text="#{ui.journey.liste.tabelle.schritte}">Schritte</th>
+                <th th:text="#{ui.journey.liste.tabelle.status}">Status</th>
+                <th th:text="#{ui.journey.liste.tabelle.aktionen}">Aktionen</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="journey : ${journeys}">
+                <td>
+                    <a th:href="@{/sites/{siteId}/journeys/{journeyId}(siteId=${site.siteId}, journeyId=${journey.id})}" th:text="${journey.name}">Ablauf Name</a>
+                </td>
+                <td th:text="${#lists.size(journey.steps)}">0</td>
+                <td>
+                    <span th:if="${journey.enabled}" class="status-badge status-aktiv" th:text="#{ui.journey.status.aktiv}">Aktiv</span>
+                    <span th:unless="${journey.enabled}" class="status-badge status-inaktiv" th:text="#{ui.journey.status.inaktiv}">Inaktiv</span>
+                </td>
+                <td>
+                    <a th:href="@{/sites/{siteId}/journeys/{journeyId}(siteId=${site.siteId}, journeyId=${journey.id})}" th:text="#{ui.journey.liste.ansehen}">Ansehen</a>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</main>
+</body>
+</html>
