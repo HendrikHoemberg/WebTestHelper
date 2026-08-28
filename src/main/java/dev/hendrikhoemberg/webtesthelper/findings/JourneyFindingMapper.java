@@ -25,8 +25,8 @@ import java.util.Objects;
  */
 public final class JourneyFindingMapper {
 
-    public static final String MSG_JOURNEY_STEP_FAILED = "finding.journey_step_failed.title";
-    public static final String MSG_SELECTOR_DRIFT = "finding.selector_drift.title";
+    public static final String MSG_JOURNEY_STEP_FAILED = "check.JOURNEY_STEP_FAILED.title";
+    public static final String MSG_SELECTOR_DRIFT = "check.SELECTOR_DRIFT.title";
 
     private JourneyFindingMapper() {
     }

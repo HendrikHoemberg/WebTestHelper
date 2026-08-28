@@ -13,11 +13,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 @Controller
 public class JourneyController {
@@ -36,14 +34,7 @@ public class JourneyController {
     public String list(@PathVariable("siteId") long siteId, Model model) {
         SiteContext site = siteService.contextFor(siteId);
         List<JourneyDefinition> journeys = journeyService.findBySite(siteId);
-        Map<Long, JourneyHealth> healthByJourneyId = journeys.stream()
-                .filter(j -> j.id() != null)
-                .collect(Collectors.toMap(
-                        JourneyDefinition::id,
-                        j -> journeyHealthService.health(j.id()).orElse(new JourneyHealth(null, 0, 0)),
-                        (a, b) -> a,
-                        LinkedHashMap::new
-                ));
+        Map<Long, JourneyHealth> healthByJourneyId = journeyHealthService.healthBySite(siteId);
         model.addAttribute("site", site);
         model.addAttribute("journeys", journeys);
         model.addAttribute("healthByJourneyId", healthByJourneyId);

@@ -72,10 +72,8 @@ public class JourneyPass {
             try {
                 JourneyReplayResult result = replayer.replay(journey, site, artifacts);
                 if (result != null) {
-                    if (journey.id() != null) {
-                        completedJourneyIds.add(journey.id());
-                        healthService.record(journey.id(), result);
-                    }
+                    completedJourneyIds.add(journey.id());
+                    healthService.record(journey.id(), result);
                     List<MaterialisedFinding> mapped = JourneyFindingMapper.map(journey, result);
                     allFindings.addAll(mapped);
                 }

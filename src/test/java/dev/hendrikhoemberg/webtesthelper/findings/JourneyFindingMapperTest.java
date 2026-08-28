@@ -105,7 +105,7 @@ class JourneyFindingMapperTest {
 
         assertThat(findings).hasSize(1);
         MaterialisedFinding finding = findings.get(0);
-        assertThat(finding.messageKey()).isEqualTo("finding.journey_step_failed.title");
+        assertThat(finding.messageKey()).isEqualTo(JourneyFindingMapper.MSG_JOURNEY_STEP_FAILED);
         assertThat(finding.evidence()).isEqualTo(Evidence.NONE);
     }
 
@@ -142,7 +142,7 @@ class JourneyFindingMapperTest {
         assertThat(finding.severity()).isEqualTo(Severity.WARN);
         assertThat(finding.subjectKey()).isEqualTo(expectedSubjectKey);
         assertThat(finding.locationKey()).isEqualTo(expectedLocationKey);
-        assertThat(finding.messageKey()).isEqualTo("finding.selector_drift.title");
+        assertThat(finding.messageKey()).isEqualTo(JourneyFindingMapper.MSG_SELECTOR_DRIFT);
         assertThat(finding.messageArgs()).isEmpty();
         assertThat(finding.evidence()).isEqualTo(Evidence.NONE);
         assertThat(finding.pageCount()).isEqualTo(1);
@@ -151,7 +151,7 @@ class JourneyFindingMapperTest {
         FindingOccurrence occurrence = finding.occurrences().get(0);
         assertThat(occurrence.pageUrl()).isNull();
         assertThat(occurrence.severity()).isEqualTo(Severity.WARN);
-        assertThat(occurrence.messageKey()).isEqualTo("finding.selector_drift.title");
+        assertThat(occurrence.messageKey()).isEqualTo(JourneyFindingMapper.MSG_SELECTOR_DRIFT);
         assertThat(occurrence.messageArgs()).isEmpty();
         assertThat(occurrence.evidence()).isEqualTo(Evidence.NONE);
     }

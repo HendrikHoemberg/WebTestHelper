@@ -3,6 +3,7 @@ package dev.hendrikhoemberg.webtesthelper.reporting;
 import dev.hendrikhoemberg.webtesthelper.checks.CheckDescriptor;
 import dev.hendrikhoemberg.webtesthelper.checks.CheckRegistry;
 import dev.hendrikhoemberg.webtesthelper.findings.Finding;
+import dev.hendrikhoemberg.webtesthelper.findings.JourneyFindingMapper;
 import dev.hendrikhoemberg.webtesthelper.findings.ReportSection;
 import dev.hendrikhoemberg.webtesthelper.findings.RunDiff;
 import dev.hendrikhoemberg.webtesthelper.model.CheckType;
@@ -281,6 +282,54 @@ class FindingViewFactoryTest {
 
         FindingDetailView detail = factory.detailOf(failedStep, List.of(), Locale.GERMAN);
         assertThat(detail.description()).contains("Führt mehrstufige Benutzerinteraktionen");
+    }
+
+    @Test
+    void journeyFindingsWithGenericMessageKeysResolveCorrectly() {
+        Finding genericFailed = new Finding(
+                202L, 42L, "fp-journey-generic-failed",
+                CheckType.JOURNEY_STEP_FAILED,
+                "step-uuid-2",
+                "10",
+                Severity.ERROR,
+                JourneyFindingMapper.MSG_JOURNEY_STEP_FAILED,
+                List.of(),
+                Evidence.NONE,
+                ObservedStatus.ACTIVE,
+                TriageStatus.UNTRIAGED,
+                null,
+                10L, 10L, null, null,
+                1, 1,
+                Instant.parse("2026-08-25T10:00:00Z"),
+                Instant.parse("2026-08-25T10:00:00Z")
+        );
+
+        FindingView viewGeneric = factory.of(genericFailed, Locale.GERMAN);
+        assertThat(viewGeneric.title()).isEqualTo("Benutzerabläufe");
+        assertThat(viewGeneric.message()).isEqualTo("Benutzerabläufe");
+
+        Finding driftFinding = new Finding(
+                203L, 42L, "fp-journey-drift",
+                CheckType.SELECTOR_DRIFT,
+                "step-uuid-3",
+                "10",
+                Severity.WARN,
+                JourneyFindingMapper.MSG_SELECTOR_DRIFT,
+                List.of(),
+                Evidence.NONE,
+                ObservedStatus.ACTIVE,
+                TriageStatus.UNTRIAGED,
+                null,
+                10L, 10L, null, null,
+                1, 1,
+                Instant.parse("2026-08-25T10:00:00Z"),
+                Instant.parse("2026-08-25T10:00:00Z")
+        );
+
+        FindingView viewDrift = factory.of(driftFinding, Locale.GERMAN);
+        assertThat(viewDrift.title()).isEqualTo("Selektor-Drift");
+        assertThat(viewDrift.message()).isEqualTo("Selektor-Drift");
+        assertThat(viewDrift.remediation()).contains("neu aufzeichnen");
     }
 }
 

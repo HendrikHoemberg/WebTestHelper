@@ -8,8 +8,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Tracks journey health and reliability statistics across replays (§10.4, D106).
@@ -74,6 +77,23 @@ public class JourneyHealthService {
     @Transactional(readOnly = true)
     public Optional<JourneyHealth> health(long journeyId) {
         return journeys.findById(journeyId).map(this::toHealth);
+    }
+
+    /**
+     * Queries the health statistics of all journeys belonging to a site, keyed by journey ID.
+     *
+     * @param siteId ID of the site
+     * @return map of journey ID to health statistics
+     */
+    @Transactional(readOnly = true)
+    public Map<Long, JourneyHealth> healthBySite(long siteId) {
+        return journeys.findBySiteIdOrderByNameAsc(siteId).stream()
+                .collect(Collectors.toMap(
+                        JourneyEntity::getId,
+                        this::toHealth,
+                        (a, b) -> a,
+                        LinkedHashMap::new
+                ));
     }
 
     private JourneyHealth toHealth(JourneyEntity entity) {

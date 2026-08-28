@@ -82,13 +82,15 @@ class JourneyControllerTest {
         JourneyDefinition j2 = new JourneyDefinition(20L, 1L, "Wunschliste-Ablauf", false, List.of(step1));
 
         when(journeyService.findBySite(1L)).thenReturn(List.of(j1, j2));
-        when(journeyHealthService.health(10L)).thenReturn(Optional.of(new JourneyHealth(Instant.parse("2026-08-28T10:00:00Z"), 0, 0)));
-        when(journeyHealthService.health(20L)).thenReturn(Optional.of(new JourneyHealth(null, 2, 0)));
+        when(journeyHealthService.healthBySite(1L)).thenReturn(Map.of(
+                10L, new JourneyHealth(Instant.parse("2026-08-28T10:00:00Z"), 0, 0),
+                20L, new JourneyHealth(null, 2, 0)
+        ));
 
         mvc.perform(get("/sites/1/journeys"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("journey/list"))
-                .andExpect(model().attributeExists("site", "journeys"))
+                .andExpect(model().attributeExists("site", "journeys", "healthByJourneyId"))
                 .andExpect(content().string(containsString("Checkout-Ablauf")))
                 .andExpect(content().string(containsString("Wunschliste-Ablauf")))
                 .andExpect(content().string(containsString("2")))
@@ -112,14 +114,16 @@ class JourneyControllerTest {
 
         when(journeyService.findBySite(1L)).thenReturn(List.of(j1, j2));
         // j1 meets threshold: 3 failures >= 3 && drift 2 > 0 -> needsRerecording = true
-        when(journeyHealthService.health(10L)).thenReturn(Optional.of(new JourneyHealth(Instant.parse("2026-08-28T10:00:00Z"), 3, 2)));
         // j2 below threshold: 3 failures >= 3 && drift 0 == 0 -> needsRerecording = false
-        when(journeyHealthService.health(20L)).thenReturn(Optional.of(new JourneyHealth(Instant.parse("2026-08-28T10:00:00Z"), 3, 0)));
+        when(journeyHealthService.healthBySite(1L)).thenReturn(Map.of(
+                10L, new JourneyHealth(Instant.parse("2026-08-28T10:00:00Z"), 3, 2),
+                20L, new JourneyHealth(Instant.parse("2026-08-28T10:00:00Z"), 3, 0)
+        ));
 
         mvc.perform(get("/sites/1/journeys"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("journey/list"))
-                .andExpect(model().attributeExists("site", "journeys"))
+                .andExpect(model().attributeExists("site", "journeys", "healthByJourneyId"))
                 // Explanatory copy for needsRerecording (§13.2)
                 .andExpect(content().string(containsString("Neuaufzeichnung erforderlich")))
                 .andExpect(content().string(containsString("Dieser Ablauf schlägt nach wiederholten Selektor-Abweichungen (Drift) fehl.")));
@@ -129,11 +133,12 @@ class JourneyControllerTest {
     @WithMockUser(roles = "USER")
     void listJourneys_whenEmpty_rendersEmptyState() throws Exception {
         when(journeyService.findBySite(1L)).thenReturn(List.of());
+        when(journeyHealthService.healthBySite(1L)).thenReturn(Map.of());
 
         mvc.perform(get("/sites/1/journeys"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("journey/list"))
-                .andExpect(model().attributeExists("site", "journeys"))
+                .andExpect(model().attributeExists("site", "journeys", "healthByJourneyId"))
                 .andExpect(content().string(containsString("Für diese Website sind noch keine Abläufe hinterlegt.")));
     }
 

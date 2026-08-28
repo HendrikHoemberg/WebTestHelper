@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -297,5 +298,49 @@ class JourneyHealthServiceTest extends AbstractPostgresTest {
         assertThatThrownBy(() -> journeyHealthService.record(999999L, result))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Journey existiert nicht: 999999");
+    }
+
+    @Test
+    void healthBySiteReturnsAllJourneysForSiteInBatch() {
+        // Create second journey for this site
+        UUID step2Id = UUID.randomUUID();
+        JourneyStep step2 = new JourneyStep(
+                step2Id, 0, StepAction.GOTO, List.of(), "https://health.test/other", null, false, 5000);
+        long journeyId2 = journeyService.create(siteId, "Second Journey", List.of(step2));
+
+        // Create journey for another site
+        long otherSiteId = siteService.create(new SiteForm(
+                "Other Site", "https://other.test/", 50, 2, Duration.ofMinutes(5),
+                List.of(), List.of(), true, null, true));
+        long journeyOtherSite = journeyService.create(otherSiteId, "Other Site Journey", List.of(step2));
+
+        // Record health for journey 1 (pass)
+        JourneyReplayResult passedResult = new JourneyReplayResult(
+                journeyId, "Health Journey", ReplayStatus.PASSED,
+                List.of(StepOutcome.passed(stepId, null)), 0, Optional.empty(), Optional.empty());
+        journeyHealthService.record(journeyId, passedResult);
+
+        // Record health for journey 2 (fail)
+        JourneyReplayResult failedResult = new JourneyReplayResult(
+                journeyId2, "Second Journey", ReplayStatus.FAILED,
+                List.of(StepOutcome.failed(step2Id, "error", List.of())), 0, Optional.empty(), Optional.empty());
+        journeyHealthService.record(journeyId2, failedResult);
+
+        entityManager.flush();
+        entityManager.clear();
+
+        Map<Long, JourneyHealth> siteHealth = journeyHealthService.healthBySite(siteId);
+
+        assertThat(siteHealth).containsOnlyKeys(journeyId, journeyId2);
+        assertThat(siteHealth.get(journeyId).lastSuccessAt()).isNotNull();
+        assertThat(siteHealth.get(journeyId).consecutiveFailures()).isEqualTo(0);
+        assertThat(siteHealth.get(journeyId2).lastSuccessAt()).isNull();
+        assertThat(siteHealth.get(journeyId2).consecutiveFailures()).isEqualTo(1);
+
+        // Health for empty site returns empty map
+        long emptySiteId = siteService.create(new SiteForm(
+                "Empty Site", "https://empty.test/", 50, 2, Duration.ofMinutes(5),
+                List.of(), List.of(), true, null, true));
+        assertThat(journeyHealthService.healthBySite(emptySiteId)).isEmpty();
     }
 }
