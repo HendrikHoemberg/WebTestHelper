@@ -1,6 +1,8 @@
 package dev.hendrikhoemberg.webtesthelper.recorder;
 
+import dev.hendrikhoemberg.webtesthelper.catalog.JourneyService;
 import dev.hendrikhoemberg.webtesthelper.catalog.SiteService;
+import dev.hendrikhoemberg.webtesthelper.model.JourneyStep;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.security.Principal;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -35,10 +38,12 @@ public class RecorderController {
 
     private final SiteService siteService;
     private final RecordingSessionRegistry sessionRegistry;
+    private final JourneyService journeyService;
 
-    public RecorderController(SiteService siteService, RecordingSessionRegistry sessionRegistry) {
+    public RecorderController(SiteService siteService, RecordingSessionRegistry sessionRegistry, JourneyService journeyService) {
         this.siteService = Objects.requireNonNull(siteService, "siteService must not be null");
         this.sessionRegistry = Objects.requireNonNull(sessionRegistry, "sessionRegistry must not be null");
+        this.journeyService = Objects.requireNonNull(journeyService, "journeyService must not be null");
     }
 
     @GetMapping("/websites/{siteId}/aufzeichnen")
@@ -91,5 +96,26 @@ public class RecorderController {
         long siteId = session.siteId();
         sessionRegistry.close(sessionId);
         return "redirect:/sites/" + siteId + "/journeys";
+    }
+
+    @PostMapping("/recorder/{sessionId}/speichern")
+    public String saveSession(@PathVariable("sessionId") UUID sessionId,
+                              @RequestParam(value = "name", required = false) String name,
+                              Principal principal) {
+        String username = principal != null ? principal.getName() : null;
+        RecordingSession session = sessionRegistry.find(sessionId, username)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Aufnahmesitzung nicht gefunden: " + sessionId));
+
+        long siteId = session.siteId();
+        String startUrl = session.startUrl();
+        IntentCapture capture = session.intentCapture();
+        List<CapturedEvent> events = capture != null ? capture.drain() : List.of();
+        List<JourneyStep> steps = StepBuilder.build(events, startUrl);
+
+        String effectiveName = (name != null && !name.isBlank()) ? name.trim() : "Neuer Ablauf";
+        long journeyId = journeyService.create(siteId, effectiveName, steps);
+        sessionRegistry.close(sessionId);
+        return "redirect:/sites/" + siteId + "/journeys/" + journeyId + "/bearbeiten";
     }
 }

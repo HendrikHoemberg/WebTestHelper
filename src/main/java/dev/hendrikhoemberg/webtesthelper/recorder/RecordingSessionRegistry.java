@@ -69,14 +69,16 @@ public class RecordingSessionRegistry implements AutoCloseable {
                 var contextOptions = new com.microsoft.playwright.Browser.NewContextOptions()
                         .setViewportSize(properties.viewportWidth(), properties.viewportHeight());
                 var context = browser.newContext(contextOptions);
+                var intentCapture = IntentCapture.install(context);
                 var page = context.newPage();
                 page.navigate(startUrl);
-                return new BrowserSessionContext(context, page);
+                return new BrowserSessionContext(context, page, intentCapture);
             });
             var context = bsc != null ? bsc.context() : null;
             var page = bsc != null ? bsc.page() : null;
+            var intentCapture = bsc != null ? bsc.intentCapture() : null;
             RecordingSession session = new RecordingSession(
-                    sessionId, siteId, startUrl, username, worker, context, page, clock);
+                    sessionId, siteId, startUrl, username, worker, context, page, intentCapture, clock);
             sessions.put(sessionId, session);
             log.info("Aufnahmesitzung {} für Benutzer '{}' auf Site {} geöffnet", sessionId, username, siteId);
             return session;
@@ -158,5 +160,5 @@ public class RecordingSessionRegistry implements AutoCloseable {
         }
     }
 
-    private record BrowserSessionContext(com.microsoft.playwright.BrowserContext context, com.microsoft.playwright.Page page) {}
+    private record BrowserSessionContext(com.microsoft.playwright.BrowserContext context, com.microsoft.playwright.Page page, IntentCapture intentCapture) {}
 }

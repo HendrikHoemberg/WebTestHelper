@@ -29,6 +29,7 @@ public class RecordingSession implements AutoCloseable {
     private final RecorderWorker worker;
     private final BrowserContext context;
     private final Page page;
+    private final IntentCapture intentCapture;
     private final Clock clock;
     private volatile Instant lastActivity;
     private volatile com.microsoft.playwright.CDPSession cdpSession;
@@ -36,6 +37,12 @@ public class RecordingSession implements AutoCloseable {
 
     public RecordingSession(UUID sessionId, long siteId, String startUrl, String username,
                             RecorderWorker worker, BrowserContext context, Page page, Clock clock) {
+        this(sessionId, siteId, startUrl, username, worker, context, page, null, clock);
+    }
+
+    public RecordingSession(UUID sessionId, long siteId, String startUrl, String username,
+                            RecorderWorker worker, BrowserContext context, Page page,
+                            IntentCapture intentCapture, Clock clock) {
         this.sessionId = Objects.requireNonNull(sessionId, "sessionId must not be null");
         this.siteId = siteId;
         this.startUrl = Objects.requireNonNull(startUrl, "startUrl must not be null");
@@ -43,6 +50,7 @@ public class RecordingSession implements AutoCloseable {
         this.worker = worker;
         this.context = context;
         this.page = page;
+        this.intentCapture = intentCapture;
         this.clock = clock != null ? clock : Clock.systemUTC();
         this.lastActivity = this.clock.instant();
     }
@@ -73,6 +81,10 @@ public class RecordingSession implements AutoCloseable {
 
     public Page page() {
         return page;
+    }
+
+    public IntentCapture intentCapture() {
+        return intentCapture;
     }
 
     public com.microsoft.playwright.CDPSession cdpSession() {

@@ -55,6 +55,10 @@
                 <span class="text-gedaempft ml-3" th:text="#{ui.recorder.hinweis.timeout}">Inaktive Sitzungen werden nach 15 Minuten automatisch beendet.</span>
             </div>
             <div class="recorder-actions">
+                <form th:action="@{/recorder/{id}/speichern(id=${sessionId})}" method="post" class="inline-form mr-2">
+                    <input type="text" name="name" th:placeholder="#{ui.recorder.speichern.name_platzhalter}" th:value="#{ui.recorder.speichern.standard_name}" required class="eingabe-feld-schmal mr-2">
+                    <button type="submit" class="button primär" th:text="#{ui.recorder.speichern}">Ablauf speichern</button>
+                </form>
                 <form th:action="@{/recorder/{id}/beenden(id=${sessionId})}" method="post" class="inline-form">
                     <button type="submit" class="button sekundär" th:text="#{ui.recorder.beenden}">Aufzeichnung beenden</button>
                 </form>

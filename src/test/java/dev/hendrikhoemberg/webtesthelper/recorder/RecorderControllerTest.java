@@ -1,12 +1,16 @@
 package dev.hendrikhoemberg.webtesthelper.recorder;
 
+import dev.hendrikhoemberg.webtesthelper.catalog.JourneyService;
 import dev.hendrikhoemberg.webtesthelper.catalog.SiteService;
 import dev.hendrikhoemberg.webtesthelper.model.CrawlBudget;
+import dev.hendrikhoemberg.webtesthelper.model.JourneyStep;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
+import dev.hendrikhoemberg.webtesthelper.model.StepAction;
 import dev.hendrikhoemberg.webtesthelper.model.UrlNormalizer;
 import dev.hendrikhoemberg.webtesthelper.web.AppUserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -19,9 +23,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -47,6 +54,9 @@ class RecorderControllerTest {
 
     @MockitoBean
     RecordingSessionRegistry sessionRegistry;
+
+    @MockitoBean
+    JourneyService journeyService;
 
     @MockitoBean
     AppUserService appUserService;
@@ -199,6 +209,58 @@ class RecorderControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "alice", roles = "USER")
+    void saveSession_drainsEventsBuildsStepsCreatesJourneyClosesSessionAndRedirectsToEditScreen() throws Exception {
+        UUID sessionId = UUID.randomUUID();
+        RecordingSession session = mock(RecordingSession.class);
+        IntentCapture capture = mock(IntentCapture.class);
+        CapturedEvent event = new CapturedEvent(
+                CapturedEvent.EventKind.CLICK, "button", null, "login-btn", "button",
+                "Anmelden", null, "Anmelden", null, "button#login-btn");
+
+        when(session.sessionId()).thenReturn(sessionId);
+        when(session.siteId()).thenReturn(1L);
+        when(session.startUrl()).thenReturn("https://acme.example.com/");
+        when(session.intentCapture()).thenReturn(capture);
+        when(capture.drain()).thenReturn(List.of(event));
+        when(sessionRegistry.find(sessionId, "alice")).thenReturn(Optional.of(session));
+        when(journeyService.create(eq(1L), eq("Mein Ablauf"), any())).thenReturn(42L);
+
+        mvc.perform(post("/recorder/" + sessionId + "/speichern")
+                        .with(csrf())
+                        .param("name", "Mein Ablauf"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/sites/1/journeys/42/bearbeiten"));
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<JourneyStep>> captor = ArgumentCaptor.forClass(List.class);
+        verify(journeyService).create(eq(1L), eq("Mein Ablauf"), captor.capture());
+        List<JourneyStep> steps = captor.getValue();
+        assertThat(steps).hasSize(2);
+        assertThat(steps.get(0).action()).isEqualTo(StepAction.GOTO);
+        assertThat(steps.get(0).value()).isEqualTo("https://acme.example.com/");
+        assertThat(steps.get(1).action()).isEqualTo(StepAction.CLICK);
+
+        verify(capture).drain();
+        verify(sessionRegistry).close(sessionId);
+    }
+
+    @Test
+    @WithMockUser(username = "bob", roles = "USER")
+    void saveSession_byAnyoneButTheOwner_leavesTheSessionRunning() throws Exception {
+        UUID aliceSession = UUID.randomUUID();
+        when(sessionRegistry.find(eq(aliceSession), eq("bob"))).thenReturn(Optional.empty());
+
+        mvc.perform(post("/recorder/" + aliceSession + "/speichern")
+                        .with(csrf())
+                        .param("name", "Gekaperter Ablauf"))
+                .andExpect(status().isNotFound());
+
+        verify(sessionRegistry, never()).close(aliceSession);
+        verify(journeyService, never()).create(anyLong(), anyString(), any());
+    }
+
+    @Test
     void unauthenticatedAccess_redirectsToLogin() throws Exception {
         UUID sessionId = UUID.randomUUID();
 
@@ -207,6 +269,10 @@ class RecorderControllerTest {
                 .andExpect(redirectedUrl("/anmelden"));
 
         mvc.perform(post("/recorder/" + sessionId + "/beenden").with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/anmelden"));
+
+        mvc.perform(post("/recorder/" + sessionId + "/speichern").with(csrf()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/anmelden"));
     }

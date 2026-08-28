@@ -82,5 +82,22 @@ Mit dem interaktiven Live-Recorder können Sie neue Benutzerabläufe direkt in I
 * **Gleichzeitige Sitzungen (Kapazitätsgrenze):** Um die Systemleistung und Ressourcen für reguläre Prüfläufe stabil zu halten, sind maximal **2 Aufzeichnungssitzungen gleichzeitig** möglich. Ist diese Kapazitätsgrenze erreicht, weist das System darauf hin und fordert dazu auf, eine laufende Sitzung zu beenden oder es später erneut zu versuchen (§13.4).
 * **Automatisches Timeout:** Jede Aufzeichnungssitzung verfügt über ein Leerlauf-Zeitlimit von **15 Minuten**. Erfolgen innerhalb dieses Zeitfensters keine Eingaben, wird die Sitzung automatisch beendet und der Browser-Worker freigegeben.
 * **Browser lässt sich nicht starten:** Schlägt der Start des Aufnahme-Browsers fehl, ist das keine Kapazitätsfrage — Warten hilft dann nicht. Die Oberfläche weist gesondert darauf hin; bitte wenden Sie sich in diesem Fall an die Administration.
-* **Aufzeichnung beenden:** Über die Schaltfläche „Aufzeichnung beenden“ oder beim Verlassen der Seite wird die Sitzung sofort geschlossen, sodass der Browser-Worker nicht erst auf den Timeout warten muss.
+* **Aufzeichnung speichern:** Über das Eingabefeld und die Schaltfläche „Ablauf speichern“ wird die Aufzeichnung als neuer Ablauf übernommen. Die erfassten Interaktionsereignisse werden automatisch in eine bereinigte Schrittfolge überführt (inkl. Start-URL als erster Navigationsschritt). Anschließend gelangen Sie direkt in den Editor zur Feinabstimmung.
+* **Aufzeichnung beenden:** Über die Schaltfläche „Aufzeichnung beenden“ oder beim Verlassen der Seite wird die Sitzung geschlossen, ohne die Aufzeichnung zu speichern, und der Browser-Worker wird sofort freigegeben.
+
+## Ablauf-Editor (Schritte anpassen und verfeinern)
+
+Im Ablauf-Editor können Sie aufgezeichnete oder bestehende Abläufe vor dem Produktiveinsatz prüfen und nachbearbeiten (§10.4):
+
+* **Überflüssige Schritte löschen:** Versehentliche Klicks oder Zwischenschritte können mit einem Klick entfernt werden. Die verbleibenden Schritte werden automatisch lückenlos durchnummeriert; ihre eindeutigen IDs (**Schritt-UUIDs**) bleiben dabei unverändert erhalten.
+* **Schritte umordnen:** Über die Pfeilschaltflächen können Schritte in der Ausführungsreihenfolge nach oben oder unten verschoben werden. Auch hierbei bleiben die Schritt-UUIDs stabil.
+* **Eingabewerte und Zugangsdaten:** Formulardaten und URL-Ziele können direkt bearbeitet werden. Anstelle fester Passwörter können Sie hier Platzhalter für hinterlegte Zugangsdaten eintragen (z. B. `{{cred.login.password}}`). Der Editor zeigt den Platzhalter unverändert an und löst Passwörter im Formular niemals in Klartext auf.
+* **Optionale Schritte:** Schritte können als optional markiert werden, damit fehlende optionale Elemente (wie Banner oder optionale Dialoge) den Ablauf nicht abbrechen.
+* **Soll-Prüfungen (Assertions) hinzufügen:** Für jeden Schritt kann eine explizite Prüfung definiert werden:
+  * **`TEXT_CONTAINS`:** Prüft, ob das Element den erwarteten Text enthält.
+  * **`VISIBLE`:** Prüft, ob das Element sichtbar auf der Seite vorhanden ist.
+  * **`URL_MATCHES`:** Prüft, ob die aktuelle Browser-URL mit dem angegebenen regulären Ausdruck übereinstimmt.
+  * **`COUNT`:** Prüft, ob die genaue Anzahl passender Elemente auf der Seite vorhanden ist.
+* **Zeitlimits (Timeout):** Das Zeitlimit pro Schritt kann individuell angepasst werden (Standard: 5000 ms).
+
 
