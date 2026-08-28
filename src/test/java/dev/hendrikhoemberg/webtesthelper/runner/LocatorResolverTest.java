@@ -220,6 +220,71 @@ class LocatorResolverTest {
     }
 
     @Test
+    void waitsForAnElementThatIsRenderedAfterLoad() {
+        page.navigate(fixtureSite.url("reise/spaet.html"));
+        LocatorCandidate late = new LocatorCandidate(LocatorStrategy.TEST_ID, "spaet-link", 0);
+
+        Optional<LocatorMatch> match = LocatorResolver.resolveWithin(page, stepWith(List.of(late)), 3000);
+
+        assertThat(match).isPresent();
+        assertThat(match.get().winner()).isEqualTo(late);
+        assertThat(match.get().drifted()).isFalse();
+        page.navigate(fixtureSite.url("reise/schritt2.html"));
+    }
+
+    @Test
+    void givesUpAfterTheBudgetWhenNothingEverAppears() {
+        LocatorCandidate never = new LocatorCandidate(LocatorStrategy.TEST_ID, "kommt-nie", 0);
+
+        long startNanos = System.nanoTime();
+        Optional<LocatorMatch> match = LocatorResolver.resolveWithin(page, stepWith(List.of(never)), 300);
+        long elapsedMs = (System.nanoTime() - startNanos) / 1_000_000;
+
+        assertThat(match).isEmpty();
+        assertThat(elapsedMs).isGreaterThanOrEqualTo(250L);
+    }
+
+    @Test
+    void takesTheFirstMatchingCandidateWithoutBurningTheBudgetOnTheMissingPrimary() {
+        LocatorCandidate missingPrimary = new LocatorCandidate(LocatorStrategy.TEST_ID, "gibt-es-nicht", 0);
+        LocatorCandidate presentFallback = new LocatorCandidate(LocatorStrategy.LABEL, "Name", 0);
+
+        long startNanos = System.nanoTime();
+        Optional<LocatorMatch> match =
+                LocatorResolver.resolveWithin(page, stepWith(List.of(missingPrimary, presentFallback)), 5000);
+        long elapsedMs = (System.nanoTime() - startNanos) / 1_000_000;
+
+        assertThat(match).isPresent();
+        assertThat(match.get().winner()).isEqualTo(presentFallback);
+        assertThat(match.get().drifted()).isTrue();
+        assertThat(elapsedMs).isLessThan(2000L);
+    }
+
+    @Test
+    void skipsACandidateWhoseRoleCannotBeParsedAndKeepsGoingDownTheLadder() {
+        LocatorCandidate unparsableRole = new LocatorCandidate(LocatorStrategy.ROLE, "keinesolcherolle", 0);
+        LocatorCandidate workingRole = new LocatorCandidate(LocatorStrategy.ROLE, "button[name='Buchung abschließen']", 1);
+
+        Optional<LocatorMatch> match = LocatorResolver.resolve(page, stepWith(List.of(unparsableRole, workingRole)));
+
+        assertThat(match).isPresent();
+        assertThat(match.get().winner()).isEqualTo(workingRole);
+        assertThat(match.get().drifted()).isTrue();
+    }
+
+    @Test
+    void skipsACandidateWhoseCssIsSyntacticallyInvalidAndKeepsGoingDownTheLadder() {
+        LocatorCandidate brokenCss = new LocatorCandidate(LocatorStrategy.CSS, "div[[[", 0);
+        LocatorCandidate workingCss = new LocatorCandidate(LocatorStrategy.CSS, "form#reise-form", 1);
+
+        Optional<LocatorMatch> match = LocatorResolver.resolve(page, stepWith(List.of(brokenCss, workingCss)));
+
+        assertThat(match).isPresent();
+        assertThat(match.get().winner()).isEqualTo(workingCss);
+        assertThat(match.get().drifted()).isTrue();
+    }
+
+    @Test
     void resolvesOnStartAndZielFixturePages() {
         page.navigate(fixtureSite.url("reise/start.html"));
         Optional<LocatorMatch> startLinkMatch = LocatorResolver.resolve(page,

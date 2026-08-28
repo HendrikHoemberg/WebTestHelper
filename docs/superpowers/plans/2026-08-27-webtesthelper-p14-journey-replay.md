@@ -356,6 +356,87 @@ recorder's job in plan 17.
 
 ## Execution findings
 
-*(Filled in during execution. Record measured constants and anything that contradicts this plan —
-plans 15–17 were written ahead of execution and are amended from this section. Do not edit the tasks
-above once they have run.)*
+**Every signature named in a "Produces" block was implemented verbatim.** Plans 15–17 need no
+amendment on that account. What follows is what the code knows and this plan did not.
+
+**The `ROLE` candidate value has a grammar, and plan 17's recorder must emit it.** §10.2 writes the
+strategy as `getByRole('button', name='Absenden')` but never says what goes in
+`LocatorCandidate.value`. `LocatorResolver.resolveRole` accepts `role[name='…']` — which is what the
+fixture journeys and every test use, and the form the recorder should generate — and tolerates
+`role=…`, `getByRole(…)`, `role, name` and `role: name`. The role token is upper-cased and matched
+against Playwright's `AriaRole`, with `image→IMG`, `input→TEXTBOX`, `select→COMBOBOX` as aliases. An
+unrecognised role no longer throws (see below), so a recorder emitting a bad role degrades to a
+skipped rung rather than a dead step — but it silently loses that rung, so the recorder should
+validate against `AriaRole` at capture time.
+
+**Measured constants.** `JourneyStep.DEFAULT_TIMEOUT_MS = 5000`, applied when a step arrives with
+`timeoutMs <= 0`. `LocatorResolver.POLL_INTERVAL_MS = 50`, the ladder's re-try interval.
+
+**Task 3 Step 4's `count() == 1` is right for ranking and wrong for waiting, and both halves matter.**
+Snapshotting with `count()` is what makes trying six candidates cheap, and that reasoning holds. But
+§10.4 also asks replay to use "Playwright's auto-waiting", and a snapshot cannot wait: as first
+written, a `WAIT_FOR` step with a 5000 ms budget failed in **8 ms** against an element that rendered
+at 300 ms, and every other action failed the same way on a late-rendering page. The fix keeps both:
+`resolve` still snapshots, and `resolveWithin(page, step, timeoutMs)` re-walks the **whole ladder**
+until the budget is spent. Waiting on the ladder rather than on the primary candidate is the part
+worth keeping — waiting on the primary first would make every drifted step pay the full timeout
+before its fallback is ever tried.
+
+**Auto-waiting stops at the element.** `resolveWithin` waits for the element to appear, and `COUNT`
+re-checks until its budget is spent. `TEXT_CONTAINS` and `VISIBLE` are evaluated once, on the
+element once it has resolved: an element that resolves and *then* changes its text or becomes
+visible is not awaited. Nothing has needed it yet; it is the next thing to fix if a real journey
+flakes on late content.
+
+**A `COUNT` assertion must not be allowed to pick its own subject.** As first written, `evaluateCount`
+walked the ladder looking for the candidate whose count *equalled the expectation* and reported that
+one as the winner — so a step whose real target had vanished passed on whichever unrelated selector
+happened to match the number, and essentially no `COUNT` assertion could fail. It now takes the
+first candidate that matches **anything** and judges that one. Drift is still reported when that is
+not the primary; the fallback ladder is intact, and `countAssertionStillFallsBackWhenThePrimary
+CandidateMatchesNothing` guards it.
+
+**Drift has to survive the failure that follows it.** `StepOutcome.failed`'s five-argument overload
+existed from Task 4 and nothing called it: every failure path used the three-argument one, which
+hardcodes `winner = null, drifted = false`. A step that resolved through a fallback and then failed
+therefore reported no drift at all — losing the signal in exactly the case §10.2 was built for, a
+site mid-redesign, and undercounting `driftCount` for plan 15's health model. Failures now carry
+the match through.
+
+**`optional` had grown past "the element may not be there".** Task 4's note is right that `SKIPPED`
+must be recorded rather than swallowed, but the first implementation returned `SKIPPED` for *any*
+exception on an optional step, and for a failed assertion on one — so an optional step whose element
+was present and whose assertion was false replayed as skipped. `optional` now applies at one place
+only: the element did not resolve.
+
+**Two more things that failed silently.** A candidate that could not be evaluated at all — an
+unparsable role, a malformed CSS selector — threw out of the ladder and killed the step, which is
+the exact opposite of what a fallback ladder is for; such a candidate is now skipped like any
+non-matching one. And an unresolvable `{{cred.…}}` reference threw out of `JourneyReplayer.replay`
+entirely, so a journey pointing at a renamed credential produced no `JourneyReplayResult` for plan
+15 to record; it now fails its step with `journey.step.failed.credential`, whose argument is the
+template token, never the secret (D100).
+
+**`URL_MATCHES` was a substring test.** It tried `contains(expected)` before any pattern matching,
+so regex metacharacters were ignored and `/konto` passed on `/konto-geloescht`. It is now
+`Pattern.find`, and an uncompilable pattern reports `journey.step.failed.pattern` rather than
+masquerading as a failed assertion.
+
+**German text belongs in the bundle, not in `List.of(…)`.** Assertion failures passed literals
+(`"sichtbar"`, `"nicht sichtbar"`, `"ungültige Zahl"`) as message *arguments*, which puts German in
+Java against §13.1. They are now their own keys: `journey.step.failed.not_visible` and
+`journey.step.failed.count_expectation`. `journey.step.failed.navigation` had been defined and never
+used; `GOTO` failures use it now.
+
+**Fixture.** Task 3's three pages gained a fourth, `reise/spaet.html`, also unlinked from
+`index.html`: it renders `data-testid="spaet-link"` 300 ms after load and carries a permanently
+hidden `data-testid="unsichtbar"`. A fixture where everything is present at first paint cannot
+demonstrate waiting, for the same reason Task 3 gave about fallbacks.
+
+**Test budgets are load-bearing now.** A step aimed at an element that is absent for good spends its
+full `timeoutMs` before reporting `not_found`. Tests that assert *that* status use a 300 ms budget
+deliberately; raising them back to 5000 adds five seconds each to the browser suite and proves
+nothing extra.
+
+**Task 6's "keep it to four methods" is now five.** The fifth is the credential regression above.
+It replays two steps and costs no extra crawl.

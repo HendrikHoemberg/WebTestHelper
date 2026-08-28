@@ -66,6 +66,31 @@ public class JourneyReplayer {
         return pool.submit(browser -> driveJourney(browser, journey, site, artifacts));
     }
 
+    /**
+     * Resolves the step's value and executes it.
+     *
+     * <p>An unresolvable {@code {{cred.…}}} reference — a credential renamed or deleted since the
+     * journey was authored — fails <em>the step</em>. Letting it escape would abort the replay
+     * with no {@link JourneyReplayResult} at all, so a journey with a stale reference could never
+     * be recorded, reported or triaged.
+     */
+    private StepOutcome executeStep(Page page, JourneyDefinition journey, SiteContext site, JourneyStep step) {
+        SecretText value;
+        try {
+            value = journeyValueResolver.resolve(site.siteId(), step);
+        } catch (RuntimeException e) {
+            // The message carries the {{cred.…}} token, never the secret behind it (D100).
+            log.warn("Journey {} Schritt {}: Zugangsdaten nicht auflösbar: {}",
+                    journey.id(), step.ordinal(), e.getMessage());
+            return StepOutcome.failed(step.id(), StepExecutor.MSG_CREDENTIAL,
+                    List.of(e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()));
+        }
+
+        log.debug("Lauf Journey {} Step {}: action={}, val={}",
+                journey.id(), step.ordinal(), step.action(), value);
+        return StepExecutor.execute(page, step, value.expose());
+    }
+
     private JourneyReplayResult driveJourney(
             Browser browser,
             JourneyDefinition journey,
@@ -97,11 +122,7 @@ public class JourneyReplayer {
                 String failureTraceName = null;
 
                 for (JourneyStep step : journey.steps()) {
-                    SecretText val = journeyValueResolver.resolve(site.siteId(), step);
-                    log.debug("Lauf Journey {} Step {}: action={}, val={}",
-                            journey.id(), step.ordinal(), step.action(), val);
-
-                    StepOutcome outcome = StepExecutor.execute(page, step, val.expose());
+                    StepOutcome outcome = executeStep(page, journey, site, step);
                     outcomes.add(outcome);
 
                     if (step.action() == StepAction.GOTO && outcome.status() != StepStatus.FAILED) {

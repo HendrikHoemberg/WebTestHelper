@@ -93,6 +93,21 @@ class JourneyReplayAcceptanceTest {
             String value,
             StepAssertion assertion
     ) {
+        return step(ordinal, action, candidates, value, assertion, 5000);
+    }
+
+    /**
+     * A step with an explicit budget. Steps that deliberately target an element which is absent
+     * for good get a short one: resolution now waits out its timeout before giving up.
+     */
+    private static JourneyStep step(
+            int ordinal,
+            StepAction action,
+            List<LocatorCandidate> candidates,
+            String value,
+            StepAssertion assertion,
+            int timeoutMs
+    ) {
         return new JourneyStep(
                 UUID.randomUUID(),
                 ordinal,
@@ -101,7 +116,7 @@ class JourneyReplayAcceptanceTest {
                 value,
                 assertion,
                 false,
-                5000
+                timeoutMs
         );
     }
 
@@ -216,7 +231,7 @@ class JourneyReplayAcceptanceTest {
         ), null, null);
         JourneyStep step2 = step(2, StepAction.FILL, List.of(
                 new LocatorCandidate(LocatorStrategy.TEST_ID, "non-existent-input", 0)
-        ), "Erika Mustermann", null);
+        ), "Erika Mustermann", null, 300);
         JourneyStep step3 = step(3, StepAction.CLICK, List.of(
                 new LocatorCandidate(LocatorStrategy.TEST_ID, "reise-submit", 0)
         ), null, null);
@@ -254,7 +269,7 @@ class JourneyReplayAcceptanceTest {
         ), null, null);
         JourneyStep step2 = step(2, StepAction.CLICK, List.of(
                 new LocatorCandidate(LocatorStrategy.TEST_ID, "non-existent-button", 0)
-        ), null, null);
+        ), null, null, 300);
 
         JourneyDefinition journey = new JourneyDefinition(
                 103L,
@@ -283,5 +298,35 @@ class JourneyReplayAcceptanceTest {
         assertThat(Files.size(screenshotFile)).isGreaterThan(0L);
         assertThat(traceFile).exists();
         assertThat(Files.size(traceFile)).isGreaterThan(0L);
+    }
+
+    @Test
+    void unresolvableCredentialFailsTheStepInsteadOfAbortingTheReplay(@TempDir Path artifacts) {
+        // No credential is stored for this site, so the reference cannot be resolved. The replay
+        // must still come back as a result the caller can record, not as a thrown exception.
+        JourneyStep step0 = step(0, StepAction.GOTO, List.of(), fixtureSite.url("reise/schritt2.html"), null);
+        JourneyStep step1 = step(1, StepAction.FILL, List.of(
+                new LocatorCandidate(LocatorStrategy.TEST_ID, "reise-name", 0)
+        ), "{{cred.anmeldung.username}}", null);
+
+        JourneyDefinition journey = new JourneyDefinition(
+                104L,
+                1L,
+                "Reise mit fehlenden Zugangsdaten",
+                true,
+                List.of(step0, step1)
+        );
+
+        JourneyReplayResult result = replayer.replay(journey, siteContext(), artifacts);
+
+        assertThat(result.status()).isEqualTo(ReplayStatus.FAILED);
+        assertThat(result.outcomes()).hasSize(2);
+        assertThat(result.outcomes().get(0).status()).isEqualTo(StepStatus.PASSED);
+
+        StepOutcome credentialOutcome = result.outcomes().get(1);
+        assertThat(credentialOutcome.status()).isEqualTo(StepStatus.FAILED);
+        assertThat(credentialOutcome.failureMessageKey()).isEqualTo("journey.step.failed.credential");
+        assertThat(credentialOutcome.failureArgs()).isNotEmpty();
+        assertThat(result.screenshotName()).isPresent();
     }
 }

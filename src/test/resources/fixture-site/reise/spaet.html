@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Reise buchen — Nachgeladen</title>
+</head>
+<body>
+  <h1>Nachgeladener Bereich</h1>
+  <p data-testid="unsichtbar" style="display:none">Dieser Absatz ist da, aber nicht sichtbar.</p>
+  <div id="spaet-ziel"></div>
+  <script>
+    // Renders 300 ms after load: the journey runner must wait for it, not snapshot the DOM once.
+    setTimeout(function () {
+      var link = document.createElement('a');
+      link.setAttribute('data-testid', 'spaet-link');
+      link.setAttribute('href', 'ziel.html');
+      link.textContent = 'Nachgeladener Verweis';
+      document.getElementById('spaet-ziel').appendChild(link);
+    }, 300);
+  </script>
+</body>
+</html>

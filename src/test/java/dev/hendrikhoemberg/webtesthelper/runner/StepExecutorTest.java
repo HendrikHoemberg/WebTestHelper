@@ -255,7 +255,7 @@ class StepExecutorTest {
         // Failing (missing element)
         LocatorCandidate missing = new LocatorCandidate(LocatorStrategy.TEST_ID, "missing-element", 0);
         StepAssertion failAssertion = new StepAssertion(AssertionType.VISIBLE, null);
-        JourneyStep failStep = createStep(StepAction.ASSERT, List.of(missing), null, failAssertion, false, 5000);
+        JourneyStep failStep = createStep(StepAction.ASSERT, List.of(missing), null, failAssertion, false, 300);
         StepOutcome failOutcome = StepExecutor.execute(page, failStep, null);
 
         assertThat(failOutcome.status()).isEqualTo(StepStatus.FAILED);
@@ -298,7 +298,8 @@ class StepExecutorTest {
 
         // Failing
         StepAssertion failAssertion = new StepAssertion(AssertionType.COUNT, "5");
-        JourneyStep failStep = createStep(StepAction.ASSERT, List.of(inputCandidate), null, failAssertion, false, 5000);
+        // Short budget: a COUNT assertion now re-checks until its timeout before giving up.
+        JourneyStep failStep = createStep(StepAction.ASSERT, List.of(inputCandidate), null, failAssertion, false, 300);
         StepOutcome failOutcome = StepExecutor.execute(page, failStep, null);
 
         assertThat(failOutcome.status()).isEqualTo(StepStatus.FAILED);
@@ -309,7 +310,7 @@ class StepExecutorTest {
     void optionalStepReturnsSkippedWhenElementMissing() {
         page.navigate(fixtureSite.url("reise/schritt2.html"));
         LocatorCandidate missing = new LocatorCandidate(LocatorStrategy.TEST_ID, "cookie-accept", 0);
-        JourneyStep step = createStep(StepAction.CLICK, List.of(missing), null, null, true, 5000);
+        JourneyStep step = createStep(StepAction.CLICK, List.of(missing), null, null, true, 300);
 
         StepOutcome outcome = StepExecutor.execute(page, step, null);
 
@@ -324,7 +325,7 @@ class StepExecutorTest {
     void nonOptionalStepReturnsFailedWhenElementMissing() {
         page.navigate(fixtureSite.url("reise/schritt2.html"));
         LocatorCandidate missing = new LocatorCandidate(LocatorStrategy.TEST_ID, "cookie-accept", 0);
-        JourneyStep step = createStep(StepAction.CLICK, List.of(missing), null, null, false, 5000);
+        JourneyStep step = createStep(StepAction.CLICK, List.of(missing), null, null, false, 300);
 
         StepOutcome outcome = StepExecutor.execute(page, step, null);
 
@@ -352,5 +353,173 @@ class StepExecutorTest {
         assertThat(outcome.drifted()).isTrue();
         assertThat(outcome.failureMessageKey()).isNull();
         assertThat(page.url()).contains("schritt2.html");
+    }
+
+    @Test
+    void waitForWaitsForAnElementThatIsRenderedAfterLoad() {
+        page.navigate(fixtureSite.url("reise/spaet.html"));
+        LocatorCandidate late = new LocatorCandidate(LocatorStrategy.TEST_ID, "spaet-link", 0);
+        JourneyStep step = createStep(StepAction.WAIT_FOR, List.of(late), null, null, false, 3000);
+
+        StepOutcome outcome = StepExecutor.execute(page, step, null);
+
+        assertThat(outcome.status()).isEqualTo(StepStatus.PASSED);
+        assertThat(outcome.winner()).isEqualTo(late);
+    }
+
+    @Test
+    void clickWaitsForAnElementThatIsRenderedAfterLoad() {
+        page.navigate(fixtureSite.url("reise/spaet.html"));
+        LocatorCandidate late = new LocatorCandidate(LocatorStrategy.TEST_ID, "spaet-link", 0);
+        JourneyStep step = createStep(StepAction.CLICK, List.of(late), null, null, false, 3000);
+
+        StepOutcome outcome = StepExecutor.execute(page, step, null);
+
+        assertThat(outcome.status()).isEqualTo(StepStatus.PASSED);
+        assertThat(page.url()).contains("ziel.html");
+    }
+
+    @Test
+    void aStepThatDriftedAndThenFailedStillReportsTheWinnerAndTheDrift() {
+        page.navigate(fixtureSite.url("reise/schritt2.html"));
+        LocatorCandidate goneAfterRedesign = new LocatorCandidate(LocatorStrategy.TEST_ID, "ueberschrift", 0);
+        LocatorCandidate fallback = new LocatorCandidate(LocatorStrategy.CSS, "h1", 0);
+        StepAssertion wrongText = new StepAssertion(AssertionType.TEXT_CONTAINS, "Falscher Text");
+        JourneyStep step = createStep(
+                StepAction.ASSERT, List.of(goneAfterRedesign, fallback), null, wrongText, false, 300);
+
+        StepOutcome outcome = StepExecutor.execute(page, step, null);
+
+        assertThat(outcome.status()).isEqualTo(StepStatus.FAILED);
+        assertThat(outcome.winner()).isEqualTo(fallback);
+        assertThat(outcome.drifted()).isTrue();
+        assertThat(outcome.failureMessageKey()).isEqualTo("journey.step.failed.assertion");
+    }
+
+    @Test
+    void countAssertionJudgesTheFirstMatchingCandidateInsteadOfHuntingForTheExpectedNumber() {
+        page.navigate(fixtureSite.url("reise/schritt2.html"));
+        // schritt2.html has 2 <input> and 4 <div>. The step is about the inputs; a later candidate
+        // happening to count 4 must not be allowed to satisfy the assertion.
+        LocatorCandidate inputs = new LocatorCandidate(LocatorStrategy.CSS, "input", 0);
+        LocatorCandidate divs = new LocatorCandidate(LocatorStrategy.CSS, "div", 1);
+        StepAssertion expectFour = new StepAssertion(AssertionType.COUNT, "4");
+        JourneyStep step = createStep(StepAction.ASSERT, List.of(inputs, divs), null, expectFour, false, 300);
+
+        StepOutcome outcome = StepExecutor.execute(page, step, null);
+
+        assertThat(outcome.status()).isEqualTo(StepStatus.FAILED);
+        assertThat(outcome.failureMessageKey()).isEqualTo("journey.step.failed.assertion");
+        assertThat(outcome.failureArgs()).containsExactly("4", "2");
+    }
+
+    @Test
+    void countAssertionStillFallsBackWhenThePrimaryCandidateMatchesNothing() {
+        page.navigate(fixtureSite.url("reise/schritt2.html"));
+        LocatorCandidate gone = new LocatorCandidate(LocatorStrategy.TEST_ID, "eingabefelder", 0);
+        LocatorCandidate inputs = new LocatorCandidate(LocatorStrategy.CSS, "input", 0);
+        StepAssertion expectTwo = new StepAssertion(AssertionType.COUNT, "2");
+        JourneyStep step = createStep(StepAction.ASSERT, List.of(gone, inputs), null, expectTwo, false, 300);
+
+        StepOutcome outcome = StepExecutor.execute(page, step, null);
+
+        assertThat(outcome.status()).isEqualTo(StepStatus.DRIFTED);
+        assertThat(outcome.winner()).isEqualTo(inputs);
+    }
+
+    @Test
+    void countAssertionWithANonNumericExpectationFailsWithItsOwnKey() {
+        page.navigate(fixtureSite.url("reise/schritt2.html"));
+        LocatorCandidate inputs = new LocatorCandidate(LocatorStrategy.CSS, "input", 0);
+        StepAssertion nonsense = new StepAssertion(AssertionType.COUNT, "zwei");
+        JourneyStep step = createStep(StepAction.ASSERT, List.of(inputs), null, nonsense, false, 300);
+
+        StepOutcome outcome = StepExecutor.execute(page, step, null);
+
+        assertThat(outcome.status()).isEqualTo(StepStatus.FAILED);
+        assertThat(outcome.failureMessageKey()).isEqualTo("journey.step.failed.count_expectation");
+        assertThat(outcome.failureArgs()).containsExactly("zwei");
+    }
+
+    @Test
+    void urlAssertionTreatsTheExpectedValueAsARegularExpression() {
+        page.navigate(fixtureSite.url("reise/schritt2.html"));
+        StepAssertion pattern = new StepAssertion(AssertionType.URL_MATCHES, "schritt\\d+\\.html$");
+        JourneyStep step = createStep(StepAction.ASSERT, List.of(), null, pattern, false, 300);
+
+        StepOutcome outcome = StepExecutor.execute(page, step, null);
+
+        assertThat(outcome.status()).isEqualTo(StepStatus.PASSED);
+    }
+
+    @Test
+    void urlAssertionWithAnUnusablePatternFailsWithItsOwnKey() {
+        page.navigate(fixtureSite.url("reise/schritt2.html"));
+        StepAssertion broken = new StepAssertion(AssertionType.URL_MATCHES, "[unvollstaendig");
+        JourneyStep step = createStep(StepAction.ASSERT, List.of(), null, broken, false, 300);
+
+        StepOutcome outcome = StepExecutor.execute(page, step, null);
+
+        assertThat(outcome.status()).isEqualTo(StepStatus.FAILED);
+        assertThat(outcome.failureMessageKey()).isEqualTo("journey.step.failed.pattern");
+        assertThat(outcome.failureArgs()).contains("[unvollstaendig");
+    }
+
+    @Test
+    void visibleAssertionOnAHiddenElementFailsWithItsOwnKeyAndNoGermanArguments() {
+        page.navigate(fixtureSite.url("reise/spaet.html"));
+        LocatorCandidate hidden = new LocatorCandidate(LocatorStrategy.TEST_ID, "unsichtbar", 0);
+        StepAssertion visible = new StepAssertion(AssertionType.VISIBLE, null);
+        JourneyStep step = createStep(StepAction.ASSERT, List.of(hidden), null, visible, false, 300);
+
+        StepOutcome outcome = StepExecutor.execute(page, step, null);
+
+        assertThat(outcome.status()).isEqualTo(StepStatus.FAILED);
+        assertThat(outcome.failureMessageKey()).isEqualTo("journey.step.failed.not_visible");
+        assertThat(outcome.failureArgs()).isEmpty();
+        assertThat(outcome.winner()).isEqualTo(hidden);
+    }
+
+    @Test
+    void gotoFailureIsReportedWithTheNavigationMessageKey() {
+        // Port 1 is privileged and closed: the navigation is refused rather than timing out.
+        // Run on a throwaway page — a refused navigation leaves the tab on chrome-error://, which
+        // would race the next test's navigation away from it.
+        String unreachable = "http://127.0.0.1:1/";
+        JourneyStep step = createStep(StepAction.GOTO, List.of(), unreachable, null, false, 2000);
+
+        Page scratchPage = browser.newPage();
+        try {
+            StepOutcome outcome = StepExecutor.execute(scratchPage, step, unreachable);
+
+            assertThat(outcome.status()).isEqualTo(StepStatus.FAILED);
+            assertThat(outcome.failureMessageKey()).isEqualTo("journey.step.failed.navigation");
+            assertThat(outcome.failureArgs()).first().isEqualTo(unreachable);
+        } finally {
+            scratchPage.close();
+        }
+    }
+
+    @Test
+    void anOptionalStepFailsWhenItsElementIsThereButTheAssertionIsFalse() {
+        page.navigate(fixtureSite.url("reise/schritt2.html"));
+        LocatorCandidate heading = new LocatorCandidate(LocatorStrategy.CSS, "h1", 0);
+        StepAssertion wrongText = new StepAssertion(AssertionType.TEXT_CONTAINS, "Falscher Text");
+        JourneyStep step = createStep(StepAction.ASSERT, List.of(heading), null, wrongText, true, 300);
+
+        StepOutcome outcome = StepExecutor.execute(page, step, null);
+
+        assertThat(outcome.status()).isEqualTo(StepStatus.FAILED);
+    }
+
+    @Test
+    void anOptionalStepFailsWhenItsElementIsThereButTheActionCannotBeCarriedOut() {
+        page.navigate(fixtureSite.url("reise/schritt2.html"));
+        LocatorCandidate select = new LocatorCandidate(LocatorStrategy.TEST_ID, "reise-ziel", 0);
+        JourneyStep step = createStep(StepAction.SELECT, List.of(select), null, null, true, 500);
+
+        StepOutcome outcome = StepExecutor.execute(page, step, "gibt-es-nicht");
+
+        assertThat(outcome.status()).isEqualTo(StepStatus.FAILED);
     }
 }
