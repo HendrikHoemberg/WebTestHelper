@@ -222,6 +222,40 @@ public final class FixtureSite implements AutoCloseable {
                                 "<!doctype html><html lang=\"de\"><body><h1>Partnerseite wieder da</h1></body></html>");
                     }
                 }
+                case "/reise/wacklig.html" -> {
+                    // §10.2's "the site changed between recording and replay". The fixture is
+                    // deterministic, so the only way the structural CSS path can break is if the
+                    // page renders differently on the 1st vs 2nd request. The recording session's
+                    // page.navigate(startUrl) is request 1 (odd); the replay's GOTO is request 2
+                    // (even). Request 1 mirrors reise/start.html with the start link carrying NO
+                    // id — only data-testid — so its recorded CSS path is structural
+                    // (body > p:nth-of-type(2) > a). Request 2 (even) inserts an extra paragraph
+                    // before the "Reise buchen" link, shifting it to p:nth-of-type(3), so that
+                    // recorded structural path now resolves to the wrong <a> ("Angebote").
+                    int seen = requestCounts.get(path).get();
+                    if (seen % 2 == 1) {
+                        sendHtml(exchange, 200, """
+                                <!doctype html><html lang="de"><head><meta charset="utf-8">
+                                <title>Reise buchen — Start</title></head>
+                                <body>
+                                <h1>Reiseportal</h1>
+                                <p>Willkommen zur Reisebuchung.</p>
+                                <p><a href="schritt2.html" data-testid="reise-start">Reise buchen</a></p>
+                                </body></html>
+                                """);
+                    } else {
+                        sendHtml(exchange, 200, """
+                                <!doctype html><html lang="de"><head><meta charset="utf-8">
+                                <title>Reise buchen — Start</title></head>
+                                <body>
+                                <h1>Reiseportal</h1>
+                                <p>Willkommen zur Reisebuchung.</p>
+                                <p><a href="angebote.html">Angebote</a></p>
+                                <p><a href="schritt2.html" data-testid="reise-start">Reise buchen</a></p>
+                                </body></html>
+                                """);
+                    }
+                }
                 case "/langsam" -> {
                     sleep();
                     sendHtml(exchange, 200, "<!doctype html><html lang=\"de\"><body><h1>Endlich</h1></body></html>");

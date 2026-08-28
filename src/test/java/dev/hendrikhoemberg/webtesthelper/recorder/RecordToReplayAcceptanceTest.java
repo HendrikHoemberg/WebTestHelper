@@ -97,14 +97,14 @@ class RecordToReplayAcceptanceTest extends AbstractPostgresTest {
 
     @Test
     void recordedJourneyReplaysGreenWithMultipleLocatorCandidatesAndNoKeystrokeExplosion() throws Exception {
-        String startUrl = fixtureSite.url("reise/start.html");
+        String startUrl = fixtureSite.url("reise/wacklig.html");
         RecordingSession session = sessionRegistry.open(siteId, startUrl, "alice");
         WebSocketSession wsSession = createMockWebSocketSession("ws-acceptance-session", session);
         socketHandler.afterConnectionEstablished(wsSession);
 
         try {
-            // 1. Click start link on reise/start.html
-            clickElement(session, wsSession, "#reise-start-link");
+            // 1. Click start link on the wobbly fixture page (no id — CSS path is structural)
+            clickElement(session, wsSession, "[data-testid=reise-start]");
 
             // Wait for navigation to schritt2.html
             session.worker().submit(browser -> {

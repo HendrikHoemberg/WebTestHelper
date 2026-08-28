@@ -284,12 +284,26 @@ these, the recorded journey carries a spurious step per action and breaks assert
 replay. All of this is pinned by new `StepBuilderTest` cases (verified to fail against the pre-change
 `StepBuilder`).
 
-**Mutation check (measured, and it matters):** with `CandidateBuilder` temporarily emitting only the
-CSS candidate, the acceptance test still **fails** — but at assertion (b), **not (c)**. The replay
-(c) a journey driven with only CSS locators **still returns `PASSED`**: the fixture's scoped CSS paths
-are stable enough for plan 14's engine. So (b) ("each step carries at least two candidates") is the
-operative guard against a candidate-strategy regression, while (c) remains the honest end-to-end proof
-that the recorded journey is executable. The test is well-designed as written; nothing was redesigned.
+**Mutation check, redesigned.** The first check made the fixture's stable static flow defeat the point:
+with `CandidateBuilder` emitting only the CSS candidate, the static `reise/start.html` flow still
+replayed green (the link carries `id="reise-start-link"`, so its CSS path is the id-based `#reise-start-link`,
+immune to DOM shape), and (c) never fired. That is exactly what the checklist's "CSS paths are too
+stable" prescribes a redesign for. The fixture is deterministic, so the only way a structural CSS path
+can break is if the page renders differently between recording and replay — so the redesign is a
+parity route. The acceptance test now records on `reise/wacklig.html` (`@BeforeAll` site start URL
+unchanged; the session and the replay each navigate it exactly once, and navigate is called once per
+open, so request 1 is the recording's single page load and request 2 is the replay's GOTO). Request 1
+(odd) mirrors `reise/start.html` but the "Reise buchen" link carries **no id** — only
+`data-testid="reise-start"` — so its recorded CSS path is structural
+(`body > p:nth-of-type(2) > a`; `computeCssPath` does not emit the `<html>` prefix). Request 2 (even)
+inserts an extra `<p><a href="angebote.html">Angebote</a></p>` immediately before the Reise-buchen
+paragraph, shifting it from `p:nth-of-type(2)` to `p:nth-of-type(3)`. The recorded structural path
+then resolves to the "Angebote" link, the journey navigates to a soft-404 page, the `#reise-name` FILL
+fails, and replay returns `FAILED` — while the full candidate list resolves `TEST_ID` `reise-start` to
+the real link and replays green with zero drift. The mutation check (CSS-only, with (b) relaxed
+because (b) is checked before the replay and fails first by construction) now fails at assertion (c):
+`expected: PASSED but was: FAILED` on `replayResult.status()`. So (c) genuinely fails under the CSS-only
+mutation; (b) remains the redundant-but-cheap guard on candidate count.
 
 **Password redaction.** A typed password never reaches a `FILL` value, the built step objects, or the
 persisted `journey.steps` row (the password test greps the stored JSON, not just the built list).
