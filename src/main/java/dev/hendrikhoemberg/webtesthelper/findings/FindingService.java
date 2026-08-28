@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -43,9 +44,17 @@ public class FindingService {
      */
     public RunDiff record(long runId, long siteId, List<CheckFinding> findings, RunCoverage coverage,
             Instant observedAt) {
-        List<MaterialisedFinding> materialised =
+        return record(runId, siteId, findings, List.of(), coverage, observedAt);
+    }
+
+    public RunDiff record(long runId, long siteId, List<CheckFinding> findings,
+            List<MaterialisedFinding> extraMaterialised, RunCoverage coverage, Instant observedAt) {
+        List<MaterialisedFinding> materialised = new ArrayList<>(
                 FindingMaterializer.materialise(siteId, findings, properties.siteWideThreshold(),
-                        coverage.interactionCheckTypes());
+                        coverage.interactionCheckTypes()));
+        if (extraMaterialised != null && !extraMaterialised.isEmpty()) {
+            materialised.addAll(extraMaterialised);
+        }
         List<Long> ids = store.upsertAll(siteId, runId, materialised, observedAt);
         store.insertOccurrences(ids, runId, materialised, observedAt);
         store.recountOccurrences(ids);

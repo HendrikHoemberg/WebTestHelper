@@ -31,6 +31,7 @@ public class RunResultJdbcRepository {
                    covered_urls                    = ?::jsonb,
                    covered_interaction_urls        = ?::jsonb,
                    covered_interaction_check_types = ?::jsonb,
+                   covered_journey_ids             = ?::jsonb,
                    partial_coverage                = ?,
                    budget_stop_reason              = ?,
                    soft404_status                  = ?,
@@ -62,12 +63,20 @@ public class RunResultJdbcRepository {
 
     public void saveCrawlOutcome(long runId, CrawlResult result, List<String> coveredCheckTypes,
             SoftNotFoundProbe probe, int findingsTotal, int findingsNew, int findingsResolved) {
-        saveCrawlOutcome(runId, result, coveredCheckTypes, List.of(), List.of(), probe,
+        saveCrawlOutcome(runId, result, coveredCheckTypes, List.of(), List.of(), List.of(), probe,
                 findingsTotal, findingsNew, findingsResolved);
     }
 
     public void saveCrawlOutcome(long runId, CrawlResult result, List<String> coveredCheckTypes,
             List<String> coveredInteractionCheckTypes, List<String> coveredInteractionUrls,
+            SoftNotFoundProbe probe, int findingsTotal, int findingsNew, int findingsResolved) {
+        saveCrawlOutcome(runId, result, coveredCheckTypes, coveredInteractionCheckTypes, coveredInteractionUrls,
+                List.of(), probe, findingsTotal, findingsNew, findingsResolved);
+    }
+
+    public void saveCrawlOutcome(long runId, CrawlResult result, List<String> coveredCheckTypes,
+            List<String> coveredInteractionCheckTypes, List<String> coveredInteractionUrls,
+            List<Long> coveredJourneyIds,
             SoftNotFoundProbe probe, int findingsTotal, int findingsNew, int findingsResolved) {
         try {
             jdbc.update(OUTCOME_SQL,
@@ -80,6 +89,7 @@ public class RunResultJdbcRepository {
                     objectMapper.writeValueAsString(result.coveredUrls()),
                     objectMapper.writeValueAsString(coveredInteractionUrls != null ? coveredInteractionUrls : List.of()),
                     objectMapper.writeValueAsString(coveredInteractionCheckTypes != null ? coveredInteractionCheckTypes : List.of()),
+                    objectMapper.writeValueAsString(coveredJourneyIds != null ? coveredJourneyIds : List.of()),
                     result.partialCoverage(),
                     result.budgetStopReason(),
                     probe.httpStatus(),

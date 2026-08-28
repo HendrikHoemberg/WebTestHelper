@@ -33,6 +33,12 @@ class FindingStoreJourneyResolutionTest extends AbstractPostgresTest {
     JdbcTemplate jdbc;
     @Autowired
     SiteService sites;
+    @Autowired
+    dev.hendrikhoemberg.webtesthelper.runner.persistence.RunResultJdbcRepository runResults;
+    @Autowired
+    dev.hendrikhoemberg.webtesthelper.runner.persistence.RunRepository runs;
+    @Autowired
+    jakarta.persistence.EntityManager entityManager;
 
     private long siteId;
     private Instant observedAt;
@@ -166,6 +172,36 @@ class FindingStoreJourneyResolutionTest extends AbstractPostgresTest {
 
         assertThat(resolved).isZero();
         assertThat(observedStatus(finding.fingerprint())).isEqualTo(ObservedStatus.ACTIVE);
+    }
+
+    @Test
+    void runResultRepositoryPersistsAndReadsBackJourneyCoverageColumns() {
+        dev.hendrikhoemberg.webtesthelper.runner.persistence.RunEntity run =
+                new dev.hendrikhoemberg.webtesthelper.runner.persistence.RunEntity();
+        run.setSiteId(siteId);
+        run.setTriggerType(dev.hendrikhoemberg.webtesthelper.model.RunTrigger.MANUAL);
+        run.setScope(RunScope.FULL);
+        long runId = runs.save(run).getId();
+
+        dev.hendrikhoemberg.webtesthelper.crawler.CrawlResult crawlResult =
+                new dev.hendrikhoemberg.webtesthelper.crawler.CrawlResult(
+                        new dev.hendrikhoemberg.webtesthelper.model.RunSnapshots(
+                                runId, sites.contextFor(siteId), List.of(), dev.hendrikhoemberg.webtesthelper.model.SoftNotFoundProbe.NONE),
+                        5, 0, List.of("https://www.example.com/"), false, null, List.of(), List.of());
+
+        runResults.saveCrawlOutcome(runId, crawlResult,
+                List.of("DEAD_LINK"),
+                List.of(),
+                List.of(),
+                List.of(101L, 102L),
+                dev.hendrikhoemberg.webtesthelper.model.SoftNotFoundProbe.NONE,
+                1, 1, 0);
+
+        entityManager.flush();
+        entityManager.clear();
+
+        dev.hendrikhoemberg.webtesthelper.runner.persistence.RunEntity reloaded = runs.findById(runId).orElseThrow();
+        assertThat(reloaded.getCoveredJourneyIds()).containsExactly(101L, 102L);
     }
 
     private MaterialisedFinding journeyFinding(CheckType type, String subject, long journeyId) {

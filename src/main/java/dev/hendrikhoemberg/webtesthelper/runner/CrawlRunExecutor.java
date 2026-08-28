@@ -71,6 +71,7 @@ public class CrawlRunExecutor implements RunExecutor {
     private final FindingService findings;
     private final RunnerProperties properties;
     private final InteractionRunner interactionRunner;
+    private final JourneyPass journeyPass;
     private final CrawlerProperties crawlerProperties;
 
     public CrawlRunExecutor(CrawlService crawler, CheckEngine checks,
@@ -78,6 +79,7 @@ public class CrawlRunExecutor implements RunExecutor {
             RunResultJdbcRepository results, RunLeaseJdbcRepository leases,
             WorkerIdentity identity, FindingReverifier reverifier, FindingService findings,
             RunnerProperties properties, InteractionRunner interactionRunner,
+            JourneyPass journeyPass,
             CrawlerProperties crawlerProperties) {
         this.crawler = crawler;
         this.checks = checks;
@@ -91,6 +93,7 @@ public class CrawlRunExecutor implements RunExecutor {
         this.findings = findings;
         this.properties = properties;
         this.interactionRunner = interactionRunner;
+        this.journeyPass = journeyPass;
         this.crawlerProperties = crawlerProperties;
     }
 
@@ -138,6 +141,18 @@ public class CrawlRunExecutor implements RunExecutor {
             interactionOutcome = InteractionOutcome.NONE;
         }
 
+        JourneyPassResult journeyPassResult;
+        if (lease.scope() != RunScope.PULSE) {
+            leases.heartbeat(lease.runId(), identity.name(), LEASE_EXTENSION);
+            Path runArtifacts = crawlerProperties.artifactDir().resolve(String.valueOf(lease.runId()));
+            journeyPassResult = journeyPass.run(site, lease.scope(), runArtifacts);
+            if (journeyPassResult == null) {
+                journeyPassResult = JourneyPassResult.NONE;
+            }
+        } else {
+            journeyPassResult = JourneyPassResult.NONE;
+        }
+
         // A dead-link finding is a chance for a false positive: re-check every subject the first
         // pass called DEAD and that the crawl did not itself visit. Anything that answers OK on a
         // later probe was transient and never becomes a finding (spec 8). Nothing here swallows a
@@ -167,6 +182,9 @@ public class CrawlRunExecutor implements RunExecutor {
         List<String> coveredInteractionUrls = interactionOutcome.drivenUrls().stream()
                 .sorted()
                 .toList();
+        List<Long> coveredJourneyIds = journeyPassResult.completedJourneyIds().stream()
+                .sorted()
+                .toList();
 
         // Materialise the survivors into fingerprints, promote site-wide where the check decides,
         // and diff against the previous run. observedAt is the run's start so every observation a
@@ -176,8 +194,10 @@ public class CrawlRunExecutor implements RunExecutor {
                 // The candidate types, not the driven ones: a check that drove nothing must still
                 // be excluded from the crawl-scoped resolve (D74/D79). The run row keeps reporting
                 // what was actually driven, which is what the coverage line on the screen means.
-                interactionOutcome.candidateTypes(), interactionOutcome.drivenUrlsByType());
-        RunDiff diff = findings.record(lease.runId(), site.siteId(), surviving, coverage, startedAt);
+                interactionOutcome.candidateTypes(), interactionOutcome.drivenUrlsByType(),
+                journeyPassResult.completedJourneyIds());
+        RunDiff diff = findings.record(lease.runId(), site.siteId(), surviving,
+                journeyPassResult.findings(), coverage, startedAt);
 
         log.info("Lauf {}: {} neu, {} behoben, {} weiterhin offen",
                 lease.runId(), diff.count(ReportSection.NEW), diff.count(ReportSection.FIXED),
@@ -185,6 +205,7 @@ public class CrawlRunExecutor implements RunExecutor {
 
         results.saveCrawlOutcome(lease.runId(), result, coveredCheckTypes,
                 coveredInteractionCheckTypes, coveredInteractionUrls,
+                coveredJourneyIds,
                 result.snapshots().softNotFound(), diff.observedTotal(),
                 diff.count(ReportSection.NEW), diff.count(ReportSection.FIXED));
 
