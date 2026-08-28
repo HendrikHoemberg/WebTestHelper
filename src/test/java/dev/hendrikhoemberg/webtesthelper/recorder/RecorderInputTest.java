@@ -68,6 +68,63 @@ class RecorderInputTest {
     }
 
     @Test
+    void canvasClickOnAScrolledPageLandsOnTheElementUnderTheCursor() throws Exception {
+        session.worker().submit(browser -> {
+            session.page().navigate(fixtureSite.url("reise/lang.html"));
+            session.page().evaluate("window.scrollTo(0, 1500)");
+            return null;
+        });
+
+        java.util.concurrent.BlockingQueue<ScreencastFrame> frames = new java.util.concurrent.LinkedBlockingQueue<>();
+        bridge.attach(session, frames::add);
+        WebSocketSession wsSession = createMockWebSocketSession("ws-scrolled-click");
+        try {
+            ScreencastFrame frame = frames.poll(5, java.util.concurrent.TimeUnit.SECONDS);
+            assertThat(frame).as("A frame arrives so the client has metadata to send back").isNotNull();
+
+            var box = session.worker().submit(browser ->
+                    session.page().locator("#reise-tief-link").boundingBox());
+            assertThat(box).as("Link is inside the viewport after scrolling").isNotNull();
+            assertThat(box.y).isBetween(0.0, 720.0);
+
+            // The client renders the 1280x720 frame into a 640x360 canvas and reports the
+            // geometry it was given by the frame metadata, exactly as record.html does.
+            double scaleFactor = 640.0 / 1280.0;
+            CanvasGeometry geometry = new CanvasGeometry(640, 360, frame.metadata());
+            JsonObject clickMsg = clickMessage(
+                    (box.x + 20) * scaleFactor, (box.y + box.height / 2) * scaleFactor, geometry);
+
+            socketHandler.handleTextMessage(wsSession, new TextMessage(clickMsg.toString()));
+
+            session.worker().submit(browser -> {
+                session.page().waitForURL("**/reise/ziel.html");
+                return null;
+            });
+            String currentUrl = session.worker().submit(browser -> session.page().url());
+            assertThat(currentUrl).contains("reise/ziel.html");
+        } finally {
+            socketHandler.afterConnectionClosed(wsSession, CloseStatus.NORMAL);
+            bridge.detach(session);
+        }
+    }
+
+    private static JsonObject clickMessage(double canvasX, double canvasY, CanvasGeometry geometry) {
+        JsonObject msg = new JsonObject();
+        msg.addProperty("type", "click");
+        msg.addProperty("canvasX", canvasX);
+        msg.addProperty("canvasY", canvasY);
+        JsonObject g = new JsonObject();
+        g.addProperty("canvasWidth", geometry.canvasWidth());
+        g.addProperty("canvasHeight", geometry.canvasHeight());
+        g.addProperty("frameWidth", geometry.frameWidth());
+        g.addProperty("frameHeight", geometry.frameHeight());
+        g.addProperty("pageScaleFactor", geometry.pageScaleFactor());
+        g.addProperty("offsetTop", geometry.offsetTop());
+        msg.add("geometry", g);
+        return msg;
+    }
+
+    @Test
     void canvasClickOnStartLinkNavigatesToSchritt2() throws Exception {
         // Reset page to start.html
         session.worker().submit(browser -> {
@@ -108,8 +165,6 @@ class RecorderInputTest {
             geometry.addProperty("frameHeight", 720);
             geometry.addProperty("pageScaleFactor", 1.0);
             geometry.addProperty("offsetTop", 0.0);
-            geometry.addProperty("scrollOffsetX", 0.0);
-            geometry.addProperty("scrollOffsetY", 0.0);
             clickMsg.add("geometry", geometry);
 
             socketHandler.handleTextMessage(wsSession, new TextMessage(clickMsg.toString()));
@@ -156,8 +211,6 @@ class RecorderInputTest {
             geometry.addProperty("frameHeight", 720);
             geometry.addProperty("pageScaleFactor", 1.0);
             geometry.addProperty("offsetTop", 0.0);
-            geometry.addProperty("scrollOffsetX", 0.0);
-            geometry.addProperty("scrollOffsetY", 0.0);
             clickMsg.add("geometry", geometry);
 
             socketHandler.handleTextMessage(wsSession, new TextMessage(clickMsg.toString()));

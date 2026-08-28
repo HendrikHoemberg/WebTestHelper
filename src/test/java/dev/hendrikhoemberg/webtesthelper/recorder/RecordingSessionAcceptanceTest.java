@@ -87,7 +87,7 @@ class RecordingSessionAcceptanceTest {
             double canvasY = targetY * scaleY;
 
             CanvasGeometry geometry = new CanvasGeometry(
-                    (int) canvasWidth, (int) canvasHeight, 1280, 720, 1.0, 0.0, 0.0, 0.0);
+                    (int) canvasWidth, (int) canvasHeight, 1280, 720, 1.0, 0.0);
             ViewportPoint viewportPoint = InputTranslator.toViewport(canvasX, canvasY, geometry);
 
             assertThat(viewportPoint.x()).isCloseTo(targetX, org.assertj.core.data.Offset.offset(0.1));

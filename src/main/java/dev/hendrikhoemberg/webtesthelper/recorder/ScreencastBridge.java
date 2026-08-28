@@ -129,10 +129,8 @@ public class ScreencastBridge {
                 JsonObject captureResult = cdp.send("Page.captureScreenshot", captureParams);
                 if (captureResult != null && captureResult.has("data")) {
                     String initialData = captureResult.get("data").getAsString();
-                    ScreencastMetadata initialMeta = new ScreencastMetadata(
-                            0.0, 1.0, properties.viewportWidth(), properties.viewportHeight(),
-                            0.0, 0.0, System.currentTimeMillis() / 1000.0);
-                    ScreencastFrame initialFrame = new ScreencastFrame(initialData, initialMeta, 0);
+                    ScreencastFrame initialFrame =
+                            new ScreencastFrame(initialData, currentLayout(cdp), 0);
                     if (!attachment.detached.get()) {
                         sink.onFrame(initialFrame);
                     }
@@ -201,6 +199,36 @@ public class ScreencastBridge {
         }
         AtomicLong count = historicalAcks.get(session.sessionId());
         return count != null ? count.get() : 0L;
+    }
+
+    /**
+     * Reads the page's real layout state for the on-attach frame (D110).
+     *
+     * <p>The on-attach frame comes from {@code Page.captureScreenshot}, which carries no
+     * screencast metadata of its own. Fabricating zeroes here would make the client translate
+     * its first click against a page it believes is unscrolled, so the state is read from
+     * {@code Page.getLayoutMetrics} instead.
+     */
+    private ScreencastMetadata currentLayout(CDPSession cdp) {
+        try {
+            JsonObject metrics = cdp.send("Page.getLayoutMetrics", new JsonObject());
+            JsonObject visual = metrics != null && metrics.has("cssVisualViewport")
+                    ? metrics.getAsJsonObject("cssVisualViewport")
+                    : null;
+            if (visual != null) {
+                return new ScreencastMetadata(
+                        0.0,
+                        visual.has("scale") ? visual.get("scale").getAsDouble() : 1.0,
+                        visual.has("clientWidth") ? (int) visual.get("clientWidth").getAsDouble() : properties.viewportWidth(),
+                        visual.has("clientHeight") ? (int) visual.get("clientHeight").getAsDouble() : properties.viewportHeight(),
+                        visual.has("pageX") ? visual.get("pageX").getAsDouble() : 0.0,
+                        visual.has("pageY") ? visual.get("pageY").getAsDouble() : 0.0,
+                        System.currentTimeMillis() / 1000.0);
+            }
+        } catch (Exception e) {
+            log.debug("Page.getLayoutMetrics nicht verfügbar: {}", e.getMessage());
+        }
+        return parseMetadata(null);
     }
 
     private ScreencastMetadata parseMetadata(JsonObject meta) {

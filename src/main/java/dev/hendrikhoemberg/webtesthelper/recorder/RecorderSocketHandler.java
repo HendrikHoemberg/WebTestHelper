@@ -290,10 +290,8 @@ public class RecorderSocketHandler extends TextWebSocketHandler {
                 : (g.has("deviceHeight") ? g.get("deviceHeight").getAsInt() : canvasHeight);
         double pageScaleFactor = g.has("pageScaleFactor") ? g.get("pageScaleFactor").getAsDouble() : 1.0;
         double offsetTop = g.has("offsetTop") ? g.get("offsetTop").getAsDouble() : 0.0;
-        double scrollOffsetX = g.has("scrollOffsetX") ? g.get("scrollOffsetX").getAsDouble() : 0.0;
-        double scrollOffsetY = g.has("scrollOffsetY") ? g.get("scrollOffsetY").getAsDouble() : 0.0;
 
-        return new CanvasGeometry(canvasWidth, canvasHeight, frameWidth, frameHeight, pageScaleFactor, offsetTop, scrollOffsetX, scrollOffsetY);
+        return new CanvasGeometry(canvasWidth, canvasHeight, frameWidth, frameHeight, pageScaleFactor, offsetTop);
     }
 
     private int getButtonsBitmask(String button, boolean isPressed) {

@@ -80,6 +80,31 @@ class ScreencastBridgeTest {
     }
 
     @Test
+    void onAttachFrameReportsThePagesRealLayoutNotFabricatedZeroes() throws Exception {
+        session.worker().submit(browser -> {
+            session.page().navigate(fixtureSite.url("reise/lang.html"));
+            session.page().evaluate("window.scrollTo(0, 1500)");
+            return null;
+        });
+
+        BlockingQueue<ScreencastFrame> frames = new LinkedBlockingQueue<>();
+        bridge.attach(session, frames::add);
+        try {
+            ScreencastFrame initial = frames.poll(3, TimeUnit.SECONDS);
+            assertThat(initial).as("On-attach frame delivered").isNotNull();
+            assertThat(initial.metadata().scrollOffsetY())
+                    .as("On-attach metadata carries the page's real scroll position")
+                    .isCloseTo(1500.0, org.assertj.core.data.Offset.offset(1.0));
+        } finally {
+            bridge.detach(session);
+            session.worker().submit(browser -> {
+                session.page().navigate(fixtureSite.url("reise/start.html"));
+                return null;
+            });
+        }
+    }
+
+    @Test
     void visualChangeOnPageDeliversFurtherFrames() throws Exception {
         BlockingQueue<ScreencastFrame> frames = new LinkedBlockingQueue<>();
         bridge.attach(session, frames::add);
