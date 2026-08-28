@@ -31,6 +31,7 @@ public class RecordingSession implements AutoCloseable {
     private final Page page;
     private final Clock clock;
     private volatile Instant lastActivity;
+    private volatile com.microsoft.playwright.CDPSession cdpSession;
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
     public RecordingSession(UUID sessionId, long siteId, String startUrl, String username,
@@ -74,6 +75,14 @@ public class RecordingSession implements AutoCloseable {
         return page;
     }
 
+    public com.microsoft.playwright.CDPSession cdpSession() {
+        return cdpSession;
+    }
+
+    public void setCdpSession(com.microsoft.playwright.CDPSession cdpSession) {
+        this.cdpSession = cdpSession;
+    }
+
     public Instant lastActivity() {
         return lastActivity;
     }
@@ -101,6 +110,13 @@ public class RecordingSession implements AutoCloseable {
         if (closed.compareAndSet(false, true)) {
             if (worker != null) {
                 worker.submit(browser -> {
+                    if (cdpSession != null) {
+                        try {
+                            cdpSession.detach();
+                        } catch (Exception ignored) {
+                        }
+                        cdpSession = null;
+                    }
                     if (context != null) {
                         context.close();
                     }
