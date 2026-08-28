@@ -21,10 +21,15 @@ public enum CheckType {
     COOKIE_BANNER,
     LANGUAGE_SWITCHER,
     BUTTON_REACHABILITY,
-    CONTACT_FORM;
+    CONTACT_FORM,
+    JOURNEY_STEP_FAILED,
+    SELECTOR_DRIFT;
 
     private static final Set<CheckType> INTERACTION =
             EnumSet.of(COOKIE_BANNER, LANGUAGE_SWITCHER, BUTTON_REACHABILITY, CONTACT_FORM);
+
+    private static final Set<CheckType> JOURNEY =
+            EnumSet.of(JOURNEY_STEP_FAILED, SELECTOR_DRIFT);
 
     /**
      * Whether this type is driven in a live browser after the crawl (spec 7.2, D72).
@@ -39,5 +44,15 @@ public enum CheckType {
      */
     public boolean interaction() {
         return INTERACTION.contains(this);
+    }
+
+    /**
+     * Whether this type represents a user journey finding (spec 10.2, 10.4, D108).
+     *
+     * <p>Journey types are findings and triage participants, but are exempt from {@code CheckRegistry}
+     * because a journey replay is not a crawl/interaction check.
+     */
+    public boolean journey() {
+        return JOURNEY.contains(this);
     }
 }

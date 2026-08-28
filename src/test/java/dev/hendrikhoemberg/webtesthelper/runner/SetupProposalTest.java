@@ -28,9 +28,13 @@ class SetupProposalTest {
     void everyCheckTypeAppearsExactlyOnceWithAReason() {
         List<CheckProposal> proposals = SetupProposals.of(allSignals());
 
-        assertThat(proposals).hasSize(CheckType.values().length);
+        Set<CheckType> nonJourney = java.util.EnumSet.allOf(CheckType.class).stream()
+                .filter(t -> !t.journey())
+                .collect(java.util.stream.Collectors.toSet());
+
+        assertThat(proposals).hasSize(nonJourney.size());
         assertThat(proposals).extracting(CheckProposal::type)
-                .containsExactlyInAnyOrder(CheckType.values())
+                .containsExactlyInAnyOrderElementsOf(nonJourney)
                 .doesNotHaveDuplicates();
         assertThat(proposals).allMatch(p -> p.reasonKey().startsWith("ui.einrichtung.grund."));
     }

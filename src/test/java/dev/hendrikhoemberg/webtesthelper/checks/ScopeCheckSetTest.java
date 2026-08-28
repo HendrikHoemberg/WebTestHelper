@@ -42,9 +42,29 @@ class ScopeCheckSetTest {
     }
 
     @Test
+    void pulseRunsNoJourneyCheck() {
+        // Spec 9 / Roadmap D108: PULSE runs page checks only, no submits and no journeys.
+        Set<CheckType> journeyTypes = java.util.EnumSet.allOf(CheckType.class).stream()
+                .filter(CheckType::journey)
+                .collect(Collectors.toSet());
+        assertThat(journeyTypes).isNotEmpty();
+        assertThat(RunScope.PULSE.checkTypes()).doesNotContainAnyElementsOf(journeyTypes);
+    }
+
+    @Test
     void fullAndDeepRunEverything() {
         assertThat(RunScope.FULL.checkTypes()).containsExactlyInAnyOrderElementsOf(Set.of(CheckType.values()));
         assertThat(RunScope.DEEP.checkTypes()).containsExactlyInAnyOrderElementsOf(Set.of(CheckType.values()));
+    }
+
+    @Test
+    void fullAndDeepIncludeJourneyChecks() {
+        Set<CheckType> journeyTypes = java.util.EnumSet.allOf(CheckType.class).stream()
+                .filter(CheckType::journey)
+                .collect(Collectors.toSet());
+        assertThat(journeyTypes).isNotEmpty();
+        assertThat(RunScope.FULL.checkTypes()).containsAll(journeyTypes);
+        assertThat(RunScope.DEEP.checkTypes()).containsAll(journeyTypes);
     }
 
     private static Set<CheckType> typesOf(java.util.List<? extends CheckDescriptor> checks) {

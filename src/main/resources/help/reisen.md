@@ -44,3 +44,12 @@ Beim Wiedergeben eines Schritts versucht WebTestHelper zuerst den bevorzugten Se
 ### Was Selektor-Drift bedeutet
 
 Findet erst ein nachrangiger Selektor das Element, spricht man von **Selektor-Drift**: Der Ablauf läuft erfolgreich durch und bricht nicht ab, aber das System registriert die Abweichung. So werden Sie frühzeitig darauf aufmerksam gemacht, dass sich die Struktur der Website geändert hat — noch bevor die Prüfung bricht.
+
+## Feststellungen im Prüflauf
+
+Werden Benutzerabläufe während eines automatischen oder manuellen Prüflaufs ausgeführt, können zwei Arten von Feststellungen entstehen:
+
+* **Fehlgeschlagener Schritt:** Ein Schritt konnte nicht erfolgreich abgeschlossen werden — etwa weil ein erforderliches Element nicht auffindbar war, eine Aktion fehlschlug oder eine Soll-Prüfung (Assertion) nicht erfüllt wurde. Der Prüflauf bricht den Ablauf an dieser Stelle ab, erfasst die genaue Fehlerursache sowie Screenshots zur Nachvollziehbarkeit und meldet eine Feststellung mit Schweregrad Fehler.
+* **Selektor-Drift:** Der Schritt war erfolgreich, das Element wurde jedoch erst über einen Ausweich-Selektor gefunden. Dies wird als Warnung gemeldet, damit die Selektoren des Ablaufs rechtzeitig aktualisiert werden können, bevor weitere Änderungen der Website zum Ausfall führen.
+
+Beide Befunde können wie alle anderen Feststellungen bewertet (triagiert), zur Kenntnis genommen oder bei Bedarf stummgeschaltet werden.

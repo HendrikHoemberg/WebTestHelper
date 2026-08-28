@@ -40,14 +40,17 @@ class CheckDocumentationTest {
     @Test
     void everyCheckExplainsItselfInEverySupportedLocale() {
         for (Locale locale : SUPPORTED) {
-            assertThat(registry.all()).allSatisfy(check -> {
-                assertThatCode(() -> messages.getMessage(check.titleKey(), null, locale))
-                        .as("%s", check.titleKey()).doesNotThrowAnyException();
-                assertThatCode(() -> messages.getMessage(check.descriptionKey(), null, locale))
-                        .as("%s", check.descriptionKey()).doesNotThrowAnyException();
-                assertThatCode(() -> messages.getMessage(check.remediationKey(), null, locale))
-                        .as("%s", check.remediationKey()).doesNotThrowAnyException();
-            });
+            for (CheckType type : CheckType.values()) {
+                String titleKey = "check." + type.name() + ".title";
+                String descriptionKey = "check." + type.name() + ".description";
+                String remediationKey = "check." + type.name() + ".remediation";
+                assertThatCode(() -> messages.getMessage(titleKey, null, locale))
+                        .as("%s", titleKey).doesNotThrowAnyException();
+                assertThatCode(() -> messages.getMessage(descriptionKey, null, locale))
+                        .as("%s", descriptionKey).doesNotThrowAnyException();
+                assertThatCode(() -> messages.getMessage(remediationKey, null, locale))
+                        .as("%s", remediationKey).doesNotThrowAnyException();
+            }
         }
     }
 
@@ -57,7 +60,7 @@ class CheckDocumentationTest {
             assertThat(registry.all()).allSatisfy(check ->
                     assertThat(check.messageKeys()).allSatisfy(key ->
                             assertThatCode(() -> messages.getMessage(key, new Object[]{"1", "2"}, locale))
-                                    .as("%s", key).doesNotThrowAnyException()));
+                                     .as("%s", key).doesNotThrowAnyException()));
         }
     }
 
@@ -65,11 +68,14 @@ class CheckDocumentationTest {
     void noExplanationLeaksAnInternalIdentifier() {
         // Spec 13.1: "Tote Links", never DEAD_LINK. The audience is a colleague, not a developer.
         for (Locale locale : SUPPORTED) {
-            assertThat(registry.all()).allSatisfy(check -> {
-                for (String key : List.of(check.titleKey(), check.descriptionKey(),
-                        check.remediationKey())) {
+            for (CheckType type : CheckType.values()) {
+                for (String key : List.of("check." + type.name() + ".title",
+                        "check." + type.name() + ".description",
+                        "check." + type.name() + ".remediation")) {
                     assertNoCheckTypeName(messages.getMessage(key, null, locale), key);
                 }
+            }
+            assertThat(registry.all()).allSatisfy(check -> {
                 for (String key : check.messageKeys()) {
                     assertNoCheckTypeName(messages.getMessage(key, null, locale), key);
                 }
@@ -87,12 +93,15 @@ class CheckDocumentationTest {
     void theBundleCarriesNoKeysForChecksThatDoNotExist() {
         // The other direction: a renamed check leaves dead German prose behind, and nobody ever
         // notices because nothing reads it.
-        List<String> declared = registry.all().stream()
-                .flatMap(check -> java.util.stream.Stream.concat(
-                        java.util.stream.Stream.of(check.titleKey(), check.descriptionKey(),
-                                check.remediationKey()),
-                        check.messageKeys().stream()))
-                .toList();
+        List<String> declared = java.util.stream.Stream.concat(
+                java.util.EnumSet.allOf(CheckType.class).stream()
+                        .flatMap(type -> java.util.stream.Stream.of(
+                                "check." + type.name() + ".title",
+                                "check." + type.name() + ".description",
+                                "check." + type.name() + ".remediation")),
+                registry.all().stream()
+                        .flatMap(check -> check.messageKeys().stream())
+        ).toList();
         ResourceBundle bundle = ResourceBundle.getBundle("messages", Locale.GERMAN);
         List<String> orphans = bundle.keySet().stream()
                 .filter(key -> key.startsWith("check.") || key.startsWith("finding."))

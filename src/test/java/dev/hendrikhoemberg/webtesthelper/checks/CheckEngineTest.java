@@ -69,10 +69,13 @@ class CheckEngineTest {
 
     @Test
     void coveredTypesIsExactlyWhatTheRegistryImplements() {
-        // Spec 6.4: a run may only claim coverage for checks that exist. With Plan 3b landed the
-        // registry implements every CheckType, so coverage is the whole enum.
+        // Spec 6.4: a run may only claim coverage for checks that exist. The registry implements
+        // every non-journey CheckType.
+        Set<CheckType> nonJourneyTypes = EnumSet.allOf(CheckType.class).stream()
+                .filter(type -> !type.journey())
+                .collect(java.util.stream.Collectors.toSet());
         assertThat(engine.coveredTypes())
-                .containsExactlyInAnyOrderElementsOf(EnumSet.allOf(CheckType.class));
+                .containsExactlyInAnyOrderElementsOf(nonJourneyTypes);
     }
 
     @Test

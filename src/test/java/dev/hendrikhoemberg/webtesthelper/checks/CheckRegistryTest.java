@@ -14,12 +14,29 @@ class CheckRegistryTest {
     private final CheckRegistry registry = CheckRegistry.standard();
 
     @Test
-    void everyCheckTypeThatShipsInPhaseOneHasExactlyOneImplementation() {
+    void everyNonJourneyCheckTypeHasExactlyOneImplementation() {
         // Spec 7.3: adding a check must not require touching the runner, and this is what makes
-        // forgetting to register one impossible to miss. Plan 3b landed TLS_CERT, HREFLANG and
-        // SITEMAP_CONSISTENCY, so every CheckType now has exactly one implementation.
+        // forgetting to register one impossible to miss.
+        // D108: Journey types (CheckType.journey() == true) are exempt from the registry because
+        // they are replay/findings concepts rather than crawl/interaction checks.
+        Set<CheckType> nonJourneyTypes = EnumSet.allOf(CheckType.class).stream()
+                .filter(type -> !type.journey())
+                .collect(java.util.stream.Collectors.toSet());
+
         assertThat(registry.coveredTypes())
-                .containsExactlyInAnyOrderElementsOf(EnumSet.allOf(CheckType.class));
+                .containsExactlyInAnyOrderElementsOf(nonJourneyTypes);
+    }
+
+    @Test
+    void journeyCheckTypesAreExemptFromRegistryCoverage() {
+        // D108: A journey failure is a finding, but a journey is not a check. Journey types
+        // must not appear in the registry.
+        Set<CheckType> journeyTypes = EnumSet.allOf(CheckType.class).stream()
+                .filter(CheckType::journey)
+                .collect(java.util.stream.Collectors.toSet());
+
+        assertThat(journeyTypes).isNotEmpty();
+        assertThat(registry.coveredTypes()).doesNotContainAnyElementsOf(journeyTypes);
     }
 
     @Test
