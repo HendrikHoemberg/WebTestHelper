@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.Mockito.when;
@@ -235,6 +236,70 @@ class JourneyControllerTest {
                 .andExpect(model().attributeExists("site", "journey", "health"))
                 .andExpect(content().string(containsString("Anmeldung")))
                 .andExpect(content().string(not(containsString("Neuaufzeichnung erforderlich"))));
+    }
+
+    /**
+     * §10.4: the detail screen names the steps that drifted on the last replay, so a reader can act
+     * on the re-recording hint instead of re-reading all five steps looking for the moved one.
+     */
+    @Test
+    @WithMockUser(roles = "USER")
+    void detailJourney_marksOnlyTheStepsThatDriftedOnTheLastReplay() throws Exception {
+        UUID steadyStepId = UUID.randomUUID();
+        UUID driftedStepId = UUID.randomUUID();
+        JourneyStep steady = new JourneyStep(
+                steadyStepId, 0, StepAction.GOTO,
+                List.of(), "https://acme.example.com/login", null, false, 5000);
+        JourneyStep drifted = new JourneyStep(
+                driftedStepId, 1, StepAction.CLICK,
+                List.of(new LocatorCandidate(LocatorStrategy.ROLE, "button-login", 0)),
+                null, null, false, 5000);
+        JourneyDefinition journey = new JourneyDefinition(10L, 1L, "Anmeldung", true, List.of(steady, drifted));
+
+        when(journeyService.findDefinition(10L)).thenReturn(Optional.of(journey));
+        when(journeyHealthService.health(10L)).thenReturn(Optional.of(new JourneyHealth(
+                Instant.parse("2026-08-28T10:00:00Z"), 1, 4, List.of(driftedStepId))));
+
+        String html = mvc.perform(get("/sites/1/journeys/10"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Abweichung")))
+                .andReturn().getResponse().getContentAsString();
+
+        // One marker, on the drifted step's row and not the steady one — a template that marks
+        // every row, or none, fails here.
+        List<String> rows = stepRows(html);
+        assertThat(rows).hasSize(2);
+        assertThat(rows.get(0)).doesNotContain("schritt-drift");
+        assertThat(rows.get(1)).contains("schritt-drift");
+    }
+
+    /**
+     * A journey that has never drifted marks nothing, so the marker means something when it appears.
+     */
+    @Test
+    @WithMockUser(roles = "USER")
+    void detailJourney_whenNothingDrifted_marksNoStep() throws Exception {
+        JourneyStep step0 = new JourneyStep(
+                UUID.randomUUID(), 0, StepAction.GOTO,
+                List.of(), "https://acme.example.com/login", null, false, 5000);
+        JourneyDefinition journey = new JourneyDefinition(10L, 1L, "Anmeldung", true, List.of(step0));
+
+        when(journeyService.findDefinition(10L)).thenReturn(Optional.of(journey));
+        when(journeyHealthService.health(10L)).thenReturn(Optional.of(
+                new JourneyHealth(Instant.parse("2026-08-28T10:00:00Z"), 0, 0, List.of())));
+
+        mvc.perform(get("/sites/1/journeys/10"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("schritt-drift"))));
+    }
+
+    /** The step table's {@code <tr>} fragments, in document order. */
+    private static List<String> stepRows(String html) {
+        String tbody = html.substring(html.indexOf("<tbody>"), html.indexOf("</tbody>"));
+        return java.util.Arrays.stream(tbody.split("<tr"))
+                .skip(1)
+                .map(String::trim)
+                .toList();
     }
 
     @Test

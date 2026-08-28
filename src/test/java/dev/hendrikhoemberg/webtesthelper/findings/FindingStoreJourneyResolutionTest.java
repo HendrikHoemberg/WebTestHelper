@@ -128,6 +128,67 @@ class FindingStoreJourneyResolutionTest extends AbstractPostgresTest {
     }
 
     /**
+     * D107 backstop: a journey type must leave the crawl-scoped statement because of its *type*,
+     * not because its location key happens to look nothing like a URL.
+     *
+     * <p>{@link FindingStore#resolveOutsideRun} filters journey types out of the crawl-scoped
+     * statement, and {@code crawlScopedStatementDoesNotResolveJourneyFindings} cannot see that
+     * filter work: a journey's location key is a numeric id, so the location scoping alone already
+     * spares it and the test stays green with the filter deleted. This test removes that second
+     * line of defence by giving the journey finding a location key the run actually crawled, so
+     * the type filter is the only thing left that can save it. Delete
+     * {@code .filter(t -> !t.journey())} and this fails.
+     */
+    @Test
+    void journeyFindingIsNotResolvedByTheCrawlEvenWhenItsLocationKeyWasCrawled() {
+        // The location key a crawl of https://www.example.com/page1 covers (UrlNormalizer strips
+        // the origin), so this journey finding sits squarely inside the crawl's scope.
+        MaterialisedFinding journeyFinding = findingAt(CheckType.JOURNEY_STEP_FAILED, "step:login", "/page1");
+
+        store.upsertAll(siteId, 1, List.of(journeyFinding), observedAt);
+
+        RunCoverage run2Coverage = RunCoverage.of(
+                RunScope.FULL,
+                RunScope.FULL.checkTypes().stream().map(CheckType::name).toList(),
+                List.of("https://www.example.com/page1"),
+                List.of(),
+                false,
+                Set.of());
+
+        int resolved = store.resolveOutsideRun(siteId, 2, run2Coverage);
+
+        assertThat(observedStatus(journeyFinding.fingerprint())).isEqualTo(ObservedStatus.ACTIVE);
+        assertThat(resolvedAtRun(journeyFinding.fingerprint())).isNull();
+        assertThat(resolved).isZero();
+    }
+
+    /**
+     * The same backstop against the site-wide clause (spec 6.2): a whole-site run resolves
+     * {@code location_key = '*'} findings, and only the type filter keeps a journey type out of
+     * that clause. A journey is a single location and can never be "on 312 pages".
+     */
+    @Test
+    void journeyFindingIsNotResolvedBySiteWidePromotion() {
+        MaterialisedFinding journeyFinding = findingAt(CheckType.SELECTOR_DRIFT, "step:login", "*");
+
+        store.upsertAll(siteId, 1, List.of(journeyFinding), observedAt);
+
+        RunCoverage run2Coverage = RunCoverage.of(
+                RunScope.FULL,
+                RunScope.FULL.checkTypes().stream().map(CheckType::name).toList(),
+                List.of("https://www.example.com/page1"),
+                List.of(),
+                false,
+                Set.of());
+
+        int resolved = store.resolveOutsideRun(siteId, 2, run2Coverage);
+
+        assertThat(observedStatus(journeyFinding.fingerprint())).isEqualTo(ObservedStatus.ACTIVE);
+        assertThat(resolvedAtRun(journeyFinding.fingerprint())).isNull();
+        assertThat(resolved).isZero();
+    }
+
+    /**
      * Selector drift is also a journey check type and resolves when the journey is replayed.
      */
     @Test
@@ -206,6 +267,21 @@ class FindingStoreJourneyResolutionTest extends AbstractPostgresTest {
 
     private MaterialisedFinding journeyFinding(CheckType type, String subject, long journeyId) {
         String locationKey = String.valueOf(journeyId);
+        FindingOccurrence occurrence = new FindingOccurrence(null, Severity.ERROR, "m", List.of(), Evidence.NONE);
+        return new MaterialisedFinding(
+                Fingerprint.of(siteId, type, subject, locationKey),
+                type,
+                Severity.ERROR,
+                subject,
+                locationKey,
+                "m",
+                List.of(),
+                Evidence.NONE,
+                List.of(occurrence));
+    }
+
+    /** A finding of any type at any location key — for the adversarial keys the mappers never emit. */
+    private MaterialisedFinding findingAt(CheckType type, String subject, String locationKey) {
         FindingOccurrence occurrence = new FindingOccurrence(null, Severity.ERROR, "m", List.of(), Evidence.NONE);
         return new MaterialisedFinding(
                 Fingerprint.of(siteId, type, subject, locationKey),

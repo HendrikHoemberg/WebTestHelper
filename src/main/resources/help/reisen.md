@@ -61,6 +61,7 @@ WebTestHelper erfasst für jeden Ablauf statistische Kennzahlen zur Zuverlässig
 * **Letzter Erfolg:** Der Zeitpunkt, an dem der Ablauf zuletzt vollständig (oder mit Selektor-Drift) fehlerfrei durchgelaufen ist.
 * **Fehlschläge in Folge:** Wie oft der Ablauf seit dem letzten erfolgreichen Durchlauf hintereinander gescheitert ist. Ein erfolgreicher Durchlauf setzt diesen Zähler sofort wieder auf 0 zurück.
 * **Selektor-Abweichungen (Drift-Anzahl):** Die Gesamtzahl aller Schritte, bei denen auf einen nachrangigen Ausweich-Selektor zurückgegriffen werden musste.
+* **Betroffene Schritte:** Welche Schritte beim *letzten* Prüflauf über einen Ausweich-Selektor gefunden wurden. Die Detailansicht markiert diese Schritte in der Schritt-Tabelle mit **„Abweichung“**. Anders als die Drift-Anzahl, die über alle Prüfläufe hinweg summiert wird, bezieht sich diese Markierung immer nur auf den jüngsten Durchlauf: Läuft ein Schritt wieder über sein bevorzugtes Erkennungsmuster, verschwindet seine Markierung beim nächsten Prüflauf. So ist erkennbar, an welcher Stelle des Ablaufs sich die Website verändert hat, ohne alle Schritte einzeln durchsehen zu müssen.
 
 ### Wann eine Neuaufzeichnung erforderlich ist
 

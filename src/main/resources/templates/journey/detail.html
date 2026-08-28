@@ -71,6 +71,10 @@
         <div th:if="${#lists.isEmpty(journey.steps)}" class="leer-zustand">
             <p th:text="#{ui.journey.detail.schritte.leer}">Dieser Ablauf enthält noch keine Schritte.</p>
         </div>
+        <p th:if="${health != null and not #lists.isEmpty(health.lastDriftedStepIds)}"
+           class="hinweis-text" th:text="#{ui.journey.detail.schritte.drift_hinweis}">
+            Mit „Abweichung“ markierte Schritte wurden beim letzten Prüflauf erst über einen nachrangigen Ausweich-Selektor gefunden.
+        </p>
         <table th:if="${not #lists.isEmpty(journey.steps)}" class="daten-tabelle">
             <thead>
                 <tr>
@@ -88,6 +92,9 @@
                     <td th:text="${step.ordinal + 1}">1</td>
                     <td>
                         <strong th:text="${step.action}">GOTO</strong>
+                        <span th:if="${health != null and health.lastDriftedStepIds.contains(step.id)}"
+                              class="status-badge schritt-drift"
+                              th:text="#{ui.journey.detail.schritte.drift}">Abweichung</span>
                     </td>
                     <td>
                         <div th:if="${#lists.isEmpty(step.locatorCandidates)}" class="text-gedaempft">-</div>

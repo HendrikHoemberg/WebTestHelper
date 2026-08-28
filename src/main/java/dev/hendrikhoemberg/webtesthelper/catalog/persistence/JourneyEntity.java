@@ -16,6 +16,7 @@ import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -42,6 +43,10 @@ public class JourneyEntity {
     private int consecutiveFailures = 0;
 
     private int driftCount = 0;
+
+    /** Steps that fell back to a secondary locator on the most recent completed replay (§10.4). */
+    @JdbcTypeCode(SqlTypes.JSON)
+    private List<UUID> lastDriftedStepIds = new ArrayList<>();
 
     private Instant createdAt = Instant.now();
 

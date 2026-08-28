@@ -1,6 +1,8 @@
 package dev.hendrikhoemberg.webtesthelper.catalog;
 
 import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
 
 /**
  * Health statistics of a journey (§10.4, D106).
@@ -8,12 +10,14 @@ import java.time.Instant;
  * @param lastSuccessAt        timestamp of the last successful (or drifted) replay, null if never passed
  * @param consecutiveFailures  number of consecutive failing replays since the last success
  * @param driftCount           cumulative number of selector drifts recorded across replays
+ * @param lastDriftedStepIds   the steps that drifted on the most recent completed replay, in execution order
  * @param needsRerecording     derived flag indicating the recording is likely stale rather than the site being broken
  */
 public record JourneyHealth(
         Instant lastSuccessAt,
         int consecutiveFailures,
         int driftCount,
+        List<UUID> lastDriftedStepIds,
         boolean needsRerecording
 ) {
     /**
@@ -28,10 +32,17 @@ public record JourneyHealth(
     public static final int FAILURE_THRESHOLD_FOR_RERECORDING = 3;
 
     public JourneyHealth(Instant lastSuccessAt, int consecutiveFailures, int driftCount) {
-        this(lastSuccessAt, consecutiveFailures, driftCount, isNeedsRerecording(consecutiveFailures, driftCount));
+        this(lastSuccessAt, consecutiveFailures, driftCount, List.of());
+    }
+
+    public JourneyHealth(Instant lastSuccessAt, int consecutiveFailures, int driftCount,
+                         List<UUID> lastDriftedStepIds) {
+        this(lastSuccessAt, consecutiveFailures, driftCount, lastDriftedStepIds,
+                isNeedsRerecording(consecutiveFailures, driftCount));
     }
 
     public JourneyHealth {
+        lastDriftedStepIds = lastDriftedStepIds == null ? List.of() : List.copyOf(lastDriftedStepIds);
         needsRerecording = isNeedsRerecording(consecutiveFailures, driftCount);
     }
 

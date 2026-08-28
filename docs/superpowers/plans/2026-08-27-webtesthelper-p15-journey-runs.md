@@ -302,3 +302,38 @@ class** (`CLAUDE.md`).
   - Selector drift alone (`driftCount > 0 && consecutiveFailures == 0`) means one or more locators had to fall back to secondary candidates, but the replay ultimately passed.
   - The combination of repeated failure *and* recorded selector drift (`consecutiveFailures >= 3 && driftCount > 0`) indicates that the journey definition's recorded locator candidates are degraded/stale and the test can no longer navigate reliably, requiring the user to re-record the journey rather than treating it as a regression on the site.
   - The value of 3 consecutive failures prevents a single flaky run from triggering a re-recording prompt while ensuring persistent locator decay is promptly surfaced to the user.
+
+### Post-execution review (2026-08-28)
+
+**The self-review item about `RESOLVE_JOURNEY_SQL` names the wrong assertion.** Deleting that
+statement's `location_key = ANY(?)` scope fails Task 2's *first* assertion
+(`resolvesOnlyWithinCoveredJourneys`), not its second. Verified by mutation: the scope is genuinely
+load-bearing, so D107's correctness deliverable is proved — but by the other test.
+
+**The second assertion was passing for the wrong reason, and now does not.** Task 2 also asks that
+journey types be excluded from the crawl-scoped statement (`.filter(t -> !t.journey())` in
+`FindingStore.resolveOutsideRun`). `crawlScopedStatementDoesNotResolveJourneyFindings` cannot see
+that filter work: a journey's `location_key` is a numeric id and the crawl's keys are normalised URL
+paths, so the location scoping alone already spares the finding. Deleting the filter left the suite
+green. Two backstop tests now pin it by removing that second line of defence — one gives the journey
+finding a location key the run crawled, one gives it `'*'` against a whole-site run. Both fail with
+the filter deleted.
+
+Worth generalising: *a scope test whose subject could never have been in scope anyway proves
+nothing.* Both of Task 2's assertions were written the same way and only one happened to bite. When
+a test exists to pin a filter, construct the case where that filter is the **only** thing standing
+between the subject and the wrong outcome — even when that case cannot arise in production today.
+The filter is defence against a future change to the mapper's key format, and that is exactly what
+the test has to encode.
+
+**Task 6 shipped only half of "the detail shows `driftCount` and which steps drifted".** The
+cumulative count was on screen; the per-step marking was not, and nothing persisted it — `V23` has
+no column for it and `JourneyHealth` had no field. Delivered afterwards as
+`V24__journey_last_drifted_steps.sql` (`last_drifted_step_ids JSONB`), `JourneyHealth
+.lastDriftedStepIds`, and an „Abweichung" badge per step row in `journey/detail.html`.
+
+The column is **overwritten** by every completed replay while `drift_count` accumulates, because the
+two answer different questions: "has this recording been decaying?" (the threshold above) versus
+"where did the site move, last night?". A `FAILED` replay records its drifted steps too — a step can
+drift *and* fail (`StepOutcome.failed(id, winner, drifted, …)`), and that combination is precisely
+the stale-recording case §10.4 wants on screen.

@@ -73,6 +73,79 @@ class JourneyHealthServiceTest extends AbstractPostgresTest {
         entityManager.clear();
     }
 
+    /**
+     * §10.4: the detail screen names the steps that drifted, so health has to remember which ones
+     * they were on the most recent replay — the cumulative {@code driftCount} cannot say that.
+     */
+    @Test
+    void aDriftedReplayRecordsWhichStepsDrifted() {
+        UUID otherStepId = UUID.randomUUID();
+        JourneyReplayResult driftedResult = new JourneyReplayResult(
+                journeyId,
+                "Health Journey",
+                ReplayStatus.DRIFTED,
+                List.of(StepOutcome.passed(otherStepId, null), StepOutcome.drifted(stepId, null)),
+                1,
+                Optional.empty(),
+                Optional.empty()
+        );
+
+        JourneyHealth health = journeyHealthService.record(journeyId, driftedResult);
+
+        assertThat(health.lastDriftedStepIds()).containsExactly(stepId);
+    }
+
+    /**
+     * "Last replay" means last: a clean replay must clear the previous one's drifted steps, or the
+     * screen keeps naming steps that have since been fine.
+     */
+    @Test
+    void aCleanReplayClearsThePreviousReplaysDriftedSteps() {
+        journeyHealthService.record(journeyId, new JourneyReplayResult(
+                journeyId, "Health Journey", ReplayStatus.DRIFTED,
+                List.of(StepOutcome.drifted(stepId, null)), 1, Optional.empty(), Optional.empty()));
+
+        JourneyHealth health = journeyHealthService.record(journeyId, new JourneyReplayResult(
+                journeyId, "Health Journey", ReplayStatus.PASSED,
+                List.of(StepOutcome.passed(stepId, null)), 0, Optional.empty(), Optional.empty()));
+
+        assertThat(health.lastDriftedStepIds()).isEmpty();
+    }
+
+    /**
+     * A step can drift and still fail (see {@link StepOutcome#failed(UUID, LocatorCandidate,
+     * boolean, String, java.util.List)}), and that is exactly the stale-recording case §10.4 wants
+     * on screen — so a FAILED replay records its drifted steps too.
+     */
+    @Test
+    void aFailedReplayStillRecordsTheStepsThatDrifted() {
+        JourneyReplayResult failedWithDrift = new JourneyReplayResult(
+                journeyId,
+                "Health Journey",
+                ReplayStatus.FAILED,
+                List.of(StepOutcome.failed(stepId, null, true, "error.step", List.of("css=body"))),
+                1,
+                Optional.empty(),
+                Optional.empty()
+        );
+
+        JourneyHealth health = journeyHealthService.record(journeyId, failedWithDrift);
+
+        assertThat(health.lastDriftedStepIds()).containsExactly(stepId);
+    }
+
+    @Test
+    void driftedStepIdsSurviveAReadBackFromTheDatabase() {
+        journeyHealthService.record(journeyId, new JourneyReplayResult(
+                journeyId, "Health Journey", ReplayStatus.DRIFTED,
+                List.of(StepOutcome.drifted(stepId, null)), 1, Optional.empty(), Optional.empty()));
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(journeyHealthService.health(journeyId).orElseThrow().lastDriftedStepIds())
+                .containsExactly(stepId);
+    }
+
     @Test
     void initialHealthOfNewlyCreatedJourney() {
         Optional<JourneyHealth> health = journeyHealthService.health(journeyId);

@@ -4,6 +4,7 @@ import dev.hendrikhoemberg.webtesthelper.catalog.persistence.JourneyEntity;
 import dev.hendrikhoemberg.webtesthelper.catalog.persistence.JourneyRepository;
 import dev.hendrikhoemberg.webtesthelper.model.JourneyReplayResult;
 import dev.hendrikhoemberg.webtesthelper.model.ReplayStatus;
+import dev.hendrikhoemberg.webtesthelper.model.StepOutcome;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,6 +38,10 @@ public class JourneyHealthService {
      *   <li>{@link ReplayStatus#FAILED}: increments {@code consecutiveFailures} by 1 without changing {@code lastSuccessAt}.</li>
      * </ul>
      *
+     * <p>Whatever the status, the drifted steps of <em>this</em> replay replace the previous ones:
+     * {@code driftCount} accumulates, {@code lastDriftedStepIds} does not (§10.4). A step that
+     * drifted and then failed counts in both.
+     *
      * @param journeyId ID of the replayed journey
      * @param result    outcome of the replay
      * @return updated health statistics
@@ -63,6 +68,10 @@ public class JourneyHealthService {
                 entity.setConsecutiveFailures(entity.getConsecutiveFailures() + 1);
             }
         }
+        entity.setLastDriftedStepIds(result.outcomes().stream()
+                .filter(StepOutcome::drifted)
+                .map(StepOutcome::stepId)
+                .toList());
         entity.setUpdatedAt(now);
         JourneyEntity saved = journeys.save(entity);
         return toHealth(saved);
@@ -100,7 +109,8 @@ public class JourneyHealthService {
         return new JourneyHealth(
                 entity.getLastSuccessAt(),
                 entity.getConsecutiveFailures(),
-                entity.getDriftCount()
+                entity.getDriftCount(),
+                entity.getLastDriftedStepIds()
         );
     }
 }
