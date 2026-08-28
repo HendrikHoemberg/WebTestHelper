@@ -29,7 +29,7 @@ class RecordingSessionAcceptanceTest {
     @BeforeAll
     static void start() {
         fixtureSite = FixtureSite.start();
-        properties = new RecorderProperties(2, Duration.ofMinutes(15), 60, 1280, 720, true);
+        properties = new RecorderProperties(2, Duration.ofMinutes(15), 60, 1280, 720, true, Duration.ofMillis(100));
         pool = new RecorderPool(properties);
         bridge = new ScreencastBridge(properties);
     }

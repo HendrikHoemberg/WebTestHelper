@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Reise buchen — Animiert</title>
+</head>
+<body>
+  <h1>Animierte Reiseseite</h1>
+  <p id="zaehler">0</p>
+  <script>
+    // Repaints on its own, with no help from the Java side: the page under test
+    // for whether the live view is actually live.
+    var n = 0;
+    setInterval(function () {
+      n += 1;
+      document.getElementById('zaehler').textContent = String(n);
+      document.body.style.backgroundColor = (n % 2 === 0) ? '#ffffff' : '#e0e0ff';
+    }, 200);
+  </script>
+</body>
+</html>

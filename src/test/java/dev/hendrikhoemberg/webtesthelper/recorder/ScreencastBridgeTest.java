@@ -30,7 +30,7 @@ class ScreencastBridgeTest {
     @BeforeAll
     static void start() {
         fixtureSite = FixtureSite.start();
-        properties = new RecorderProperties(1, Duration.ofMinutes(15), 60, 1280, 720, true);
+        properties = new RecorderProperties(1, Duration.ofMinutes(15), 60, 1280, 720, true, Duration.ofMillis(100));
         pool = new RecorderPool(properties);
         RecorderWorker worker = pool.allocate().orElseThrow();
         var bsc = worker.submit(browser -> {
@@ -124,6 +124,43 @@ class ScreencastBridgeTest {
             assertThat(changeFrame.data()).isNotBlank();
         } finally {
             bridge.detach(session);
+        }
+    }
+
+    @Test
+    void framesKeepArrivingWhileTheWorkerThreadSitsIdle() throws Exception {
+        // playwright-java dispatches CDP events only while the owning thread is inside a
+        // Playwright call. Without a pump the live view repaints once per user input and shows
+        // the page as it was before that input - the exact "is the socket broken?" experience
+        // D110's on-attach frame exists to prevent, moved one step downstream.
+        session.worker().submit(browser -> {
+            session.page().navigate(fixtureSite.url("reise/animiert.html"));
+            return null;
+        });
+
+        BlockingQueue<ScreencastFrame> frames = new LinkedBlockingQueue<>();
+        bridge.attach(session, frames::add);
+        try {
+            frames.poll(3, TimeUnit.SECONDS); // drain the on-attach frame
+
+            // The page repaints ~5x/second. Do nothing at all on the Java side for 3 seconds.
+            int delivered = 0;
+            long deadline = System.currentTimeMillis() + 3_000;
+            while (System.currentTimeMillis() < deadline) {
+                if (frames.poll(200, TimeUnit.MILLISECONDS) != null) {
+                    delivered++;
+                }
+            }
+
+            assertThat(delivered)
+                    .as("Frames arrive from a self-repainting page with no Java-side activity")
+                    .isGreaterThanOrEqualTo(5);
+        } finally {
+            bridge.detach(session);
+            session.worker().submit(browser -> {
+                session.page().navigate(fixtureSite.url("reise/start.html"));
+                return null;
+            });
         }
     }
 

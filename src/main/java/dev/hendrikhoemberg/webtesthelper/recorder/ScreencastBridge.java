@@ -11,6 +11,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
@@ -23,6 +26,15 @@ import java.util.function.Consumer;
  * and subsequent frames are emitted when page visual updates occur.
  * Every received screencast frame is acknowledged via {@code Page.screencastFrameAck}, updating
  * the session's activity timestamp.
+ *
+ * <p><strong>An attached session is pumped.</strong> playwright-java has no dispatcher thread:
+ * {@code Connection.processOneMessage()} runs only while the owning thread is inside a Playwright
+ * call, so a CDP listener on an otherwise idle worker never fires. Measured against a page
+ * repainting five times a second with an idle worker: zero frames in three seconds, and a single
+ * API call releasing exactly one - one, because the ack that unblocks the next frame is itself
+ * sent from inside the dispatch. A pump thread therefore keeps the worker inside
+ * {@code page.waitForTimeout(pumpInterval)} back to back for as long as a sink is attached,
+ * yielding between waits so queued input never waits longer than one interval.
  */
 @Component
 public class ScreencastBridge {
@@ -32,6 +44,11 @@ public class ScreencastBridge {
     private final RecorderProperties properties;
     private final Map<UUID, Attachment> activeAttachments = new ConcurrentHashMap<>();
     private final Map<UUID, AtomicLong> historicalAcks = new ConcurrentHashMap<>();
+    private final ExecutorService pumpExecutor = Executors.newCachedThreadPool(runnable -> {
+        Thread t = new Thread(runnable, "recorder-pump");
+        t.setDaemon(true);
+        return t;
+    });
 
     @Autowired
     public ScreencastBridge(RecorderProperties properties) {
@@ -141,6 +158,32 @@ public class ScreencastBridge {
 
             return null;
         });
+
+        // Outside the submit above: starting it inside would deadlock on the worker's own thread.
+        attachment.pumpTask = pumpExecutor.submit(() -> pump(session, attachment));
+    }
+
+    /**
+     * Holds the worker thread inside a Playwright call so CDP events keep being dispatched.
+     *
+     * <p>Runs on a pump thread and yields between waits, so an input task submitted by
+     * {@link RecorderSocketHandler} queues behind at most one {@code pumpInterval}.
+     */
+    private void pump(RecordingSession session, Attachment attachment) {
+        long millis = Math.max(1L, properties.pumpInterval().toMillis());
+        while (!attachment.detached.get() && !session.isClosed()) {
+            try {
+                session.worker().submit(browser -> {
+                    session.page().waitForTimeout(millis);
+                    return null;
+                });
+            } catch (RuntimeException e) {
+                if (!attachment.detached.get() && !session.isClosed()) {
+                    log.debug("Pump für Sitzung {} beendet: {}", session.sessionId(), e.getMessage());
+                }
+                return;
+            }
+        }
     }
 
     /**
@@ -159,6 +202,9 @@ public class ScreencastBridge {
         }
 
         attachment.detached.set(true);
+        if (attachment.pumpTask != null) {
+            attachment.pumpTask.cancel(true);
+        }
         try {
             if (!session.isClosed() && session.worker() != null) {
                 session.worker().submit(browser -> {
@@ -231,6 +277,12 @@ public class ScreencastBridge {
         return parseMetadata(null);
     }
 
+    /** Stops every pump thread when the application context goes down. */
+    @jakarta.annotation.PreDestroy
+    public void shutdown() {
+        pumpExecutor.shutdownNow();
+    }
+
     private ScreencastMetadata parseMetadata(JsonObject meta) {
         if (meta == null) {
             return new ScreencastMetadata(
@@ -254,6 +306,7 @@ public class ScreencastBridge {
         final AtomicLong ackCount = new AtomicLong(0);
         volatile CDPSession cdpSession;
         volatile Consumer<JsonObject> frameListener;
+        volatile Future<?> pumpTask;
 
         Attachment(RecordingSession session, FrameSink sink) {
             this.session = session;

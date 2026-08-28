@@ -13,6 +13,8 @@ import java.time.Duration;
  * @param viewportWidth  recorder viewport width in CSS pixels (default 1280)
  * @param viewportHeight recorder viewport height in CSS pixels (default 720)
  * @param headless       whether Chromium runs headless (default true)
+ * @param pumpInterval   how long each pump call holds the worker thread inside Playwright so CDP
+ *                       events can be dispatched (default 100ms); see {@link ScreencastBridge}
  */
 @ConfigurationProperties("webtesthelper.recorder")
 public record RecorderProperties(
@@ -21,7 +23,8 @@ public record RecorderProperties(
         int frameQuality,
         int viewportWidth,
         int viewportHeight,
-        boolean headless
+        boolean headless,
+        Duration pumpInterval
 ) {
     public RecorderProperties {
         if (maxSessions <= 0) {
@@ -38,6 +41,9 @@ public record RecorderProperties(
         }
         if (viewportHeight <= 0) {
             viewportHeight = 720;
+        }
+        if (pumpInterval == null || pumpInterval.isZero() || pumpInterval.isNegative()) {
+            pumpInterval = Duration.ofMillis(100);
         }
     }
 }
