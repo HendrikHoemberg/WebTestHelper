@@ -68,8 +68,8 @@ class ScreencastBridgeTest {
         BlockingQueue<ScreencastFrame> frames = new LinkedBlockingQueue<>();
         bridge.attach(session, frames::add);
         try {
-            ScreencastFrame frame = frames.poll(3, TimeUnit.SECONDS);
-            assertThat(frame).as("Initial frame delivered on attach").isNotNull();
+            ScreencastFrame frame = frames.poll(1, TimeUnit.SECONDS);
+            assertThat(frame).as("Initial frame delivered on attach within a second").isNotNull();
             assertThat(frame.data()).as("Frame has base64 data").isNotBlank();
             assertThat(frame.metadata()).as("Frame has metadata").isNotNull();
             assertThat(frame.metadata().deviceWidth()).isEqualTo(1280);
@@ -169,30 +169,30 @@ class ScreencastBridgeTest {
         BlockingQueue<ScreencastFrame> frames = new LinkedBlockingQueue<>();
         bridge.attach(session, frames::add);
         try {
-            // Drain initial frame
-            frames.poll(3, TimeUnit.SECONDS);
-
             Instant beforeActivity = session.lastActivity();
-            List<ScreencastFrame> screencastFrames = new ArrayList<>();
 
-            // Trigger multiple visual changes
             for (int i = 0; i < 3; i++) {
                 final int index = i;
                 session.worker().submit(browser -> {
                     session.page().evaluate("document.body.innerHTML = '<h1>Änderung " + index + "</h1>';");
                     return null;
                 });
-                ScreencastFrame f = frames.poll(5, TimeUnit.SECONDS);
-                if (f != null && f.requiresAck()) {
-                    screencastFrames.add(f);
-                }
             }
 
-            assertThat(screencastFrames).isNotEmpty();
-            long acks = bridge.ackCount(session);
-            assertThat(acks).as("Ack count matches received screencast frames count")
-                    .isGreaterThanOrEqualTo(screencastFrames.size());
-            assertThat(session.lastActivity()).isAfterOrEqualTo(beforeActivity);
+            // Drain until the page goes quiet, so no frame is in flight when the count is read.
+            List<ScreencastFrame> delivered = new ArrayList<>();
+            ScreencastFrame f;
+            while ((f = frames.poll(1, TimeUnit.SECONDS)) != null) {
+                delivered.add(f);
+            }
+
+            long needingAck = delivered.stream().filter(ScreencastFrame::requiresAck).count();
+            assertThat(needingAck).as("The page changed, so screencast frames arrived").isPositive();
+            assertThat(bridge.ackCount(session))
+                    .as("Every screencast frame is acknowledged exactly once - an unacknowledged "
+                            + "frame stops the stream, and a doubled ack would hide that")
+                    .isEqualTo(needingAck);
+            assertThat(session.lastActivity()).isAfter(beforeActivity);
         } finally {
             bridge.detach(session);
         }

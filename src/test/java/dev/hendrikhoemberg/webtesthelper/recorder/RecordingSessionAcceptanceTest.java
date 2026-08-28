@@ -17,6 +17,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @Tag("browser")
 class RecordingSessionAcceptanceTest {
@@ -93,11 +95,33 @@ class RecordingSessionAcceptanceTest {
             assertThat(viewportPoint.x()).isCloseTo(targetX, org.assertj.core.data.Offset.offset(0.1));
             assertThat(viewportPoint.y()).isCloseTo(targetY, org.assertj.core.data.Offset.offset(0.1));
 
-            // Execute click on viewport coordinates
-            session.worker().submit(browser -> {
-                session.page().mouse().click(viewportPoint.x(), viewportPoint.y());
-                return null;
-            });
+            // Execute the click the way a user does: as a socket message the handler translates
+            // and dispatches over CDP. Clicking with page.mouse() here would prove Playwright
+            // works and leave the recorder's own input path untested end to end.
+            RecorderSocketHandler socketHandler = new RecorderSocketHandler(bridge);
+            org.springframework.web.socket.WebSocketSession wsSession =
+                    mock(org.springframework.web.socket.WebSocketSession.class);
+            when(wsSession.getId()).thenReturn("acceptance-socket");
+            when(wsSession.isOpen()).thenReturn(true);
+            java.util.Map<String, Object> attrs = new java.util.HashMap<>();
+            attrs.put(RecorderHandshakeInterceptor.RECORDING_SESSION_ATTR, session);
+            when(wsSession.getAttributes()).thenReturn(attrs);
+
+            com.google.gson.JsonObject clickMsg = new com.google.gson.JsonObject();
+            clickMsg.addProperty("type", "click");
+            clickMsg.addProperty("canvasX", canvasX);
+            clickMsg.addProperty("canvasY", canvasY);
+            com.google.gson.JsonObject g = new com.google.gson.JsonObject();
+            g.addProperty("canvasWidth", (int) canvasWidth);
+            g.addProperty("canvasHeight", (int) canvasHeight);
+            g.addProperty("frameWidth", 1280);
+            g.addProperty("frameHeight", 720);
+            g.addProperty("pageScaleFactor", 1.0);
+            g.addProperty("offsetTop", 0.0);
+            clickMsg.add("geometry", g);
+
+            socketHandler.handleTextMessage(wsSession,
+                    new org.springframework.web.socket.TextMessage(clickMsg.toString()));
 
             // 4. Observes that the page navigates to schritt2.html and screencast frames continue arriving
             session.worker().submit(browser -> {
