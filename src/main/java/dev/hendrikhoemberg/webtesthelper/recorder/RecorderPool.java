@@ -16,7 +16,7 @@ import java.util.Set;
 /**
  * A dedicated pool of browser workers for interactive recording sessions (spec 10.1, D109).
  *
- * <p>Unlike {@code BrowserPool} (which queues tasks in an {@link java.util.concurrent.ArrayBlockingQueue}
+ * <p>Unlike crawl pools (which queue tasks in a blocking queue
  * for short crawls), {@code RecorderPool} provides non-blocking allocation with a hard cap (max 2 by default).
  * If all workers are busy, {@link #allocate()} immediately returns {@link Optional#empty()} so the user
  * can be told about capacity limits rather than hanging.
