@@ -38,7 +38,7 @@ class RecorderSocketSecurityTest {
     void setup() {
         registry = mock(RecordingSessionRegistry.class);
         interceptor = new RecorderHandshakeInterceptor(registry);
-        socketHandler = new RecorderSocketHandler();
+        socketHandler = new RecorderSocketHandler(mock(ScreencastBridge.class));
         wsHandler = mock(WebSocketHandler.class);
     }
 
