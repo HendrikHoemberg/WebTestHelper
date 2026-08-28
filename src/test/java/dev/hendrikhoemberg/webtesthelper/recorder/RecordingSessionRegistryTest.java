@@ -186,22 +186,27 @@ class RecordingSessionRegistryTest {
     }
 
     @Test
-    void openWhenPoolIsAtCapacityThrowsIllegalStateException() {
+    void openWhenPoolIsAtCapacityThrowsCapacityExceptionNamingTheLimit() {
         when(pool.allocate()).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> registry.open(1L, "https://example.com/start", "alice"))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("belegt");
+                .isInstanceOf(RecorderCapacityException.class)
+                .asInstanceOf(org.assertj.core.api.InstanceOfAssertFactories.type(RecorderCapacityException.class))
+                .extracting(RecorderCapacityException::limit)
+                .isEqualTo(2);
     }
 
     @Test
-    void openWhenInitializationFailsReleasesWorkerAndPropagatesException() {
+    void openWhenTheBrowserFailsToStartIsNotReportedAsBeingAtCapacity() {
+        // A caller that cannot tell the two apart tells the user to wait for a colleague to
+        // finish recording, which will never make a broken Chromium start.
         RecorderWorker worker = mock(RecorderWorker.class);
         when(pool.allocate()).thenReturn(Optional.of(worker));
         when(worker.submit(any())).thenThrow(new RuntimeException("Chromium connection failed"));
 
         assertThatThrownBy(() -> registry.open(1L, "https://example.com/start", "alice"))
-                .isInstanceOf(IllegalStateException.class);
+                .isInstanceOf(IllegalStateException.class)
+                .isNotInstanceOf(RecorderCapacityException.class);
 
         verify(pool).release(worker);
     }

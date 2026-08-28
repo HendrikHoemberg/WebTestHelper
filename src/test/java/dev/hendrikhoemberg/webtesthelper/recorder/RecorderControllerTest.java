@@ -24,10 +24,10 @@ import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -94,7 +94,7 @@ class RecorderControllerTest {
     @WithMockUser(username = "alice", roles = "USER")
     void record_whenCapacityExceeded_rendersCapacityExceededStateInGermanWithoutOfferingSession() throws Exception {
         when(sessionRegistry.open(eq(1L), any(), eq("alice")))
-                .thenThrow(new IllegalStateException("Alle Aufnahme-Browser sind belegt"));
+                .thenThrow(new RecorderCapacityException(2));
 
         mvc.perform(get("/websites/1/aufzeichnen"))
                 .andExpect(status().isOk())
@@ -144,32 +144,49 @@ class RecorderControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "alice", roles = "USER")
-    void closeSession_viaSchliessenAlias_closesSessionAndRedirects() throws Exception {
-        UUID sessionId = UUID.randomUUID();
-        RecordingSession session = mock(RecordingSession.class);
-        when(session.sessionId()).thenReturn(sessionId);
-        when(session.siteId()).thenReturn(1L);
-        when(sessionRegistry.find(sessionId, "alice")).thenReturn(Optional.of(session));
+    @WithMockUser(username = "bob", roles = "USER")
+    void closeSession_byAnyoneButTheOwner_leavesTheSessionRunning() throws Exception {
+        // Ownership is checked at lookup so there is one place to get it right (Task 3).
+        // Closing bypassed it, so any authenticated user holding a session id could end
+        // somebody else's recording.
+        UUID aliceSession = UUID.randomUUID();
+        when(sessionRegistry.find(eq(aliceSession), eq("bob"))).thenReturn(Optional.empty());
 
-        mvc.perform(post("/recorder/" + sessionId + "/schliessen")
-                        .with(csrf()))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/sites/1/journeys"));
+        mvc.perform(post("/recorder/" + aliceSession + "/beenden")
+                        .with(csrf())
+                        .param("siteId", "1"))
+                .andExpect(status().isNotFound());
 
-        verify(sessionRegistry).close(sessionId);
+        verify(sessionRegistry, never()).close(aliceSession);
     }
 
     @Test
     @WithMockUser(username = "alice", roles = "USER")
-    void closeSession_viaDelete_closesSessionAndReturnsNoContent() throws Exception {
-        UUID sessionId = UUID.randomUUID();
+    void record_whenTheBrowserFailsToStart_doesNotBlameTheCapacityLimit() throws Exception {
+        // open() wraps every failure in IllegalStateException. Treating all of them as
+        // "come back later, two people are recording" tells the user to wait for something
+        // that will never free up.
+        when(sessionRegistry.open(eq(1L), any(), eq("alice")))
+                .thenThrow(new IllegalStateException("Aufnahmesitzung konnte nicht gestartet werden",
+                        new RuntimeException("Chromium ist nicht startbar")));
 
-        mvc.perform(delete("/recorder/" + sessionId)
-                        .with(csrf()))
-                .andExpect(status().isNoContent());
+        mvc.perform(get("/websites/1/aufzeichnen"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("capacityExceeded", false))
+                .andExpect(model().attribute("startFailed", true))
+                .andExpect(content().string(containsString("Der Aufnahme-Browser konnte nicht gestartet werden.")))
+                .andExpect(content().string(not(containsString("Maximale Anzahl gleichzeitiger Aufzeichnungssitzungen"))))
+                .andExpect(content().string(not(containsString("<canvas id=\"recorder-canvas\""))));
+    }
 
-        verify(sessionRegistry).close(sessionId);
+    @Test
+    @WithMockUser(username = "alice", roles = "USER")
+    void record_whenCapacityExceeded_namesTheConfiguredLimitRatherThanAHardcodedTwo() throws Exception {
+        when(sessionRegistry.open(eq(1L), any(), eq("alice")))
+                .thenThrow(new RecorderCapacityException(2));
+
+        mvc.perform(get("/websites/1/aufzeichnen"))
+                .andExpect(model().attribute("capacityLimit", 2));
     }
 
     @Test

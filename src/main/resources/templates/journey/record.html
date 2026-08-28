@@ -13,13 +13,12 @@
             <a th:href="${site.baseUrl.value}" th:text="${site.baseUrl.value}" target="_blank" rel="noopener noreferrer" class="basis-url-link">https://example.com/</a>
         </div>
         <div class="seiten-kopf-aktionen">
-            <div th:if="${not capacityExceeded}">
+            <div th:unless="${capacityExceeded or startFailed}">
                 <form th:action="@{/recorder/{id}/beenden(id=${sessionId})}" method="post" class="inline-form">
-                    <input type="hidden" name="siteId" th:value="${site.siteId}">
                     <button type="submit" class="button sekundär" th:text="#{ui.recorder.beenden}">Aufzeichnung beenden</button>
                 </form>
             </div>
-            <a th:if="${capacityExceeded}" th:href="@{/sites/{id}/journeys(id=${site.siteId})}" class="button sekundär" th:text="#{ui.recorder.zurueck_reisen}">Zurück zu den Abläufen</a>
+            <a th:if="${capacityExceeded or startFailed}" th:href="@{/sites/{id}/journeys(id=${site.siteId})}" class="button sekundär" th:text="#{ui.recorder.zurueck_reisen}">Zurück zu den Abläufen</a>
             <a th:href="@{/websites/{id}(id=${site.siteId})}" class="button sekundär" th:text="#{ui.recorder.zurueck}">Zurück zur Website</a>
         </div>
     </header>
@@ -27,7 +26,7 @@
     <!-- Kapazitätsgrenze erreicht (§13.4) -->
     <div th:if="${capacityExceeded}" class="detail-bereich warnung-kasten">
         <h2 th:text="#{ui.recorder.kapazitaet.titel}">Maximale Anzahl gleichzeitiger Aufzeichnungen erreicht</h2>
-        <p class="hinweis-text" th:text="#{ui.recorder.kapazitaet.text}">
+        <p class="hinweis-text" th:text="#{ui.recorder.kapazitaet.text(${capacityLimit})}">
             Maximale Anzahl gleichzeitiger Aufzeichnungssitzungen (2) erreicht. Bitte beenden Sie eine laufende Sitzung oder versuchen Sie es später erneut.
         </p>
         <div class="mt-4">
@@ -36,8 +35,20 @@
         </div>
     </div>
 
+    <!-- Browser liess sich nicht starten (§13.4: eine andere Ursache, ein anderer Rat) -->
+    <div th:if="${startFailed}" class="detail-bereich warnung-kasten">
+        <h2 th:text="#{ui.recorder.startfehler.titel}">Aufzeichnung konnte nicht gestartet werden</h2>
+        <p class="hinweis-text" th:text="#{ui.recorder.startfehler.text}">
+            Der Aufnahme-Browser konnte nicht gestartet werden. Warten hilft hier nicht — bitte
+            wenden Sie sich an die Administration.
+        </p>
+        <div class="mt-4">
+            <a th:href="@{/websites/{id}(id=${site.siteId})}" class="button sekundär" th:text="#{ui.recorder.zurueck}">Zurück zur Website</a>
+        </div>
+    </div>
+
     <!-- Aktive Aufzeichnungssitzung -->
-    <div th:unless="${capacityExceeded}" class="recorder-wrapper">
+    <div th:unless="${capacityExceeded or startFailed}" class="recorder-wrapper">
         <div class="recorder-toolbar">
             <div class="recorder-info">
                 <span id="connection-status" class="status-badge status-inaktiv" th:text="#{ui.recorder.status.verbinden}">Verbindung wird aufgebaut...</span>
@@ -45,7 +56,6 @@
             </div>
             <div class="recorder-actions">
                 <form th:action="@{/recorder/{id}/beenden(id=${sessionId})}" method="post" class="inline-form">
-                    <input type="hidden" name="siteId" th:value="${site.siteId}">
                     <button type="submit" class="button sekundär" th:text="#{ui.recorder.beenden}">Aufzeichnung beenden</button>
                 </form>
             </div>
@@ -60,7 +70,7 @@
         </p>
     </div>
 
-    <script th:if="${not capacityExceeded}" th:inline="javascript">
+    <script th:unless="${capacityExceeded or startFailed}" th:inline="javascript">
     document.addEventListener('DOMContentLoaded', function() {
         const canvas = document.getElementById('recorder-canvas');
         if (!canvas) return;

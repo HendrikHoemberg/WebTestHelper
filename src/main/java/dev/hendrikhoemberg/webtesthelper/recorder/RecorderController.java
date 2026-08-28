@@ -2,16 +2,15 @@ package dev.hendrikhoemberg.webtesthelper.recorder;
 
 import dev.hendrikhoemberg.webtesthelper.catalog.SiteService;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.security.Principal;
@@ -22,13 +21,17 @@ import java.util.UUID;
  * Controller managing the interactive recording screen and session lifecycle (§10.1, §12, §13.4).
  *
  * <p>Allocates a new {@link RecordingSession} from {@link RecordingSessionRegistry}, rendering the live
- * screencast canvas view. When pool capacity is reached (2 concurrent sessions max), renders the
- * capacity-exceeded state in German without allocating.
+ * screencast canvas view. When every recorder worker is allocated, renders the capacity-exceeded
+ * state in German naming the configured limit (§13.4) — a browser that fails to start is a
+ * different failure and is not dressed up as one the user can wait out.
  *
- * <p>Provides endpoints to leave/close an active session cleanly when the user finishes or navigates away.
+ * <p>Closing goes through {@link RecordingSessionRegistry#find(UUID, String)}, so ownership is
+ * enforced in the one place Task 3 put it rather than trusting whoever holds the session id.
  */
 @Controller
 public class RecorderController {
+
+    private static final Logger log = LoggerFactory.getLogger(RecorderController.class);
 
     private final SiteService siteService;
     private final RecordingSessionRegistry sessionRegistry;
@@ -38,7 +41,7 @@ public class RecorderController {
         this.sessionRegistry = Objects.requireNonNull(sessionRegistry, "sessionRegistry must not be null");
     }
 
-    @GetMapping({"/websites/{siteId}/aufzeichnen", "/sites/{siteId}/journeys/aufzeichnen", "/sites/{siteId}/record", "/websites/{siteId}/record"})
+    @GetMapping("/websites/{siteId}/aufzeichnen")
     public String record(@PathVariable("siteId") long siteId,
                          @RequestParam(value = "startUrl", required = false) String startUrl,
                          Principal principal,
@@ -60,37 +63,33 @@ public class RecorderController {
             model.addAttribute("sessionId", session.sessionId());
             model.addAttribute("wsUrl", "/recorder/ws/" + session.sessionId());
             model.addAttribute("capacityExceeded", false);
+            model.addAttribute("startFailed", false);
             return "journey/record";
-        } catch (IllegalStateException e) {
+        } catch (RecorderCapacityException e) {
             model.addAttribute("site", site);
             model.addAttribute("capacityExceeded", true);
-            model.addAttribute("capacityLimit", 2);
+            model.addAttribute("startFailed", false);
+            model.addAttribute("capacityLimit", e.limit());
+            return "journey/record";
+        } catch (RuntimeException e) {
+            log.warn("Aufnahmesitzung für Website {} konnte nicht gestartet werden", siteId, e);
+            model.addAttribute("site", site);
+            model.addAttribute("capacityExceeded", false);
+            model.addAttribute("startFailed", true);
             return "journey/record";
         }
     }
 
-    @PostMapping({"/recorder/{sessionId}/beenden", "/recorder/{sessionId}/schliessen", "/recorder/{sessionId}/close"})
+    @PostMapping("/recorder/{sessionId}/beenden")
     public String closeSession(@PathVariable("sessionId") UUID sessionId,
-                               @RequestParam(value = "siteId", required = false) Long siteId,
                                Principal principal) {
         String username = principal != null ? principal.getName() : null;
-        long targetSiteId = siteId != null ? siteId : 0L;
-        if (targetSiteId == 0L && username != null) {
-            targetSiteId = sessionRegistry.find(sessionId, username)
-                    .map(RecordingSession::siteId)
-                    .orElse(0L);
-        }
-        sessionRegistry.close(sessionId);
-        if (targetSiteId > 0) {
-            return "redirect:/sites/" + targetSiteId + "/journeys";
-        }
-        return "redirect:/websites";
-    }
+        RecordingSession session = sessionRegistry.find(sessionId, username)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Aufnahmesitzung nicht gefunden: " + sessionId));
 
-    @DeleteMapping("/recorder/{sessionId}")
-    @ResponseBody
-    public ResponseEntity<Void> deleteSession(@PathVariable("sessionId") UUID sessionId, Principal principal) {
+        long siteId = session.siteId();
         sessionRegistry.close(sessionId);
-        return ResponseEntity.noContent().build();
+        return "redirect:/sites/" + siteId + "/journeys";
     }
 }

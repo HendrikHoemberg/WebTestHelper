@@ -50,14 +50,15 @@ public class RecordingSessionRegistry implements AutoCloseable {
      * @param startUrl the initial URL to navigate to
      * @param username the username of the authenticated owner
      * @return the opened {@link RecordingSession}
-     * @throws IllegalStateException if no worker is available (pool capacity exceeded) or if worker startup fails
+     * @throws RecorderCapacityException if every worker is already allocated
+     * @throws IllegalStateException     if the browser cannot be started for this session
      */
     public RecordingSession open(long siteId, String startUrl, String username) {
         Objects.requireNonNull(startUrl, "startUrl must not be null");
         Objects.requireNonNull(username, "username must not be null");
 
         RecorderWorker worker = pool.allocate()
-                .orElseThrow(() -> new IllegalStateException("Alle Aufnahme-Browser sind belegt"));
+                .orElseThrow(() -> new RecorderCapacityException(properties.maxSessions()));
 
         UUID sessionId = UUID.randomUUID();
         try {
@@ -81,9 +82,6 @@ public class RecordingSessionRegistry implements AutoCloseable {
             return session;
         } catch (Exception e) {
             pool.release(worker);
-            if (e instanceof IllegalStateException ise && ise.getMessage() != null && ise.getMessage().startsWith("Alle Aufnahme")) {
-                throw ise;
-            }
             throw new IllegalStateException("Aufnahmesitzung konnte nicht gestartet werden", e);
         }
     }
