@@ -10,6 +10,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class LeaseReclaimJobTest extends AbstractPostgresTest {
 
@@ -67,5 +70,24 @@ class LeaseReclaimJobTest extends AbstractPostgresTest {
                 .isEqualTo("CANCELLED");
         assertThat(jdbc.queryForObject("SELECT status FROM run WHERE id = ?", String.class, queued))
                 .isEqualTo("QUEUED");
+    }
+
+    @Test
+    void sweepingNothingLeavesTheRunTableUntouched() {
+        // No runs exist at all: a sweep with nothing expired must be a quiet no-op.
+        job.reclaimExpiredLeases();
+
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM run", Integer.class)).isZero();
+    }
+
+    @Test
+    void aTransientRepositoryFailureDoesNotStallTheSweep() {
+        // scheduleWithFixedDelay suppresses further executions once the task throws, so a single
+        // transient DB error must not escape — it is logged and the next tick runs.
+        RunLeaseJdbcRepository throwing = mock(RunLeaseJdbcRepository.class);
+        when(throwing.reclaimExpiredLeases()).thenThrow(new RuntimeException("Verbindung getrennt"));
+        LeaseReclaimJob failing = new LeaseReclaimJob(throwing);
+
+        assertThatCode(() -> failing.reclaimExpiredLeases()).doesNotThrowAnyException();
     }
 }

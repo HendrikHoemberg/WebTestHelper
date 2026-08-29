@@ -1,6 +1,8 @@
 package dev.hendrikhoemberg.webtesthelper.runner;
 
 import dev.hendrikhoemberg.webtesthelper.runner.persistence.RunLeaseJdbcRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -16,6 +18,8 @@ import org.springframework.stereotype.Component;
 @ConditionalOnProperty(name = "webtesthelper.runner.lease-reclaim-enabled", matchIfMissing = true)
 public class LeaseReclaimJob {
 
+    private static final Logger log = LoggerFactory.getLogger(LeaseReclaimJob.class);
+
     private final RunLeaseJdbcRepository leases;
 
     public LeaseReclaimJob(RunLeaseJdbcRepository leases) {
@@ -24,6 +28,12 @@ public class LeaseReclaimJob {
 
     @Scheduled(fixedDelayString = "${webtesthelper.runner.lease-reclaim-interval:60s}")
     public void reclaimExpiredLeases() {
-        leases.reclaimExpiredLeases();
+        try {
+            leases.reclaimExpiredLeases();
+        } catch (RuntimeException e) {
+            // fixedDelay uses scheduleWithFixedDelay, which suppresses further executions once the
+            // task throws — so one transient DB error must not escape and stop the safety net.
+            log.error("Lease-Reclaim-Sweep fehlgeschlagen", e);
+        }
     }
 }
