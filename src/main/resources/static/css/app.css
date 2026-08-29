@@ -1164,3 +1164,18 @@ main {
     background-color: var(--warning-bg);
     border: 1px solid var(--warning-border);
 }
+
+/* Anmeldeseite */
+.anmelden-karte {
+    max-width: 380px;
+    margin: 6rem auto 0;
+    padding: 2rem;
+    background-color: var(--card-bg);
+    border-radius: 8px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+/* Help boxes: empty until the ?-affordance loads its HTMX fragment — never show an empty box. */
+.hinweis:empty {
+    display: none;
+}
