@@ -89,6 +89,19 @@ public final class FixtureSite implements AutoCloseable {
             </body></html>
             """;
 
+    /**
+     * A transparent overlay canvas listed <em>before</em> the painted map canvas. The probe must
+     * scan every canvas, not just the first: PAINTED wins even when an earlier canvas is blank.
+     */
+    private static final String MAPS_TWO_CANVAS_BODY = """
+            <!doctype html><html lang="en"><head><meta charset="utf-8"><title>Map</title></head>
+            <body style="margin:0">
+            <canvas id="overlay" width="300" height="200" style="width:100%;height:100%"></canvas>
+            <canvas id="map" width="300" height="200" style="width:100%;height:100%"></canvas>
+            <script>const c=document.getElementById('map');const x=c.getContext('2d');x.fillStyle='#e6e6e6';x.fillRect(0,0,c.width,c.height);</script>
+            </body></html>
+            """;
+
     private final HttpServer server;
     private final int port;
 
@@ -215,6 +228,7 @@ public final class FixtureSite implements AutoCloseable {
                 case "/maps/embed/v1/place-grau" -> sendHtml(exchange, 200, MAPS_GREY_BODY);
                 case "/maps/embed/v1/place-gesund" -> sendHtml(exchange, 200, MAPS_HEALTHY_BODY);
                 case "/maps/embed/v1/place-spaet" -> sendHtml(exchange, 200, MAPS_LATE_BODY);
+                case "/maps/embed/v1/place-zwei" -> sendHtml(exchange, 200, MAPS_TWO_CANVAS_BODY);
                 case "/blockiert" -> {
                     exchange.getResponseHeaders().add("X-Frame-Options", "DENY");
                     sendHtml(exchange, 200, "<!doctype html><html lang=\"de\"><body><p>Bewertungen</p></body></html>");

@@ -116,6 +116,14 @@ class FixtureSiteTest {
                 java.nio.charset.StandardCharsets.UTF_8);
         assertThat(late).contains("setTimeout");
         assertThat(late).contains("fillRect");
+
+        // The two-canvas route layers a transparent overlay before the painted map: a probe that
+        // stops at the first readable canvas would call it NOT_PAINTED.
+        String zwei = new String(get("maps/embed/v1/place-zwei").body(),
+                java.nio.charset.StandardCharsets.UTF_8);
+        assertThat(zwei).contains("id=\"overlay\"");
+        assertThat(zwei).contains("id=\"map\"");
+        assertThat(zwei).contains("fillRect");
     }
 
     @Test

@@ -9,6 +9,7 @@
 const MAP_SETTLE_MS = 2000;
 
 const readCanvasPixels = (canvases) => {
+  let readable = 0;
   for (const canvas of canvases) {
     let data = null;
     try {
@@ -16,12 +17,12 @@ const readCanvasPixels = (canvases) => {
       data = ctx ? ctx.getImageData(0, 0, canvas.width, canvas.height).data : null;
     } catch (e) { data = null; }
     if (!data) continue;
+    readable++;
     for (let i = 0; i < data.length; i += 4) {
       if (data[i + 3] !== 0) return 'PAINTED';
     }
-    return 'NOT_PAINTED';
   }
-  return 'UNKNOWN';
+  return readable > 0 ? 'NOT_PAINTED' : 'UNKNOWN';
 };
 
 const mapPaintOf = async (doc) => {

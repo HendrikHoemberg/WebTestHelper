@@ -169,6 +169,19 @@ class PageNavigatorTest {
     }
 
     @Test
+    void aTransparentOverlayListedBeforeThePaintedMapDoesNotHideThePaint() {
+        // A map may layer a blank overlay canvas ahead of the painted map canvas. The probe must
+        // scan every readable canvas, not stop at the first: PAINTED wins even when a later canvas
+        // carries the paint.
+        PageSnapshot snapshot = capture("karten-zwei.html", 1);
+
+        assertThat(snapshot.frames()).hasSize(2);
+        assertThat(snapshot.frames())
+                .extracting(frame -> frame.mapPaintState())
+                .containsExactlyInAnyOrder(MapPaintState.PAINTED, MapPaintState.PAINTED);
+    }
+
+    @Test
     void formFieldsCarryEnoughToClassifyThemLater() {
         PageSnapshot snapshot = capture("kontakt.html", 1);
 

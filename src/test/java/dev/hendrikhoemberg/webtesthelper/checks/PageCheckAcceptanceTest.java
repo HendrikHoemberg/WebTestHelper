@@ -200,6 +200,13 @@ class PageCheckAcceptanceTest extends AbstractPostgresTest {
     }
 
     @Test
+    void aPaintedMapWithATransparentOverlayAboveItIsNotReportedAsNotPainted() {
+        assertThat(of(CheckType.IFRAME_EMBED))
+                .filteredOn(finding -> finding.observedOn().path().equals("/karten-zwei.html"))
+                .isEmpty();
+    }
+
+    @Test
     void theCheckThatShipsDisabledReportsNothingEvenThoughItHadSomethingToSay() {
         // Spec 7.1: enabled by default this would make the first report mostly noise. The
         // fixture does log console errors, so this asserts the switch, not an empty console.
