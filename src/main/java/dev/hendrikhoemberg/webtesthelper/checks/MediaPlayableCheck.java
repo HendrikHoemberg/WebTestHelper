@@ -84,7 +84,19 @@ public final class MediaPlayableCheck implements PageCheck {
         }
         return config.facts().verifications().of(media.sources().getFirst())
                 .map(verification -> Evidence.ofVerification(snapshot.screenshotPath(), verification))
+                .map(evidence -> withErrorCode(evidence, media.errorCode()))
                 .orElse(new Evidence(snapshot.screenshotPath(), null, null, media.errorCode(),
                         List.of()));
+    }
+
+    /** A 200 with a plausible type can still fail to decode in the browser, so the errorCode survives. */
+    private static Evidence withErrorCode(Evidence evidence, String errorCode) {
+        if (errorCode == null || errorCode.isBlank()) {
+            return evidence;
+        }
+        String prefix = evidence.responseDetail();
+        String responseDetail = prefix == null ? errorCode : prefix + "\n" + errorCode;
+        return new Evidence(evidence.screenshotPath(), evidence.httpStatus(), evidence.requestDetail(),
+                responseDetail, evidence.consoleExcerpt());
     }
 }

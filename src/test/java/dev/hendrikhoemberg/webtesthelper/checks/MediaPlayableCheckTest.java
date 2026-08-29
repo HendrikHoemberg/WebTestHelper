@@ -98,6 +98,8 @@ class MediaPlayableCheckTest {
         assertThat(finding.evidence().requestDetail())
                 .contains("HEAD https://example.com/fehlt.mp4");
         assertThat(finding.evidence().responseDetail()).contains("404");
+        assertThat(finding.evidence().responseDetail())
+                .contains("MEDIA_ERR_SRC_NOT_SUPPORTED");
     }
 
     @Test
@@ -111,5 +113,24 @@ class MediaPlayableCheckTest {
         assertThat(finding.evidence().responseDetail())
                 .isEqualTo("MEDIA_ERR_SRC_NOT_SUPPORTED");
         assertThat(finding.evidence().requestDetail()).isNull();
+    }
+
+    @Test
+    void aMediaElementWithA200SourceKeepsItsBrowserErrorCode() {
+        UrlVerification ok = new UrlVerification("https://example.com/clip.mp4",
+                UrlStatus.OK, 200, "video/mp4", 4096, null, null, Instant.EPOCH,
+                "GET https://example.com/clip.mp4\nRange: bytes=0-1023\n",
+                "200\ncontent-type: video/mp4\ncontent-length: 4096\n");
+
+        CheckFinding finding = check.evaluate(
+                Snapshots.page("https://example.com/medien")
+                        .media(MediaKind.VIDEO, "https://example.com/clip.mp4", 0, 0.0,
+                                "MEDIA_ERR_DECODE").build(),
+                Snapshots.config(check, Snapshots.facts(ok))).getFirst();
+
+        assertThat(finding.evidence().httpStatus()).isEqualTo(200);
+        assertThat(finding.evidence().requestDetail()).contains("GET https://example.com/clip.mp4");
+        assertThat(finding.evidence().responseDetail()).contains("200");
+        assertThat(finding.evidence().responseDetail()).contains("MEDIA_ERR_DECODE");
     }
 }

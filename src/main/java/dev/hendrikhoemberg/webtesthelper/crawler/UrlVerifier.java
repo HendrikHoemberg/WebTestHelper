@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
+import java.net.http.HttpHeaders;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
@@ -161,7 +162,8 @@ public class UrlVerifier {
         String contentType = response.headers().firstValue("content-type").orElse(null);
         return new UrlVerification(url, UrlStatus.ofHttpStatus(response.statusCode()),
                 response.statusCode(), contentType, contentLength, bodyPrefix, failureText,
-                checkedAt, requestDetail, responseDetailOf(response, bodyPrefix));
+                checkedAt, requestDetail, responseDetailOf(response.statusCode(),
+                        response.headers(), bodyPrefix));
     }
 
     /**
@@ -172,11 +174,7 @@ public class UrlVerifier {
     static String requestDetailOf(HttpRequest request) {
         StringBuilder detail = new StringBuilder();
         detail.append(request.method()).append(' ').append(request.uri()).append('\n');
-        request.headers().map().entrySet().stream()
-                .filter(entry -> !BANNED_REQUEST_HEADERS.contains(key(entry.getKey())))
-                .filter(entry -> !entry.getValue().isEmpty())
-                .sorted(Map.Entry.comparingByKey())
-                .forEach(entry -> appendHeader(detail, entry.getKey(), entry.getValue()));
+        appendHeaders(detail, request.headers(), BANNED_REQUEST_HEADERS);
         return truncate(detail.toString(), DETAIL_LIMIT);
     }
 
@@ -184,18 +182,23 @@ public class UrlVerifier {
      * The status and headers of a received response, plus its body prefix. {@code Set-Cookie} is
      * dropped so a session token neither reaches the evidence nor a log line.
      */
-    static String responseDetailOf(HttpResponse<?> response, String bodyPrefix) {
+    static String responseDetailOf(int statusCode, HttpHeaders headers, String bodyPrefix) {
         StringBuilder detail = new StringBuilder();
-        detail.append(response.statusCode()).append('\n');
-        response.headers().map().entrySet().stream()
-                .filter(entry -> !BANNED_RESPONSE_HEADERS.contains(key(entry.getKey())))
-                .filter(entry -> !entry.getValue().isEmpty())
-                .sorted(Map.Entry.comparingByKey())
-                .forEach(entry -> appendHeader(detail, entry.getKey(), entry.getValue()));
+        detail.append(statusCode).append('\n');
+        appendHeaders(detail, headers, BANNED_RESPONSE_HEADERS);
         if (bodyPrefix != null) {
             detail.append('\n').append(bodyPrefix);
         }
         return truncate(detail.toString(), DETAIL_LIMIT);
+    }
+
+    private static void appendHeaders(StringBuilder detail, HttpHeaders headers,
+            Set<String> banned) {
+        headers.map().entrySet().stream()
+                .filter(entry -> !banned.contains(key(entry.getKey())))
+                .filter(entry -> !entry.getValue().isEmpty())
+                .sorted(Map.Entry.comparingByKey())
+                .forEach(entry -> appendHeader(detail, entry.getKey(), entry.getValue()));
     }
 
     private static void appendHeader(StringBuilder detail, String name, Collection<String> values) {
@@ -211,6 +214,7 @@ public class UrlVerifier {
     private record Exchange(String requestDetail, HttpResponse<InputStream> response) {
     }
 
+    /** A transport failure never completed an exchange; request/response detail is intentionally absent. */
     private static UrlVerification dead(String url, String failureText, int httpStatus,
             Instant checkedAt) {
         return new UrlVerification(url, UrlStatus.DEAD, httpStatus, null, 0, null, failureText,

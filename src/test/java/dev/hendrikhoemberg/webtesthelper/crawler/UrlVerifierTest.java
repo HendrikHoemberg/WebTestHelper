@@ -181,4 +181,21 @@ class UrlVerifierTest {
         assertThat(detail).contains("X-Lang");
         assertThat(detail).doesNotContain("x".repeat(1000));
     }
+
+    @Test
+    void responseDetailOfStripsSetCookieAndTruncatesLongValues() {
+        HttpRequest response = HttpRequest.newBuilder(URI.create("https://example.com/clip"))
+                .header("Set-Cookie", "sid=geheim")
+                .header("Content-Type", "video/mp4")
+                .header("X-Lang", "x".repeat(1000))
+                .build();
+
+        String detail = UrlVerifier.responseDetailOf(200, response.headers(), "%PDF-body");
+
+        assertThat(detail).startsWith("200");
+        assertThat(detail).doesNotContain("Set-Cookie").doesNotContain("sid=geheim");
+        assertThat(detail).contains("Content-Type").contains("video/mp4");
+        assertThat(detail).contains("%PDF-body");
+        assertThat(detail).doesNotContain("x".repeat(1000));
+    }
 }
