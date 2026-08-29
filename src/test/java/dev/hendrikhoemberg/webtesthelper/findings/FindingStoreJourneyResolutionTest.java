@@ -281,6 +281,33 @@ class FindingStoreJourneyResolutionTest extends AbstractPostgresTest {
     }
 
     @Test
+    void mixedCoveredJourneysResolveOnlyTheHealthyOneInTheSameRun() {
+        long healthyJourneyId = 701L;
+        long rerecordingJourneyId = 702L;
+        MaterialisedFinding healthyFinding = journeyFinding(CheckType.JOURNEY_STEP_FAILED, "step:checkout", healthyJourneyId);
+        MaterialisedFinding rerecordingFinding = journeyFinding(CheckType.JOURNEY_STEP_FAILED, "step:submit", rerecordingJourneyId);
+        store.upsertAll(siteId, 1, List.of(healthyFinding, rerecordingFinding), observedAt);
+
+        // Both journeys completed; only 702 is flagged needs-re-recording.
+        RunCoverage run2Coverage = RunCoverage.of(
+                RunScope.FULL,
+                List.of(CheckType.JOURNEY_STEP_FAILED.name()),
+                List.of("https://www.example.com/"),
+                List.of(),
+                false,
+                Set.of(healthyJourneyId, rerecordingJourneyId));
+
+        int resolved = store.resolveOutsideRun(siteId, 2, run2Coverage, Set.of(rerecordingJourneyId));
+
+        // The reduced-but-non-empty journey scope resolves only the healthy journey's finding.
+        assertThat(resolved).isEqualTo(1);
+        assertThat(observedStatus(healthyFinding.fingerprint())).isEqualTo(ObservedStatus.RESOLVED);
+        assertThat(resolvedAtRun(healthyFinding.fingerprint())).isEqualTo(2L);
+        assertThat(observedStatus(rerecordingFinding.fingerprint())).isEqualTo(ObservedStatus.ACTIVE);
+        assertThat(resolvedAtRun(rerecordingFinding.fingerprint())).isNull();
+    }
+
+    @Test
     void runResultRepositoryPersistsAndReadsBackJourneyCoverageColumns() {
         dev.hendrikhoemberg.webtesthelper.runner.persistence.RunEntity run =
                 new dev.hendrikhoemberg.webtesthelper.runner.persistence.RunEntity();

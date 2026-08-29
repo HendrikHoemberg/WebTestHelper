@@ -1,6 +1,7 @@
 package dev.hendrikhoemberg.webtesthelper.findings;
 
 import dev.hendrikhoemberg.webtesthelper.model.CheckFinding;
+import dev.hendrikhoemberg.webtesthelper.model.CheckType;
 import dev.hendrikhoemberg.webtesthelper.model.RunCoverage;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,6 +43,10 @@ public class FindingService {
      * same {@code runId} would leave the unmentioned findings' {@code last_seen_run} stale, so
      * {@link FindingStore#resolveOutsideRun} could not tell they were absent and would never
      * resolve them (spec 6.4); the caller contract for tasks 4–6 depends on this.
+     *
+     * <p>This overload carries no exclusion set, so it applies only to callers that pass the full
+     * finding set — this form and the 6-arg form below both delegate with {@link Set#of()}. The
+     * production journey path uses the overload that takes {@code journeysNeedingRerecording}.
      */
     public RunDiff record(long runId, long siteId, List<CheckFinding> findings, RunCoverage coverage,
             Instant observedAt) {
@@ -53,9 +58,26 @@ public class FindingService {
         return record(runId, siteId, findings, extraMaterialised, coverage, Set.of(), observedAt);
     }
 
+    /**
+     * Records one run as a single transaction, excluding journeys flagged needs-re-recording (§10.4)
+     * from resolution.
+     *
+     * <p>{@code findings} may intentionally omit {@link CheckType#JOURNEY_STEP_FAILED} findings for
+     * journeys in {@code journeysNeedingRerecording} — {@code JourneyPass} stops emitting them once a
+     * journey is flagged. Those omitted findings are deliberately NOT resolved to FIXED: the
+     * exclusion set is subtracted from the journey resolve scope in
+     * {@link FindingStore#resolveOutsideRun(long, long, RunCoverage, java.util.Set)}, so a run that
+     * completed such a journey without re-observing it still leaves the finding ACTIVE (under
+     * "Still open") rather than reporting a still-failing journey as fixed. Healthy journeys not in
+     * the set keep the normal COMPLETE-set contract described above.
+     *
+     * @param journeysNeedingRerecording journey IDs (subset of {@code coverage.journeyIds()}) whose
+     *                                    findings must stay ACTIVE; null is treated as empty
+     */
     public RunDiff record(long runId, long siteId, List<CheckFinding> findings,
             List<MaterialisedFinding> extraMaterialised, RunCoverage coverage,
             Set<Long> journeysNeedingRerecording, Instant observedAt) {
+        Set<Long> excluded = journeysNeedingRerecording == null ? Set.of() : journeysNeedingRerecording;
         List<MaterialisedFinding> materialised = new ArrayList<>(
                 FindingMaterializer.materialise(siteId, findings, properties.siteWideThreshold(),
                         coverage.interactionCheckTypes()));
@@ -65,7 +87,7 @@ public class FindingService {
         List<Long> ids = store.upsertAll(siteId, runId, materialised, observedAt);
         store.insertOccurrences(ids, runId, materialised, observedAt);
         store.recountOccurrences(ids);
-        store.resolveOutsideRun(siteId, runId, coverage, journeysNeedingRerecording);
+        store.resolveOutsideRun(siteId, runId, coverage, excluded);
         // D46: Apply mute rules after resolveOutsideRun and before diffOf inside the same transaction
         muteRuleApplier.applyToRun(siteId, runId, observedAt);
         return store.diffOf(siteId, runId);

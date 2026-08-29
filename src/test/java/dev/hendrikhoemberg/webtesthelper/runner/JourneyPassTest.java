@@ -220,6 +220,8 @@ class JourneyPassTest {
 
         verify(journeyHealthService).record(401L, result);
         assertThat(passResult.completedJourneyIds()).containsExactly(401L);
+        // The flagged journey is threaded through to the resolve step so its findings stay ACTIVE
+        assertThat(passResult.journeysNeedingRerecording()).containsExactly(401L);
         assertThat(passResult.findings()).hasSize(1);
         assertThat(passResult.findings()).extracting(MaterialisedFinding::type)
                 .containsExactly(CheckType.SELECTOR_DRIFT);

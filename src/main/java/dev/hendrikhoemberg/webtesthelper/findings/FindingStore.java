@@ -509,7 +509,8 @@ public class FindingStore {
      * <p>A journey flagged needs-re-recording (§10.4) is still failing; its findings are precisely
      * the diagnostic the flag replaces, so a run that completed it without re-observing
      * them must NOT resolve them to FIXED. {@code journeysNeedingRerecording} is subtracted from
-     * the journey resolve scope: those journeys' active findings stay ACTIVE.
+     * the journey resolve scope: those journeys' active findings stay ACTIVE. The caller
+     * ({@link FindingService}) owns the invariant that this set is never null.
      */
     public int resolveOutsideRun(long siteId, long runId, RunCoverage coverage,
             Set<Long> journeysNeedingRerecording) {
@@ -548,9 +549,7 @@ public class FindingStore {
         // A run that replayed 3 of 5 journeys must leave the other two alone.
         if (!coverage.journeyIds().isEmpty()) {
             Set<Long> resolvableJourneyIds = new LinkedHashSet<>(coverage.journeyIds());
-            if (journeysNeedingRerecording != null) {
-                resolvableJourneyIds.removeAll(journeysNeedingRerecording);
-            }
+            resolvableJourneyIds.removeAll(journeysNeedingRerecording);
             if (!resolvableJourneyIds.isEmpty()) {
                 String[] journeyTypes = java.util.Arrays.stream(CheckType.values())
                         .filter(CheckType::journey)
