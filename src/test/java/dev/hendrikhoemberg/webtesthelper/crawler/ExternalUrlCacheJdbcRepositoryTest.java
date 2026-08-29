@@ -37,7 +37,7 @@ class ExternalUrlCacheJdbcRepositoryTest extends AbstractPostgresTest {
         UrlVerification original = new UrlVerification("https://example.com/page",
                 UrlStatus.OK, 200, "text/html; charset=utf-8", 4096L, null, null, now);
 
-        cache.store(List.of(original), 1L);
+        cache.store(List.of(original));
 
         Map<String, UrlVerification> fresh = cache.fresh(List.of("https://example.com/page"), now);
         UrlVerification stored = fresh.get("https://example.com/page");
@@ -60,7 +60,7 @@ class ExternalUrlCacheJdbcRepositoryTest extends AbstractPostgresTest {
         UrlVerification stale = new UrlVerification("https://example.com/stale",
                 UrlStatus.OK, 200, null, 0, null, null, now.minus(25, ChronoUnit.HOURS));
 
-        cache.store(List.of(fresh, stale), 1L);
+        cache.store(List.of(fresh, stale));
 
         Map<String, UrlVerification> result = cache.fresh(
                 List.of("https://example.com/fresh", "https://example.com/stale"), now);
@@ -76,7 +76,7 @@ class ExternalUrlCacheJdbcRepositoryTest extends AbstractPostgresTest {
         UrlVerification staleDead = new UrlVerification("https://example.com/old-dead",
                 UrlStatus.DEAD, 404, null, 0, null, "Not found", now.minus(2, ChronoUnit.HOURS));
 
-        cache.store(List.of(freshDead, staleDead), 1L);
+        cache.store(List.of(freshDead, staleDead));
 
         Map<String, UrlVerification> result = cache.fresh(
                 List.of("https://example.com/recent-dead", "https://example.com/old-dead"), now);
@@ -93,8 +93,8 @@ class ExternalUrlCacheJdbcRepositoryTest extends AbstractPostgresTest {
         UrlVerification second = new UrlVerification("https://example.com/overwrite",
                 UrlStatus.OK, 200, null, 0, null, null, t2);
 
-        cache.store(List.of(first), 1L);
-        cache.store(List.of(second), 1L);
+        cache.store(List.of(first));
+        cache.store(List.of(second));
 
         Map<String, UrlVerification> result = cache.fresh(List.of("https://example.com/overwrite"), t2);
         UrlVerification stored = result.get("https://example.com/overwrite");
@@ -125,8 +125,8 @@ class ExternalUrlCacheJdbcRepositoryTest extends AbstractPostgresTest {
         UrlVerification withoutPrefix = new UrlVerification("https://example.com/pdf",
                 UrlStatus.OK, 200, "application/pdf", 1024L, null, null, t2);
 
-        cache.store(List.of(withPrefix), 1L);
-        cache.store(List.of(withoutPrefix), 1L);
+        cache.store(List.of(withPrefix));
+        cache.store(List.of(withoutPrefix));
 
         Map<String, UrlVerification> result = cache.fresh(List.of("https://example.com/pdf"), t2);
         UrlVerification stored = result.get("https://example.com/pdf");

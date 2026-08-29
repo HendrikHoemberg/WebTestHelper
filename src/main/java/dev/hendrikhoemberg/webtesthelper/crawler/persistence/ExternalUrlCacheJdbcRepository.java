@@ -73,7 +73,7 @@ public class ExternalUrlCacheJdbcRepository {
         return rows.stream().collect(Collectors.toMap(UrlVerification::url, v -> v));
     }
 
-    public void store(Collection<UrlVerification> results, long siteId) {
+    public void store(Collection<UrlVerification> results) {
         if (results.isEmpty()) {
             return;
         }

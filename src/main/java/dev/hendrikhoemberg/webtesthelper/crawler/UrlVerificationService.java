@@ -71,7 +71,7 @@ public class UrlVerificationService {
             (site.baseUrl().sameSiteAs(url) ? internal : external).add(url);
         }
 
-        int cacheHits = takeFromCache(external, results, site.siteId(), now);
+        int cacheHits = takeFromCache(external, results, now);
         List<NormalizedUrl> misses = external.stream()
                 .filter(url -> !results.containsKey(url.value()))
                 .toList();
@@ -79,7 +79,7 @@ public class UrlVerificationService {
         Map<String, UrlVerification> fetched = fetch(misses, site);
         results.putAll(fetched);
         if (!fetched.isEmpty()) {
-            cache.store(fetched.values(), site.siteId());
+            cache.store(fetched.values());
         }
         results.putAll(fetch(internal, site));
 
@@ -105,13 +105,13 @@ public class UrlVerificationService {
      * Fills {@code results} from the shared cache and returns how many entries came from it.
      */
     private int takeFromCache(List<NormalizedUrl> external, Map<String, UrlVerification> results,
-            long siteId, Instant now) {
+            Instant now) {
         if (external.isEmpty()) {
             return 0;
         }
         Map<String, UrlVerification> fresh = cache.fresh(
                 external.stream().map(NormalizedUrl::value).toList(), now);
-        List<UrlVerification> hits = new ArrayList<>();
+        int hits = 0;
         for (NormalizedUrl url : external) {
             UrlVerification cached = fresh.get(url.value());
             // A document cached from a HEAD carries no body, and FILE_DOWNLOAD cannot judge a PDF
@@ -121,12 +121,9 @@ public class UrlVerificationService {
                 continue;
             }
             results.put(url.value(), cached);
-            hits.add(cached);
+            hits++;
         }
-        if (!hits.isEmpty()) {
-            cache.store(hits, siteId);
-        }
-        return hits.size();
+        return hits;
     }
 
     private Map<String, UrlVerification> fetch(List<NormalizedUrl> urls, SiteContext site) {

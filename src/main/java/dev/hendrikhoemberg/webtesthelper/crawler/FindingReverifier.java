@@ -115,7 +115,7 @@ public class FindingReverifier {
                         UrlNormalizer.normalize(result.url()).orElseThrow()))
                 .toList();
         if (!toStore.isEmpty()) {
-            cache.store(toStore, site.siteId());
+            cache.store(toStore);
         }
 
         List<CheckFinding> surviving = new ArrayList<>(findings);

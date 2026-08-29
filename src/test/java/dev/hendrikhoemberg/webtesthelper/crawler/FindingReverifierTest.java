@@ -91,7 +91,7 @@ class FindingReverifierTest extends AbstractPostgresTest {
                 .filter(r -> !ctx.baseUrl().sameSiteAs(
                         UrlNormalizer.normalize(r.url()).orElseThrow()))
                 .toList();
-        cache.store(external, ctx.siteId());
+        cache.store(external);
     }
 
     private String statusOf(NormalizedUrl url) {
