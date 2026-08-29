@@ -78,6 +78,17 @@ public final class FixtureSite implements AutoCloseable {
             </body></html>
             """;
 
+    /**
+     * A slow-but-healthy map: the canvas stays blank for a short delay and only then paints. The
+     * single-read probe would misreport it as NOT_PAINTED; the confirmed second read must not.
+     */
+    private static final String MAPS_LATE_BODY = """
+            <!doctype html><html lang="en"><head><meta charset="utf-8"><title>Map</title></head>
+            <body style="margin:0"><canvas width="300" height="200" style="width:100%;height:100%"></canvas>
+            <script>setTimeout(() => { const c=document.querySelector('canvas'); const x=c.getContext('2d'); x.fillStyle='#e6e6e6'; x.fillRect(0,0,c.width,c.height); }, 1500);</script>
+            </body></html>
+            """;
+
     private final HttpServer server;
     private final int port;
 
@@ -203,6 +214,7 @@ public final class FixtureSite implements AutoCloseable {
                 case "/maps/embed/v1/place" -> sendHtml(exchange, 200, MAPS_BODY);
                 case "/maps/embed/v1/place-grau" -> sendHtml(exchange, 200, MAPS_GREY_BODY);
                 case "/maps/embed/v1/place-gesund" -> sendHtml(exchange, 200, MAPS_HEALTHY_BODY);
+                case "/maps/embed/v1/place-spaet" -> sendHtml(exchange, 200, MAPS_LATE_BODY);
                 case "/blockiert" -> {
                     exchange.getResponseHeaders().add("X-Frame-Options", "DENY");
                     sendHtml(exchange, 200, "<!doctype html><html lang=\"de\"><body><p>Bewertungen</p></body></html>");

@@ -192,6 +192,14 @@ class PageCheckAcceptanceTest extends AbstractPostgresTest {
     }
 
     @Test
+    void aHealthyMapThatPaintsLateIsNotReportedAsNotPainted() {
+        // The single-shot probe would read the still-blank canvas and raise a false finding here.
+        assertThat(of(CheckType.IFRAME_EMBED))
+                .filteredOn(finding -> finding.observedOn().path().equals("/karten-spaet.html"))
+                .isEmpty();
+    }
+
+    @Test
     void theCheckThatShipsDisabledReportsNothingEvenThoughItHadSomethingToSay() {
         // Spec 7.1: enabled by default this would make the first report mostly noise. The
         // fixture does log console errors, so this asserts the switch, not an empty console.

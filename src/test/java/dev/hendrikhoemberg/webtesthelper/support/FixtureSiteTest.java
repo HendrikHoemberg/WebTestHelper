@@ -109,6 +109,13 @@ class FixtureSiteTest {
                 java.nio.charset.StandardCharsets.UTF_8);
         assertThat(healthy).contains("fillRect");
         assertThat(healthy).doesNotContain("For development purposes only");
+
+        // The late-painting route must eventually paint, so the settle-confirmed probe can keep it
+        // healthy instead of reporting a transient NOT_PAINTED.
+        String late = new String(get("maps/embed/v1/place-spaet").body(),
+                java.nio.charset.StandardCharsets.UTF_8);
+        assertThat(late).contains("setTimeout");
+        assertThat(late).contains("fillRect");
     }
 
     @Test

@@ -156,6 +156,19 @@ class PageNavigatorTest {
     }
 
     @Test
+    void aHealthyMapWhoseCanvasPaintsLateIsNotReportedAsNotPainted() {
+        // The single-shot probe would read the still-blank canvas right after NETWORKIDLE and
+        // report a transient NOT_PAINTED — the false ERROR this signal must never introduce. The
+        // confirmed second read after the settle is what keeps a slow-but-healthy map healthy.
+        PageSnapshot snapshot = capture("karten-spaet.html", 1);
+
+        assertThat(snapshot.frames()).hasSize(2);
+        assertThat(snapshot.frames())
+                .extracting(frame -> frame.mapPaintState())
+                .containsExactlyInAnyOrder(MapPaintState.PAINTED, MapPaintState.PAINTED);
+    }
+
+    @Test
     void formFieldsCarryEnoughToClassifyThemLater() {
         PageSnapshot snapshot = capture("kontakt.html", 1);
 

@@ -63,41 +63,25 @@ import java.util.concurrent.TimeUnit;
 @Component
 public class PageNavigator {
 
-    private static final String EXTRACT_JS;
-
-    /**
-     * The same canvas-paint probe extract.js applies to same-origin frames, evaluated in a
-     * cross-origin frame's own context via CDP. The parent page's script cannot read such a frame;
-     * Playwright drives the frame directly, so the payload is read (spec 7.1's Maps case).
-     */
-    private static final String MAP_PAINT_JS = """
-            () => {
-              const canvases = [...document.querySelectorAll('canvas')]
-                .filter(c => (c.width || 0) > 0 && (c.height || 0) > 0);
-              if (canvases.length === 0) return 'UNKNOWN';
-              let read = false;
-              for (const canvas of canvases) {
-                let data = null;
-                try {
-                  const ctx = canvas.getContext('2d');
-                  data = ctx ? ctx.getImageData(0, 0, canvas.width, canvas.height).data : null;
-                } catch (e) { data = null; }
-                if (!data) continue;
-                read = true;
-                for (let i = 0; i < data.length; i += 4) {
-                  if (data[i + 3] !== 0) return 'PAINTED';
-                }
-              }
-              return read ? 'NOT_PAINTED' : 'UNKNOWN';
-            }
-            """;
+    private static final String EXTRACT_JS;      // extraction + the inlined map-paint probe
+    private static final String MAP_PAINT_JS;    // the single map-paint probe source
+    private static final String MAP_PAINT_INVOCATION;   // the probe run on one frame's document
+    private static final String MAP_PAINT_MARKER = "// [[MAP_PAINT_PROBE]]";
 
     static {
         try {
-            EXTRACT_JS = new ClassPathResource("crawler/extract.js")
+            String extract = new ClassPathResource("crawler/extract.js")
                     .getContentAsString(StandardCharsets.UTF_8);
+            MAP_PAINT_JS = new ClassPathResource("crawler/mapPaint.js")
+                    .getContentAsString(StandardCharsets.UTF_8);
+            // Same-origin path: extract.js references mapPaintOf, so the probe is inlined into it.
+            EXTRACT_JS = extract.replace(MAP_PAINT_MARKER, MAP_PAINT_JS);
+            // Cross-origin path: the parent page's script cannot read the frame, so run the same
+            // probe in the frame's own context (spec 7.1's Maps case).
+            MAP_PAINT_INVOCATION = "(() => {\n" + MAP_PAINT_JS + "\nreturn mapPaintOf(document);\n})()";
         } catch (IOException e) {
-            throw new IllegalStateException("crawler/extract.js fehlt im Klassenpfad", e);
+            throw new IllegalStateException(
+                    "crawler/extract.js oder crawler/mapPaint.js fehlt im Klassenpfad", e);
         }
     }
 
@@ -314,14 +298,18 @@ public class PageNavigator {
             return frames;
         }
         for (Frame pwFrame : page.frames()) {
-            if (pwFrame.equals(page.mainFrame())) {
-                continue;
-            }
-            UrlNormalizer.normalize(pwFrame.url()).ifPresent(url -> {
-                if (resolved.containsKey(url.value())) {
-                    resolved.put(url.value(), mapPaint(pwFrame));
+            try {
+                if (pwFrame.equals(page.mainFrame())) {
+                    continue;
                 }
-            });
+                UrlNormalizer.normalize(pwFrame.url()).ifPresent(url -> {
+                    if (resolved.containsKey(url.value())) {
+                        resolved.put(url.value(), mapPaint(pwFrame));
+                    }
+                });
+            } catch (RuntimeException e) {
+                // A detached or navigating frame must never fail the page; it stays UNKNOWN.
+            }
         }
         return frames.stream()
                 .map(frame -> {
@@ -334,7 +322,7 @@ public class PageNavigator {
 
     private static MapPaintState mapPaint(Frame frame) {
         try {
-            Object result = frame.evaluate(MAP_PAINT_JS);
+            Object result = frame.evaluate(MAP_PAINT_INVOCATION);
             return result == null ? MapPaintState.UNKNOWN : paintStateOf(result.toString());
         } catch (PlaywrightException e) {
             return MapPaintState.UNKNOWN;
