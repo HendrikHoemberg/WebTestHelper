@@ -1,4 +1,35 @@
 services:
+  webtesthelper:
+    build: .
+    image: webtesthelper:local
+    ports:
+      - "8080:8080"
+    environment:
+      WTH_DB_URL: jdbc:postgresql://postgres:5432/webtesthelper
+      WTH_DB_USER: webtesthelper
+      WTH_DB_PASSWORD: webtesthelper
+      WTH_ADMIN_PASSWORD: ${WTH_ADMIN_PASSWORD:-}
+      WTH_BASE_URL: ${WTH_BASE_URL:-http://localhost:8080}
+      WTH_SMTP_HOST: ${WTH_SMTP_HOST:-}
+      WTH_SMTP_PORT: ${WTH_SMTP_PORT:-}
+      WTH_SMTP_TLS: ${WTH_SMTP_TLS:-}
+      WTH_SMTP_USER: ${WTH_SMTP_USER:-}
+      WTH_SMTP_PASSWORD: ${WTH_SMTP_PASSWORD:-}
+      WTH_SMTP_FROM: ${WTH_SMTP_FROM:-}
+      WTH_CHROMIUM_NO_SANDBOX: "true"
+    volumes:
+      - wth-data:/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    # Spec 16: 4 browser workers x ~500 MB Chromium + ~1 GB JVM -> 3 GB minimum,
+    # 4 GB comfortable.
+    deploy:
+      resources:
+        limits:
+          memory: 4g
+
   postgres:
     image: postgres:17-alpine
     environment:
@@ -17,3 +48,4 @@ services:
 
 volumes:
   pgdata:
+  wth-data:
