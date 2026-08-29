@@ -63,7 +63,7 @@ import java.util.concurrent.TimeUnit;
 @Component
 public class PageNavigator {
 
-    private static final String EXTRACT_JS;      // extraction + the inlined map-paint probe
+    static final String EXTRACT_JS;      // extraction + the inlined map-paint probe
     private static final String MAP_PAINT_JS;    // the single map-paint probe source
     private static final String MAP_PAINT_INVOCATION;   // the probe run on one frame's document
     private static final String MAP_PAINT_MARKER = "// [[MAP_PAINT_PROBE]]";
@@ -75,7 +75,7 @@ public class PageNavigator {
             MAP_PAINT_JS = new ClassPathResource("crawler/mapPaint.js")
                     .getContentAsString(StandardCharsets.UTF_8);
             // Same-origin path: extract.js references mapPaintOf, so the probe is inlined into it.
-            EXTRACT_JS = extract.replace(MAP_PAINT_MARKER, MAP_PAINT_JS);
+            EXTRACT_JS = inlineProbe(extract);
             // Cross-origin path: the parent page's script cannot read the frame, so run the same
             // probe in the frame's own context (spec 7.1's Maps case).
             MAP_PAINT_INVOCATION = "(() => {\n" + MAP_PAINT_JS + "\nreturn mapPaintOf(document);\n})()";
@@ -83,6 +83,21 @@ public class PageNavigator {
             throw new IllegalStateException(
                     "crawler/extract.js oder crawler/mapPaint.js fehlt im Klassenpfad", e);
         }
+    }
+
+    /**
+     * Inlines the map-paint probe into extract.js at the marker. The replacement is no-op when the
+     * marker is missing, so a removed or renamed marker would leave every crawled page throwing a
+     * {@code ReferenceError} for {@code mapPaintOf}. Fail fast at startup instead, with the marker
+     * named, so the broken resource is impossible to miss.
+     */
+    static String inlineProbe(String extract) {
+        if (!extract.contains(MAP_PAINT_MARKER)) {
+            throw new IllegalStateException(
+                    "crawler/extract.js enthält den Marker '" + MAP_PAINT_MARKER
+                            + "' nicht; der Karten-Probe kann nicht eingebettet werden");
+        }
+        return extract.replace(MAP_PAINT_MARKER, MAP_PAINT_JS);
     }
 
     private final CrawlerProperties properties;
