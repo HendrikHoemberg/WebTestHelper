@@ -92,6 +92,26 @@ class HreflangCheckTest {
     }
 
     @Test
+    void aDeadAlternateCarriesTheVerificationAsEvidence() {
+        PageSnapshot page = Snapshots.page("https://example.com/a")
+                .alternate("en", "https://example.com/b").build();
+        UrlVerification dead = new UrlVerification("https://example.com/b", UrlStatus.DEAD, 404,
+                "text/html", 0, null, "Not Found", Instant.now(),
+                "HEAD https://example.com/b\nUser-Agent: WebTestHelper/1.0\n",
+                "404\ncontent-type: text/html\n");
+
+        assertThat(check.evaluate(snapshots(page), site(), config(dead)))
+                .singleElement()
+                .satisfies(finding -> {
+                    assertThat(finding.messageKey()).isEqualTo("finding.HREFLANG.deadAlternate");
+                    assertThat(finding.evidence().httpStatus()).isEqualTo(404);
+                    assertThat(finding.evidence().requestDetail())
+                            .contains("HEAD https://example.com/b");
+                    assertThat(finding.evidence().responseDetail()).contains("404");
+                });
+    }
+
+    @Test
     void anAlternateWhoseTargetDoesNotLinkBackIsReported() {
         PageSnapshot page = Snapshots.page("https://example.com/a")
                 .alternate("en", "https://example.com/b").build();

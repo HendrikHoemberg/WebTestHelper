@@ -179,4 +179,22 @@ class FileDownloadCheckTest {
 
         assertThat(findings).hasSize(1);
     }
+
+    @Test
+    void aWrongTypePdfCarriesTheRequestAndResponseAsEvidence() {
+        UrlVerification pdf = new UrlVerification("https://example.com/info.pdf",
+                UrlStatus.OK, 200, "text/html", 4096, "<html>", null, Instant.EPOCH,
+                "GET https://example.com/info.pdf\nRange: bytes=0-1023\n",
+                "200\ncontent-type: text/html\ncontent-length: 4096\n<html>");
+
+        CheckFinding finding = check.evaluate(
+                Snapshots.page("https://example.com/seite")
+                        .link("https://example.com/info.pdf", false).build(),
+                Snapshots.config(check, Snapshots.facts(pdf))).getFirst();
+
+        assertThat(finding.evidence().httpStatus()).isEqualTo(200);
+        assertThat(finding.evidence().requestDetail()).contains("GET https://example.com/info.pdf");
+        assertThat(finding.evidence().responseDetail()).contains("content-type: text/html");
+        assertThat(finding.evidence().responseDetail()).contains("<html>");
+    }
 }

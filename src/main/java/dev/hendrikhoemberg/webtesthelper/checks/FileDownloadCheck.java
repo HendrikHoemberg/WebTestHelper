@@ -59,24 +59,20 @@ public final class FileDownloadCheck implements PageCheck {
                     findings.add(new CheckFinding(type(), config.severity(), target.value(),
                             snapshot.url(), WRONG_TYPE,
                             List.of(target.value(), verification.contentType()),
-                            new Evidence(snapshot.screenshotPath(), verification.httpStatus(),
-                                    null, verification.contentType(), List.of())));
+                            Evidence.ofVerification(snapshot.screenshotPath(), verification)));
                     return;
                 }
                 if (DocumentTypes.isPdf(target) && !isPdfMagic(verification.bodyPrefix())) {
                     findings.add(new CheckFinding(type(), config.severity(), target.value(),
                             snapshot.url(), NOT_A_PDF, List.of(target.value()),
-                            new Evidence(snapshot.screenshotPath(), verification.httpStatus(),
-                                    null, verification.bodyPrefix(), List.of())));
+                            Evidence.ofVerification(snapshot.screenshotPath(), verification)));
                     return;
                 }
                 if (verification.contentLength() > 0 && verification.contentLength() < MIN_LENGTH) {
                     findings.add(new CheckFinding(type(), config.severity(), target.value(),
                             snapshot.url(), TOO_SMALL,
                             List.of(target.value(), String.valueOf(verification.contentLength())),
-                            new Evidence(snapshot.screenshotPath(), verification.httpStatus(),
-                                    null, String.valueOf(verification.contentLength()),
-                                    List.of())));
+                            Evidence.ofVerification(snapshot.screenshotPath(), verification)));
                 }
             });
         }

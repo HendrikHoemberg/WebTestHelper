@@ -126,4 +126,37 @@ class DeadLinkCheckTest {
         assertThat(finding.messageArgs()).containsExactly("https://example.com/tot",
                 "Connection refused");
     }
+
+    @Test
+    void aDeadLinkCarriesTheRequestAndResponseAsEvidence() {
+        UrlVerification dead = new UrlVerification("https://example.com/tot",
+                UrlStatus.DEAD, 404, "text/html", 0, null, "Not Found", Instant.EPOCH,
+                "HEAD https://example.com/tot\nUser-Agent: WebTestHelper/1.0\n",
+                "404\ncontent-type: text/html\ncontent-length: 0\n");
+
+        CheckFinding finding = check.evaluate(
+                Snapshots.page("https://example.com/seite")
+                        .link("https://example.com/tot", true).build(),
+                Snapshots.config(check, Snapshots.facts(dead))).getFirst();
+
+        assertThat(finding.evidence().httpStatus()).isEqualTo(404);
+        assertThat(finding.evidence().requestDetail()).contains("HEAD https://example.com/tot");
+        assertThat(finding.evidence().responseDetail()).contains("404");
+        assertThat(finding.evidence().responseDetail()).contains("content-type: text/html");
+    }
+
+    @Test
+    void aDeadLinkWithNoHttpResponseLeavesNoRequestOrResponseDetail() {
+        UrlVerification dead = new UrlVerification("https://example.com/tot",
+                UrlStatus.DEAD, 0, null, 0, null, "Connection refused", Instant.EPOCH);
+
+        CheckFinding finding = check.evaluate(
+                Snapshots.page("https://example.com/seite")
+                        .link("https://example.com/tot", true).build(),
+                Snapshots.config(check, Snapshots.facts(dead))).getFirst();
+
+        assertThat(finding.evidence().httpStatus()).isNull();
+        assertThat(finding.evidence().requestDetail()).isNull();
+        assertThat(finding.evidence().responseDetail()).isNull();
+    }
 }

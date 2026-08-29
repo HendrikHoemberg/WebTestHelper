@@ -96,6 +96,29 @@ class SitemapConsistencyCheckTest {
     }
 
     @Test
+    void aDeadEntryCarriesTheVerificationAsEvidence() {
+        UrlVerification dead = new UrlVerification("https://example.com/b", UrlStatus.DEAD, 404,
+                "text/html", 0, null, "Not Found", Instant.now(),
+                "HEAD https://example.com/b\nUser-Agent: WebTestHelper/1.0\n",
+                "404\ncontent-type: text/html\n");
+
+        RunFacts facts = new RunFacts(1L, RunScope.FULL, Instant.EPOCH, SoftNotFoundProbe.NONE,
+                UrlVerifications.of(List.of(dead)), TlsCertificateFact.NONE,
+                List.of("https://example.com/b"));
+
+        assertThat(check.evaluate(snapshots(), site(), config(facts)))
+                .singleElement()
+                .satisfies(finding -> {
+                    assertThat(finding.messageKey())
+                            .isEqualTo("finding.SITEMAP_CONSISTENCY.deadEntry");
+                    assertThat(finding.evidence().httpStatus()).isEqualTo(404);
+                    assertThat(finding.evidence().requestDetail())
+                            .contains("HEAD https://example.com/b");
+                    assertThat(finding.evidence().responseDetail()).contains("404");
+                });
+    }
+
+    @Test
     void aSitemapEntryThatIsASoftNotFoundReportsNothing() {
         String notFound = "Diese Seite gibt es leider nicht.";
         long hash = SimHash.of(notFound);

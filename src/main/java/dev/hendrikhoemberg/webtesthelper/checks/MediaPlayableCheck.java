@@ -68,9 +68,23 @@ public final class MediaPlayableCheck implements PageCheck {
             }
             findings.add(new CheckFinding(type(), config.severity(), subject, snapshot.url(),
                     media.kind() == MediaKind.VIDEO ? VIDEO : AUDIO, List.of(subject),
-                    new Evidence(snapshot.screenshotPath(), null, null, media.errorCode(),
-                            List.of())));
+                    evidenceFor(media, hasSource, snapshot, config)));
         }
         return findings;
+    }
+
+    /**
+     * A media source that the verifier also checked shows the real request/response; an element
+     * that only failed in the browser (or has no source at all) keeps its {@code errorCode}.
+     */
+    private static Evidence evidenceFor(MediaRef media, boolean hasSource, PageSnapshot snapshot,
+            CheckConfig config) {
+        if (!hasSource) {
+            return new Evidence(snapshot.screenshotPath(), null, null, media.errorCode(), List.of());
+        }
+        return config.facts().verifications().of(media.sources().getFirst())
+                .map(verification -> Evidence.ofVerification(snapshot.screenshotPath(), verification))
+                .orElse(new Evidence(snapshot.screenshotPath(), null, null, media.errorCode(),
+                        List.of()));
     }
 }

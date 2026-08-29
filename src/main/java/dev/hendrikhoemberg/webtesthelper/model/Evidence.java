@@ -21,4 +21,11 @@ public record Evidence(String screenshotPath, Integer httpStatus, String request
         return new Evidence(snapshot.screenshotPath(),
                 snapshot.reachable() ? snapshot.httpStatus() : null, null, null, List.of());
     }
+
+    /** A verifier result seen over HTTP: its status plus the request and response it produced. */
+    public static Evidence ofVerification(String screenshotPath, UrlVerification verification) {
+        int status = verification.httpStatus();
+        return new Evidence(screenshotPath, status == 0 ? null : status,
+                verification.requestDetail(), verification.responseDetail(), List.of());
+    }
 }

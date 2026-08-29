@@ -63,14 +63,12 @@ public final class DeadLinkCheck implements PageCheck {
                         : verification.failureText() == null ? "" : verification.failureText();
                 findings.add(new CheckFinding(type(), config.severity(), target.value(),
                         snapshot.url(), DEAD, List.of(target.value(), detail),
-                        new Evidence(snapshot.screenshotPath(), verification.httpStatus(),
-                                null, verification.failureText(), List.of())));
+                        Evidence.ofVerification(snapshot.screenshotPath(), verification)));
             } else if (verification.status() == UrlStatus.UNVERIFIABLE) {
                 String detail = verification.failureText() == null ? "" : verification.failureText();
                 findings.add(new CheckFinding(type(), Severity.INFO, target.value(),
                         snapshot.url(), UNVERIFIABLE, List.of(target.value(), detail),
-                        new Evidence(snapshot.screenshotPath(), verification.httpStatus(),
-                                null, verification.failureText(), List.of())));
+                        Evidence.ofVerification(snapshot.screenshotPath(), verification)));
             }
         });
     }

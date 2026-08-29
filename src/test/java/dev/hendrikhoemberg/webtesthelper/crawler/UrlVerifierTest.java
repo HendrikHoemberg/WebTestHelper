@@ -10,6 +10,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.net.URI;
+import java.net.http.HttpRequest;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -149,5 +151,34 @@ class UrlVerifierTest {
         UrlVerification echoed = verifier.verify(url(site.url("echo")), AGENT, true);
         assertThat(echoed.ok()).isTrue();
         assertThat(echoed.bodyPrefix()).isEqualTo(AGENT);
+    }
+
+    @Test
+    void aVerifiedUrlCarriesTheRequestAndResponseAsDetail() {
+        UrlVerification ok = verifier.verify(url(site.url("extern/ok")), AGENT, false);
+
+        assertThat(ok.requestDetail()).contains("HEAD");
+        assertThat(ok.requestDetail()).contains(site.url("extern/ok"));
+        assertThat(ok.responseDetail()).contains("200");
+        assertThat(ok.responseDetail()).contains("text/html");
+    }
+
+    @Test
+    void requestDetailOfStripsCredentialsCookiesAndLongValues() {
+        HttpRequest request = HttpRequest.newBuilder(URI.create("https://example.com/doku"))
+                .header("Authorization", "Bearer geheim")
+                .header("Cookie", "session=abc123")
+                .header("X-Lang", "x".repeat(1000))
+                .header("User-Agent", "Agent")
+                .GET()
+                .build();
+
+        String detail = UrlVerifier.requestDetailOf(request);
+
+        assertThat(detail).startsWith("GET https://example.com/doku");
+        assertThat(detail).doesNotContain("Authorization").doesNotContain("Bearer geheim");
+        assertThat(detail).doesNotContain("Cookie").doesNotContain("session=abc123");
+        assertThat(detail).contains("X-Lang");
+        assertThat(detail).doesNotContain("x".repeat(1000));
     }
 }

@@ -80,8 +80,11 @@ public final class HreflangCheck implements SiteCheck {
                     .orElse(false);
         }
         if (dead) {
-            return finding(config, target.value(), DEAD_ALTERNATE,
-                    List.of(target.value(), hreflang), page.url());
+            Evidence evidence = config.facts().verifications().of(target)
+                    .map(verification -> Evidence.ofVerification(null, verification))
+                    .orElse(Evidence.NONE);
+            return new CheckFinding(type(), config.severity(), target.value(), page.url(),
+                    DEAD_ALTERNATE, List.of(target.value(), hreflang), evidence);
         }
 
         if (targetSnap.isPresent() && !target.equals(page.url()) && !"x-default".equals(hreflang)) {

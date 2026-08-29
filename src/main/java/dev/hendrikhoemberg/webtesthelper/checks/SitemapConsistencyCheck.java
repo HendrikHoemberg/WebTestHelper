@@ -58,8 +58,11 @@ public final class SitemapConsistencyCheck implements SiteCheck {
         List<CheckFinding> findings = new ArrayList<>();
         for (NormalizedUrl entry : sitemap.values()) {
             if (!isIgnored(entry.value(), config) && isDeadEntry(entry, crawled, config)) {
+                Evidence evidence = config.facts().verifications().of(entry)
+                        .map(verification -> Evidence.ofVerification(null, verification))
+                        .orElse(Evidence.NONE);
                 findings.add(new CheckFinding(type(), config.severity(), entry.value(), null,
-                        DEAD_ENTRY, List.of(entry.value()), Evidence.NONE));
+                        DEAD_ENTRY, List.of(entry.value()), evidence));
             }
         }
         for (PageSnapshot page : snapshots.snapshots()) {

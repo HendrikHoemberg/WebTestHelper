@@ -10,7 +10,16 @@ public record UrlVerification(
         long contentLength,
         String bodyPrefix,
         String failureText,
-        Instant checkedAt) {
+        Instant checkedAt,
+        String requestDetail,
+        String responseDetail) {
+
+    /** A verification carries no request/response detail until the verifier has seen one. */
+    public UrlVerification(String url, UrlStatus status, int httpStatus, String contentType,
+            long contentLength, String bodyPrefix, String failureText, Instant checkedAt) {
+        this(url, status, httpStatus, contentType, contentLength, bodyPrefix, failureText,
+                checkedAt, null, null);
+    }
 
     public boolean ok() {
         return status == UrlStatus.OK;

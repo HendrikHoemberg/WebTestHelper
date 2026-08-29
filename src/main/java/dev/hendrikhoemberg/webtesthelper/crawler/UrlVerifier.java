@@ -15,7 +15,9 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -26,6 +28,12 @@ import java.util.function.Predicate;
 public class UrlVerifier {
 
     public static final int PREFIX_BYTES = 1024;
+
+    static final int HEADER_VALUE_LIMIT = 256;
+    static final int DETAIL_LIMIT = 4096;
+
+    private static final Set<String> BANNED_REQUEST_HEADERS = Set.of("authorization", "cookie");
+    private static final Set<String> BANNED_RESPONSE_HEADERS = Set.of("set-cookie");
 
     private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(5);
     private static final int FAILURE_TEXT_LIMIT = 500;
@@ -53,11 +61,13 @@ public class UrlVerifier {
             if (wantBody) {
                 return withBodyPrefix(url.value(), get(url, userAgent), checkedAt);
             }
-            HttpResponse<InputStream> response = safeHead(url, userAgent);
-            if (response == null || response.statusCode() == 405 || response.statusCode() == 501) {
+            Exchange exchange = safeHead(url, userAgent);
+            if (exchange == null || exchange.response().statusCode() == 405
+                    || exchange.response().statusCode() == 501) {
                 return withBodyPrefix(url.value(), get(url, userAgent), checkedAt);
             }
-            return fromResponse(url.value(), response, null, null, checkedAt);
+            return fromResponse(url.value(), exchange.requestDetail(), exchange.response(),
+                    null, null, checkedAt);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return dead(url.value(), "Verbindung unterbrochen", 0, checkedAt);
@@ -95,7 +105,7 @@ public class UrlVerifier {
         return Map.copyOf(results);
     }
 
-    private HttpResponse<InputStream> safeHead(NormalizedUrl url, String userAgent)
+    private Exchange safeHead(NormalizedUrl url, String userAgent)
             throws InterruptedException {
         try {
             return head(url, userAgent);
@@ -104,17 +114,18 @@ public class UrlVerifier {
         }
     }
 
-    private HttpResponse<InputStream> head(NormalizedUrl url, String userAgent)
+    private Exchange head(NormalizedUrl url, String userAgent)
             throws IOException, InterruptedException {
         HttpRequest request = HttpRequest.newBuilder(URI.create(url.value()))
                 .timeout(properties.requestTimeout())
                 .header("User-Agent", userAgent)
                 .method("HEAD", HttpRequest.BodyPublishers.noBody())
                 .build();
-        return client.send(request, HttpResponse.BodyHandlers.ofInputStream());
+        return new Exchange(requestDetailOf(request),
+                client.send(request, HttpResponse.BodyHandlers.ofInputStream()));
     }
 
-    private HttpResponse<InputStream> get(NormalizedUrl url, String userAgent)
+    private Exchange get(NormalizedUrl url, String userAgent)
             throws IOException, InterruptedException {
         HttpRequest request = HttpRequest.newBuilder(URI.create(url.value()))
                 .timeout(properties.requestTimeout())
@@ -122,7 +133,8 @@ public class UrlVerifier {
                 .header("Range", "bytes=0-" + (PREFIX_BYTES - 1))
                 .GET()
                 .build();
-        return client.send(request, HttpResponse.BodyHandlers.ofInputStream());
+        return new Exchange(requestDetailOf(request),
+                client.send(request, HttpResponse.BodyHandlers.ofInputStream()));
     }
 
     private static String readPrefix(InputStream body) throws IOException {
@@ -132,22 +144,71 @@ public class UrlVerifier {
         }                                              // closing aborts the transfer
     }
 
-    private static UrlVerification withBodyPrefix(String url, HttpResponse<InputStream> response,
+    private static UrlVerification withBodyPrefix(String url, Exchange exchange,
             Instant checkedAt) throws IOException {
-        try (InputStream body = response.body()) {
-            String bodyPrefix = response.statusCode() < 400 ? readPrefix(body) : null;
-            return fromResponse(url, response, bodyPrefix, null, checkedAt);
+        try (InputStream body = exchange.response().body()) {
+            String bodyPrefix = exchange.response().statusCode() < 400 ? readPrefix(body) : null;
+            return fromResponse(url, exchange.requestDetail(), exchange.response(), bodyPrefix,
+                    null, checkedAt);
         }
     }
 
-    private static UrlVerification fromResponse(String url, HttpResponse<InputStream> response,
-            String bodyPrefix, String failureText, Instant checkedAt) {
+    private static UrlVerification fromResponse(String url, String requestDetail,
+            HttpResponse<InputStream> response, String bodyPrefix, String failureText,
+            Instant checkedAt) {
         long contentLength = response.headers().firstValue("content-length")
                 .map(UrlVerifier::parseLong).orElse(0L);
         String contentType = response.headers().firstValue("content-type").orElse(null);
         return new UrlVerification(url, UrlStatus.ofHttpStatus(response.statusCode()),
                 response.statusCode(), contentType, contentLength, bodyPrefix, failureText,
-                checkedAt);
+                checkedAt, requestDetail, responseDetailOf(response, bodyPrefix));
+    }
+
+    /**
+     * The method and URI of a sent request, plus its sanitised headers: credentials ({@code
+     * Authorization}, {@code Cookie}) are never attached and every value is capped so a long
+     * header cannot bloat a stored finding.
+     */
+    static String requestDetailOf(HttpRequest request) {
+        StringBuilder detail = new StringBuilder();
+        detail.append(request.method()).append(' ').append(request.uri()).append('\n');
+        request.headers().map().entrySet().stream()
+                .filter(entry -> !BANNED_REQUEST_HEADERS.contains(key(entry.getKey())))
+                .filter(entry -> !entry.getValue().isEmpty())
+                .sorted(Map.Entry.comparingByKey())
+                .forEach(entry -> appendHeader(detail, entry.getKey(), entry.getValue()));
+        return truncate(detail.toString(), DETAIL_LIMIT);
+    }
+
+    /**
+     * The status and headers of a received response, plus its body prefix. {@code Set-Cookie} is
+     * dropped so a session token neither reaches the evidence nor a log line.
+     */
+    static String responseDetailOf(HttpResponse<?> response, String bodyPrefix) {
+        StringBuilder detail = new StringBuilder();
+        detail.append(response.statusCode()).append('\n');
+        response.headers().map().entrySet().stream()
+                .filter(entry -> !BANNED_RESPONSE_HEADERS.contains(key(entry.getKey())))
+                .filter(entry -> !entry.getValue().isEmpty())
+                .sorted(Map.Entry.comparingByKey())
+                .forEach(entry -> appendHeader(detail, entry.getKey(), entry.getValue()));
+        if (bodyPrefix != null) {
+            detail.append('\n').append(bodyPrefix);
+        }
+        return truncate(detail.toString(), DETAIL_LIMIT);
+    }
+
+    private static void appendHeader(StringBuilder detail, String name, Collection<String> values) {
+        for (String value : values) {
+            detail.append(name).append(": ").append(truncate(value, HEADER_VALUE_LIMIT)).append('\n');
+        }
+    }
+
+    private static String key(String headerName) {
+        return headerName.toLowerCase(Locale.ROOT);
+    }
+
+    private record Exchange(String requestDetail, HttpResponse<InputStream> response) {
     }
 
     private static UrlVerification dead(String url, String failureText, int httpStatus,
