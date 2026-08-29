@@ -197,7 +197,8 @@ public class CrawlRunExecutor implements RunExecutor {
                 interactionOutcome.candidateTypes(), interactionOutcome.drivenUrlsByType(),
                 journeyPassResult.completedJourneyIds());
         RunDiff diff = findings.record(lease.runId(), site.siteId(), surviving,
-                journeyPassResult.findings(), coverage, startedAt);
+                journeyPassResult.findings(), coverage,
+                journeyPassResult.journeysNeedingRerecording(), startedAt);
 
         log.info("Lauf {}: {} neu, {} behoben, {} weiterhin offen",
                 lease.runId(), diff.count(ReportSection.NEW), diff.count(ReportSection.FIXED),

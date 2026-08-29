@@ -21,6 +21,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -499,6 +500,19 @@ public class FindingStore {
 
     /** Resolve the findings this run did not re-observe, scoped to what the run actually covered. */
     public int resolveOutsideRun(long siteId, long runId, RunCoverage coverage) {
+        return resolveOutsideRun(siteId, runId, coverage, Set.of());
+    }
+
+    /**
+     * Resolve the findings this run did not re-observe, scoped to what the run actually covered.
+     *
+     * <p>A journey flagged needs-re-recording (§10.4) is still failing; its findings are precisely
+     * the diagnostic the flag replaces, so a run that completed it without re-observing
+     * them must NOT resolve them to FIXED. {@code journeysNeedingRerecording} is subtracted from
+     * the journey resolve scope: those journeys' active findings stay ACTIVE.
+     */
+    public int resolveOutsideRun(long siteId, long runId, RunCoverage coverage,
+            Set<Long> journeysNeedingRerecording) {
         int resolved = 0;
 
         // Every interaction type the run was allowed to drive leaves the crawl-scoped statement,
@@ -533,16 +547,22 @@ public class FindingStore {
         // D107: Journey findings resolve only within the journeys a run actually finished replaying.
         // A run that replayed 3 of 5 journeys must leave the other two alone.
         if (!coverage.journeyIds().isEmpty()) {
-            String[] journeyTypes = java.util.Arrays.stream(CheckType.values())
-                    .filter(CheckType::journey)
-                    .map(CheckType::name)
-                    .toArray(String[]::new);
-            String[] journeyLocationKeys = coverage.journeyIds().stream()
-                    .map(String::valueOf)
-                    .toArray(String[]::new);
-            resolved += jdbc.update(RESOLVE_JOURNEY_SQL, runId, siteId, runId,
-                    journeyTypes,
-                    journeyLocationKeys);
+            Set<Long> resolvableJourneyIds = new LinkedHashSet<>(coverage.journeyIds());
+            if (journeysNeedingRerecording != null) {
+                resolvableJourneyIds.removeAll(journeysNeedingRerecording);
+            }
+            if (!resolvableJourneyIds.isEmpty()) {
+                String[] journeyTypes = java.util.Arrays.stream(CheckType.values())
+                        .filter(CheckType::journey)
+                        .map(CheckType::name)
+                        .toArray(String[]::new);
+                String[] journeyLocationKeys = resolvableJourneyIds.stream()
+                        .map(String::valueOf)
+                        .toArray(String[]::new);
+                resolved += jdbc.update(RESOLVE_JOURNEY_SQL, runId, siteId, runId,
+                        journeyTypes,
+                        journeyLocationKeys);
+            }
         }
         return resolved;
     }

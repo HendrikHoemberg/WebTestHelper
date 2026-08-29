@@ -65,6 +65,7 @@ public class JourneyPass {
 
         List<MaterialisedFinding> allFindings = new ArrayList<>();
         Set<Long> completedJourneyIds = new LinkedHashSet<>();
+        Set<Long> journeysNeedingRerecording = new LinkedHashSet<>();
 
         for (JourneyDefinition journey : journeys) {
             if (!journey.enabled()) {
@@ -82,6 +83,7 @@ public class JourneyPass {
                     JourneyHealth health = healthService.record(journey.id(), result);
                     List<MaterialisedFinding> mapped = JourneyFindingMapper.map(journey, result);
                     if (health.needsRerecording()) {
+                        journeysNeedingRerecording.add(journey.id());
                         mapped = mapped.stream()
                                 .filter(f -> f.type() != CheckType.JOURNEY_STEP_FAILED)
                                 .toList();
@@ -94,6 +96,6 @@ public class JourneyPass {
             }
         }
 
-        return new JourneyPassResult(allFindings, completedJourneyIds);
+        return new JourneyPassResult(allFindings, completedJourneyIds, journeysNeedingRerecording);
     }
 }

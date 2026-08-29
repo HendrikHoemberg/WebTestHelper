@@ -236,6 +236,51 @@ class FindingStoreJourneyResolutionTest extends AbstractPostgresTest {
     }
 
     @Test
+    void nonRerecordingJourneyFindingStillResolvesWhenJourneyCompletes() {
+        long journeyId = 501L;
+        MaterialisedFinding finding = journeyFinding(CheckType.JOURNEY_STEP_FAILED, "step:checkout", journeyId);
+        store.upsertAll(siteId, 1, List.of(finding), observedAt);
+
+        RunCoverage run2Coverage = RunCoverage.of(
+                RunScope.FULL,
+                List.of(CheckType.JOURNEY_STEP_FAILED.name()),
+                List.of("https://www.example.com/"),
+                List.of(),
+                false,
+                Set.of(journeyId));
+
+        // The journey completed and is NOT flagged needs-re-recording, so the exclusion set is empty.
+        int resolved = store.resolveOutsideRun(siteId, 2, run2Coverage, Set.of());
+
+        assertThat(resolved).isEqualTo(1);
+        assertThat(observedStatus(finding.fingerprint())).isEqualTo(ObservedStatus.RESOLVED);
+        assertThat(resolvedAtRun(finding.fingerprint())).isEqualTo(2L);
+    }
+
+    @Test
+    void needsRerecordingJourneyFindingStaysActiveWhenJourneyCompletes() {
+        long journeyId = 601L;
+        MaterialisedFinding finding = journeyFinding(CheckType.JOURNEY_STEP_FAILED, "step:submit", journeyId);
+        store.upsertAll(siteId, 1, List.of(finding), observedAt);
+
+        RunCoverage run2Coverage = RunCoverage.of(
+                RunScope.FULL,
+                List.of(CheckType.JOURNEY_STEP_FAILED.name()),
+                List.of("https://www.example.com/"),
+                List.of(),
+                false,
+                Set.of(journeyId));
+
+        // The journey completed but is flagged needs-re-recording: its finding must not be resolved,
+        // even though the run did not re-observe it.
+        int resolved = store.resolveOutsideRun(siteId, 2, run2Coverage, Set.of(journeyId));
+
+        assertThat(resolved).isZero();
+        assertThat(observedStatus(finding.fingerprint())).isEqualTo(ObservedStatus.ACTIVE);
+        assertThat(resolvedAtRun(finding.fingerprint())).isNull();
+    }
+
+    @Test
     void runResultRepositoryPersistsAndReadsBackJourneyCoverageColumns() {
         dev.hendrikhoemberg.webtesthelper.runner.persistence.RunEntity run =
                 new dev.hendrikhoemberg.webtesthelper.runner.persistence.RunEntity();

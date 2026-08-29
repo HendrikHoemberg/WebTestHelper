@@ -9,6 +9,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * The findings write path. {@link #record} is four statements in one transaction — upsert,
@@ -49,6 +50,12 @@ public class FindingService {
 
     public RunDiff record(long runId, long siteId, List<CheckFinding> findings,
             List<MaterialisedFinding> extraMaterialised, RunCoverage coverage, Instant observedAt) {
+        return record(runId, siteId, findings, extraMaterialised, coverage, Set.of(), observedAt);
+    }
+
+    public RunDiff record(long runId, long siteId, List<CheckFinding> findings,
+            List<MaterialisedFinding> extraMaterialised, RunCoverage coverage,
+            Set<Long> journeysNeedingRerecording, Instant observedAt) {
         List<MaterialisedFinding> materialised = new ArrayList<>(
                 FindingMaterializer.materialise(siteId, findings, properties.siteWideThreshold(),
                         coverage.interactionCheckTypes()));
@@ -58,7 +65,7 @@ public class FindingService {
         List<Long> ids = store.upsertAll(siteId, runId, materialised, observedAt);
         store.insertOccurrences(ids, runId, materialised, observedAt);
         store.recountOccurrences(ids);
-        store.resolveOutsideRun(siteId, runId, coverage);
+        store.resolveOutsideRun(siteId, runId, coverage, journeysNeedingRerecording);
         // D46: Apply mute rules after resolveOutsideRun and before diffOf inside the same transaction
         muteRuleApplier.applyToRun(siteId, runId, observedAt);
         return store.diffOf(siteId, runId);
