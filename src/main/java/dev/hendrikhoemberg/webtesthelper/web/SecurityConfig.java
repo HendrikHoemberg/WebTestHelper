@@ -22,7 +22,8 @@ public class SecurityConfig implements WebMvcConfigurer {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http.authorizeHttpRequests(auth -> auth
+        http.requestCache(rc -> rc.requestCache(new SkipErrorDispatchRequestCache()))
+            .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/anmelden", "/vendor/**", "/css/**", "/favicon.ico").permitAll()
                 .requestMatchers("/einstellungen/**",
                         "/postausgang", "/actuator/**",
