@@ -24,7 +24,7 @@ class CrawlServiceEnqueueTest {
     void aDiscoveryEnqueueFailureIsCaughtAndDoesNotCorruptTheVisit() {
         CrawlFrontierJdbcRepository frontier = new ThrowingFrontier();
         CrawlerProperties properties = new CrawlerProperties(1, 10, Duration.ofSeconds(5),
-                Duration.ZERO, Path.of("target/test-artifacts"), true);
+                Duration.ZERO, Path.of("target/test-artifacts"), true, false);
         CrawlService service = new CrawlService(frontier, null, null, null, properties);
 
         NormalizedUrl base = UrlNormalizer.normalize("https://example.com/").orElseThrow();

@@ -53,7 +53,7 @@ class JourneyReplayAcceptanceTest {
     static void start(@TempDir Path tempDir) {
         fixtureSite = FixtureSite.start();
         crawlerProperties = new CrawlerProperties(1, 10, Duration.ofSeconds(5),
-                Duration.ZERO, tempDir, true);
+                Duration.ZERO, tempDir, true, false);
         pool = new BrowserPool(crawlerProperties);
 
         CredentialRepository credentials = mock(CredentialRepository.class);

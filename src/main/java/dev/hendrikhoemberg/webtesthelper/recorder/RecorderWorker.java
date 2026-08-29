@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -30,15 +31,26 @@ public class RecorderWorker implements AutoCloseable {
 
     private static final Logger log = LoggerFactory.getLogger(RecorderWorker.class);
 
+    /** Chromium launch flags; {@code --no-sandbox} is added only for container use (WTH_CHROMIUM_NO_SANDBOX). */
+    static BrowserType.LaunchOptions launchOptions(boolean headless, boolean noSandbox) {
+        var options = new BrowserType.LaunchOptions().setHeadless(headless);
+        if (noSandbox) {
+            options.setArgs(List.of("--no-sandbox"));
+        }
+        return options;
+    }
+
     private final int index;
     private final boolean headless;
+    private final boolean noSandbox;
     private final ExecutorService thread;
     private Playwright playwright;
     private Browser browser;
 
-    RecorderWorker(int index, boolean headless) {
+    RecorderWorker(int index, boolean headless, boolean noSandbox) {
         this.index = index;
         this.headless = headless;
+        this.noSandbox = noSandbox;
         this.thread = Executors.newSingleThreadExecutor(runnable -> {
             Thread t = new Thread(runnable, "recorder-worker-" + index);
             t.setDaemon(true);
@@ -86,8 +98,7 @@ public class RecorderWorker implements AutoCloseable {
             closeQuietly();
         }
         playwright = Playwright.create();
-        browser = playwright.chromium().launch(
-                new BrowserType.LaunchOptions().setHeadless(headless));
+        browser = playwright.chromium().launch(launchOptions(headless, noSandbox));
     }
 
     @Override

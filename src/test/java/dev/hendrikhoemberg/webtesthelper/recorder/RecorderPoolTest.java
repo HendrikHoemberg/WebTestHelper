@@ -31,7 +31,7 @@ class RecorderPoolTest {
     }
 
     private static RecorderProperties properties(int maxSessions) {
-        return new RecorderProperties(maxSessions, Duration.ofMinutes(15), 60, 1280, 720, true, Duration.ofMillis(100));
+        return new RecorderProperties(maxSessions, Duration.ofMinutes(15), 60, 1280, 720, true, false, Duration.ofMillis(100));
     }
 
     @Test

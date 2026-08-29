@@ -13,6 +13,7 @@ import java.time.Duration;
  * @param viewportWidth  recorder viewport width in CSS pixels (default 1280)
  * @param viewportHeight recorder viewport height in CSS pixels (default 720)
  * @param headless       whether Chromium runs headless (default true)
+ * @param noSandbox      pass --no-sandbox to Chromium for container use (default false)
  * @param pumpInterval   how long each pump call holds the worker thread inside Playwright so CDP
  *                       events can be dispatched (default 100ms); see {@link ScreencastBridge}
  */
@@ -24,6 +25,7 @@ public record RecorderProperties(
         int viewportWidth,
         int viewportHeight,
         boolean headless,
+        boolean noSandbox,
         Duration pumpInterval
 ) {
     public RecorderProperties {

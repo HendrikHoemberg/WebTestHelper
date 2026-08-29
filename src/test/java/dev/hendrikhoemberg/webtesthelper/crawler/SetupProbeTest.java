@@ -34,7 +34,7 @@ class SetupProbeTest {
         // Matches application-test.properties for the navigation timeout; the probe's own budget
         // is the decided 120 s, far above what eight fast fixture pages need.
         CrawlerProperties crawlerProperties = new CrawlerProperties(2, 10, Duration.ofSeconds(5),
-                Duration.ZERO, artifacts, true);
+                Duration.ZERO, artifacts, true, false);
         SetupProbeProperties properties = new SetupProbeProperties(8, Duration.ofSeconds(120));
         pool = new BrowserPool(crawlerProperties);
         PageNavigator navigator = new PageNavigator(crawlerProperties, new HostThrottle());

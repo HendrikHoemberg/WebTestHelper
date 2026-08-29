@@ -31,7 +31,7 @@ public class RecorderPool implements AutoCloseable {
         int size = Math.max(1, properties.maxSessions());
         List<RecorderWorker> list = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
-            RecorderWorker worker = new RecorderWorker(i, properties.headless());
+            RecorderWorker worker = new RecorderWorker(i, properties.headless(), properties.noSandbox());
             list.add(worker);
             available.add(worker);
         }

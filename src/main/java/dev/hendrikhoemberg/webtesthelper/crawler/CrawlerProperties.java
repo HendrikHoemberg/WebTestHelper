@@ -13,8 +13,9 @@ import java.time.Duration;
  *                          a dead run (spec 14)
  * @param perHostDelay      politeness gap between navigations to the same host (spec 8)
  * @param artifactDir       screenshots land under {artifactDir}/{runId}/ (spec 16)
+ * @param noSandbox         pass --no-sandbox to Chromium for container use (default false)
  */
 @ConfigurationProperties("webtesthelper.crawler")
 public record CrawlerProperties(int browserWorkers, int batchSize, Duration navigationTimeout,
-                                Duration perHostDelay, Path artifactDir, boolean headless) {
+                                Duration perHostDelay, Path artifactDir, boolean headless, boolean noSandbox) {
 }

@@ -26,7 +26,7 @@ class BrowserPoolTest {
 
     private static CrawlerProperties properties(int workers) {
         return new CrawlerProperties(workers, 20, Duration.ofSeconds(15), Duration.ZERO,
-                Path.of(System.getProperty("java.io.tmpdir"), "wth-pool-test"), true);
+                Path.of(System.getProperty("java.io.tmpdir"), "wth-pool-test"), true, false);
     }
 
     @Test

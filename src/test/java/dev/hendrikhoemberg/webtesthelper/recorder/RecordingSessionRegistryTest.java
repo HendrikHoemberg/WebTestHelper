@@ -30,7 +30,7 @@ class RecordingSessionRegistryTest {
     @BeforeEach
     void setup() {
         pool = mock(RecorderPool.class);
-        properties = new RecorderProperties(2, Duration.ofMinutes(15), 60, 1280, 720, true, Duration.ofMillis(100));
+        properties = new RecorderProperties(2, Duration.ofMinutes(15), 60, 1280, 720, true, false, Duration.ofMillis(100));
         clock = new TestClock(Instant.parse("2026-08-28T10:00:00Z"));
         registry = new RecordingSessionRegistry(pool, properties, clock);
     }

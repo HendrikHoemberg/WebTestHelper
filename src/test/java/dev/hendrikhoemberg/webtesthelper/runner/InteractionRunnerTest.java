@@ -53,7 +53,7 @@ class InteractionRunnerTest {
     static void start(@TempDir Path tempDir) {
         fixtureSite = FixtureSite.start();
         crawlerProperties = new CrawlerProperties(1, 10, Duration.ofSeconds(5),
-                Duration.ZERO, tempDir, true);
+                Duration.ZERO, tempDir, true, false);
         pool = new BrowserPool(crawlerProperties);
     }
 
@@ -458,7 +458,7 @@ class InteractionRunnerTest {
         CheckRegistry registry = new CheckRegistry(List.of(), List.of(), List.of(new CookieBannerCheck()));
         // Short navigation timeout for the unreachable test
         CrawlerProperties shortProperties = new CrawlerProperties(1, 10, Duration.ofMillis(500),
-                Duration.ZERO, tempArtifacts, true);
+                Duration.ZERO, tempArtifacts, true, false);
         InteractionRunner runner = new InteractionRunner(pool, registry, shortProperties,
                 new InteractionProperties(3, Duration.ofMillis(500)));
 

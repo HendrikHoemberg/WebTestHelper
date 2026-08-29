@@ -44,11 +44,20 @@ public class BrowserPool implements AutoCloseable {
     private final List<Worker> workers = new ArrayList<>();
     private final BlockingQueue<Worker> available;
 
+    /** Chromium launch flags; {@code --no-sandbox} is added only for container use (WTH_CHROMIUM_NO_SANDBOX). */
+    static BrowserType.LaunchOptions launchOptions(boolean headless, boolean noSandbox) {
+        var options = new BrowserType.LaunchOptions().setHeadless(headless);
+        if (noSandbox) {
+            options.setArgs(List.of("--no-sandbox"));
+        }
+        return options;
+    }
+
     public BrowserPool(CrawlerProperties properties) {
         int size = Math.max(1, properties.browserWorkers());
         this.available = new ArrayBlockingQueue<>(size);
         for (int i = 0; i < size; i++) {
-            Worker worker = new Worker(i, properties.headless());
+            Worker worker = new Worker(i, properties.headless(), properties.noSandbox());
             workers.add(worker);
             available.add(worker);
         }
@@ -90,13 +99,15 @@ public class BrowserPool implements AutoCloseable {
 
         private final int index;
         private final boolean headless;
+        private final boolean noSandbox;
         private final ExecutorService thread;
         private Playwright playwright;
         private Browser browser;
 
-        private Worker(int index, boolean headless) {
+        private Worker(int index, boolean headless, boolean noSandbox) {
             this.index = index;
             this.headless = headless;
+            this.noSandbox = noSandbox;
             this.thread = Executors.newSingleThreadExecutor(runnable -> {
                 Thread t = new Thread(runnable, "browser-worker-" + index);
                 t.setDaemon(true);
@@ -141,8 +152,7 @@ public class BrowserPool implements AutoCloseable {
                 closeQuietly();
             }
             playwright = Playwright.create();
-            browser = playwright.chromium().launch(
-                    new BrowserType.LaunchOptions().setHeadless(headless));
+            browser = playwright.chromium().launch(launchOptions(headless, noSandbox));
         }
 
         private void close() {

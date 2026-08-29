@@ -26,7 +26,7 @@ class UrlVerifierTest {
     private static final String AGENT = "WebTestHelper-Test/1.0";
 
     private static final CrawlerProperties CRAWLER = new CrawlerProperties(4, 20,
-            Duration.ofSeconds(30), Duration.ZERO, Path.of("/tmp"), true);
+            Duration.ofSeconds(30), Duration.ZERO, Path.of("/tmp"), true, false);
 
     private static FixtureSite site;
     private static UrlVerifier verifier;

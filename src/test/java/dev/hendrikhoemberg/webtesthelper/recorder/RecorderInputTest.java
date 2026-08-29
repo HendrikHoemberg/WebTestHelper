@@ -34,7 +34,7 @@ class RecorderInputTest {
     @BeforeAll
     static void start() {
         fixtureSite = FixtureSite.start();
-        properties = new RecorderProperties(1, Duration.ofMinutes(15), 60, 1280, 720, true, Duration.ofMillis(100));
+        properties = new RecorderProperties(1, Duration.ofMinutes(15), 60, 1280, 720, true, false, Duration.ofMillis(100));
         pool = new RecorderPool(properties);
         RecorderWorker worker = pool.allocate().orElseThrow();
         var bsc = worker.submit(browser -> {
