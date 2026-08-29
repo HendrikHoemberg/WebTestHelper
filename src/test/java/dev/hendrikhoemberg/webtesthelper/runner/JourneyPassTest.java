@@ -1,5 +1,6 @@
 package dev.hendrikhoemberg.webtesthelper.runner;
 
+import dev.hendrikhoemberg.webtesthelper.catalog.JourneyHealth;
 import dev.hendrikhoemberg.webtesthelper.catalog.JourneyHealthService;
 import dev.hendrikhoemberg.webtesthelper.catalog.JourneyService;
 import dev.hendrikhoemberg.webtesthelper.findings.MaterialisedFinding;
@@ -81,6 +82,8 @@ class JourneyPassTest {
         when(journeyService.findBySite(site.siteId())).thenReturn(List.of(enabledJourney, disabledJourney));
         when(journeyReplayer.replay(eq(enabledJourney), eq(site), eq(artifactsPath)))
                 .thenReturn(replayResult);
+        when(journeyHealthService.record(101L, replayResult))
+                .thenReturn(new JourneyHealth(null, 0, 0, List.of()));
 
         JourneyPassResult result = journeyPass.run(site, RunScope.FULL, artifactsPath);
 
@@ -123,6 +126,8 @@ class JourneyPassTest {
                 .thenThrow(new RuntimeException("Playwright browser crash"));
         when(journeyReplayer.replay(eq(healthyJourney), eq(site), eq(artifactsPath)))
                 .thenReturn(healthyResult);
+        when(journeyHealthService.record(202L, healthyResult))
+                .thenReturn(new JourneyHealth(null, 0, 0, List.of()));
 
         JourneyPassResult result = journeyPass.run(site, RunScope.FULL, artifactsPath);
 
@@ -171,6 +176,8 @@ class JourneyPassTest {
 
         when(journeyReplayer.replay(eq(journey1), eq(site), eq(artifactsPath))).thenReturn(result1);
         when(journeyReplayer.replay(eq(journey2), eq(site), eq(artifactsPath))).thenReturn(result2);
+        when(journeyHealthService.record(301L, result1)).thenReturn(new JourneyHealth(null, 1, 0, List.of()));
+        when(journeyHealthService.record(302L, result2)).thenReturn(new JourneyHealth(null, 0, 1, List.of()));
 
         JourneyPassResult passResult = journeyPass.run(site, RunScope.FULL, artifactsPath);
 
@@ -181,6 +188,41 @@ class JourneyPassTest {
         assertThat(passResult.findings()).hasSize(2);
         assertThat(passResult.findings()).extracting(MaterialisedFinding::type)
                 .containsExactlyInAnyOrder(CheckType.JOURNEY_STEP_FAILED, CheckType.SELECTOR_DRIFT);
+    }
+
+    @Test
+    void needsRerecordingSuppressesStepFailedButKeepsSelectorDriftAndRecordsHealth() {
+        UUID failedStepId = UUID.randomUUID();
+        UUID driftedStepId = UUID.randomUUID();
+        JourneyStep failedStep = new JourneyStep(failedStepId, 0, StepAction.CLICK,
+                List.of(new LocatorCandidate(LocatorStrategy.CSS, "button#submit", 0)), null, null, false, 5000);
+        JourneyStep driftedStep = new JourneyStep(driftedStepId, 1, StepAction.FILL,
+                List.of(new LocatorCandidate(LocatorStrategy.CSS, "input#search", 0)), "q", null, false, 5000);
+        JourneyDefinition journey = new JourneyDefinition(401L, site.siteId(), "Stale Flow", true,
+                List.of(failedStep, driftedStep));
+
+        JourneyReplayResult result = new JourneyReplayResult(
+                401L,
+                "Stale Flow",
+                ReplayStatus.FAILED,
+                List.of(StepOutcome.failed(failedStepId, "error.step", List.of("b")),
+                        StepOutcome.drifted(driftedStepId, new LocatorCandidate(LocatorStrategy.CSS, "input#search.v2", 1))),
+                1,
+                Optional.of("failure-screenshot.png"),
+                Optional.empty());
+
+        when(journeyService.findBySite(site.siteId())).thenReturn(List.of(journey));
+        when(journeyReplayer.replay(eq(journey), eq(site), eq(artifactsPath))).thenReturn(result);
+        // Health transitioned this run: the journey now needs re-recording (3 consecutive failures, drift present)
+        when(journeyHealthService.record(401L, result)).thenReturn(new JourneyHealth(null, 3, 1, List.of()));
+
+        JourneyPassResult passResult = journeyPass.run(site, RunScope.FULL, artifactsPath);
+
+        verify(journeyHealthService).record(401L, result);
+        assertThat(passResult.completedJourneyIds()).containsExactly(401L);
+        assertThat(passResult.findings()).hasSize(1);
+        assertThat(passResult.findings()).extracting(MaterialisedFinding::type)
+                .containsExactly(CheckType.SELECTOR_DRIFT);
     }
 }
 

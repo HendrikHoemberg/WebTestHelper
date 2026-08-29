@@ -1,9 +1,11 @@
 package dev.hendrikhoemberg.webtesthelper.runner;
 
+import dev.hendrikhoemberg.webtesthelper.catalog.JourneyHealth;
 import dev.hendrikhoemberg.webtesthelper.catalog.JourneyHealthService;
 import dev.hendrikhoemberg.webtesthelper.catalog.JourneyService;
 import dev.hendrikhoemberg.webtesthelper.findings.JourneyFindingMapper;
 import dev.hendrikhoemberg.webtesthelper.findings.MaterialisedFinding;
+import dev.hendrikhoemberg.webtesthelper.model.CheckType;
 import dev.hendrikhoemberg.webtesthelper.model.JourneyDefinition;
 import dev.hendrikhoemberg.webtesthelper.model.JourneyReplayResult;
 import dev.hendrikhoemberg.webtesthelper.model.RunScope;
@@ -73,8 +75,17 @@ public class JourneyPass {
                 JourneyReplayResult result = replayer.replay(journey, site, artifacts);
                 if (result != null) {
                     completedJourneyIds.add(journey.id());
-                    healthService.record(journey.id(), result);
+                    // §10.4: a journey flagged needs-re-recording stops raising the same
+                    // JOURNEY_STEP_FAILED finding every run; the drift signal stays as the diagnostic.
+                    // Health is recorded first — the journey may have just crossed the threshold
+                    // this run — so the suppression decision reads the post-record state.
+                    JourneyHealth health = healthService.record(journey.id(), result);
                     List<MaterialisedFinding> mapped = JourneyFindingMapper.map(journey, result);
+                    if (health.needsRerecording()) {
+                        mapped = mapped.stream()
+                                .filter(f -> f.type() != CheckType.JOURNEY_STEP_FAILED)
+                                .toList();
+                    }
                     allFindings.addAll(mapped);
                 }
             } catch (RuntimeException e) {
