@@ -31,4 +31,12 @@ class FrameRefTest {
     void anUnrelatedHostAndPathIsNotRecognised() {
         assertThat(frame("https://example.com/kontakt").isMapsEmbed()).isFalse();
     }
+
+    @Test
+    void aFrameWithoutAPaintSignalReportsUnknownPaintState() {
+        // A frame built without a canvas signal (cross-origin, or no canvas at all) is the
+        // absence of a signal — UNKNOWN — not a finding.
+        assertThat(frame("https://www.google.com/maps/embed/v1/place")
+                .mapPaintState()).isEqualTo(MapPaintState.UNKNOWN);
+    }
 }

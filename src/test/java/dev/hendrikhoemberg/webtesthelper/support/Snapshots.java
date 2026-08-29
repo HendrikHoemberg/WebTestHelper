@@ -10,6 +10,7 @@ import dev.hendrikhoemberg.webtesthelper.model.FrameRef;
 import dev.hendrikhoemberg.webtesthelper.model.ImageOrigin;
 import dev.hendrikhoemberg.webtesthelper.model.ImageRef;
 import dev.hendrikhoemberg.webtesthelper.model.LinkRef;
+import dev.hendrikhoemberg.webtesthelper.model.MapPaintState;
 import dev.hendrikhoemberg.webtesthelper.model.MediaKind;
 import dev.hendrikhoemberg.webtesthelper.model.MediaRef;
 import dev.hendrikhoemberg.webtesthelper.model.NormalizedUrl;
@@ -165,8 +166,13 @@ public final class Snapshots {
         }
 
         public Builder frame(String src, boolean sameOrigin, int contentTextLength) {
+            return frame(src, sameOrigin, contentTextLength, MapPaintState.UNKNOWN);
+        }
+
+        public Builder frame(String src, boolean sameOrigin, int contentTextLength,
+                MapPaintState paintState) {
             frames.add(new FrameRef(Snapshots.url(src), "Eingebettet", true, contentTextLength,
-                    sameOrigin));
+                    sameOrigin, paintState));
             return this;
         }
 

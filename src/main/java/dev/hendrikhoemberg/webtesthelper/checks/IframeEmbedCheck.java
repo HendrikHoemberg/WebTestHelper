@@ -6,6 +6,7 @@ import dev.hendrikhoemberg.webtesthelper.model.ConsoleMessage;
 import dev.hendrikhoemberg.webtesthelper.model.Evidence;
 import dev.hendrikhoemberg.webtesthelper.model.FailedRequest;
 import dev.hendrikhoemberg.webtesthelper.model.FrameRef;
+import dev.hendrikhoemberg.webtesthelper.model.MapPaintState;
 import dev.hendrikhoemberg.webtesthelper.model.PageSnapshot;
 import dev.hendrikhoemberg.webtesthelper.model.Severity;
 import dev.hendrikhoemberg.webtesthelper.model.UrlNormalizer;
@@ -50,6 +51,7 @@ public final class IframeEmbedCheck implements PageCheck {
 
     static final String BLOCKED = "finding.IFRAME_EMBED.blocked";
     static final String MAPS = "finding.IFRAME_EMBED.maps";
+    static final String MAPS_NOT_PAINTED = "finding.IFRAME_EMBED.mapsNotPainted";
     static final String EMPTY = "finding.IFRAME_EMBED.empty";
 
     /** The codes Google Maps writes to the console when a key or the billing account is wrong. */
@@ -70,7 +72,7 @@ public final class IframeEmbedCheck implements PageCheck {
 
     @Override
     public Set<String> messageKeys() {
-        return Set.of(BLOCKED, MAPS, EMPTY);
+        return Set.of(BLOCKED, MAPS, MAPS_NOT_PAINTED, EMPTY);
     }
 
     @Override
@@ -136,6 +138,9 @@ public final class IframeEmbedCheck implements PageCheck {
                 if (!errors.isEmpty()) {
                     findings.add(finding(snapshot, config, MAPS, subject,
                             List.of(mapsCodeIn(errors.getFirst())), errors));
+                } else if (frame.mapPaintState() == MapPaintState.NOT_PAINTED) {
+                    findings.add(finding(snapshot, config, MAPS_NOT_PAINTED, subject,
+                            List.of(subject), List.of()));
                 }
             } else if (frame.sameOrigin() && frame.contentTextLength() == 0) {
                 findings.add(finding(snapshot, config, EMPTY, subject, List.of(subject),

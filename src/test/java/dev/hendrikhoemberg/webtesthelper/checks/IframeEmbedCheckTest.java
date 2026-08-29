@@ -1,6 +1,7 @@
 package dev.hendrikhoemberg.webtesthelper.checks;
 
 import dev.hendrikhoemberg.webtesthelper.model.CheckFinding;
+import dev.hendrikhoemberg.webtesthelper.model.MapPaintState;
 import dev.hendrikhoemberg.webtesthelper.support.Snapshots;
 import org.junit.jupiter.api.Test;
 
@@ -150,5 +151,57 @@ class IframeEmbedCheckTest {
                 .singleElement()
                 .satisfies(finding ->
                         assertThat(finding.messageKey()).isEqualTo("finding.IFRAME_EMBED.blocked"));
+    }
+
+    @Test
+    void aMapsEmbedWhoseCanvasNeverPaintsIsReportedEvenWithNoConsoleError() {
+        // Spec 7.1: the real failure is a grey map. The console scan misses the case where the
+        // provider writes no error — the canvas signal is where the truth is, not the console.
+        CheckFinding finding = check.evaluate(
+                Snapshots.page("https://example.com/kontakt")
+                        .frame("https://www.google.com/maps/embed/v1/place", false, 0,
+                                MapPaintState.NOT_PAINTED).build(),
+                Snapshots.config(check, Snapshots.facts())).getFirst();
+
+        assertThat(finding.messageKey()).isEqualTo("finding.IFRAME_EMBED.mapsNotPainted");
+        assertThat(finding.subjectKey()).isEqualTo("https://www.google.com/maps/embed/v1/place");
+        assertThat(check.messageKeys()).contains(finding.messageKey());
+    }
+
+    @Test
+    void aHealthyMapsEmbedWhoseCanvasPaintedIsNotReported() {
+        assertThat(check.evaluate(
+                Snapshots.page("https://example.com/kontakt")
+                        .frame("https://www.google.com/maps/embed/v1/place", false, 0,
+                                MapPaintState.PAINTED).build(),
+                Snapshots.config(check, Snapshots.facts()))).isEmpty();
+    }
+
+    @Test
+    void aMapsEmbedWithUnknownPaintStateIsNotReportedAsNotPainted() {
+        // A cross-origin frame whose pixels cannot be read degrades to UNKNOWN — absence of a
+        // signal, not a finding.
+        assertThat(check.evaluate(
+                Snapshots.page("https://example.com/kontakt")
+                        .frame("https://www.google.com/maps/embed/v1/place", false, 0,
+                                MapPaintState.UNKNOWN).build(),
+                Snapshots.config(check, Snapshots.facts()))).isEmpty();
+    }
+
+    @Test
+    void aProviderConsoleErrorStillWinsOverThePaintSignal() {
+        // The provider writing an error code is the more specific diagnosis; a grey canvas on top
+        // of it stays one finding, attributed to the code.
+        CheckFinding finding = check.evaluate(
+                Snapshots.page("https://example.com/kontakt")
+                        .frame("https://www.google.com/maps/embed/v1/place", false, 0,
+                                MapPaintState.NOT_PAINTED)
+                        .consoleError(MAPS_ERROR).build(),
+                Snapshots.config(check, Snapshots.facts())).getFirst();
+
+        assertThat(finding).satisfies(f -> {
+            assertThat(f.messageKey()).isEqualTo("finding.IFRAME_EMBED.maps");
+            assertThat(f.messageArgs()).containsExactly("ApiNotActivatedMapError");
+        });
     }
 }

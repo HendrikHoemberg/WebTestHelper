@@ -172,12 +172,23 @@ class PageCheckAcceptanceTest extends AbstractPostgresTest {
     @Test
     void bothBrokenEmbedsOnTheContactPageAreReported() {
         assertThat(of(CheckType.IFRAME_EMBED))
+                .filteredOn(finding -> finding.observedOn().path().equals("/kontakt.html"))
                 .extracting(CheckFinding::messageKey)
                 .containsExactlyInAnyOrder("finding.IFRAME_EMBED.blocked",
                         "finding.IFRAME_EMBED.maps");
+    }
+
+    @Test
+    void theGreyMapThatNeverPaintsIsReportedAndTheHealthyOneIsNot() {
+        // Spec 7.1's grey-map case, with no provider console error — the one the console scan
+        // misses. The paint signal is what carries it.
         assertThat(of(CheckType.IFRAME_EMBED))
-                .allSatisfy(finding ->
-                        assertThat(finding.observedOn().path()).isEqualTo("/kontakt.html"));
+                .filteredOn(finding -> finding.observedOn().path().equals("/karten-grau.html"))
+                .isNotEmpty()
+                .allMatch(finding -> finding.messageKey().equals("finding.IFRAME_EMBED.mapsNotPainted"));
+        assertThat(of(CheckType.IFRAME_EMBED))
+                .filteredOn(finding -> finding.observedOn().path().equals("/karten-gesund.html"))
+                .isEmpty();
     }
 
     @Test

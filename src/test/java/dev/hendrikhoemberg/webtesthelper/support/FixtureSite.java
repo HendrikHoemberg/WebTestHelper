@@ -58,6 +58,26 @@ public final class FixtureSite implements AutoCloseable {
             </body></html>
             """;
 
+    /**
+     * The grey-map failure the console scan alone misses: a canvas element of real size that was
+     * never painted (every pixel stays transparent) and <em>no</em> provider error in the console.
+     * The watermark text is the spec's visible signature; the paint signal is the blank canvas.
+     */
+    private static final String MAPS_GREY_BODY = """
+            <!doctype html><html lang="en"><head><meta charset="utf-8"><title>Map</title></head>
+            <body style="margin:0"><div style="width:100%;height:100%;background:#e5e3df">
+            <canvas width="300" height="200" style="width:100%;height:100%"></canvas>
+            <p>For development purposes only</p></div></body></html>
+            """;
+
+    /** The healthy opposite: a canvas that receives paint, so the map is readable. */
+    private static final String MAPS_HEALTHY_BODY = """
+            <!doctype html><html lang="en"><head><meta charset="utf-8"><title>Map</title></head>
+            <body style="margin:0"><canvas width="300" height="200" style="width:100%;height:100%"></canvas>
+            <script>const c=document.querySelector('canvas');const x=c.getContext('2d');x.fillStyle='#e6e6e6';x.fillRect(0,0,c.width,c.height);</script>
+            </body></html>
+            """;
+
     private final HttpServer server;
     private final int port;
 
@@ -181,6 +201,8 @@ public final class FixtureSite implements AutoCloseable {
                 case "/medien/ton.wav" -> send(exchange, 200, "audio/wav", wav());
                 case "/medien/fehlt.mp4" -> send(exchange, 404, "text/plain", "weg".getBytes(StandardCharsets.UTF_8));
                 case "/maps/embed/v1/place" -> sendHtml(exchange, 200, MAPS_BODY);
+                case "/maps/embed/v1/place-grau" -> sendHtml(exchange, 200, MAPS_GREY_BODY);
+                case "/maps/embed/v1/place-gesund" -> sendHtml(exchange, 200, MAPS_HEALTHY_BODY);
                 case "/blockiert" -> {
                     exchange.getResponseHeaders().add("X-Frame-Options", "DENY");
                     sendHtml(exchange, 200, "<!doctype html><html lang=\"de\"><body><p>Bewertungen</p></body></html>");

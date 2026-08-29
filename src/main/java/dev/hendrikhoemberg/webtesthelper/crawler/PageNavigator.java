@@ -2,6 +2,7 @@ package dev.hendrikhoemberg.webtesthelper.crawler;
 
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
+import com.microsoft.playwright.Frame;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.PlaywrightException;
 import com.microsoft.playwright.Request;
@@ -16,6 +17,7 @@ import dev.hendrikhoemberg.webtesthelper.model.AlternateRef;
 import dev.hendrikhoemberg.webtesthelper.model.SubresourceKind;
 import dev.hendrikhoemberg.webtesthelper.model.SubresourceRef;
 import dev.hendrikhoemberg.webtesthelper.model.FrameRef;
+import dev.hendrikhoemberg.webtesthelper.model.MapPaintState;
 import dev.hendrikhoemberg.webtesthelper.model.ImageOrigin;
 import dev.hendrikhoemberg.webtesthelper.model.ImageRef;
 import dev.hendrikhoemberg.webtesthelper.model.LinkRef;
@@ -62,6 +64,33 @@ import java.util.concurrent.TimeUnit;
 public class PageNavigator {
 
     private static final String EXTRACT_JS;
+
+    /**
+     * The same canvas-paint probe extract.js applies to same-origin frames, evaluated in a
+     * cross-origin frame's own context via CDP. The parent page's script cannot read such a frame;
+     * Playwright drives the frame directly, so the payload is read (spec 7.1's Maps case).
+     */
+    private static final String MAP_PAINT_JS = """
+            () => {
+              const canvases = [...document.querySelectorAll('canvas')]
+                .filter(c => (c.width || 0) > 0 && (c.height || 0) > 0);
+              if (canvases.length === 0) return 'UNKNOWN';
+              let read = false;
+              for (const canvas of canvases) {
+                let data = null;
+                try {
+                  const ctx = canvas.getContext('2d');
+                  data = ctx ? ctx.getImageData(0, 0, canvas.width, canvas.height).data : null;
+                } catch (e) { data = null; }
+                if (!data) continue;
+                read = true;
+                for (let i = 0; i < data.length; i += 4) {
+                  if (data[i + 3] !== 0) return 'PAINTED';
+                }
+              }
+              return read ? 'NOT_PAINTED' : 'UNKNOWN';
+            }
+            """;
 
     static {
         try {
@@ -126,6 +155,7 @@ public class PageNavigator {
 
             NormalizedUrl pageUrl = UrlNormalizer.normalize(page.url()).orElse(requested);
             Extracted extracted = map(page.evaluate(EXTRACT_JS), site);
+            List<FrameRef> frames = refetchCrossOriginMapsPaint(extracted.frames(), page);
             String screenshotPath = screenshot(page, requested, runArtifactDir);
 
             Map<String, String> headers = new HashMap<>();
@@ -152,7 +182,7 @@ public class PageNavigator {
                     response == null ? 0 : response.status(), headers, redirectChain, loadMillis,
                     extracted.title(), extracted.lang(), extracted.text(),
                     SimHash.of(extracted.text()), extracted.links(), extracted.images(),
-                    extracted.media(), extracted.frames(), extracted.alternates(),
+                    extracted.media(), frames, extracted.alternates(),
                     extracted.subresources(), extracted.forms(),
                     List.copyOf(console), List.copyOf(failed), screenshotPath);
         } catch (PlaywrightException e) {
@@ -212,7 +242,8 @@ public class PageNavigator {
             Map<String, Object> frame = cast(item);
             UrlNormalizer.normalize(asString(frame.get("src"))).ifPresent(src -> frames.add(
                     new FrameRef(src, asString(frame.get("title")), boolOf(frame.get("loaded")),
-                            intOf(frame.get("textLength")), boolOf(frame.get("sameOrigin")))));
+                            intOf(frame.get("textLength")), boolOf(frame.get("sameOrigin")),
+                            paintStateOf(asString(frame.get("paintState"))))));
         }
 
         List<AlternateRef> alternates = new ArrayList<>();
@@ -262,6 +293,62 @@ public class PageNavigator {
             return name;
         } catch (IOException | RuntimeException e) {
             return null;
+        }
+    }
+
+    /**
+     * For frames the parent page's script could not read (cross-origin), drive the frame directly
+     * through its Playwright {@link Frame} and ask its own document whether the map painted. A
+     * frame that cannot be read stays {@link MapPaintState#UNKNOWN} — absence of a signal, never a
+     * finding (spec 7.1's Maps case).
+     */
+    private static List<FrameRef> refetchCrossOriginMapsPaint(List<FrameRef> frames, Page page) {
+        Map<String, MapPaintState> resolved = new HashMap<>();
+        for (FrameRef frame : frames) {
+            if (frame.isMapsEmbed() && !frame.sameOrigin()
+                    && frame.mapPaintState() == MapPaintState.UNKNOWN) {
+                resolved.put(frame.src().value(), MapPaintState.UNKNOWN);
+            }
+        }
+        if (resolved.isEmpty()) {
+            return frames;
+        }
+        for (Frame pwFrame : page.frames()) {
+            if (pwFrame.equals(page.mainFrame())) {
+                continue;
+            }
+            UrlNormalizer.normalize(pwFrame.url()).ifPresent(url -> {
+                if (resolved.containsKey(url.value())) {
+                    resolved.put(url.value(), mapPaint(pwFrame));
+                }
+            });
+        }
+        return frames.stream()
+                .map(frame -> {
+                    MapPaintState state = resolved.get(frame.src().value());
+                    return state == null || state == frame.mapPaintState() ? frame
+                            : frame.withMapPaintState(state);
+                })
+                .toList();
+    }
+
+    private static MapPaintState mapPaint(Frame frame) {
+        try {
+            Object result = frame.evaluate(MAP_PAINT_JS);
+            return result == null ? MapPaintState.UNKNOWN : paintStateOf(result.toString());
+        } catch (PlaywrightException e) {
+            return MapPaintState.UNKNOWN;
+        }
+    }
+
+    private static MapPaintState paintStateOf(String raw) {
+        if (raw == null) {
+            return MapPaintState.UNKNOWN;
+        }
+        try {
+            return MapPaintState.valueOf(raw.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            return MapPaintState.UNKNOWN;
         }
     }
 

@@ -134,6 +134,28 @@ class PageNavigatorTest {
     }
 
     @Test
+    void aGreyMapCanvasIsNotPaintedForSameOriginAndCrossOriginFrames() {
+        // The same-origin path is read by extract.js; the cross-origin (localhost) frame is read
+        // through the CDP session in PageNavigator. Both must land on NOT_PAINTED.
+        PageSnapshot snapshot = capture("karten-grau.html", 1);
+
+        assertThat(snapshot.frames()).hasSize(2);
+        assertThat(snapshot.frames())
+                .extracting(frame -> frame.mapPaintState())
+                .containsExactlyInAnyOrder(MapPaintState.NOT_PAINTED, MapPaintState.NOT_PAINTED);
+    }
+
+    @Test
+    void aHealthyMapCanvasIsPaintedForSameOriginAndCrossOriginFrames() {
+        PageSnapshot snapshot = capture("karten-gesund.html", 1);
+
+        assertThat(snapshot.frames()).hasSize(2);
+        assertThat(snapshot.frames())
+                .extracting(frame -> frame.mapPaintState())
+                .containsExactlyInAnyOrder(MapPaintState.PAINTED, MapPaintState.PAINTED);
+    }
+
+    @Test
     void formFieldsCarryEnoughToClassifyThemLater() {
         PageSnapshot snapshot = capture("kontakt.html", 1);
 

@@ -97,6 +97,21 @@ class FixtureSiteTest {
     }
 
     @Test
+    void theGreyMapRoutePaintsNothingAndTheHealthyOnePaints() throws Exception {
+        String grey = new String(get("maps/embed/v1/place-grau").body(),
+                java.nio.charset.StandardCharsets.UTF_8);
+        // The console scan misses this slot: a sized canvas that stays blank and NO provider error.
+        assertThat(grey).contains("<canvas");
+        assertThat(grey).contains("For development purposes only");
+        assertThat(grey).doesNotContain("ApiNotActivatedMapError");
+
+        String healthy = new String(get("maps/embed/v1/place-gesund").body(),
+                java.nio.charset.StandardCharsets.UTF_8);
+        assertThat(healthy).contains("fillRect");
+        assertThat(healthy).doesNotContain("For development purposes only");
+    }
+
+    @Test
     void unknownPathsAreSoft404sAndOnlyHart404IsAHardOne() throws Exception {
         HttpResponse<byte[]> soft = get("gibt-es-nicht-" + java.util.UUID.randomUUID());
         assertThat(soft.statusCode()).isEqualTo(200);

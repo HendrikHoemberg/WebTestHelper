@@ -85,14 +85,40 @@ async () => {
     };
   });
 
+  // For a frame the parent can read (same-origin), decide whether its map painted. A blank map —
+  // the grey tile the console scan misses — is a canvas of real size whose every pixel stayed
+  // transparent. Only a canvas we actually read counts as proof of blank; an unreadable one is
+  // UNKNOWN, the absence of a signal.
+  const mapPaintOf = (doc) => {
+    const canvases = [...doc.querySelectorAll('canvas')]
+      .filter(c => (c.width || 0) > 0 && (c.height || 0) > 0);
+    if (canvases.length === 0) return 'UNKNOWN';
+    let read = false;
+    for (const canvas of canvases) {
+      let data = null;
+      try {
+        const ctx = canvas.getContext('2d');
+        data = ctx ? ctx.getImageData(0, 0, canvas.width, canvas.height).data : null;
+      } catch (e) { data = null; }
+      if (!data) continue;
+      read = true;
+      for (let i = 0; i < data.length; i += 4) {
+        if (data[i + 3] !== 0) return 'PAINTED';
+      }
+    }
+    return read ? 'NOT_PAINTED' : 'UNKNOWN';
+  };
+
   const frames = [...document.querySelectorAll('iframe')].map(frame => {
     let sameOrigin = false;
     let textLength = 0;
+    let paintState = 'UNKNOWN';
     try {
       const doc = frame.contentDocument;
       if (doc) {
         sameOrigin = true;
         textLength = ((doc.body && doc.body.innerText) || '').trim().length;
+        paintState = mapPaintOf(doc);
       }
     } catch (e) { /* cross-origin: not an error, just opaque */ }
     return {
@@ -100,7 +126,8 @@ async () => {
       title: frame.getAttribute('title') || '',
       loaded: !!frame.contentWindow,
       sameOrigin,
-      textLength
+      textLength,
+      paintState
     };
   }).filter(frame => frame.src);
 
