@@ -49,7 +49,11 @@ class SitemapConsistencyCheckTest {
     }
 
     private static CheckConfig config(RunFacts facts) {
-        return new CheckConfig(Severity.WARN, Map.of(), facts);
+        return config(facts, Map.of());
+    }
+
+    private static CheckConfig config(RunFacts facts, Map<String, Object> options) {
+        return new CheckConfig(Severity.WARN, options, facts);
     }
 
     @Test
@@ -134,6 +138,48 @@ class SitemapConsistencyCheckTest {
 
         assertThat(check.evaluate(snapshots(page), site(),
                 config(facts(List.of("https://example.com/a/")))))
+                .isEmpty();
+    }
+
+    @Test
+    void anIgnorePatternSilencesADeadEntryWhoseUrlMatchesIt() {
+        PageSnapshot target = Snapshots.page("https://example.com/b").status(500).build();
+
+        assertThat(check.evaluate(snapshots(target), site(),
+                config(facts(List.of("https://example.com/b")),
+                        Map.of("ignorePatterns", List.of("example.com/b")))))
+                .isEmpty();
+    }
+
+    @Test
+    void anIgnorePatternSilencesAMissingPageWhoseUrlMatchesIt() {
+        PageSnapshot page = Snapshots.page("https://example.com/a").build();
+
+        assertThat(check.evaluate(snapshots(page), site(),
+                config(facts(List.of("https://example.com/other")),
+                        Map.of("ignorePatterns", List.of("example.com/a")))))
+                .isEmpty();
+    }
+
+    @Test
+    void anIgnorePatternDoesNotSilenceEntriesWhoseUrlDoesNotMatchIt() {
+        PageSnapshot target = Snapshots.page("https://example.com/b").status(500).build();
+
+        assertThat(check.evaluate(snapshots(target), site(),
+                config(facts(List.of("https://example.com/b")),
+                        Map.of("ignorePatterns", List.of("example.com/other")))))
+                .singleElement()
+                .satisfies(finding -> assertThat(finding.messageKey())
+                        .isEqualTo("finding.SITEMAP_CONSISTENCY.deadEntry"));
+    }
+
+    @Test
+    void ignorePatternMatchingIsCaseInsensitiveLikeConsoleErrors() {
+        PageSnapshot page = Snapshots.page("https://example.com/a").build();
+
+        assertThat(check.evaluate(snapshots(page), site(),
+                config(facts(List.of("https://example.com/other")),
+                        Map.of("ignorePatterns", List.of("EXAMPLE.COM/A")))))
                 .isEmpty();
     }
 }

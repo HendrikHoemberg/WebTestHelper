@@ -14,6 +14,7 @@ import dev.hendrikhoemberg.webtesthelper.model.UrlStatus;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -56,7 +57,7 @@ public final class SitemapConsistencyCheck implements SiteCheck {
         Map<String, PageSnapshot> crawled = snapshots.byUrlIndex();
         List<CheckFinding> findings = new ArrayList<>();
         for (NormalizedUrl entry : sitemap.values()) {
-            if (isDeadEntry(entry, crawled, config)) {
+            if (!isIgnored(entry.value(), config) && isDeadEntry(entry, crawled, config)) {
                 findings.add(new CheckFinding(type(), config.severity(), entry.value(), null,
                         DEAD_ENTRY, List.of(entry.value()), Evidence.NONE));
             }
@@ -65,12 +66,24 @@ public final class SitemapConsistencyCheck implements SiteCheck {
             if (isBroken(page, config)) {
                 continue;
             }
-            if (!sitemap.containsKey(page.url().value())) {
+            if (!sitemap.containsKey(page.url().value())
+                    && !isIgnored(page.url().value(), config)) {
                 findings.add(new CheckFinding(type(), config.severity(), page.url().value(),
                         page.url(), MISSING_PAGE, List.of(page.url().value()), Evidence.NONE));
             }
         }
         return findings;
+    }
+
+    /**
+     * A known-benign URL is filtered by the site's ignore list, matched the same way {@code
+     * CONSOLE_ERRORS} does (deviation D16): a case-insensitive substring against the URL.
+     */
+    private static boolean isIgnored(String url, CheckConfig config) {
+        String lower = url.toLowerCase(Locale.ROOT);
+        return config.optionList("ignorePatterns").stream()
+                .map(pattern -> pattern.toLowerCase(Locale.ROOT))
+                .anyMatch(lower::contains);
     }
 
     private boolean isDeadEntry(NormalizedUrl entry, Map<String, PageSnapshot> crawled,
