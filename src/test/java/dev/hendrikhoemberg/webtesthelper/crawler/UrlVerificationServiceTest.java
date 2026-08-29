@@ -85,12 +85,44 @@ class UrlVerificationServiceTest extends AbstractPostgresTest {
 
         assertThat(result2.of(externalNorm)).isPresent();
         assertThat(site.requestCount("/extern/ok")).isEqualTo(1);
+    }
 
-        List<Long> ids = jdbc.queryForList(
-                "SELECT jsonb_array_elements_text(dependent_site_ids)::bigint "
-                        + "FROM external_url_check WHERE url = ?",
-                Long.class, externalNorm.value());
-        assertThat(ids).containsExactlyInAnyOrder(1L, 2L);
+    @Test
+    void aUrlCachedDeadWithinTheFailureTtlIsServedToAnotherSiteWithoutAFetch() {
+        SiteContext ctx = siteContext(1L, site.baseUrl());
+        String externalUrl = site.externalBase() + "extern/ok";
+        NormalizedUrl externalNorm = UrlNormalizer.normalize(externalUrl).orElseThrow();
+        Instant now = Instant.now();
+        jdbc.update("INSERT INTO external_url_check "
+                + "(url, status, http_status, content_type, content_length, body_prefix, "
+                + "failure_text, checked_at) "
+                + "VALUES (?, 'DEAD', 404, NULL, 0, NULL, 'Not found', ?::timestamptz)",
+                externalNorm.value(), now.minus(30, ChronoUnit.MINUTES).toString());
+
+        UrlVerifications result = service.verify(ctx, snapshots(ctx), List.of(externalUrl));
+
+        assertThat(result.of(externalNorm)).isPresent();
+        assertThat(result.of(externalNorm).get().status()).isEqualTo(UrlStatus.DEAD);
+        assertThat(site.requestCount("/extern/ok")).isZero();
+    }
+
+    @Test
+    void aUrlCachedDeadButOutsideTheFailureTtlIsFetchedAgain() {
+        SiteContext ctx = siteContext(1L, site.baseUrl());
+        String externalUrl = site.externalBase() + "extern/ok";
+        NormalizedUrl externalNorm = UrlNormalizer.normalize(externalUrl).orElseThrow();
+        Instant now = Instant.now();
+        jdbc.update("INSERT INTO external_url_check "
+                + "(url, status, http_status, content_type, content_length, body_prefix, "
+                + "failure_text, checked_at) "
+                + "VALUES (?, 'DEAD', 404, NULL, 0, NULL, 'Not found', ?::timestamptz)",
+                externalNorm.value(), now.minus(2, ChronoUnit.HOURS).toString());
+
+        UrlVerifications result = service.verify(ctx, snapshots(ctx), List.of(externalUrl));
+
+        assertThat(result.of(externalNorm)).isPresent();
+        assertThat(result.of(externalNorm).get().status()).isEqualTo(UrlStatus.OK);
+        assertThat(site.requestCount("/extern/ok")).isEqualTo(1);
     }
 
     @Test
@@ -148,8 +180,8 @@ class UrlVerificationServiceTest extends AbstractPostgresTest {
 
         jdbc.update("INSERT INTO external_url_check "
                 + "(url, status, http_status, content_type, content_length, body_prefix, "
-                + "failure_text, checked_at, dependent_site_ids) "
-                + "VALUES (?, 'OK', 200, 'application/pdf', 1024, NULL, NULL, ?::timestamptz, '[]'::jsonb)",
+                + "failure_text, checked_at) "
+                + "VALUES (?, 'OK', 200, 'application/pdf', 1024, NULL, NULL, ?::timestamptz)",
                 pdfNorm.value(), now.toString());
 
         UrlVerifications result = service.verify(ctx, snapshots(ctx), List.of(pdfUrl));

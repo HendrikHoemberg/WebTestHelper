@@ -103,7 +103,6 @@ public class UrlVerificationService {
 
     /**
      * Fills {@code results} from the shared cache and returns how many entries came from it.
-     * A hit is re-stored so this site joins the row's {@code dependent_site_ids} (spec 8.1).
      */
     private int takeFromCache(List<NormalizedUrl> external, Map<String, UrlVerification> results,
             long siteId, Instant now) {

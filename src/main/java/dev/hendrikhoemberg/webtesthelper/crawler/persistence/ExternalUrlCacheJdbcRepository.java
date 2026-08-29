@@ -44,17 +44,13 @@ public class ExternalUrlCacheJdbcRepository {
 
     private static final String UPSERT_SQL = """
             INSERT INTO external_url_check (url, status, http_status, content_type, content_length,
-                                            body_prefix, failure_text, checked_at, dependent_site_ids)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb)
+                                            body_prefix, failure_text, checked_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT (url) DO UPDATE SET
                 status = excluded.status, http_status = excluded.http_status,
                 content_type = excluded.content_type, content_length = excluded.content_length,
                 body_prefix = coalesce(excluded.body_prefix, external_url_check.body_prefix),
-                failure_text = excluded.failure_text, checked_at = excluded.checked_at,
-                dependent_site_ids = (SELECT coalesce(jsonb_agg(DISTINCT value), '[]'::jsonb)
-                                        FROM jsonb_array_elements(
-                                             external_url_check.dependent_site_ids
-                                             || excluded.dependent_site_ids) AS value)
+                failure_text = excluded.failure_text, checked_at = excluded.checked_at
             """;
 
     private final JdbcTemplate jdbc;
@@ -81,7 +77,6 @@ public class ExternalUrlCacheJdbcRepository {
         if (results.isEmpty()) {
             return;
         }
-        String siteIdJson = "[%d]".formatted(siteId);
         List<UrlVerification> list = List.copyOf(results);
         jdbc.batchUpdate(UPSERT_SQL, new BatchPreparedStatementSetter() {
             @Override
@@ -95,7 +90,6 @@ public class ExternalUrlCacheJdbcRepository {
                 ps.setString(6, r.bodyPrefix());
                 ps.setString(7, r.failureText());
                 ps.setTimestamp(8, Timestamp.from(r.checkedAt().truncatedTo(ChronoUnit.MICROS)));
-                ps.setString(9, siteIdJson);
             }
 
             @Override

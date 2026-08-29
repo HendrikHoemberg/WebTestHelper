@@ -85,36 +85,6 @@ class ExternalUrlCacheJdbcRepositoryTest extends AbstractPostgresTest {
     }
 
     @Test
-    void storeForSite1ThenSite2LeavesBothIdsInDependentSiteIds() {
-        Instant now = Instant.now();
-        UrlVerification v = new UrlVerification("https://example.com/shared",
-                UrlStatus.OK, 200, null, 0, null, null, now);
-
-        cache.store(List.of(v), 1L);
-        cache.store(List.of(v), 2L);
-
-        List<Long> ids = jdbc.queryForList(
-                "SELECT jsonb_array_elements_text(dependent_site_ids)::bigint FROM external_url_check WHERE url = ?",
-                Long.class, "https://example.com/shared");
-        assertThat(ids).containsExactlyInAnyOrder(1L, 2L);
-    }
-
-    @Test
-    void storeForSameSiteTwiceAddsNoDuplicateDependentSiteId() {
-        Instant now = Instant.now();
-        UrlVerification v = new UrlVerification("https://example.com/dup",
-                UrlStatus.OK, 200, null, 0, null, null, now);
-
-        cache.store(List.of(v), 1L);
-        cache.store(List.of(v), 1L);
-
-        List<Long> ids = jdbc.queryForList(
-                "SELECT jsonb_array_elements_text(dependent_site_ids)::bigint FROM external_url_check WHERE url = ?",
-                Long.class, "https://example.com/dup");
-        assertThat(ids).containsExactly(1L);
-    }
-
-    @Test
     void storingSameUrlTwiceOverwritesStatusAndCheckedAt() {
         Instant t1 = Instant.now().minus(1, ChronoUnit.HOURS).truncatedTo(ChronoUnit.MICROS);
         Instant t2 = Instant.now().truncatedTo(ChronoUnit.MICROS);
