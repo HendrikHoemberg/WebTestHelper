@@ -55,6 +55,11 @@ public class SiteController {
         if (bindingResult.hasErrors()) {
             return "websites/formular";
         }
+        if (siteService.baseUrlTaken(form.baseUrl())) {
+            bindingResult.rejectValue("baseUrl", "ui.websites.formular.fehler.baseUrl.vergeben",
+                    "Eine Website mit dieser Adresse ist bereits angelegt.");
+            return "websites/formular";
+        }
         long id = siteService.create(form.toForm());
         // Spec 9: "Defaults are applied when a site is created." The dispatcher's D38 backfill
         // stays as the net for a site that arrives by any other route, but it cannot be the only
@@ -92,6 +97,12 @@ public class SiteController {
                          BindingResult bindingResult,
                          Model model) {
         if (bindingResult.hasErrors()) {
+            model.addAttribute("siteId", id);
+            return "websites/formular";
+        }
+        if (siteService.baseUrlTaken(form.baseUrl(), id)) {
+            bindingResult.rejectValue("baseUrl", "ui.websites.formular.fehler.baseUrl.vergeben",
+                    "Eine Website mit dieser Adresse ist bereits angelegt.");
             model.addAttribute("siteId", id);
             return "websites/formular";
         }

@@ -117,8 +117,7 @@ class SiteControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void postWebsitesWithBlankNameReRendersFormWithErrorsAndDoesNotCallService() throws Exception {
-        mvc.perform(post("/websites")
+    void postWebsitesWithBlankNameReRendersFormWithErrorsAndDoesNotCallService() throws Exception {        mvc.perform(post("/websites")
                         .with(csrf())
                         .param("name", "")
                         .param("baseUrl", "https://example.com/")
@@ -130,6 +129,23 @@ class SiteControllerTest {
                 .andExpect(model().attributeHasFieldErrors("form", "name"));
 
         verifyNoInteractions(siteService);
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void createWithDuplicatedBaseUrlRerendersFormWithFieldError() throws Exception {
+        when(siteService.baseUrlTaken("http://localhost:8090")).thenReturn(true);
+
+        mvc.perform(post("/websites")
+                        .param("name", "Fixture")
+                        .param("baseUrl", "http://localhost:8090")
+                        .param("maxPages", "200")
+                        .param("maxDepth", "10")
+                        .param("maxDurationMinutes", "30")
+                        .with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(view().name("websites/formular"))
+                .andExpect(model().attributeHasFieldErrors("form", "baseUrl"));
     }
 
     @Test

@@ -68,6 +68,22 @@ class SiteServiceTest extends AbstractPostgresTest {
     }
 
     @Test
+    void baseUrlTakenIsTrueForAnExistingNormalisedUrl() {
+        long id = sites.create(form());
+
+        assertThat(sites.baseUrlTaken("https://www.kunde-mueller.de")).isTrue();
+        assertThat(sites.baseUrlTaken("https://www.kunde-mueller.de/")).isTrue();
+    }
+
+    @Test
+    void baseUrlTakenIgnoresTheSiteItself() {
+        long id = sites.create(form());
+
+        assertThat(sites.baseUrlTaken("https://www.kunde-mueller.de/", id)).isFalse();
+        assertThat(sites.baseUrlTaken("https://www.kunde-mueller.de/", id + 1)).isTrue();
+    }
+
+    @Test
     void siteCreatedWithExplicitFormTestModeIsExposedInContext() {
         SiteForm custom = new SiteForm("Kunde Mail", "https://www.kunde-mail.de/", 300, 5,
                 Duration.ofMinutes(30), List.of(), List.of(), true, null, true, List.of(),

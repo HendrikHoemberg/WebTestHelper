@@ -77,6 +77,24 @@ public class SiteService {
         sites.deleteById(id);
     }
 
+    /**
+     * Whether a normalised base URL is already used by any site. Null/blank URLs (which the
+     * form-level {@code @Pattern} will reject anyway) are not "taken" here.
+     */
+    public boolean baseUrlTaken(String baseUrl) {
+        return baseUrlTaken(baseUrl, 0L);
+    }
+
+    public boolean baseUrlTaken(String baseUrl, long excludeSiteId) {
+        NormalizedUrl normalized = UrlNormalizer.normalize(baseUrl).orElse(null);
+        if (normalized == null) {
+            return false;
+        }
+        return sites.findByBaseUrl(normalized.value())
+                .map(site -> site.getId() != excludeSiteId)
+                .orElse(false);
+    }
+
     public SiteContext contextFor(long siteId) {
         SiteEntity site = requireSite(siteId);
         Map<CheckType, SiteCheckSettingEntity> persisted = new EnumMap<>(CheckType.class);
