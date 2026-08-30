@@ -91,6 +91,36 @@ class PageNavigatorTest {
     }
 
     @Test
+    void aLazyImageBelowTheFoldIsNotBroken() {
+        PageSnapshot snapshot = capture("faul.html", 1);
+
+        // The above-fold logo must be decoded.
+        assertThat(snapshot.images())
+                .filteredOn(image -> image.rawSource().equals("/assets/logo.png")
+                        && image.origin() == ImageOrigin.IMG)
+                .anySatisfy(image -> assertThat(image.state()).isEqualTo(ImageState.DECODED));
+
+        // The lazy image below 2000px of spacer: never triggered by viewport.
+        // The probe's new Image() loads the same URL (/assets/lazy-ok.png) independently
+        // of lazy loading, so it should resolve as DECODED (local 1×1 PNG, instant).
+        // The key assertion: NOT BROKEN.
+        assertThat(snapshot.images())
+                .filteredOn(image -> image.rawSource().equals("/assets/lazy-ok.png"))
+                .allSatisfy(image ->
+                        assertThat(image.state()).isNotEqualTo(ImageState.BROKEN));
+    }
+
+    @Test
+    void aSlowImageThatTimesOutIsUnknownNotBroken() {
+        PageSnapshot snapshot = capture("langsam-bild.html", 1);
+
+        assertThat(snapshot.images())
+                .filteredOn(image -> image.rawSource().equals("/assets/verspaetet.png"))
+                .singleElement()
+                .satisfies(image -> assertThat(image.state()).isEqualTo(ImageState.UNKNOWN));
+    }
+
+    @Test
     void srcsetCandidatesAndCssBackgroundsAreExtractedAndMeasured() {
         PageSnapshot snapshot = capture("leistungen.html", 1);
 

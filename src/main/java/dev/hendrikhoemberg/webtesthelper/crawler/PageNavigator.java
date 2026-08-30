@@ -20,6 +20,7 @@ import dev.hendrikhoemberg.webtesthelper.model.FrameRef;
 import dev.hendrikhoemberg.webtesthelper.model.MapPaintState;
 import dev.hendrikhoemberg.webtesthelper.model.ImageOrigin;
 import dev.hendrikhoemberg.webtesthelper.model.ImageRef;
+import dev.hendrikhoemberg.webtesthelper.model.ImageState;
 import dev.hendrikhoemberg.webtesthelper.model.LinkRef;
 import dev.hendrikhoemberg.webtesthelper.model.MediaKind;
 import dev.hendrikhoemberg.webtesthelper.model.MediaRef;
@@ -219,7 +220,8 @@ public class PageNavigator {
                 if (seen.add(key)) {
                     images.add(new ImageRef(asString(image.get("raw")), target,
                             asString(image.get("alt")), intOf(image.get("w")), intOf(image.get("h")),
-                            ImageOrigin.valueOf(origin)));
+                            ImageOrigin.valueOf(origin),
+                            ImageState.parse(asString(image.get("state")))));
                 }
             });
         }

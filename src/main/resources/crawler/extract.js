@@ -22,10 +22,12 @@ async () => {
     if (measured.has(url)) return measured.get(url);
     const pending = new Promise(resolve => {
       const probe = new Image();
-      probe.onload = () => resolve([probe.naturalWidth, probe.naturalHeight]);
-      probe.onerror = () => resolve([0, 0]);
+      probe.onload = () => resolve({
+        state: 'decoded', w: probe.naturalWidth, h: probe.naturalHeight
+      });
+      probe.onerror = () => resolve({ state: 'broken', w: 0, h: 0 });
       probe.src = url;
-      setTimeout(() => resolve([0, 0]), 5000);
+      setTimeout(() => resolve({ state: 'unknown', w: 0, h: 0 }), 5000);
     });
     measured.set(url, pending);
     return pending;
@@ -54,11 +56,27 @@ async () => {
       }
     }
   }
+  // IMG entries the page already decoded get their state from dimensions. Lazy or
+  // still-loading images (naturalWidth == 0) are re-probed via measure().
+  for (const image of images) {
+    if (image.origin === 'IMG') {
+      if (image.w > 0 && image.h > 0) {
+        image.state = 'decoded';
+      } else {
+        image.w = -1; image.h = -1;  // sentinel: enters the probe batch below
+      }
+    }
+  }
   await Promise.all(images.filter(i => i.w < 0 && i.abs).map(async image => {
-    const [width, height] = await measure(image.abs);
-    image.w = width;
-    image.h = height;
+    const result = await measure(image.abs);
+    image.w = result.w;
+    image.h = result.h;
+    image.state = result.state;
   }));
+  // Guarantee every image carries a state.
+  for (const image of images) {
+    if (!image.state) image.state = 'unknown';
+  }
 
   // Media: readyState >= 1 and duration > 0 are the assertions (spec 7.1), so metadata has to
   // have been given a chance to load before they are read.

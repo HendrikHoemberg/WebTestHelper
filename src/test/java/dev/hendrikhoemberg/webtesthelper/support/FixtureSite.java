@@ -207,6 +207,11 @@ public final class FixtureSite implements AutoCloseable {
                         """);
                 case "/kontakt/schweigt" -> serveStaticOrSoft404(exchange, "/interaktiv/formular-ohne-erfolg.html");
                 case "/assets/logo.png" -> send(exchange, 200, "image/png", PNG_1X1);
+                case "/assets/lazy-ok.png" -> send(exchange, 200, "image/png", PNG_1X1);
+                case "/assets/verspaetet.png" -> {
+                    sleep(6000);  // longer than measure()'s 5s timeout
+                    send(exchange, 200, "image/png", PNG_1X1);
+                }
                 case "/assets/fehlt.png" -> send(exchange, 404, "text/plain", "nicht gefunden".getBytes(StandardCharsets.UTF_8));
                 case "/assets/stil.css" -> send(exchange, 200, "text/css",
                         "body { font-family: sans-serif; }".getBytes(StandardCharsets.UTF_8));
