@@ -85,7 +85,7 @@ class LoginFlowBrowserAcceptanceTest extends AbstractPostgresTest {
         // Protected URL first: the anonymous redirect creates the session Spring Security will
         // pollute with the favicon's saved /error request below.
         page.navigate(base() + "/");
-        assertThat(page.locator(".anmelden-karte").count()).isEqualTo(1);
+        assertThat(page.locator(".anmelde-karte").count()).isEqualTo(1);
         // A real browser asks for the favicon in this same session; the headless shell sometimes
         // skips it, so request it explicitly to make the loop deterministic.
         page.request().get(base() + "/favicon.ico");
