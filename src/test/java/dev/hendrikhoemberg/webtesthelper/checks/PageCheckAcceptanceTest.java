@@ -207,6 +207,43 @@ class PageCheckAcceptanceTest extends AbstractPostgresTest {
     }
 
     @Test
+    void aLazyImageBelowTheFoldIsNotReportedAsBroken() {
+        // /faul.html has a loading="lazy" image below a 2000px spacer and the file exists —
+        // IMAGE_BROKEN must stay silent on this page, without hiding a genuinely broken file.
+        assertThat(result.snapshots().snapshots())
+                .filteredOn(snapshot -> snapshot.url().path().equals("/faul.html"))
+                .isNotEmpty();
+        assertThat(of(CheckType.IMAGE_BROKEN))
+                .filteredOn(f -> f.observedOn().path().equals("/faul.html"))
+                .isEmpty();
+    }
+
+    @Test
+    void aHeadLyingExternalLinkIsNotReportedAsDead() {
+        // /extern/head-taeuscht: HEAD 404, GET 200. The crawl must verify it with the GET
+        // fallback (exactly two fixture requests) and report nothing as DEAD_LINK.
+        assertThat(site.requestCount("/extern/head-taeuscht")).isEqualTo(2);
+        assertThat(of(CheckType.DEAD_LINK))
+                .extracting(CheckFinding::subjectKey)
+                .noneMatch(s -> s.contains("extern/head-taeuscht"));
+    }
+
+    @Test
+    void aCloakWrapperDoesNotProduceADeadLinkOrPageStatus() {
+        // /mantel.html has a cloak wrapper. The outer anchor's resolved URL must not appear
+        // as a DEAD_LINK or PAGE_STATUS finding.
+        assertThat(result.snapshots().snapshots())
+                .filteredOn(snapshot -> snapshot.url().path().equals("/mantel.html"))
+                .isNotEmpty();
+        assertThat(of(CheckType.DEAD_LINK))
+                .extracting(CheckFinding::subjectKey)
+                .noneMatch(s -> s.contains("kontakt@example.com"));
+        assertThat(of(CheckType.PAGE_STATUS))
+                .filteredOn(f -> f.observedOn().path().contains("kontakt@example.com"))
+                .isEmpty();
+    }
+
+    @Test
     void theCheckThatShipsDisabledReportsNothingEvenThoughItHadSomethingToSay() {
         // Spec 7.1: enabled by default this would make the first report mostly noise. The
         // fixture does log console errors, so this asserts the switch, not an empty console.
