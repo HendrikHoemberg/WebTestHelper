@@ -9,6 +9,7 @@ import dev.hendrikhoemberg.webtesthelper.model.AlternateRef;
 import dev.hendrikhoemberg.webtesthelper.model.FrameRef;
 import dev.hendrikhoemberg.webtesthelper.model.ImageOrigin;
 import dev.hendrikhoemberg.webtesthelper.model.ImageRef;
+import dev.hendrikhoemberg.webtesthelper.model.ImageState;
 import dev.hendrikhoemberg.webtesthelper.model.LinkRef;
 import dev.hendrikhoemberg.webtesthelper.model.MapPaintState;
 import dev.hendrikhoemberg.webtesthelper.model.MediaKind;
@@ -144,6 +145,13 @@ public final class Snapshots {
         public Builder image(String src, int naturalWidth, int naturalHeight, ImageOrigin origin) {
             images.add(new ImageRef(src, Snapshots.url(src), "Alt-Text", naturalWidth,
                     naturalHeight, origin));
+            return this;
+        }
+
+        public Builder image(String src, int naturalWidth, int naturalHeight, ImageOrigin origin,
+                ImageState state) {
+            images.add(new ImageRef(src, Snapshots.url(src), "Alt-Text", naturalWidth,
+                    naturalHeight, origin, state));
             return this;
         }
 

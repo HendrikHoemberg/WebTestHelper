@@ -3,6 +3,7 @@ package dev.hendrikhoemberg.webtesthelper.checks;
 import dev.hendrikhoemberg.webtesthelper.model.CheckFinding;
 import dev.hendrikhoemberg.webtesthelper.model.ImageOrigin;
 import dev.hendrikhoemberg.webtesthelper.model.ImageRef;
+import dev.hendrikhoemberg.webtesthelper.model.ImageState;
 import dev.hendrikhoemberg.webtesthelper.support.Snapshots;
 import org.junit.jupiter.api.Test;
 
@@ -66,6 +67,32 @@ class ImageBrokenCheckTest {
                 Snapshots.config(check, Snapshots.facts())))
                 .singleElement()
                 .satisfies(finding -> assertThat(finding.subjectKey())
+                        .isEqualTo("https://example.com/kaputt.png"));
+    }
+
+    @Test
+    void anUnknownImageIsNotReportedBecauseItMayBeHealthy() {
+        // A lazy image or a slow CDN that timed out before the probe completed is not
+        // confirmed broken — reporting it would be a false positive (same philosophy as
+        // UNVERIFIABLE ≠ DEAD for links).
+        assertThat(check.evaluate(
+                Snapshots.page("https://example.com/")
+                        .image("https://example.com/langsam.png", 0, 0, ImageOrigin.IMG,
+                                ImageState.UNKNOWN)
+                        .build(),
+                Snapshots.config(check, Snapshots.facts()))).isEmpty();
+    }
+
+    @Test
+    void aBrokenImageWithExplicitStateIsStillReported() {
+        assertThat(check.evaluate(
+                Snapshots.page("https://example.com/")
+                        .image("https://example.com/kaputt.png", 0, 0, ImageOrigin.IMG,
+                                ImageState.BROKEN)
+                        .build(),
+                Snapshots.config(check, Snapshots.facts())))
+                .singleElement()
+                .satisfies(f -> assertThat(f.subjectKey())
                         .isEqualTo("https://example.com/kaputt.png"));
     }
 

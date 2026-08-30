@@ -4,6 +4,7 @@ import dev.hendrikhoemberg.webtesthelper.model.CheckFinding;
 import dev.hendrikhoemberg.webtesthelper.model.CheckType;
 import dev.hendrikhoemberg.webtesthelper.model.Evidence;
 import dev.hendrikhoemberg.webtesthelper.model.ImageRef;
+import dev.hendrikhoemberg.webtesthelper.model.ImageState;
 import dev.hendrikhoemberg.webtesthelper.model.NormalizedUrl;
 import dev.hendrikhoemberg.webtesthelper.model.PageSnapshot;
 import dev.hendrikhoemberg.webtesthelper.model.Severity;
@@ -56,7 +57,8 @@ public final class ImageBrokenCheck implements PageCheck {
                 continue;
             }
             String subject = target.value();
-            if (image.rendered() || !reported.add(subject)) {
+            if (image.state() == ImageState.UNKNOWN || image.rendered()
+                    || !reported.add(subject)) {
                 continue;
             }
             findings.add(new CheckFinding(type(), config.severity(), subject, snapshot.url(),
