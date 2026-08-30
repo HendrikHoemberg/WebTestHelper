@@ -38,7 +38,7 @@
             <div class="form-gruppe">
                 <label for="redirectAllMailTo" th:text="#{ui.einstellungen.redirectAllMailTo}">Alle E-Mails umleiten an (optional)</label>
                 <input type="text" id="redirectAllMailTo" th:field="*{redirectAllMailTo}" placeholder="staging-catchall@example.com">
-                <p class="hinweis-text" th:text="#{ui.einstellungen.redirectAllMailTo.hinweis}">Wenn hier eine Adresse hinterlegt ist, werden alle Benachrichtigungen ausschliesslich an diese Adresse gesendet statt an die eigentlichen Empfänger.</p>
+                <p class="hinweis-text" th:text="#{ui.einstellungen.redirectAllMailTo.hinweis}">Wenn hier eine Adresse hinterlegt ist, werden alle Benachrichtigungen ausschließlich an diese Adresse gesendet statt an die eigentlichen Empfänger.</p>
                 <span th:if="${#fields.hasErrors('redirectAllMailTo')}" th:errors="*{redirectAllMailTo}" class="feld-fehler">Fehler</span>
             </div>
 

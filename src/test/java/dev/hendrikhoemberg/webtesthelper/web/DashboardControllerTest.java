@@ -111,6 +111,16 @@ class DashboardControllerTest {
 
     @Test
     @WithMockUser(roles = "USER")
+    void dashboardShowsCapacityLineWithoutJargon() throws Exception {
+        when(dashboardService.overview()).thenReturn(sampleView());
+
+        mvc.perform(get("/"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("Planungs-Threads"))));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
     void grauTileRendersNeitherCountsNorNextRun() throws Exception {
         when(dashboardService.overview()).thenReturn(new DashboardView(
                 List.of(new SiteTile(3L, "Gamma", "https://gamma.example.com/", false, TrafficLight.GRAU,

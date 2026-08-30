@@ -133,7 +133,7 @@ class SettingsControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(view().name("einstellungen/index"))
                 .andExpect(content().string(containsString("staging-catchall@example.com")))
-                .andExpect(content().string(containsString("ausschliesslich an diese Adresse")));
+                .andExpect(content().string(containsString("ausschließlich an diese Adresse")));
     }
 
     @Test
