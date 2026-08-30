@@ -9,6 +9,7 @@ import dev.hendrikhoemberg.webtesthelper.runner.ProbeState;
 import dev.hendrikhoemberg.webtesthelper.runner.ProbeStatus;
 import dev.hendrikhoemberg.webtesthelper.runner.SetupProbeService;
 import dev.hendrikhoemberg.webtesthelper.runner.SetupProposal;
+import dev.hendrikhoemberg.webtesthelper.runner.SetupProposals;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -226,6 +227,29 @@ class SetupControllerTest {
 
         verify(setupProbeService).clear(SITE_ID);
         verify(setupProbeService).start(SITE_ID);
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void standWithNoSignalsRendersNoRawPlaceholders() throws Exception {
+        ProbeEvidence evidence = new ProbeEvidence(true, null,
+                List.of("https://acme.example.com/"),
+                List.of(), List.of(), List.of(), Set.of(), List.of(), false, false);
+        SetupProposal proposal = new SetupProposal(evidence, SetupProposals.of(evidence));
+        when(setupProbeService.stateOf(SITE_ID))
+                .thenReturn(Optional.of(new ProbeState(ProbeStatus.FERTIG, Instant.now(), proposal, null)));
+
+        MvcResult result = mvc.perform(get("/websites/" + SITE_ID + "/einrichtung/stand"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("fragments/einrichtungsstand :: stand"))
+                .andReturn();
+
+        String body = result.getResponse().getContentAsString();
+        assertThat(body).doesNotContain("{0}");
+        assertThat(body).contains("Kein Kontaktformular auf den geprüften Seiten gefunden");
+        assertThat(body).contains("Kein Video oder Audio auf den geprüften Seiten gefunden");
+        assertThat(body).contains("Keine Karten-Einbettung auf den geprüften Seiten gefunden");
+        assertThat(body).contains("Website wird nicht über HTTPS ausgeliefert");
     }
 
     private static SiteSummary summary() {

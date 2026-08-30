@@ -12,7 +12,7 @@ import java.util.List;
  * sentence explains that; the screen renders the full catalog and the {@code ui.einrichtung.grund.*}
  * reasons verbatim.
  */
-final class SetupProposals {
+public final class SetupProposals {
 
     private static final String REASON_BASIS = "ui.einrichtung.grund.basis";
     private static final String REASON_MEDIA = "ui.einrichtung.grund.media";
@@ -24,52 +24,71 @@ final class SetupProposals {
     private static final String REASON_STANDARD = "ui.einrichtung.grund.standard";
     private static final String REASON_KLICKT = "ui.einrichtung.grund.klickt";
     private static final String REASON_FORMULAR = "ui.einrichtung.grund.formular";
+    private static final String REASON_FORMULAR_KEIN = "ui.einrichtung.grund.formular.kein";
+    private static final String REASON_MEDIA_KEIN = "ui.einrichtung.grund.media.kein";
+    private static final String REASON_MAPS_KEIN = "ui.einrichtung.grund.karte.kein";
+    private static final String REASON_LANGUAGES_KEIN = "ui.einrichtung.grund.sprachen.kein";
+    private static final String REASON_DOCUMENT_KEIN = "ui.einrichtung.grund.dokument.kein";
+    private static final String REASON_SITEMAP_KEIN = "ui.einrichtung.grund.sitemap.kein";
+    private static final String REASON_HTTPS_NICHT = "ui.einrichtung.grund.https.nicht";
+
+    private static final List<String> KEINE_ARGS = List.of();
 
     private SetupProposals() {
     }
 
-    static List<CheckProposal> of(ProbeEvidence evidence) {
+    public static List<CheckProposal> of(ProbeEvidence evidence) {
         List<CheckProposal> checks = new ArrayList<>(CheckType.values().length);
 
-        checks.add(suggested(CheckType.PAGE_STATUS, REASON_BASIS, List.of()));
-        checks.add(suggested(CheckType.PAGE_UNREACHABLE, REASON_BASIS, List.of()));
-        checks.add(suggested(CheckType.DEAD_LINK, REASON_BASIS, List.of()));
-        checks.add(suggested(CheckType.REDIRECT_CHAIN, REASON_BASIS, List.of()));
-        checks.add(suggested(CheckType.IMAGE_BROKEN, REASON_BASIS, List.of()));
-        checks.add(suggested(CheckType.COOKIE_BANNER, REASON_BASIS, List.of()));
+        checks.add(suggested(CheckType.PAGE_STATUS, REASON_BASIS, KEINE_ARGS));
+        checks.add(suggested(CheckType.PAGE_UNREACHABLE, REASON_BASIS, KEINE_ARGS));
+        checks.add(suggested(CheckType.DEAD_LINK, REASON_BASIS, KEINE_ARGS));
+        checks.add(suggested(CheckType.REDIRECT_CHAIN, REASON_BASIS, KEINE_ARGS));
+        checks.add(suggested(CheckType.IMAGE_BROKEN, REASON_BASIS, KEINE_ARGS));
+        checks.add(suggested(CheckType.COOKIE_BANNER, REASON_BASIS, KEINE_ARGS));
 
-        checks.add(conditional(CheckType.CONTACT_FORM,
-                evidence.reachable() && !evidence.formPages().isEmpty(),
-                REASON_FORMULAR, firstOf(evidence.formPages())));
-        checks.add(conditional(CheckType.MEDIA_PLAYABLE,
-                evidence.reachable() && !evidence.mediaPages().isEmpty(),
-                REASON_MEDIA, firstOf(evidence.mediaPages())));
-        checks.add(conditional(CheckType.IFRAME_EMBED,
-                evidence.reachable() && !evidence.mapPages().isEmpty(),
-                REASON_MAPS, firstOf(evidence.mapPages())));
-        checks.add(conditional(CheckType.HREFLANG,
-                evidence.reachable() && evidence.languages().size() > 1,
-                REASON_LANGUAGES, List.of(String.valueOf(evidence.languages().size()))));
-        checks.add(conditional(CheckType.LANGUAGE_SWITCHER,
-                evidence.reachable() && evidence.languages().size() > 1,
-                REASON_LANGUAGES, List.of(String.valueOf(evidence.languages().size()))));
-        checks.add(conditional(CheckType.FILE_DOWNLOAD,
-                evidence.reachable() && !evidence.documentLinks().isEmpty(),
-                REASON_DOCUMENT, firstOf(evidence.documentLinks())));
-        checks.add(conditional(CheckType.SITEMAP_CONSISTENCY,
-                evidence.reachable() && evidence.sitemapFound(),
-                REASON_SITEMAP, List.of()));
-        checks.add(conditional(CheckType.TLS_CERT,
-                evidence.reachable() && evidence.secure(),
-                REASON_HTTPS, List.of()));
-        checks.add(conditional(CheckType.MIXED_CONTENT,
-                evidence.reachable() && evidence.secure(),
-                REASON_HTTPS, List.of()));
+        boolean formular = evidence.reachable() && !evidence.formPages().isEmpty();
+        checks.add(conditional(CheckType.CONTACT_FORM, formular,
+                formular ? REASON_FORMULAR : REASON_FORMULAR_KEIN,
+                formular ? firstOf(evidence.formPages()) : KEINE_ARGS));
+
+        boolean medien = evidence.reachable() && !evidence.mediaPages().isEmpty();
+        checks.add(conditional(CheckType.MEDIA_PLAYABLE, medien,
+                medien ? REASON_MEDIA : REASON_MEDIA_KEIN,
+                medien ? firstOf(evidence.mediaPages()) : KEINE_ARGS));
+
+        boolean karten = evidence.reachable() && !evidence.mapPages().isEmpty();
+        checks.add(conditional(CheckType.IFRAME_EMBED, karten,
+                karten ? REASON_MAPS : REASON_MAPS_KEIN,
+                karten ? firstOf(evidence.mapPages()) : KEINE_ARGS));
+
+        boolean mehrsprachig = evidence.reachable() && evidence.languages().size() > 1;
+        List<String> sprachArgs = mehrsprachig
+                ? List.of(String.valueOf(evidence.languages().size())) : KEINE_ARGS;
+        checks.add(conditional(CheckType.HREFLANG, mehrsprachig,
+                mehrsprachig ? REASON_LANGUAGES : REASON_LANGUAGES_KEIN, sprachArgs));
+        checks.add(conditional(CheckType.LANGUAGE_SWITCHER, mehrsprachig,
+                mehrsprachig ? REASON_LANGUAGES : REASON_LANGUAGES_KEIN, sprachArgs));
+
+        boolean dokument = evidence.reachable() && !evidence.documentLinks().isEmpty();
+        checks.add(conditional(CheckType.FILE_DOWNLOAD, dokument,
+                dokument ? REASON_DOCUMENT : REASON_DOCUMENT_KEIN,
+                dokument ? firstOf(evidence.documentLinks()) : KEINE_ARGS));
+
+        boolean sitemap = evidence.reachable() && evidence.sitemapFound();
+        checks.add(conditional(CheckType.SITEMAP_CONSISTENCY, sitemap,
+                sitemap ? REASON_SITEMAP : REASON_SITEMAP_KEIN, KEINE_ARGS));
+
+        boolean https = evidence.reachable() && evidence.secure();
+        checks.add(conditional(CheckType.TLS_CERT, https,
+                https ? REASON_HTTPS : REASON_HTTPS_NICHT, KEINE_ARGS));
+        checks.add(conditional(CheckType.MIXED_CONTENT, https,
+                https ? REASON_HTTPS : REASON_HTTPS_NICHT, KEINE_ARGS));
 
         // The other NOISY_BY_DEFAULT check: it ships off and no probe signal justifies turning it
         // on, so it is always present with its reason stated but never suggested.
-        checks.add(new CheckProposal(CheckType.CONSOLE_ERRORS, false, REASON_STANDARD, List.of()));
-        checks.add(new CheckProposal(CheckType.BUTTON_REACHABILITY, false, REASON_KLICKT, List.of()));
+        checks.add(new CheckProposal(CheckType.CONSOLE_ERRORS, false, REASON_STANDARD, KEINE_ARGS));
+        checks.add(new CheckProposal(CheckType.BUTTON_REACHABILITY, false, REASON_KLICKT, KEINE_ARGS));
 
         return List.copyOf(checks);
     }
