@@ -746,7 +746,7 @@ main {
 /* Befundeliste & Filter (§6.3) */
 .befunde-layout {
     display: grid;
-    grid-template-columns: 260px 1fr;
+    grid-template-columns: minmax(280px, 340px) 1fr;
     gap: 1.5rem;
     align-items: start;
 }
@@ -880,6 +880,17 @@ main {
 .befund-abgelaufen {
     color: #b45309;
 }
+
+/* Severität als Farbsignal auf der Befundkarte (§12, wie die Kacheln) */
+.befund-karte.karte-severity-ERROR   { border-left: 4px solid var(--danger-color); }
+.befund-karte.karte-severity-WARN    { border-left: 4px solid var(--warning-color); }
+.befund-karte.karte-severity-INFO    { border-left: 4px solid var(--info-color, #94a3b8); }
+
+/* Kompaktere Befundkarte: Zeilen statt Kartenwände */
+.befunde-liste { gap: 0.6rem; }
+.befund-karte { padding: 0.75rem 1rem; }
+.befund-kopf { margin-bottom: 0.4rem; }
+.befund-koerper { font-size: 0.875rem; }
 
 .pagination-zeile {
     display: flex;
@@ -1178,4 +1189,23 @@ main {
 /* Help boxes: empty until the ?-affordance loads its HTMX fragment — never show an empty box. */
 .hinweis:empty {
     display: none;
+}
+
+/* Berichtsabschnitte: Kopfzeile erhält den Status der Gruppe */
+section.abschnitt-NEW h2,
+section.abschnitt-REGRESSED h2 {
+    border-left: 4px solid var(--danger-color);
+    padding-left: 0.6rem;
+}
+section.abschnitt-STILL_OPEN h2 {
+    border-left: 4px solid var(--warning-color);
+    padding-left: 0.6rem;
+}
+section.abschnitt-FIXED h2 {
+    border-left: 4px solid var(--success-color);
+    padding-left: 0.6rem;
+}
+section.abschnitt-KNOWN h2 {
+    border-left: 4px solid var(--border-color);
+    padding-left: 0.6rem;
 }

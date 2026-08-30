@@ -119,7 +119,7 @@
 
     <!-- Die fünf Berichtsabschnitte (nur Abschnitte mit Befunden haben Überschriften) -->
     <div th:if="${sections != null and not #maps.isEmpty(sections)}" class="bericht-abschnitte">
-        <section th:each="entry : ${sections}" th:if="${not #lists.isEmpty(entry.value)}" class="detail-bereich">
+        <section th:each="entry : ${sections}" th:if="${not #lists.isEmpty(entry.value)}" class="detail-bereich" th:classappend="${'abschnitt-' + entry.key}">
             <div class="abschnitt-ueberschrift-zeile">
                 <h2 th:text="#{${'ui.reportsection.' + entry.key}} + ' (' + ${#lists.size(entry.value)} + ')'">Neu aufgetreten (2)</h2>
                 <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"

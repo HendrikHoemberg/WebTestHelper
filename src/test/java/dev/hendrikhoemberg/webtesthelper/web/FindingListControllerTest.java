@@ -181,6 +181,20 @@ class FindingListControllerTest {
 
     @Test
     @WithMockUser(roles = "USER")
+    void findingCardsCarryTheSeverityClassAndRemediationIsMarkedUp() throws Exception {
+        long siteId = 42L;
+        when(siteService.contextFor(siteId)).thenReturn(sampleSite(siteId));
+        when(findingService.search(any(FindingQuery.class)))
+                .thenReturn(new FindingPage(List.of(sampleFinding(siteId)), 1, 50, 1));
+
+        mvc.perform(get("/websites/{id}/befunde", siteId))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("karte-severity-ERROR")))
+                .andExpect(content().string(containsString("Abhilfe:")));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
     void configuredPageSizeIsUsedWhenTheQueryStringCarriesNone() throws Exception {
         long siteId = 42L;
         when(siteService.contextFor(siteId)).thenReturn(sampleSite(siteId));

@@ -169,7 +169,11 @@ class RunControllerTest {
                 .andExpect(content().string(containsString("Bekannt (1)")))
                 // Empty sections render NO headings at all
                 .andExpect(content().string(not(containsString("Wieder aufgetreten"))))
-                .andExpect(content().string(not(containsString("Unverändert offen"))));
+                .andExpect(content().string(not(containsString("Unverändert offen"))))
+                // Section headings carry the group status as accent class
+                .andExpect(content().string(containsString("abschnitt-FIXED")))
+                .andExpect(content().string(containsString("abschnitt-NEW")))
+                .andExpect(content().string(containsString("abschnitt-KNOWN")));
     }
 
     @Test
