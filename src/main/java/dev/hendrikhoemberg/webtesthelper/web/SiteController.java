@@ -8,6 +8,7 @@ import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
 import dev.hendrikhoemberg.webtesthelper.runner.RunService;
 import dev.hendrikhoemberg.webtesthelper.scheduling.ScheduleService;
 import jakarta.validation.Valid;
+import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -15,9 +16,11 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 
 @Controller
 public class SiteController {
@@ -26,13 +29,16 @@ public class SiteController {
     private final RunService runService;
     private final ScheduleService scheduleService;
     private final SiteDetailModel siteDetailModel;
+    private final MessageSource messageSource;
 
     public SiteController(SiteService siteService, RunService runService,
-                          ScheduleService scheduleService, SiteDetailModel siteDetailModel) {
+                          ScheduleService scheduleService, SiteDetailModel siteDetailModel,
+                          MessageSource messageSource) {
         this.siteService = siteService;
         this.runService = runService;
         this.scheduleService = scheduleService;
         this.siteDetailModel = siteDetailModel;
+        this.messageSource = messageSource;
     }
 
     @GetMapping("/websites")
@@ -108,5 +114,17 @@ public class SiteController {
         }
         siteService.update(id, form.toForm());
         return "redirect:/websites/" + id;
+    }
+
+    @PostMapping("/websites/{id}/loeschen")
+    public String delete(@PathVariable("id") long id,
+                         RedirectAttributes redirectAttributes,
+                         Locale locale) {
+        String name = siteService.summary(id).name();
+        siteService.delete(id);
+        String successMsg = messageSource.getMessage(
+                "ui.websites.geloescht", new Object[]{name}, locale);
+        redirectAttributes.addFlashAttribute("flashMessage", successMsg);
+        return "redirect:/websites";
     }
 }

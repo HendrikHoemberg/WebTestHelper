@@ -20,6 +20,11 @@
                 <button type="submit" class="button sekundär" th:text="#{ui.websites.detail.einrichtung_erneut}">Einrichtung erneut vorschlagen</button>
             </form>
             <a sec:authorize="hasRole('ADMIN')" th:href="@{/websites/{id}/bearbeiten(id=${site.siteId})}" class="button sekundär" th:text="#{ui.websites.detail.bearbeiten}">Bearbeiten</a>
+            <form sec:authorize="hasRole('ADMIN')" th:action="@{/websites/{id}/loeschen(id=${site.siteId})}" method="post" class="inline-form">
+                <button type="submit" class="button link-loeschen"
+                        th:attr="onclick='return confirm(\'' + #{ui.websites.loeschen.bestaetigung} + '\')'"
+                        th:text="#{ui.websites.loeschen}">Löschen</button>
+            </form>
         </div>
     </header>
 

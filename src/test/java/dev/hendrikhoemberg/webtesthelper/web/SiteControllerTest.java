@@ -30,14 +30,20 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -85,6 +91,32 @@ class SiteControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(view().name("websites/liste"))
                 .andExpect(model().attributeExists("sites"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void siteListOffersDeleteToAdmin() throws Exception {
+        when(siteService.summaries()).thenReturn(List.of(
+                new SiteSummary(42L, "Kunde A", "https://example.com/", true, 0)
+        ));
+
+        mvc.perform(get("/websites"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("/websites/42/loeschen")))
+                .andExpect(content().string(containsString("Möchten Sie diese Website wirklich löschen?")));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void siteListHidesDeleteFromUser() throws Exception {
+        when(siteService.summaries()).thenReturn(List.of(
+                new SiteSummary(42L, "Kunde A", "https://example.com/", true, 0)
+        ));
+
+        mvc.perform(get("/websites"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("/websites/42/loeschen"))))
+                .andExpect(content().string(not(containsString("Möchten Sie diese Website wirklich löschen?"))));
     }
 
     @Test
@@ -295,5 +327,28 @@ class SiteControllerTest {
         // An unchecked checkbox binds null; the site form must end up disabled, not left
         // whatever the previous state was.
         assertThat(captor.getValue().enabled()).isFalse();
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void postWebsitesDeleteAsUserIsForbidden() throws Exception {
+        mvc.perform(post("/websites/42/loeschen").with(csrf()))
+                .andExpect(status().isForbidden());
+
+        verify(siteService, never()).delete(anyLong());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void postWebsitesDeleteAsAdminDeletesAndRedirectsToListWithFlash() throws Exception {
+        when(siteService.summary(42L))
+                .thenReturn(new SiteSummary(42L, "Kunde A", "https://example.com/", true, 0));
+
+        mvc.perform(post("/websites/42/loeschen").with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/websites"))
+                .andExpect(flash().attribute("flashMessage", containsString("Kunde A")));
+
+        verify(siteService).delete(42L);
     }
 }

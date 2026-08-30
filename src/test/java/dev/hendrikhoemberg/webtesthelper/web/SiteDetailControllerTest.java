@@ -246,7 +246,8 @@ class SiteDetailControllerTest {
                 // is that a USER is not offered a door that answers 403.
                 .andExpect(content().string(not(containsString("/einstellungen"))))
                 .andExpect(content().string(not(containsString("/postausgang"))))
-                .andExpect(content().string(not(containsString("/websites/42/bearbeiten"))));
+                .andExpect(content().string(not(containsString("/websites/42/bearbeiten"))))
+                .andExpect(content().string(not(containsString("/websites/42/loeschen"))));
     }
 
     @Test
@@ -276,9 +277,30 @@ class SiteDetailControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
+    void getSiteDetailOffersTheDeleteButtonToAnAdmin() throws Exception {
+        SiteContext context = new SiteContext(
+                42L,
+                "Acme Shop",
+                UrlNormalizer.normalize("https://acme.example.com/").orElseThrow(),
+                new CrawlBudget(120, 3, Duration.ofMinutes(15)),
+                List.of(), List.of(), List.of(),
+                true, "AcmeBot/2.0", Map.of()
+        );
+        when(siteService.contextFor(42L)).thenReturn(context);
+        when(runService.recentForSite(42L, 20)).thenReturn(List.of());
+        when(checkRegistry.all()).thenReturn(CheckRegistry.standard().all());
+        when(scheduleService.forSite(42L)).thenReturn(defaultSchedules());
+
+        mvc.perform(get("/websites/42"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("/websites/42/loeschen")))
+                .andExpect(content().string(not(containsString("sec:authorize"))));
+    }
+
+    @Test
     @WithMockUser(roles = "USER")
-    void getSiteDetailWithUnknownIdReturns404() throws Exception {
-        when(siteService.contextFor(999L)).thenThrow(new IllegalArgumentException("Site existiert nicht: 999"));
+    void getSiteDetailWithUnknownIdReturns404() throws Exception {        when(siteService.contextFor(999L)).thenThrow(new IllegalArgumentException("Site existiert nicht: 999"));
 
         mvc.perform(get("/websites/999"))
                 .andExpect(status().isNotFound());
