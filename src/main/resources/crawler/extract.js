@@ -6,6 +6,7 @@ async () => {
   };
 
   const links = [...document.querySelectorAll('a[href]')]
+    .filter(a => !a.querySelector('a[href]'))
     .map(a => ({
       raw: a.getAttribute('href'),
       abs: absolute(a.getAttribute('href')),

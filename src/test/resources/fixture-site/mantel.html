@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="de">
+<head><meta charset="utf-8"><title>Mantel — Fixture</title></head>
+<body>
+<h1>Kontakt</h1>
+<!-- CCM19-style email cloak: the inner mailto anchor is created by JavaScript, so the DOM
+     truly nests it inside the outer anchor (the HTML parser would never do that itself). -->
+<a href="/kontakt@example.com" target="_blank"><span id="cloak-inhalt"></span></a>
+<script>
+  var inner = document.createElement('a');
+  inner.href = 'mailto:kontakt@example.com';
+  inner.textContent = 'kontakt@example.com';
+  document.getElementById('cloak-inhalt').appendChild(inner);
+</script>
+<p><a href="/leistungen.html">Leistungen</a></p>
+</body>
+</html>

@@ -233,6 +233,21 @@ class PageNavigatorTest {
     }
 
     @Test
+    void aCloakWrapperAnchorIsFilteredAndOnlyTheInnerLinkIsExtracted() {
+        PageSnapshot snapshot = capture("mantel.html", 1);
+
+        // The outer anchor href="/kontakt@example.com" must NOT appear.
+        assertThat(snapshot.links())
+                .extracting(link -> link.target().path())
+                .doesNotContain("/kontakt@example.com");
+
+        // A normal link on the same page must survive the filter.
+        assertThat(snapshot.links())
+                .extracting(link -> link.target().path())
+                .contains("/leistungen.html");
+    }
+
+    @Test
     void aRedirectChainIsRecordedFromRequestedToFinalUrl() {
         PageSnapshot snapshot = capture("weiter/1", 1);
 
