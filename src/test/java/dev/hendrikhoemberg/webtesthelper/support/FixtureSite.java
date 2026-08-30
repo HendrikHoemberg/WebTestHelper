@@ -272,10 +272,12 @@ public final class FixtureSite implements AutoCloseable {
                 case "/extern/ok" -> sendHtml(exchange, 200,
                         "<!doctype html><html lang=\"de\"><body><h1>Partnerseite</h1></body></html>");
                 case "/extern/flatterhaft" -> {
-                    // A partner that answers 503 on the very first request and 200 on every
-                    // later one, so a dead-link finding against it can heal on re-verification.
+                    // A partner that was down during the whole first verification and is back
+                    // afterwards: HEAD and its GET fallback (requests 1 and 2) both see 503,
+                    // every later request 200 — so a dead-link finding can heal on
+                    // re-verification.
                     int seen = requestCounts.get(path).get();
-                    if (seen == 1) {
+                    if (seen <= 2) {
                         sendHtml(exchange, 503,
                                 "<!doctype html><html lang=\"de\"><body><h1>Zeitweise gestört</h1></body></html>");
                     } else {

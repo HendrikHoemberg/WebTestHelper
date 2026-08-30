@@ -163,12 +163,16 @@ class FixtureSiteTest {
     }
 
     @Test
-    void theFlatterhaftSlotAnswers503FirstThen200() throws Exception {
+    void theFlatterhaftSlotAnswers503ForTheFirstVerificationThen200() throws Exception {
+        // A verification is HEAD plus its GET fallback (requests 1 and 2) — the partner was
+        // down during the whole first check and is back afterwards.
         HttpResponse<byte[]> first = get("extern/flatterhaft");
         assertThat(first.statusCode()).isEqualTo(503);
-
         HttpResponse<byte[]> second = get("extern/flatterhaft");
-        assertThat(second.statusCode()).isEqualTo(200);
+        assertThat(second.statusCode()).isEqualTo(503);
+
+        HttpResponse<byte[]> third = get("extern/flatterhaft");
+        assertThat(third.statusCode()).isEqualTo(200);
     }
 
     private HttpResponse<byte[]> head(String path) throws Exception {
