@@ -23,8 +23,9 @@
     </header>
 
     <!-- Live-Fortschritt bei laufenden Läufen -->
-    <div th:if="${run.status.name() == 'QUEUED' or run.status.name() == 'RUNNING'}"
-         th:replace="~{fragments/fortschritt :: fortschritt}"></div>
+    <th:block th:if="${run.status.name() == 'QUEUED' or run.status.name() == 'RUNNING'}">
+        <div th:replace="~{fragments/fortschritt :: fortschritt}"></div>
+    </th:block>
 
     <!-- Übersicht / Metadaten -->
     <section class="detail-bereich">

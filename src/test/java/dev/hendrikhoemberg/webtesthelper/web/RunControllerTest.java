@@ -321,6 +321,22 @@ class RunControllerTest {
 
     @Test
     @WithMockUser(roles = "USER")
+    void runDetailForCompletedRunDoesNotRenderTheLiveProgressPoller() throws Exception {
+        long runId = 101L;
+        long siteId = 42L;
+        when(runService.summary(runId)).thenReturn(sampleSummary(runId, siteId, RunStatus.COMPLETED, false, false, null));
+        when(siteService.contextFor(siteId)).thenReturn(sampleSite(siteId));
+        when(findingService.diffOf(siteId, runId)).thenReturn(new RunDiff(runId, Map.of()));
+        when(findingViewFactory.of(eq(new RunDiff(runId, Map.of())), any(Locale.class))).thenReturn(Map.of());
+
+        mvc.perform(get("/laeufe/" + runId))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("fortschritt-kasten"))))
+                .andExpect(content().string(not(containsString("hx-trigger=\"every 3s\""))));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
     void fortschrittForRunningRunReturnsFragmentWith3sTrigger() throws Exception {
         long runId = 105L;
         RunSummary summary = sampleSummary(runId, 42L, RunStatus.RUNNING, false, false, null);

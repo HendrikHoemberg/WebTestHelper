@@ -109,6 +109,8 @@ class SetupControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(view().name("fragments/einrichtungsstand :: stand"))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("hx-trigger=\"every 2s\"")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("hx-get=\"/websites/" + SITE_ID + "/einrichtung/stand\"")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("@{/websites"))))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("Wir untersuchen die Website")))
                 .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("<!DOCTYPE"))))
                 .andReturn();

@@ -3,9 +3,8 @@
 <body>
 <div th:fragment="stand"
      class="einrichtungsstand"
-     hx-get="@{/websites/{id}/einrichtung/stand(id=${siteId})}"
      hx-swap="outerHTML"
-     th:attr="hx-trigger=${laeuft ? 'every 2s' : null}"
+     th:attr="hx-get=@{/websites/{id}/einrichtung/stand(id=${siteId})},hx-trigger=${laeuft ? 'every 2s' : null}"
      aria-live="polite">
 
     <div th:if="${laeuft}" class="einrichtungsstand-laeuft">
