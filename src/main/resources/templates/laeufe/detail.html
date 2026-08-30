@@ -48,11 +48,11 @@
             </div>
             <div th:if="${run.startedAt != null}">
                 <dt th:text="#{ui.lauf.tabelle.gestartet}">Gestartet</dt>
-                <dd th:text="${run.startedAt}">2026-08-25T10:00:05Z</dd>
+                <dd th:text="${#temporals.format(run.startedAt, 'dd.MM.yyyy HH:mm')}">25.08.2026 12:00</dd>
             </div>
             <div th:if="${run.finishedAt != null}">
                 <dt th:text="#{ui.lauf.tabelle.beendet}">Beendet</dt>
-                <dd th:text="${run.finishedAt}">2026-08-25T10:02:30Z</dd>
+                <dd th:text="${#temporals.format(run.finishedAt, 'dd.MM.yyyy HH:mm')}">25.08.2026 12:00</dd>
             </div>
         </dl>
     </section>

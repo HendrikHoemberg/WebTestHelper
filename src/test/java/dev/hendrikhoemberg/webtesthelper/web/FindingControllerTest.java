@@ -27,8 +27,11 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
@@ -101,6 +104,36 @@ class FindingControllerTest {
         assertThat(posMsgContent).as("Message content must be present").isGreaterThan(posMsgHeading);
         assertThat(posRemHeading).as("'Was zu tun ist' heading must be present").isGreaterThan(posMsgContent);
         assertThat(posRemContent).as("Remediation content must be present").isGreaterThan(posRemHeading);
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void detailRendersHumanizedDatesInsteadOfRawInstants() throws Exception {
+        long findingId = 1L;
+        Finding finding = new Finding(
+                findingId, 42L, "fp-1",
+                CheckType.DEAD_LINK,
+                "https://example.com/dead",
+                "https://example.com/source",
+                Severity.ERROR,
+                "finding.DEAD_LINK.dead",
+                List.of("https://example.com/dead", "404 Not Found"),
+                Evidence.NONE,
+                ObservedStatus.ACTIVE,
+                TriageStatus.UNTRIAGED,
+                null,
+                10L, 10L, null, null,
+                1, 1,
+                Instant.parse("2026-08-25T10:00:00Z"),
+                Instant.parse("2026-08-25T10:00:00Z")
+        );
+        when(findingService.byId(findingId)).thenReturn(Optional.of(finding));
+        when(findingService.occurrencesOfLastRun(findingId, 50)).thenReturn(List.of());
+
+        mvc.perform(get("/befunde/" + findingId))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("25.08.2026")))
+                .andExpect(content().string(not(containsString("2026-08-25T10:00:00Z"))));
     }
 
     @Test

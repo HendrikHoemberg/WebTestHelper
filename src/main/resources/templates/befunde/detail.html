@@ -80,11 +80,11 @@
             </div>
             <div th:if="${detail.firstSeenAt != null}">
                 <dt th:text="#{ui.befund.detail.erstmals_gesehen}">Erstmals aufgetreten</dt>
-                <dd th:text="${detail.firstSeenAt}">2026-08-25T10:00:00Z</dd>
+                <dd th:text="${#temporals.format(detail.firstSeenAt, 'dd.MM.yyyy HH:mm')}">25.08.2026 12:00</dd>
             </div>
             <div th:if="${detail.lastSeenAt != null}">
                 <dt th:text="#{ui.befund.detail.zuletzt_gesehen}">Zuletzt aufgetreten</dt>
-                <dd th:text="${detail.lastSeenAt}">2026-08-25T10:00:00Z</dd>
+                <dd th:text="${#temporals.format(detail.lastSeenAt, 'dd.MM.yyyy HH:mm')}">25.08.2026 12:00</dd>
             </div>
         </dl>
     </section>

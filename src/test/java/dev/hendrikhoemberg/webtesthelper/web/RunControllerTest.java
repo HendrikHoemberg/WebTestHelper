@@ -112,6 +112,22 @@ class RunControllerTest {
 
     @Test
     @WithMockUser(roles = "USER")
+    void runDetailRendersHumanizedDateTimes() throws Exception {
+        long runId = 101L;
+        long siteId = 42L;
+        when(runService.summary(runId)).thenReturn(sampleSummary(runId, siteId, RunStatus.COMPLETED, false, false, null));
+        when(siteService.contextFor(siteId)).thenReturn(sampleSite(siteId));
+        when(findingService.diffOf(siteId, runId)).thenReturn(new RunDiff(runId, Map.of()));
+        when(findingViewFactory.of(eq(new RunDiff(runId, Map.of())), any(Locale.class))).thenReturn(Map.of());
+
+        mvc.perform(get("/laeufe/" + runId))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("25.08.2026")))
+                .andExpect(content().string(not(containsString("2026-08-25T10:00:00Z"))));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
     void runDetailRendersOnlyNonEmptySectionHeadingsWithCounts() throws Exception {
         long runId = 101L;
         long siteId = 42L;
