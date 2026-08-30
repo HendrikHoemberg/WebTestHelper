@@ -87,6 +87,12 @@ public class RunEntity {
 
     private Integer soft404TextLength;
 
+    private Integer soft404ReferenceStatus;
+
+    private Long soft404ReferenceSimhash;
+
+    private Integer soft404ReferenceTextLength;
+
     private Instant baselineAcceptedAt;
 
     private Instant digestSentAt;

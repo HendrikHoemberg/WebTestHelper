@@ -36,7 +36,10 @@ public class RunResultJdbcRepository {
                    budget_stop_reason              = ?,
                    soft404_status                  = ?,
                    soft404_simhash                 = ?,
-                   soft404_text_length             = ?
+                   soft404_text_length             = ?,
+                   soft404_reference_status        = ?,
+                   soft404_reference_simhash       = ?,
+                   soft404_reference_text_length   = ?
              WHERE id = ?
             """;
 
@@ -95,6 +98,9 @@ public class RunResultJdbcRepository {
                     probe.httpStatus(),
                     probe.simhash(),
                     probe.textLength(),
+                    probe.referenceStatus(),
+                    probe.referenceSimhash(),
+                    probe.referenceTextLength(),
                     runId);
         } catch (JacksonException e) {
             // A list of strings that will not serialise is a bug, not a condition.

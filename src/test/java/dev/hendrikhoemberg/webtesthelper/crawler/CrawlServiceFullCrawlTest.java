@@ -117,11 +117,16 @@ class CrawlServiceFullCrawlTest extends AbstractPostgresTest {
         assertThat(probe.usable()).isTrue();
         assertThat(probe.httpStatus()).isEqualTo(200);        // the fixture is a soft-404 site
         assertThat(probe.simhash()).isNotZero();
-        // …and a page that IS the not-found page fingerprints close to it.
+        // A page that IS the not-found page fingerprints close to it.
         PageSnapshot verirrt = result.snapshots().snapshots().stream()
                 .filter(s -> s.url().path().equals("/verirrt.html")).findFirst().orElseThrow();
         assertThat(SimHash.hammingDistance(verirrt.textSimhash(), probe.simhash()))
                 .isLessThanOrEqualTo(6);
+        // The root page is the known-real anchor for the two-anchor soft-404 rule.
+        assertThat(probe.referenceUsable()).isTrue();
+        PageSnapshot home = result.snapshots().snapshots().stream()
+                .filter(s -> s.url().value().equals(site.baseUrl())).findFirst().orElseThrow();
+        assertThat(probe.referenceSimhash()).isEqualTo(home.textSimhash());
     }
 
     @Test

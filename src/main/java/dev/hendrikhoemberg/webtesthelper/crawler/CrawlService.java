@@ -354,6 +354,13 @@ public class CrawlService {
      * a real page, so whatever answers for it is the site's not-found fingerprint (spec 7.1). Its
      * frontier id is -1 and it is never added to the snapshots: it is a measurement of the site,
      * not a page of it.
+     *
+     * <p>A second capture navigates the site's root, {base}/: the site's best-known real page.
+     * Two-anchor soft-404 detection needs it: a page is only blamed when it is closer to the
+     * not-found fingerprint than to this known-real anchor. The root capture grounds what
+     * "real" looks like on this very site, so a site that answers everything with its shared
+     * shell (measured: d(probe, root) = 0) degrades the check to silence instead of flagging
+     * every shell-like page (spec 8).
      */
     private SoftNotFoundProbe probe(CrawlRequest request, Path runArtifacts) {
         NormalizedUrl probeUrl = UrlNormalizer
@@ -361,10 +368,21 @@ public class CrawlService {
         PageSnapshot snapshot = pool.submit(browser -> navigator.capture(browser,
                 new CrawlTarget(-1L, probeUrl.value(), 0), request.site(), runArtifacts));
         deleteProbeScreenshot(runArtifacts, probeUrl);
-        return snapshot.reachable()
-                ? new SoftNotFoundProbe(snapshot.httpStatus(), snapshot.textSimhash(),
-                                        snapshot.textContent().length())
-                : SoftNotFoundProbe.NONE;
+        if (!snapshot.reachable() || snapshot.httpStatus() != 200
+                || snapshot.textContent().isBlank()) {
+            return new SoftNotFoundProbe(snapshot.httpStatus(), snapshot.textSimhash(),
+                    snapshot.textContent().length());
+        }
+        NormalizedUrl rootUrl = UrlNormalizer
+                .resolve(request.site().baseUrl().value(), "/").orElseThrow();
+        PageSnapshot root = pool.submit(browser -> navigator.capture(browser,
+                new CrawlTarget(-1L, rootUrl.value(), 0), request.site(), runArtifacts));
+        deleteProbeScreenshot(runArtifacts, rootUrl);
+        return new SoftNotFoundProbe(snapshot.httpStatus(), snapshot.textSimhash(),
+                snapshot.textContent().length(),
+                root.reachable() ? root.httpStatus() : 0,
+                root.reachable() ? root.textSimhash() : 0L,
+                root.reachable() ? root.textContent().length() : 0);
     }
 
     private static void deleteProbeScreenshot(Path runArtifacts, NormalizedUrl probeUrl) {

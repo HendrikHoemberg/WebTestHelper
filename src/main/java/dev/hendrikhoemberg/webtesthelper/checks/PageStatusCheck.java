@@ -14,21 +14,28 @@ import java.util.Set;
 /**
  * 2xx, plus soft-404 detection (spec 7.1).
  *
- * <p>The soft-404 rule compares the page's text fingerprint against the {@code {baseUrl}/{uuid}}
- * probe taken at crawl start: a random path cannot be a real page, so whatever answers for it
- * is the site's not-found page. The cutoff is <strong>16</strong> bits of a 64-bit SimHash, and
- * it was measured rather than guessed. Against the fixture site with a real browser: an exact
- * clone of the not-found page scores 0, a not-found page that echoes the requested path 8–20,
- * and the closest unrelated real page 27 (then 31, 33, 35, 37). Sixteen sits in that gap with
- * margin on both sides.
+ * <p>Two anchors are learned at crawl start. The <strong>probe</strong> is {@code {baseUrl}/{uuid}}:
+ * a random path cannot be a real page, so whatever answers for it is the site's not-found page.
+ * The <strong>root reference</strong> is {@code {baseUrl}/}: the site's best-known real page,
+ * what "real" looks like on this very site. A page is a soft 404 only within the absolute cut
+ * <strong>and</strong> closer to the not-found fingerprint than to the root.
  *
- * <p>Note that the echo ceiling (20) can already exceed the cutoff: the cutoff is calibrated
- * against the closest <em>real</em> page (27), so a site whose not-found page echoes the
- * requested path more fiercely should be re-measured with a real browser rather than prompting
- * an unmeasured lowering of the cutoff.
+ * <p>The absolute cutoff is <strong>16</strong> bits of a 64-bit SimHash, measured rather than
+ * guessed. Against the fixture site with a real browser: an exact clone of the not-found page
+ * scores 0, a not-found page that echoes the requested path 8–20, and the closest unrelated real
+ * page 27 (then 31, 33, 35, 37). Sixteen sits in that gap with margin on both sides.
  *
- * <p>Override per site with {@code {"maxDistance": 20}} — and re-measure before doing so, since
- * a cutoff that eats real pages is worse than no check at all (spec 8).
+ * <p>The root anchor exists because the gap is site-specific. Where the shared shell dominates
+ * every page (a site that answers <em>any</em> path, even "/", with the same frame — measured on
+ * theis-feinwerktechnik.de: probe and root fingerprint identically, d = 0), the distances from a
+ * real page to probe and root are equal and the check is silent rather than reporting every
+ * shell-like page. Where root and not-found page genuinely differ (fixture: d = 36), clones still
+ * sit at 0 — clearly closer to the probe — and real pages at 27+ stay clear, so the previous
+ * behaviour is unchanged. If the root could not itself be captured (unreachable, not 200, blank),
+ * the check falls back to the probe-only rule for that site.
+ *
+ * <p>Override the absolute cutoff per site with {@code {"maxDistance": 20}} — and re-measure
+ * before doing so, since a cutoff that eats real pages is worse than no check at all (spec 8).
  */
 public final class PageStatusCheck implements PageCheck {
 
@@ -74,7 +81,25 @@ public final class PageStatusCheck implements PageCheck {
             return false;
         }
         int distance = SimHash.hammingDistance(snapshot.textSimhash(), probe.simhash());
-        return distance <= maxDistance;
+        if (distance > maxDistance) {
+            return false;
+        }
+        // Two-anchor rule: a page may resemble the not-found shell and still be real (shell-heavy
+        // sites whose shared frame dominates every page). It is a soft 404 only if it is ALSO
+        // closer to the not-found fingerprint than to the site's own root page — the best-known
+        // real page of that site. When the site answers every path, even "/", with the same
+        // shell (measured: d(probe, root) = 0), the two distances are equal for every page and
+        // the check stays silent: a check that eats real pages is worse than no check at all
+        // (spec 8).
+        if (probe.referenceUsable()) {
+            int rootDistance = SimHash.hammingDistance(
+                    snapshot.textSimhash(), probe.referenceSimhash());
+            if (rootDistance <= distance) {
+                return false;
+            }
+            return true;
+        }
+        return true;
     }
 
     private CheckFinding finding(PageSnapshot snapshot, CheckConfig config, String messageKey,

@@ -134,6 +134,8 @@ class CrawlRunExecutorTest extends AbstractPostgresTest {
                 .isEqualTo(200);
         assertThat(jdbc.queryForObject("SELECT soft404_simhash FROM run WHERE id = ?", Long.class, runId2))
                 .isNotZero();
+        assertThat(jdbc.queryForObject("SELECT soft404_reference_simhash FROM run WHERE id = ?",
+                Long.class, runId2)).isNotZero();
         // The pipeline now records findings: run 2 re-observes run 1's set, so its total equals
         // the full fixture failure count (spec 15 — one of every failure mode).
         assertThat(jdbc.queryForObject("SELECT findings_total FROM run WHERE id = ?", Integer.class, runId2))
