@@ -118,6 +118,37 @@ class UrlVerifierTest {
     }
 
     @Test
+    void aHeadThatLiesWithA404IsHealedByTheGetFallback() {
+        // Google support pages and some CDNs return HEAD 404 but GET 200. The verifier
+        // must not trust a HEAD-only DEAD verdict — confirm with GET.
+        int before = site.requestCount("/extern/head-taeuscht");
+        UrlVerification result = verifier.verify(
+                url(site.url("extern/head-taeuscht")), AGENT, false);
+        assertThat(result.status()).isEqualTo(UrlStatus.OK);
+        assertThat(result.httpStatus()).isEqualTo(200);
+        // HEAD (404) plus the GET follow-up (200) — the fallback must actually have run.
+        assertThat(site.requestCount("/extern/head-taeuscht")).isEqualTo(before + 2);
+    }
+
+    @Test
+    void a403StaysTrustedFromHeadWithoutAnExtraGet() {
+        // UNVERIFIABLE statuses (403, 429, etc.) should NOT trigger the GET fallback.
+        int before = site.requestCount("/geblockt-403");
+        verifier.verify(url(site.url("geblockt-403")), AGENT, false);
+        assertThat(site.requestCount("/geblockt-403")).isEqualTo(before + 1);
+    }
+
+    @Test
+    void aGenuine404CostsExactlyTwoRequests() {
+        // HEAD 404 → GET 404. Exactly two requests, not more.
+        int before = site.requestCount("/hart-404");
+        UrlVerification result = verifier.verify(
+                url(site.url("hart-404")), AGENT, false);
+        assertThat(result.status()).isEqualTo(UrlStatus.DEAD);
+        assertThat(site.requestCount("/hart-404")).isEqualTo(before + 2);
+    }
+
+    @Test
     void verifyAllAnswersEveryUrlKeyedByItsValue() {
         Map<String, UrlVerification> results = verifier.verifyAll(
                 List.of(url(site.url("extern/ok")), url(site.url("hart-404")),

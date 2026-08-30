@@ -63,8 +63,10 @@ public class UrlVerifier {
                 return withBodyPrefix(url.value(), get(url, userAgent), checkedAt);
             }
             Exchange exchange = safeHead(url, userAgent);
-            if (exchange == null || exchange.response().statusCode() == 405
-                    || exchange.response().statusCode() == 501) {
+            if (exchange == null
+                    || exchange.response().statusCode() == 405
+                    || exchange.response().statusCode() == 501
+                    || UrlStatus.ofHttpStatus(exchange.response().statusCode()) == UrlStatus.DEAD) {
                 return withBodyPrefix(url.value(), get(url, userAgent), checkedAt);
             }
             return fromResponse(url.value(), exchange.requestDetail(), exchange.response(),

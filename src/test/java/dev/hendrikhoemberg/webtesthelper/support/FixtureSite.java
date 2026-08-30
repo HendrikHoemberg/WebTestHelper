@@ -261,6 +261,14 @@ public final class FixtureSite implements AutoCloseable {
                         echoInFlight.decrementAndGet();
                     }
                 }
+                case "/extern/head-taeuscht" -> {
+                    if ("HEAD".equals(exchange.getRequestMethod())) {
+                        exchange.sendResponseHeaders(404, -1);
+                    } else {
+                        sendHtml(exchange, 200,
+                                "<!doctype html><html lang=\"de\"><body><p>Inhalt da</p></body></html>");
+                    }
+                }
                 case "/extern/ok" -> sendHtml(exchange, 200,
                         "<!doctype html><html lang=\"de\"><body><h1>Partnerseite</h1></body></html>");
                 case "/extern/flatterhaft" -> {
