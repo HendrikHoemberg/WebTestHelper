@@ -31,7 +31,9 @@ public record UrlVerification(
 
     public static UrlVerification ofSnapshot(PageSnapshot snapshot) {
         if (!snapshot.reachable()) {
-            return new UrlVerification(snapshot.url().value(), UrlStatus.DEAD, 0, null, 0,
+            UrlStatus status = TransientFailure.isTransient(snapshot.unreachableReason())
+                    ? UrlStatus.UNVERIFIABLE : UrlStatus.DEAD;
+            return new UrlVerification(snapshot.url().value(), status, 0, null, 0,
                     null, snapshot.unreachableReason(), Instant.now());
         }
         return new UrlVerification(snapshot.url().value(),
