@@ -323,6 +323,20 @@ public final class FixtureSite implements AutoCloseable {
                     sleep();
                     sendHtml(exchange, 200, "<!doctype html><html lang=\"de\"><body><h1>Endlich</h1></body></html>");
                 }
+                case "/wackeliges-netz.html" -> {
+                    // The network-flap fixture: request 1 outlasts the test profile's 5s navigation
+                    // timeout (a transient transport failure), every later request serves the page.
+                    // Without the retry the crawl marks this page unreachable.
+                    int seen = requestCounts.get(path).get();
+                    if (seen <= 1) {
+                        sleep(8000);
+                    }
+                    sendHtml(exchange, 200, """
+                            <!doctype html><html lang="de"><head><meta charset="utf-8">
+                            <title>Wackeliges Netz</title></head>
+                            <body><h1>Doch noch da</h1></body></html>
+                            """);
+                }
                 default -> serveStaticOrSoft404(exchange, path);
             }
         } finally {

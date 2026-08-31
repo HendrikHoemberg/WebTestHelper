@@ -140,6 +140,23 @@ class CrawlServiceScopeAndBudgetTest extends AbstractPostgresTest {
     }
 
     @Test
+    void aTransientNavigationFailureIsRetriedAndRecovered() {
+        // /wackeliges-netz.html answers request 1 past the 5s navigation timeout (transient
+        // transport failure) and request 2 normally. One retry must turn the page reachable —
+        // an unreachable snapshot would otherwise seed dead-link findings across the site.
+        CrawlResult result = crawl(RunScope.PULSE, budget(50, 3, Duration.ofSeconds(60)),
+                List.of("/wackeliges-netz.html"));
+
+        assertThat(result.pagesFailed()).isZero();
+        assertThat(result.pagesVisited()).isEqualTo(1);
+        assertThat(result.coveredUrls()).singleElement()
+                .satisfies(url -> assertThat(url).endsWith("/wackeliges-netz.html"));
+        assertThat(result.snapshots().snapshots()).singleElement()
+                .satisfies(s -> assertThat(s.reachable()).isTrue());
+        assertThat(site.requestCount("/wackeliges-netz.html")).isEqualTo(2);
+    }
+
+    @Test
     void theSnapshotListIsBoundedEvenWhenEveryPageFails() {
         // visited counts only reachable pages, so a run whose pages all fail would otherwise
         // accumulate snapshots past maxPages (p2b's last open carry-over). The loop guard and the

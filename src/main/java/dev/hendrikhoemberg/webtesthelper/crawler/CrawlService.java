@@ -9,6 +9,7 @@ import dev.hendrikhoemberg.webtesthelper.model.PageSnapshot;
 import dev.hendrikhoemberg.webtesthelper.model.RunSnapshots;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
 import dev.hendrikhoemberg.webtesthelper.model.SoftNotFoundProbe;
+import dev.hendrikhoemberg.webtesthelper.model.TransientFailure;
 import dev.hendrikhoemberg.webtesthelper.model.UrlNormalizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,6 +67,10 @@ public class CrawlService {
 
     /** A URL that has burned this many workers is given up on rather than reclaimed forever. */
     private static final int MAX_CLAIM_ATTEMPTS = 3;
+
+    /** A transient transport failure gets one retry; two attempts must be enough to survive a flap. */
+    private static final int NAVIGATION_ATTEMPTS = 2;
+    private static final Duration RETRY_DELAY = Duration.ofSeconds(2);
 
     private final CrawlFrontierJdbcRepository frontier;
     private final BrowserPool pool;
@@ -220,8 +225,7 @@ public class CrawlService {
             Path runArtifacts, List<PageSnapshot> snapshots, AtomicInteger visited,
             AtomicInteger failed) {
         try {
-            PageSnapshot snapshot = pool.submit(browser ->
-                    navigator.capture(browser, target, request.site(), runArtifacts));
+            PageSnapshot snapshot = capture(request, target, runArtifacts);
             snapshots.add(snapshot);
             if (!snapshot.reachable()) {
                 failed.incrementAndGet();
@@ -237,6 +241,38 @@ public class CrawlService {
             failed.incrementAndGet();
             return new CrawlOutcome(target.id(), CrawlItemStatus.FAILED, null,
                     truncate(e.getMessage(), 500));
+        }
+    }
+
+    /**
+     * One page capture, retried once when the failure is a transient transport error (a network
+     * change, a timeout, a reset). Measured on theis-feinwerktechnik.de (run 10, 2026-08-30):
+     * four navigations failed with {@code ERR_NETWORK_CHANGED} inside a 14-second network flap
+     * and never got a second chance; the four unreachable snapshots then seeded dead-link
+     * findings across every page that linked them. Definitive failures — redirect loops,
+     * blocked responses, unparseable URLs — fail immediately, and only the final snapshot is
+     * reported.
+     */
+    private PageSnapshot capture(CrawlRequest request, CrawlTarget target, Path runArtifacts) {
+        PageSnapshot snapshot = pool.submit(browser ->
+                navigator.capture(browser, target, request.site(), runArtifacts));
+        for (int attempt = 1;
+             !snapshot.reachable()
+                     && TransientFailure.isTransient(snapshot.unreachableReason())
+                     && attempt < NAVIGATION_ATTEMPTS;
+             attempt++) {
+            sleep(RETRY_DELAY);
+            snapshot = pool.submit(browser ->
+                    navigator.capture(browser, target, request.site(), runArtifacts));
+        }
+        return snapshot;
+    }
+
+    private static void sleep(Duration delay) {
+        try {
+            Thread.sleep(delay.toMillis());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
 
