@@ -121,17 +121,21 @@ async () => {
         paintState = await mapPaintOf(doc);
       }
     } catch (e) { /* cross-origin: not an error, just opaque */ }
-    const src = absolute(frame.getAttribute('src') || '');
-    if (src) {
-      frames.push({
-        src,
-        title: frame.getAttribute('title') || '',
-        loaded: !!frame.contentWindow,
-        sameOrigin,
-        textLength,
-        paintState
-      });
+    const rawSrc = frame.getAttribute('src');
+    if (!rawSrc || !rawSrc.trim()) {
+      // A frame without a src attribute (e.g. Cookiebot's hidden iframe) is not an embed:
+      // absolute('') would resolve to the page URL itself and the empty same-origin
+      // document would masquerade as an empty embed on every page.
+      continue;
     }
+    frames.push({
+      src: absolute(rawSrc),
+      title: frame.getAttribute('title') || '',
+      loaded: !!frame.contentWindow,
+      sameOrigin,
+      textLength,
+      paintState
+    });
   }
 
   const labelOf = (element) => {

@@ -164,6 +164,15 @@ class PageNavigatorTest {
     }
 
     @Test
+    void anIframeWithoutASrcAttributeIsNotCapturedAsAFrame() {
+        // Cookiebot's hidden iframe carries no src attribute. absolute('') would resolve it to
+        // the page URL itself, and the empty same-origin document would read as an empty embed.
+        PageSnapshot snapshot = capture("embed-ohne-src.html", 1);
+
+        assertThat(snapshot.frames()).isEmpty();
+    }
+
+    @Test
     void aGreyMapCanvasIsNotPaintedForSameOriginAndCrossOriginFrames() {
         // The same-origin path is read by extract.js; the cross-origin (localhost) frame is read
         // through the CDP session in PageNavigator. Both must land on NOT_PAINTED.
