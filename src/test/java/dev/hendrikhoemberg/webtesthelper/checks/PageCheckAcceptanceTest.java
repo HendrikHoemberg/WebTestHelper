@@ -288,12 +288,18 @@ class PageCheckAcceptanceTest extends AbstractPostgresTest {
     }
 
     @Test
-    void deadLinkReportsTheExternalTombstoneButNotTheSoft404() {
+    void deadLinkReportsTheExternalTombstoneAsTechnicalFailureButNotTheSoft404() {
+        // http://localhost:9/tot refuses every connection. That is a transport failure, not
+        // proof of death: the finding must be the INFO "technical failure", never "führt ins
+        // Leere" — and the soft-404 page must stay silent either way.
         assertThat(of(CheckType.DEAD_LINK))
-                .filteredOn(finding -> finding.messageKey().endsWith(".dead"))
+                .filteredOn(finding -> finding.messageKey().endsWith(".technicalFailure"))
                 .filteredOn(finding -> finding.subjectKey().equals("http://localhost:9/tot"))
                 .singleElement()
-                .satisfies(finding -> assertThat(finding.observedOn().path()).isEqualTo("/"));
+                .satisfies(finding -> {
+                    assertThat(finding.observedOn().path()).isEqualTo("/");
+                    assertThat(finding.severity()).isEqualTo(Severity.INFO);
+                });
 
         assertThat(of(CheckType.DEAD_LINK))
                 .filteredOn(finding -> finding.messageKey().endsWith(".dead"))
@@ -340,7 +346,7 @@ class PageCheckAcceptanceTest extends AbstractPostgresTest {
         assertThat(of(CheckType.HREFLANG))
                 .filteredOn(finding -> finding.messageKey().endsWith(".deadAlternate"))
                 .singleElement()
-                .satisfies(finding -> assertThat(finding.subjectKey()).contains("fr"));
+                .satisfies(finding -> assertThat(finding.subjectKey()).endsWith("/hart-404"));
         assertThat(of(CheckType.HREFLANG))
                 .filteredOn(finding -> finding.messageKey().endsWith(".notReciprocated"))
                 .singleElement()

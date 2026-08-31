@@ -149,7 +149,9 @@ class FindingReverifierTest extends AbstractPostgresTest {
         // Three attempts, so a subject that stays dead keeps the loop running to the last one.
         SiteContext ctx = ctx();
         String healing = site.externalBase() + "extern/flatterhaft";
-        String dead = "http://localhost:9/tot";
+        // A 404 stays DEAD; a refused connection is UNVERIFIABLE now and would never enter the
+        // suspect set, so the "stays dead" subject must be a hard HTTP death.
+        String dead = site.externalBase() + "hart-404";
         UrlVerifications firstPass = firstPass(ctx, healing, dead);
 
         FindingReverifier threeAttempts = new FindingReverifier(verifier, cache,
@@ -190,7 +192,7 @@ class FindingReverifierTest extends AbstractPostgresTest {
     @Test
     void aDeadLinkThatStaysDeadSurvivesAndTheCacheRowIsRefreshed() {
         SiteContext ctx = ctx();
-        String subject = "http://localhost:9/tot";
+        String subject = site.externalBase() + "hart-404";
         NormalizedUrl subjUrl = UrlNormalizer.normalize(subject).orElseThrow();
 
         UrlVerifications firstPass = firstPass(ctx, subject);
