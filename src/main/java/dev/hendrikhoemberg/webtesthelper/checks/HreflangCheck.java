@@ -9,6 +9,7 @@ import dev.hendrikhoemberg.webtesthelper.model.PageSnapshot;
 import dev.hendrikhoemberg.webtesthelper.model.RunSnapshots;
 import dev.hendrikhoemberg.webtesthelper.model.Severity;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
+import dev.hendrikhoemberg.webtesthelper.model.TransientFailure;
 import dev.hendrikhoemberg.webtesthelper.model.UrlStatus;
 
 import java.util.ArrayList;
@@ -73,7 +74,7 @@ public final class HreflangCheck implements SiteCheck {
         }
 
         Optional<PageSnapshot> targetSnap = Optional.ofNullable(crawled.get(target.value()));
-        boolean dead = targetSnap.map(s -> !s.reachable() || s.httpStatus() >= 400).orElse(false);
+        boolean dead = targetSnap.map(HreflangCheck::isDeadAlternate).orElse(false);
         if (!dead) {
             dead = config.facts().verifications().of(target)
                     .map(verification -> verification.status() == UrlStatus.DEAD)
@@ -96,6 +97,14 @@ public final class HreflangCheck implements SiteCheck {
             }
         }
         return null;
+    }
+
+    /** A transient transport failure is not death — the page may be fine (spec 8). */
+    private static boolean isDeadAlternate(PageSnapshot snapshot) {
+        if (snapshot.reachable()) {
+            return snapshot.httpStatus() >= 400;
+        }
+        return !TransientFailure.isTransient(snapshot.unreachableReason());
     }
 
     private CheckFinding finding(CheckConfig config, String subjectKey, String messageKey,

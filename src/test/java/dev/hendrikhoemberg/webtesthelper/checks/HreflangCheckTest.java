@@ -154,6 +154,29 @@ class HreflangCheckTest {
     }
 
     @Test
+    void anAlternateWhoseTargetFailedTransientlyIsNotReportedDead() {
+        PageSnapshot page = Snapshots.page("https://example.com/a")
+                .alternate("en", "https://example.com/b").build();
+        PageSnapshot target = Snapshots.page("https://example.com/b")
+                .unreachable("net::ERR_NETWORK_CHANGED at https://example.com/b");
+
+        assertThat(check.evaluate(snapshots(page, target), site(), config())).isEmpty();
+    }
+
+    @Test
+    void anAlternateWhoseTargetFailedForAPageReasonIsReportedDead() {
+        PageSnapshot page = Snapshots.page("https://example.com/a")
+                .alternate("en", "https://example.com/b").build();
+        PageSnapshot target = Snapshots.page("https://example.com/b")
+                .unreachable("net::ERR_TOO_MANY_REDIRECTS at https://example.com/b");
+
+        assertThat(check.evaluate(snapshots(page, target), site(), config()))
+                .singleElement()
+                .satisfies(finding -> assertThat(finding.messageKey())
+                        .isEqualTo("finding.HREFLANG.deadAlternate"));
+    }
+
+    @Test
     void aPageWithoutAlternatesReportsNothing() {
         PageSnapshot a = Snapshots.page("https://example.com/a").build();
 
