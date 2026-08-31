@@ -75,11 +75,13 @@ class UrlVerifierTest {
     }
 
     @Test
-    void aTransportFailureIsDEADWithAReasonAndNoStatus() {
-        UrlVerification dead = verifier.verify(url("http://127.0.0.1:9/tot"), AGENT, false);
-        assertThat(dead.status()).isEqualTo(UrlStatus.DEAD);
-        assertThat(dead.httpStatus()).isZero();
-        assertThat(dead.failureText()).isNotBlank();
+    void aTransportFailureIsUnverifiableWithAReasonAndNoStatus() {
+        // A refused connection says nothing about the page (spec 8): the host may be firewalled
+        // for probes while serving real visitors. UNVERIFIABLE keeps the finding at INFO level.
+        UrlVerification failed = verifier.verify(url("http://127.0.0.1:9/tot"), AGENT, false);
+        assertThat(failed.status()).isEqualTo(UrlStatus.UNVERIFIABLE);
+        assertThat(failed.httpStatus()).isZero();
+        assertThat(failed.failureText()).isNotBlank();
     }
 
     @Test

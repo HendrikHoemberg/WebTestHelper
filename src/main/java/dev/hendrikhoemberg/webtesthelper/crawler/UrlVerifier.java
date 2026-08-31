@@ -73,9 +73,13 @@ public class UrlVerifier {
                     null, null, checkedAt);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            return dead(url.value(), "Verbindung unterbrochen", 0, checkedAt);
+            return unverifiable(url.value(), "Verbindung unterbrochen", checkedAt);
         } catch (Exception e) {
-            return dead(url.value(), truncate(e.toString(), FAILURE_TEXT_LIMIT), 0, checkedAt);
+            String text = truncate(e.toString(), FAILURE_TEXT_LIMIT);
+            if (e instanceof IOException) {
+                return unverifiable(url.value(), text, checkedAt);
+            }
+            return dead(url.value(), text, 0, checkedAt);
         }
     }
 
@@ -92,7 +96,7 @@ public class UrlVerifier {
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
                         results.put(url.value(),
-                                dead(url.value(), "Verbindung unterbrochen", 0, Instant.now()));
+                                unverifiable(url.value(), "Verbindung unterbrochen", Instant.now()));
                         return null;
                     }
                     try {
@@ -220,6 +224,12 @@ public class UrlVerifier {
     private static UrlVerification dead(String url, String failureText, int httpStatus,
             Instant checkedAt) {
         return new UrlVerification(url, UrlStatus.DEAD, httpStatus, null, 0, null, failureText,
+                checkedAt);
+    }
+
+    /** A transport failure never completed an exchange; the page's state is unknown. */
+    private static UrlVerification unverifiable(String url, String failureText, Instant checkedAt) {
+        return new UrlVerification(url, UrlStatus.UNVERIFIABLE, 0, null, 0, null, failureText,
                 checkedAt);
     }
 
