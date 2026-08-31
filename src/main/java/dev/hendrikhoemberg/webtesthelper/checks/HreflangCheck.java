@@ -88,7 +88,8 @@ public final class HreflangCheck implements SiteCheck {
                     DEAD_ALTERNATE, List.of(target.value(), hreflang), evidence);
         }
 
-        if (targetSnap.isPresent() && !target.equals(page.url()) && !"x-default".equals(hreflang)) {
+        if (targetSnap.isPresent() && targetSnap.get().reachable()
+                && !target.equals(page.url()) && !"x-default".equals(hreflang)) {
             boolean reciprocated = targetSnap.get().alternates().stream()
                     .anyMatch(back -> back.target().equals(page.url()));
             if (!reciprocated) {
