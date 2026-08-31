@@ -47,6 +47,24 @@ class DeadLinkCheckTest {
     }
 
     @Test
+    void aTransportFailureProducesTechnicalFailureAtInfo() {
+        UrlVerification transport = new UrlVerification("https://example.com/fremd",
+                UrlStatus.UNVERIFIABLE, 0, null, 0, null,
+                "net::ERR_NETWORK_CHANGED at https://example.com/fremd", Instant.EPOCH);
+
+        CheckFinding finding = check.evaluate(
+                Snapshots.page("https://example.com/seite")
+                        .link("https://example.com/fremd", false).build(),
+                Snapshots.config(check, Snapshots.facts(transport))).getFirst();
+
+        assertThat(finding.messageKey()).isEqualTo("finding.DEAD_LINK.technicalFailure");
+        assertThat(finding.severity())
+                .isEqualTo(dev.hendrikhoemberg.webtesthelper.model.Severity.INFO);
+        assertThat(finding.messageArgs()).containsExactly("https://example.com/fremd",
+                "net::ERR_NETWORK_CHANGED at https://example.com/fremd");
+    }
+
+    @Test
     void anUnreachablePageProducesNoFindings() {
         assertThat(check.evaluate(
                 Snapshots.page("https://example.com/seite")

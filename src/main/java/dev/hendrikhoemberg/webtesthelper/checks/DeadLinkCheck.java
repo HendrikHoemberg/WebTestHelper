@@ -19,6 +19,7 @@ public final class DeadLinkCheck implements PageCheck {
 
     static final String DEAD = "finding.DEAD_LINK.dead";
     static final String UNVERIFIABLE = "finding.DEAD_LINK.unverifiable";
+    static final String TECHNICAL_FAILURE = "finding.DEAD_LINK.technicalFailure";
 
     @Override
     public CheckType type() {
@@ -32,7 +33,7 @@ public final class DeadLinkCheck implements PageCheck {
 
     @Override
     public Set<String> messageKeys() {
-        return Set.of(DEAD, UNVERIFIABLE);
+        return Set.of(DEAD, UNVERIFIABLE, TECHNICAL_FAILURE);
     }
 
     @Override
@@ -66,8 +67,10 @@ public final class DeadLinkCheck implements PageCheck {
                         Evidence.ofVerification(snapshot.screenshotPath(), verification)));
             } else if (verification.status() == UrlStatus.UNVERIFIABLE) {
                 String detail = verification.failureText() == null ? "" : verification.failureText();
+                boolean transport = verification.httpStatus() == 0 && !detail.isBlank();
                 findings.add(new CheckFinding(type(), Severity.INFO, target.value(),
-                        snapshot.url(), UNVERIFIABLE, List.of(target.value(), detail),
+                        snapshot.url(), transport ? TECHNICAL_FAILURE : UNVERIFIABLE,
+                        List.of(target.value(), detail),
                         Evidence.ofVerification(snapshot.screenshotPath(), verification)));
             }
         });
