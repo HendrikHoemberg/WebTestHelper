@@ -21,6 +21,7 @@
 * [(${site.siteName})] - [(${befund.title})] ([(#{${'ui.severity.' + befund.severity}})])
   [(${befund.locationText})]
   [(${befund.message})]
+  [# th:if="${befund.subjectUrl != null}"][(${befund.subjectUrl})][/]
   [(#{ui.befund.behebung.label})] [(${befund.remediation})]
   [(${baseUrl})]/befunde/[(${befund.id})]
 [/]
@@ -36,6 +37,7 @@
 * [(${site.siteName})] - [(${befund.title})] ([(#{${'ui.severity.' + befund.severity}})])
   [(${befund.locationText})]
   [(${befund.message})]
+  [# th:if="${befund.subjectUrl != null}"][(${befund.subjectUrl})][/]
   [(#{ui.befund.behebung.label})] [(${befund.remediation})]
   [(${baseUrl})]/befunde/[(${befund.id})]
 [/]

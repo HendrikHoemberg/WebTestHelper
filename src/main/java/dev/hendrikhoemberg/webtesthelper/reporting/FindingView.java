@@ -21,7 +21,8 @@ public record FindingView(
         TriageStatus triage,
         Instant mutedUntil,
         Instant muteExpired,
-        String triageReason
+        String triageReason,
+        String subjectUrl
 ) {
     public FindingView(
             long id,
@@ -34,6 +35,6 @@ public record FindingView(
             Severity severity,
             TriageStatus triage
     ) {
-        this(id, title, message, remediation, locationText, siteWide, pageCount, severity, triage, null, null, null);
+        this(id, title, message, remediation, locationText, siteWide, pageCount, severity, triage, null, null, null, null);
     }
 }

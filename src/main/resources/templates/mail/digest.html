@@ -41,6 +41,9 @@
                             </div>
                             <div style="font-family: monospace; font-size: 12px; color: #64748b; margin-bottom: 6px; word-break: break-all;" th:text="${befund.locationText}">/kontakt</div>
                             <p style="margin: 0 0 6px 0; font-size: 13px; color: #334155;" th:text="${befund.message}">Meldung</p>
+                            <p th:if="${befund.subjectUrl != null}" style="margin: 0 0 6px 0; font-family: monospace; font-size: 12px; word-break: break-all;">
+                                <a th:href="${befund.subjectUrl}" th:text="${befund.subjectUrl}" style="color: #2563eb; text-decoration: none;">https://example.com/tot</a>
+                            </p>
                             <p style="margin: 0; font-size: 12px; color: #475569;">
                                 <strong th:text="#{ui.befund.behebung.label}">Abhilfe:</strong>
                                 <span th:text="${befund.remediation}">Abhilfe-Text</span>
@@ -59,6 +62,9 @@
                             </div>
                             <div style="font-family: monospace; font-size: 12px; color: #64748b; margin-bottom: 6px; word-break: break-all;" th:text="${befund.locationText}">/impressum</div>
                             <p style="margin: 0 0 6px 0; font-size: 13px; color: #334155;" th:text="${befund.message}">Meldung</p>
+                            <p th:if="${befund.subjectUrl != null}" style="margin: 0 0 6px 0; font-family: monospace; font-size: 12px; word-break: break-all;">
+                                <a th:href="${befund.subjectUrl}" th:text="${befund.subjectUrl}" style="color: #2563eb; text-decoration: none;">https://example.com/tot</a>
+                            </p>
                             <p style="margin: 0; font-size: 12px; color: #475569;">
                                 <strong th:text="#{ui.befund.behebung.label}">Abhilfe:</strong>
                                 <span th:text="${befund.remediation}">Abhilfe-Text</span>

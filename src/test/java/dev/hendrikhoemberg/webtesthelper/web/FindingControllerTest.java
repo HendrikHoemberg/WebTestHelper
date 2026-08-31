@@ -94,7 +94,7 @@ class FindingControllerTest {
         int posDescHeading = html.indexOf("Was wir geprüft haben");
         int posDescContent = html.indexOf("Prüft, ob jeder Verweis noch zu einer Seite oder Datei führt");
         int posMsgHeading = html.indexOf("Was wir gefunden haben");
-        int posMsgContent = html.indexOf("Der Verweis auf https://example.com/dead führt ins Leere (404 Not Found).");
+        int posMsgContent = html.indexOf("Der Verweis führt ins Leere (404 Not Found).");
         int posRemHeading = html.indexOf("Was zu tun ist");
         int posRemContent = html.indexOf("Verweis auf die richtige Adresse korrigieren");
 
@@ -104,6 +104,12 @@ class FindingControllerTest {
         assertThat(posMsgContent).as("Message content must be present").isGreaterThan(posMsgHeading);
         assertThat(posRemHeading).as("'Was zu tun ist' heading must be present").isGreaterThan(posMsgContent);
         assertThat(posRemContent).as("Remediation content must be present").isGreaterThan(posRemHeading);
+
+        // The dead link is clickable and copyable on the detail page, not plain message text
+        assertThat(html).contains("href=\"https://example.com/dead\"");
+        assertThat(html).contains("target=\"_blank\"");
+        assertThat(html).contains("data-url=\"https://example.com/dead\"");
+        assertThat(html).doesNotContain("Der Verweis auf https://example.com/dead führt ins Leere");
     }
 
     @Test

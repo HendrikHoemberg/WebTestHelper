@@ -62,7 +62,8 @@ class FindingViewFactoryTest {
         assertThat(view.id()).isEqualTo(1L);
         assertThat(view.title()).isEqualTo("Tote Links");
         assertThat(view.remediation()).contains("Verweis auf die richtige Adresse korrigieren");
-        assertThat(view.message()).isEqualTo("Der Verweis auf https://example.com/dead führt ins Leere (404 Not Found).");
+        assertThat(view.message()).isEqualTo("Der Verweis führt ins Leere (404 Not Found).");
+        assertThat(view.subjectUrl()).isEqualTo("https://example.com/dead");
         assertThat(view.locationText()).isEqualTo("https://example.com/source");
         assertThat(view.siteWide()).isFalse();
         assertThat(view.pageCount()).isEqualTo(1);
@@ -95,6 +96,7 @@ class FindingViewFactoryTest {
         assertThat(view.siteWide()).isTrue();
         assertThat(view.locationText()).isEqualTo("auf 312 Seiten");
         assertThat(view.pageCount()).isEqualTo(312);
+        assertThat(view.subjectUrl()).isNull();
     }
 
     @Test
@@ -279,6 +281,7 @@ class FindingViewFactoryTest {
         assertThat(view.remediation()).contains("Website-Details prüfen");
         assertThat(view.message()).isEqualTo("Das Element konnte auf der Seite nicht gefunden werden.");
         assertThat(view.locationText()).isEqualTo("10");
+        assertThat(view.subjectUrl()).isNull();
 
         FindingDetailView detail = factory.detailOf(failedStep, List.of(), Locale.GERMAN);
         assertThat(detail.description()).contains("Führt mehrstufige Benutzerinteraktionen");

@@ -158,7 +158,8 @@ class DigestMailRendererTest {
         FindingView newFinding = new FindingView(
                 201L, "Tote Links", "HTTP 404 auf https://example.com/kontakt",
                 "Linkziel im Quelltext anpassen", "/kontakt", false, 1,
-                Severity.ERROR, TriageStatus.UNTRIAGED
+                Severity.ERROR, TriageStatus.UNTRIAGED,
+                null, null, null, "https://example.com/dead-link"
         );
         FindingView regressedFinding = new FindingView(
                 202L, "Gemischte Inhalte", "Unsicheres Bild geladen über http://",
@@ -196,6 +197,7 @@ class DigestMailRendererTest {
                 .contains("Kunde Meier")
                 .contains("Tote Links")
                 .contains("HTTP 404 auf https://example.com/kontakt")
+                .contains("href=\"https://example.com/dead-link\"")
                 .contains("Linkziel im Quelltext anpassen")
                 .contains("/kontakt")
                 .contains("Gemischte Inhalte")
@@ -228,6 +230,7 @@ class DigestMailRendererTest {
                 .contains("Kunde Meier")
                 .contains("Tote Links")
                 .contains("HTTP 404 auf https://example.com/kontakt")
+                .contains("https://example.com/dead-link")
                 .contains("Linkziel im Quelltext anpassen")
                 .contains("Gemischte Inhalte")
                 .contains("https://wth.example/laeufe/501")

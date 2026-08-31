@@ -7,6 +7,8 @@ import dev.hendrikhoemberg.webtesthelper.findings.FindingOccurrence;
 import dev.hendrikhoemberg.webtesthelper.findings.ReportSection;
 import dev.hendrikhoemberg.webtesthelper.findings.RunDiff;
 import dev.hendrikhoemberg.webtesthelper.model.Evidence;
+import dev.hendrikhoemberg.webtesthelper.model.NormalizedUrl;
+import dev.hendrikhoemberg.webtesthelper.model.UrlNormalizer;
 import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Component;
 
@@ -69,8 +71,17 @@ public class FindingViewFactory {
                 finding.triage(),
                 finding.mutedUntil(),
                 finding.muteExpiredAt(),
-                finding.triageReason()
+                finding.triageReason(),
+                subjectUrlOf(finding.subjectKey())
         );
+    }
+
+    /**
+     * The finding's subject as a clickable URL, or {@code null} when the subject is no absolute
+     * http(s) address (a {@code *} location, a relative path, an ID, …).
+     */
+    private static String subjectUrlOf(String raw) {
+        return UrlNormalizer.normalize(raw).map(NormalizedUrl::value).orElse(null);
     }
 
     public FindingDetailView detailOf(Finding finding, List<FindingOccurrence> occurrences, Locale locale) {

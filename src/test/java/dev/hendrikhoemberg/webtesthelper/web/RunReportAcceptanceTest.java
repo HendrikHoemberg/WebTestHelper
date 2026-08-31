@@ -194,6 +194,17 @@ class RunReportAcceptanceTest extends AbstractPostgresTest {
         String run2Html = run2Result.getResponse().getContentAsString();
         assertThat(run2Html).contains("/befunde/" + findingId);
 
+        // The dead link URL is clickable and copyable, the message no longer embeds it,
+        // and the page context link resolves against the site's origin.
+        assertThat(run2Html).contains("href=\"https://www.example.com/dead1\"");
+        assertThat(run2Html).contains("target=\"_blank\"");
+        assertThat(run2Html).contains("rel=\"noopener noreferrer\"");
+        assertThat(run2Html).contains("data-url=\"https://www.example.com/dead1\"");
+        assertThat(run2Html).contains("Kopieren");
+        assertThat(run2Html).contains("Der Verweis führt ins Leere (404 Not Found).");
+        assertThat(run2Html).doesNotContain("führt ins Leere auf https://www.example.com/dead1");
+        assertThat(run2Html).contains("href=\"https://www.example.com/seite1\"");
+
         MvcResult findingResult = mvc.perform(get("/befunde/" + findingId))
                 .andExpect(status().isOk())
                 .andExpect(view().name("befunde/detail"))
@@ -209,6 +220,10 @@ class RunReportAcceptanceTest extends AbstractPostgresTest {
         // 3. Was zu tun ist
         assertThat(findingHtml).contains("Was zu tun ist");
         assertThat(findingHtml).contains("Verweis auf die richtige Adresse korrigieren");
+        // The subject and occurrence links are anchors on the detail page too
+        assertThat(findingHtml).contains("href=\"https://www.example.com/dead1\"");
+        assertThat(findingHtml).contains("data-url=\"https://www.example.com/dead1\"");
+        assertThat(findingHtml).contains("href=\"https://www.example.com/seite1\"");
 
         // 6. Materialise run 3 with partial coverage touching one page only;
         //    the run page renders the partial-coverage sentence and the finding on the untouched page is not under Behoben.

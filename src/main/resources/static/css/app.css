@@ -585,6 +585,62 @@ main {
     font-size: 0.85rem;
 }
 
+/* Betroffener Link in Befund-Karten: klickbar + kopierbar */
+.befund-link-zeile {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin: 0 0 0.5rem 0;
+}
+
+.befund-subjekt-link {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 0.85rem;
+    color: var(--primary-color);
+    word-break: break-all;
+}
+
+.befund-ort-link {
+    text-decoration: none;
+}
+
+.befund-ort-link code {
+    background-color: #f1f5f9;
+    padding: 0.15rem 0.35rem;
+    border-radius: 3px;
+    font-size: 0.85rem;
+    color: var(--text-color);
+}
+
+.befund-ort-link:hover code {
+    background-color: #e2e8f0;
+}
+
+.kopie-button {
+    padding: 0.2rem 0.55rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: #ffffff;
+    color: var(--text-color);
+    font-size: 0.8rem;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.kopie-button:hover {
+    background-color: #f1f5f9;
+}
+
+.kopie-rueckmeldung {
+    font-size: 0.8rem;
+    color: #166534;
+}
+
+[x-cloak] {
+    display: none !important;
+}
+
 /* Hilfe & Inline-Hinweise */
 .hinweis-schalter {
     display: inline-flex;

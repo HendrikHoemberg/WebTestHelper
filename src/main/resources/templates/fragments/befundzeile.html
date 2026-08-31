@@ -19,11 +19,31 @@
             <span class="status-badge status-inaktiv" th:text="#{${'ui.triagestatus.' + befund.triage}}">Ungeprüft</span>
         </div>
         <div class="befund-ort">
-            <code th:text="${befund.locationText}">https://example.com/seite1</code>
+            <a th:if="${!befund.siteWide and #strings.startsWith(befund.locationText, '/')}"
+               th:href="${site.baseUrl.origin() + befund.locationText}"
+               target="_blank" rel="noopener noreferrer" class="befund-ort-link"
+               th:attr="aria-label=#{ui.befund.ort.aufrufen}">
+                <code th:text="${befund.locationText}">/pfad</code>
+            </a>
+            <code th:if="${befund.siteWide or !#strings.startsWith(befund.locationText, '/')}"
+                  th:text="${befund.locationText}">auf 7 Seiten</code>
         </div>
     </div>
     <div class="befund-koerper">
         <p class="befund-meldung" th:text="${befund.message}">Meldung</p>
+        <div class="befund-link-zeile" th:if="${befund.subjectUrl != null}" x-data="wthKopiere()">
+            <a th:href="${befund.subjectUrl}" target="_blank" rel="noopener noreferrer"
+               class="befund-subjekt-link" th:attr="aria-label=#{ui.befund.subject.aufrufen}"
+               th:text="${befund.subjectUrl}">https://example.com/tot</a>
+            <button type="button" class="kopie-button"
+                    th:data-url="${befund.subjectUrl}"
+                    th:attr="aria-label=#{ui.befund.subject.kopieren},title=#{ui.befund.subject.kopieren}"
+                    @click="kopiere($event)">
+                <span th:text="#{ui.befund.subject.kopieren_kurz}">Kopieren</span>
+            </button>
+            <span class="kopie-rueckmeldung" x-cloak x-show="kopiert" aria-live="polite"
+                  th:text="#{ui.befund.subject.kopiert}">Kopiert!</span>
+        </div>
         <p class="befund-behebung">
             <strong th:text="#{ui.befund.behebung.label}">Abhilfe:</strong>
             <span th:text="${befund.remediation}">Abhilfe-Text</span>

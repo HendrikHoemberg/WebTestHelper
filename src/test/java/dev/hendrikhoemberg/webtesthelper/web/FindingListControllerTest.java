@@ -195,6 +195,48 @@ class FindingListControllerTest {
 
     @Test
     @WithMockUser(roles = "USER")
+    void deadLinkFindingsCarryClickableAndCopyableUrls() throws Exception {
+        long siteId = 42L;
+        when(siteService.contextFor(siteId)).thenReturn(sampleSite(siteId));
+        Finding finding = new Finding(
+                1L, siteId, "fp-1",
+                CheckType.DEAD_LINK,
+                "https://example.com/dead",
+                "/news/startseite",
+                Severity.ERROR,
+                "finding.DEAD_LINK.dead",
+                List.of("https://example.com/dead", "404 Not Found"),
+                Evidence.NONE,
+                ObservedStatus.ACTIVE,
+                TriageStatus.UNTRIAGED,
+                null,
+                10L, 10L, null, null,
+                1, 1,
+                Instant.parse("2026-08-25T10:00:00Z"),
+                Instant.parse("2026-08-25T10:00:00Z")
+        );
+
+        when(findingService.search(any(FindingQuery.class)))
+                .thenReturn(new FindingPage(List.of(finding), 1, 50, 1));
+
+        mvc.perform(get("/websites/{id}/befunde", siteId))
+                .andExpect(status().isOk())
+                // The dead link itself is a real anchor, opens in a new tab, and is copyable
+                .andExpect(content().string(containsString("href=\"https://example.com/dead\"")))
+                .andExpect(content().string(containsString("target=\"_blank\"")))
+                .andExpect(content().string(containsString("rel=\"noopener noreferrer\"")))
+                .andExpect(content().string(containsString("data-url=\"https://example.com/dead\"")))
+                .andExpect(content().string(containsString("Kopieren")))
+                .andExpect(content().string(containsString("Kopiert!")))
+                // Its page context is clickable too, joined with the site's origin
+                .andExpect(content().string(containsString("href=\"https://acme.example.com/news/startseite\"")))
+                // The message no longer embeds the URL as plain text
+                .andExpect(content().string(containsString("Der Verweis führt ins Leere (404 Not Found).")))
+                .andExpect(content().string(not(containsString("Der Verweis auf https://example.com/dead führt ins Leere"))));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
     void configuredPageSizeIsUsedWhenTheQueryStringCarriesNone() throws Exception {
         long siteId = 42L;
         when(siteService.contextFor(siteId)).thenReturn(sampleSite(siteId));
