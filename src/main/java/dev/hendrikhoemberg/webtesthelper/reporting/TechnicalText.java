@@ -64,6 +64,8 @@ public final class TechnicalText {
             key = "ui.technisch.blocked_by_response";
         } else if (raw.contains("ERR_ABORTED")) {
             key = "ui.technisch.aborted";
+        } else if (raw.contains("ERR_NETWORK_CHANGED")) {
+            key = "ui.technisch.network_changed";
         } else if (raw.contains("ERR_CERT_DATE_INVALID") || raw.contains("CertificateExpiredException")
                 || raw.contains("CertificateNotYetValidException")) {
             key = "ui.technisch.cert_date_invalid";

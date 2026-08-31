@@ -31,7 +31,8 @@ class TechnicalTextTest {
                 "net::ERR_TOO_MANY_REDIRECTS",
                 "net::ERR_BLOCKED_BY_RESPONSE",
                 "net::ERR_ABORTED",
-                "net::ERR_CERT_DATE_INVALID"
+                "net::ERR_CERT_DATE_INVALID",
+                "net::ERR_NETWORK_CHANGED"
         );
 
         for (String raw : chromiumErrors) {
@@ -107,6 +108,16 @@ class TechnicalTextTest {
     }
 
     @Test
+    void aNetworkChangeHumanisesToItsOwnSentenceNotTheGenericOne() {
+        String raw = "Error {\n  message='net::ERR_NETWORK_CHANGED at https://kunde.de/x";
+        String humanised = TechnicalText.humanise(raw, messageSource, Locale.GERMAN);
+        String expected = messageSource.getMessage("ui.technisch.network_changed", null, Locale.GERMAN);
+
+        assertThat(humanised).isEqualTo(expected);
+        assertThat(humanised).doesNotContain("net::").doesNotContain("ERR_NETWORK_CHANGED");
+    }
+
+    @Test
     void everyTechnicalMessageKeyResolvesInGermanBundle() {
         ResourceBundle bundle = ResourceBundle.getBundle("messages", Locale.GERMAN);
         List<String> keys = List.of(
@@ -116,6 +127,7 @@ class TechnicalTextTest {
                 "ui.technisch.too_many_redirects",
                 "ui.technisch.blocked_by_response",
                 "ui.technisch.aborted",
+                "ui.technisch.network_changed",
                 "ui.technisch.cert_date_invalid",
                 "ui.technisch.ssl_error",
                 "ui.technisch.unbekannt"
