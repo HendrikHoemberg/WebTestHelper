@@ -1051,10 +1051,12 @@ main {
    12. STANDALONE LOGIN SCREEN (ANMELDEN)
    ========================================================================== */
 .anmelde-seite {
-    max-width: 26rem;
-    margin: 6rem auto 0;
-    padding: 0 1.5rem;
-    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
 }
 
 .anmelde-karte {
@@ -1063,6 +1065,8 @@ main {
     border-radius: 14px;
     padding: 2.5rem 2rem 2rem;
     box-shadow: var(--shadow-card);
+    width: 100%;
+    max-width: 26rem;
 }
 
 .anmelde-marke {
@@ -1072,6 +1076,8 @@ main {
     color: var(--text-main);
     margin-bottom: 1.5rem;
     letter-spacing: -0.03em;
+    width: 100%;
+    max-width: 26rem;
 }
 
 /* ==========================================================================
