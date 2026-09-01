@@ -5,191 +5,200 @@
 </head>
 <body>
 <main>
-    <div th:if="${gespeichert}" class="hinweis" th:text="#{ui.einstellungen.gespeichert}">Einstellungen wurden erfolgreich gespeichert.</div>
-    <div th:if="${testmailErfolg}" class="hinweis erfolg" th:text="#{ui.einstellungen.testmail.erfolg}">Testnachricht zugestellt.</div>
-    <div th:if="${testmailFehler}" class="hinweis fehler" th:text="#{ui.einstellungen.testmail.fehler(${testmailFehler})}">E-Mail-Versand fehlgeschlagen: Fehler</div>
-    <div th:if="${postfachErfolg != null}" class="hinweis erfolg" th:text="#{ui.einstellungen.imap.testErfolg(${postfachErfolg})}">Verbindung erfolgreich. 0 Nachrichten im Ordner.</div>
-    <div th:if="${postfachFehler}" class="hinweis fehler" th:text="#{ui.einstellungen.imap.testFehler(${postfachFehler})}">Verbindung fehlgeschlagen: Fehler</div>
+    <div th:if="${gespeichert}" class="hinweis" style="margin-bottom: 1.5rem;" th:text="#{ui.einstellungen.gespeichert}">Einstellungen wurden erfolgreich gespeichert.</div>
+    <div th:if="${testmailErfolg}" class="hinweis erfolg" style="margin-bottom: 1.5rem;" th:text="#{ui.einstellungen.testmail.erfolg}">Testnachricht zugestellt.</div>
+    <div th:if="${testmailFehler}" class="hinweis fehler" style="margin-bottom: 1.5rem;" th:text="#{ui.einstellungen.testmail.fehler(${testmailFehler})}">E-Mail-Versand fehlgeschlagen: Fehler</div>
+    <div th:if="${postfachErfolg != null}" class="hinweis erfolg" style="margin-bottom: 1.5rem;" th:text="#{ui.einstellungen.imap.testErfolg(${postfachErfolg})}">Verbindung erfolgreich. 0 Nachrichten im Ordner.</div>
+    <div th:if="${postfachFehler}" class="hinweis fehler" style="margin-bottom: 1.5rem;" th:text="#{ui.einstellungen.imap.testFehler(${postfachFehler})}">Verbindung fehlgeschlagen: Fehler</div>
 
-    <header class="seiten-kopf">
-        <h1 th:text="#{ui.einstellungen.titel}">Einstellungen</h1>
+    <header class="page-header-bar seiten-kopf">
+        <div>
+            <div class="breadcrumbs-trail">
+                <a th:href="@{/}">WebTestHelper</a>
+                <span>/</span>
+                <span th:text="#{ui.einstellungen.titel}">Einstellungen</span>
+            </div>
+            <h1 class="page-main-title" th:text="#{ui.einstellungen.titel}">Einstellungen</h1>
+        </div>
     </header>
 
     <form th:action="@{/einstellungen}"
           th:object="${form}"
           method="post"
-          class="formular"
+          class="formular" style="background: transparent; border: none; padding: 0; max-width: 100%; box-shadow: none;"
           th:data-tls="*{tls}"
           th:data-username="*{username} ?: ''"
           th:data-imap-tls="*{imapTls}"
           th:data-imap-username="*{imapUsername} ?: ''"
           x-data="{ tls: $el.dataset.tls || 'STARTTLS', username: $el.dataset.username || '', imapTls: $el.dataset.imapTls || 'STARTTLS', imapUsername: $el.dataset.imapUsername || '' }">
 
-        <section class="form-bereich">
+        <section class="card-box form-bereich" style="margin-bottom: 1.5rem;">
             <h2 th:text="#{ui.einstellungen.allgemein.titel}">Allgemeine Einstellungen</h2>
 
             <div class="form-gruppe">
                 <label for="baseUrl" th:text="#{ui.einstellungen.baseUrl}">Basis-URL dieser Anwendung</label>
-                <input type="text" id="baseUrl" th:field="*{baseUrl}" placeholder="https://webtesthelper.example.com" required>
-                <span class="feld-hinweis" th:text="#{ui.einstellungen.baseUrl.hinweis}">Wird für Links in Benachrichtigungs-E-Mails verwendet.</span>
+                <input type="text" id="baseUrl" th:field="*{baseUrl}" class="form-input" placeholder="https://webtesthelper.example.com" required>
+                <span class="feld-hinweis" style="font-size: 0.8rem; color: var(--text-muted);" th:text="#{ui.einstellungen.baseUrl.hinweis}">Wird für Links in Benachrichtigungs-E-Mails verwendet.</span>
                 <span th:if="${#fields.hasErrors('baseUrl')}" th:errors="*{baseUrl}" class="feld-fehler">Fehler</span>
             </div>
 
             <div class="form-gruppe">
                 <label for="redirectAllMailTo" th:text="#{ui.einstellungen.redirectAllMailTo}">Alle E-Mails umleiten an (optional)</label>
-                <input type="text" id="redirectAllMailTo" th:field="*{redirectAllMailTo}" placeholder="staging-catchall@example.com">
-                <p class="hinweis-text" th:text="#{ui.einstellungen.redirectAllMailTo.hinweis}">Wenn hier eine Adresse hinterlegt ist, werden alle Benachrichtigungen ausschließlich an diese Adresse gesendet statt an die eigentlichen Empfänger.</p>
+                <input type="text" id="redirectAllMailTo" th:field="*{redirectAllMailTo}" class="form-input" placeholder="staging-catchall@example.com">
+                <p class="hinweis-text" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;" th:text="#{ui.einstellungen.redirectAllMailTo.hinweis}">Wenn hier eine Adresse hinterlegt ist, werden alle Benachrichtigungen ausschließlich an diese Adresse gesendet.</p>
                 <span th:if="${#fields.hasErrors('redirectAllMailTo')}" th:errors="*{redirectAllMailTo}" class="feld-fehler">Fehler</span>
             </div>
 
             <div class="form-gruppe">
-                <div class="abschnitt-ueberschrift-zeile">
+                <div class="abschnitt-ueberschrift-zeile" style="display: flex; align-items: center; justify-content: space-between; border-bottom: none; margin-bottom: 0.25rem; padding-bottom: 0;">
                     <label for="fallbackRecipients" th:text="#{ui.einstellungen.fallbackRecipients}">Ausweich-Empfänger (Fallback)</label>
                     <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
                             th:data-hx-get="@{/hilfe/hinweis/{id}(id='benachrichtigungen')}"
                             data-hx-target="next .hinweis" data-hx-swap="innerHTML">?</button>
                     <div class="hinweis" aria-live="polite"></div>
                 </div>
-                <textarea id="fallbackRecipients" th:field="*{fallbackRecipients}" rows="3" placeholder="empfaenger@example.com"></textarea>
-                <p class="hinweis-text" th:text="#{ui.einstellungen.fallbackRecipients.hinweis}">An diese Adressen gehen Benachrichtigungen für Websites, bei denen keine eigenen Empfänger eingetragen sind. Mehrere Adressen durch Kommas oder Zeilenumbrüche trennen.</p>
+                <textarea id="fallbackRecipients" th:field="*{fallbackRecipients}" rows="3" class="form-input" placeholder="empfaenger@example.com"></textarea>
+                <p class="hinweis-text" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;" th:text="#{ui.einstellungen.fallbackRecipients.hinweis}">An diese Adressen gehen Benachrichtigungen für Websites, bei denen keine eigenen Empfänger eingetragen sind.</p>
                 <span th:if="${#fields.hasErrors('fallbackRecipients')}" th:errors="*{fallbackRecipients}" class="feld-fehler">Fehler</span>
             </div>
 
-            <div class="form-gruppe form-gruppe-checkbox">
-                <label>
-                    <input type="checkbox" th:field="*{schedulingPaused}">
-                    <span th:text="#{ui.einstellungen.schedulingPaused}">Planung anhalten</span>
+            <div class="form-gruppe form-gruppe-checkbox" style="margin-bottom: 0;">
+                <label style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    <input type="checkbox" th:field="*{schedulingPaused}" style="width: 1.1rem; height: 1.1rem;">
+                    <span th:text="#{ui.einstellungen.schedulingPaused}" style="font-weight: 600;">Planung anhalten</span>
                 </label>
-                <p class="hinweis-text" th:text="#{ui.einstellungen.schedulingPaused.hinweis}">Solange die Planung angehalten ist, startet kein Prüflauf von selbst — auf keiner Website.</p>
+                <p class="hinweis-text" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;" th:text="#{ui.einstellungen.schedulingPaused.hinweis}">Solange die Planung angehalten ist, startet kein Prüflauf von selbst.</p>
                 <span th:if="${#fields.hasErrors('schedulingPaused')}" th:errors="*{schedulingPaused}" class="feld-fehler">Fehler</span>
             </div>
         </section>
 
-        <section class="form-bereich">
-            <div class="abschnitt-ueberschrift-zeile">
-                <h2 th:text="#{ui.einstellungen.smtp.titel}">E-Mail-Versand (SMTP)</h2>
+        <section class="card-box form-bereich" style="margin-bottom: 1.5rem;">
+            <div class="abschnitt-ueberschrift-zeile" style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); margin-bottom: 1rem; padding-bottom: 0.5rem;">
+                <h2 style="margin: 0; border: none; padding: 0;" th:text="#{ui.einstellungen.smtp.titel}">E-Mail-Versand (SMTP)</h2>
                 <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
                         th:data-hx-get="@{/hilfe/hinweis/{id}(id='smtp-einrichten')}"
                         data-hx-target="next .hinweis" data-hx-swap="innerHTML">?</button>
                 <div class="hinweis" aria-live="polite"></div>
             </div>
 
-            <div class="form-gruppe form-gruppe-inline">
+            <div class="form-gruppe form-gruppe-inline" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
                 <div>
                     <label for="host" th:text="#{ui.einstellungen.smtp.host}">SMTP-Server (Host)</label>
-                    <input type="text" id="host" th:field="*{host}" placeholder="smtp.example.com">
+                    <input type="text" id="host" th:field="*{host}" class="form-input" placeholder="smtp.example.com">
                     <span th:if="${#fields.hasErrors('host')}" th:errors="*{host}" class="feld-fehler">Fehler</span>
                 </div>
                 <div>
                     <label for="port" th:text="#{ui.einstellungen.smtp.port}">Port</label>
-                    <input type="number" id="port" th:field="*{port}" min="1" max="65535">
+                    <input type="number" id="port" th:field="*{port}" class="form-input" min="1" max="65535">
                     <span th:if="${#fields.hasErrors('port')}" th:errors="*{port}" class="feld-fehler">Fehler</span>
                 </div>
                 <div>
                     <label for="tls" th:text="#{ui.einstellungen.smtp.tls}">Verschlüsselung (TLS)</label>
-                    <select id="tls" th:field="*{tls}" x-model="tls">
+                    <select id="tls" th:field="*{tls}" x-model="tls" class="form-select">
                         <option th:each="mode : ${tlsModes}" th:value="${mode}" th:text="#{${'ui.tlsmode.' + mode}}">STARTTLS</option>
                     </select>
                     <span th:if="${#fields.hasErrors('tls')}" th:errors="*{tls}" class="feld-fehler">Fehler</span>
                 </div>
             </div>
 
-            <div x-show="tls !== 'NONE' || (username && username.trim().length > 0)" class="form-gruppe-zugangsdaten">
-                <div class="form-gruppe">
+            <div x-show="tls !== 'NONE' || (username && username.trim().length > 0)" class="form-gruppe-zugangsdaten" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                <div class="form-gruppe" style="margin-bottom: 0;">
                     <label for="username" th:text="#{ui.einstellungen.smtp.username}">Benutzername</label>
-                    <input type="text" id="username" th:field="*{username}" x-model="username" placeholder="benutzer@example.com">
+                    <input type="text" id="username" th:field="*{username}" x-model="username" class="form-input" placeholder="benutzer@example.com">
                     <span th:if="${#fields.hasErrors('username')}" th:errors="*{username}" class="feld-fehler">Fehler</span>
                 </div>
 
-                <div class="form-gruppe">
+                <div class="form-gruppe" style="margin-bottom: 0;">
                     <label for="password" th:text="#{ui.einstellungen.smtp.password}">Passwort</label>
-                    <input type="password" id="password" th:field="*{password}" th:placeholder="#{ui.einstellungen.smtp.password.platzhalter}" autocomplete="new-password">
-                    <span class="feld-hinweis" th:text="#{ui.einstellungen.smtp.password.hinweis}">Leer lassen, um das bestehende Passwort beizubehalten.</span>
+                    <input type="password" id="password" th:field="*{password}" class="form-input" th:placeholder="#{ui.einstellungen.smtp.password.platzhalter}" autocomplete="new-password">
+                    <span class="feld-hinweis" style="font-size: 0.75rem; color: var(--text-muted);" th:text="#{ui.einstellungen.smtp.password.hinweis}">Leer lassen, um das bestehende Passwort beizubehalten.</span>
                     <span th:if="${#fields.hasErrors('password')}" th:errors="*{password}" class="feld-fehler">Fehler</span>
                 </div>
             </div>
 
-            <div class="form-gruppe">
+            <div class="form-gruppe" style="margin-top: 1rem; margin-bottom: 0;">
                 <label for="fromAddress" th:text="#{ui.einstellungen.smtp.fromAddress}">Absenderadresse (From)</label>
-                <input type="text" id="fromAddress" th:field="*{fromAddress}" placeholder="webtesthelper@example.com">
+                <input type="text" id="fromAddress" th:field="*{fromAddress}" class="form-input" placeholder="webtesthelper@example.com">
                 <span th:if="${#fields.hasErrors('fromAddress')}" th:errors="*{fromAddress}" class="feld-fehler">Fehler</span>
             </div>
         </section>
 
-        <section class="form-bereich">
-            <div class="abschnitt-ueberschrift-zeile">
-                <h2 th:text="#{ui.einstellungen.imap.titel}">Prüfpostfach</h2>
+        <section class="card-box form-bereich" style="margin-bottom: 1.5rem;">
+            <div class="abschnitt-ueberschrift-zeile" style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); margin-bottom: 1rem; padding-bottom: 0.5rem;">
+                <h2 style="margin: 0; border: none; padding: 0;" th:text="#{ui.einstellungen.imap.titel}">Prüfpostfach</h2>
                 <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
                         th:data-hx-get="@{/hilfe/hinweis/{id}(id='pruefpostfach')}"
                         data-hx-target="next .hinweis" data-hx-swap="innerHTML">?</button>
                 <div class="hinweis" aria-live="polite"></div>
             </div>
-            <p class="hinweis-text" th:text="#{ui.einstellungen.imap.hinweis}">In dieses Postfach muss eine Kopie der Formularnachricht gelangen — in der Regel als Blindkopie, die der Kunde im Kontaktformular hinterlegt. Ohne diese Kopie kann die Zustellung nicht nachgewiesen werden.</p>
+            <p class="hinweis-text" style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;" th:text="#{ui.einstellungen.imap.hinweis}">In dieses Postfach muss eine Kopie der Formularnachricht gelangen.</p>
 
-            <div class="form-gruppe form-gruppe-inline">
+            <div class="form-gruppe form-gruppe-inline" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
                 <div>
                     <label for="imapHost" th:text="#{ui.einstellungen.imap.host}">IMAP-Server (Host)</label>
-                    <input type="text" id="imapHost" th:field="*{imapHost}" placeholder="imap.example.com">
+                    <input type="text" id="imapHost" th:field="*{imapHost}" class="form-input" placeholder="imap.example.com">
                     <span th:if="${#fields.hasErrors('imapHost')}" th:errors="*{imapHost}" class="feld-fehler">Fehler</span>
                 </div>
                 <div>
                     <label for="imapPort" th:text="#{ui.einstellungen.imap.port}">Port</label>
-                    <input type="number" id="imapPort" th:field="*{imapPort}" min="1" max="65535">
+                    <input type="number" id="imapPort" th:field="*{imapPort}" class="form-input" min="1" max="65535">
                     <span th:if="${#fields.hasErrors('imapPort')}" th:errors="*{imapPort}" class="feld-fehler">Fehler</span>
                 </div>
                 <div>
                     <label for="imapTls" th:text="#{ui.einstellungen.imap.tls}">Verschlüsselung (TLS)</label>
-                    <select id="imapTls" th:field="*{imapTls}" x-model="imapTls">
+                    <select id="imapTls" th:field="*{imapTls}" x-model="imapTls" class="form-select">
                         <option th:each="mode : ${tlsModes}" th:value="${mode}" th:text="#{${'ui.tlsmode.' + mode}}">STARTTLS</option>
                     </select>
                     <span th:if="${#fields.hasErrors('imapTls')}" th:errors="*{imapTls}" class="feld-fehler">Fehler</span>
                 </div>
             </div>
 
-            <div x-show="imapTls !== 'NONE' || (imapUsername && imapUsername.trim().length > 0)" class="form-gruppe-zugangsdaten">
-                <div class="form-gruppe">
+            <div x-show="imapTls !== 'NONE' || (imapUsername && imapUsername.trim().length > 0)" class="form-gruppe-zugangsdaten" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                <div class="form-gruppe" style="margin-bottom: 0;">
                     <label for="imapUsername" th:text="#{ui.einstellungen.imap.username}">Benutzername</label>
-                    <input type="text" id="imapUsername" th:field="*{imapUsername}" x-model="imapUsername" placeholder="benutzer@example.com">
+                    <input type="text" id="imapUsername" th:field="*{imapUsername}" x-model="imapUsername" class="form-input" placeholder="benutzer@example.com">
                     <span th:if="${#fields.hasErrors('imapUsername')}" th:errors="*{imapUsername}" class="feld-fehler">Fehler</span>
                 </div>
 
-                <div class="form-gruppe">
+                <div class="form-gruppe" style="margin-bottom: 0;">
                     <label for="imapPassword" th:text="#{ui.einstellungen.imap.password}">Passwort</label>
-                    <input type="password" id="imapPassword" th:field="*{imapPassword}" th:placeholder="#{ui.einstellungen.imap.password.platzhalter}" autocomplete="new-password">
-                    <span class="feld-hinweis" th:text="#{ui.einstellungen.imap.password.hinweis}">Leer lassen, um das bestehende Passwort beizubehalten.</span>
+                    <input type="password" id="imapPassword" th:field="*{imapPassword}" class="form-input" th:placeholder="#{ui.einstellungen.imap.password.platzhalter}" autocomplete="new-password">
+                    <span class="feld-hinweis" style="font-size: 0.75rem; color: var(--text-muted);" th:text="#{ui.einstellungen.imap.password.hinweis}">Leer lassen, um das bestehende Passwort beizubehalten.</span>
                     <span th:if="${#fields.hasErrors('imapPassword')}" th:errors="*{imapPassword}" class="feld-fehler">Fehler</span>
                 </div>
             </div>
 
-            <div class="form-gruppe">
+            <div class="form-gruppe" style="margin-top: 1rem;">
                 <label for="imapFolder" th:text="#{ui.einstellungen.imap.folder}">Ordner</label>
-                <input type="text" id="imapFolder" th:field="*{imapFolder}" placeholder="INBOX">
+                <input type="text" id="imapFolder" th:field="*{imapFolder}" class="form-input" placeholder="INBOX">
                 <span th:if="${#fields.hasErrors('imapFolder')}" th:errors="*{imapFolder}" class="feld-fehler">Fehler</span>
             </div>
 
-            <div class="form-gruppe">
-                <label for="imapVerificationAddress" th:text="#{ui.einstellungen.imap.pruefadresse}">Prüfadresse (wird ins E-Mail-Feld des Formulars eingetragen)</label>
-                <input type="text" id="imapVerificationAddress" th:field="*{imapVerificationAddress}" placeholder="pruefpostfach@example.com">
+            <div class="form-gruppe" style="margin-bottom: 0;">
+                <label for="imapVerificationAddress" th:text="#{ui.einstellungen.imap.pruefadresse}">Prüfadresse</label>
+                <input type="text" id="imapVerificationAddress" th:field="*{imapVerificationAddress}" class="form-input" placeholder="pruefpostfach@example.com">
                 <span th:if="${#fields.hasErrors('imapVerificationAddress')}" th:errors="*{imapVerificationAddress}" class="feld-fehler">Fehler</span>
             </div>
         </section>
 
-        <div class="form-aktionen">
-            <button type="submit" class="button primär" th:text="#{ui.einstellungen.speichern}">Einstellungen speichern</button>
-            <a th:href="@{/websites}" class="button sekundär" th:text="#{ui.einstellungen.abbrechen}">Abbrechen</a>
+        <div class="form-aktionen" style="margin-bottom: 1.5rem;">
+            <button type="submit" class="btn-ui btn-ui-primary button primär" th:text="#{ui.einstellungen.speichern}">Einstellungen speichern</button>
+            <a th:href="@{/websites}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.einstellungen.abbrechen}">Abbrechen</a>
         </div>
     </form>
 
-    <div th:if="${smtpConfigured}" class="testmail-bereich">
-        <form th:action="@{/einstellungen/testmail}" method="post" class="inline-form">
-            <button type="submit" class="button sekundär" th:text="#{ui.einstellungen.testmail.senden}">Test-E-Mail senden</button>
-        </form>
-    </div>
+    <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
+        <div th:if="${smtpConfigured}" class="testmail-bereich">
+            <form th:action="@{/einstellungen/testmail}" method="post" class="inline-form">
+                <button type="submit" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.einstellungen.testmail.senden}">Test-E-Mail senden</button>
+            </form>
+        </div>
 
-    <div th:if="${imapConfigured}" class="testmail-bereich">
-        <form th:action="@{/einstellungen/postfach-test}" method="post" class="inline-form">
-            <button type="submit" class="button sekundär" th:text="#{ui.einstellungen.imap.test}">Postfach prüfen</button>
-        </form>
+        <div th:if="${imapConfigured}" class="testmail-bereich">
+            <form th:action="@{/einstellungen/postfach-test}" method="post" class="inline-form">
+                <button type="submit" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.einstellungen.imap.test}">Postfach prüfen</button>
+            </form>
+        </div>
     </div>
 
     <div class="systemlast-bereich" th:replace="~{fragments/systemlast :: systemlast}"></div>

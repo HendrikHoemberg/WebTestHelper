@@ -5,26 +5,33 @@
 </head>
 <body>
 <main>
-    <header class="seiten-kopf">
-        <div class="seiten-kopf-titel-zeile">
-            <h1 th:text="#{ui.stummschaltungen.titel}">Stummschaltungen</h1>
-            <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
-                    th:data-hx-get="@{/hilfe/hinweis/{id}(id='stummschaltungen')}"
-                    data-hx-target="next .hinweis" data-hx-swap="innerHTML">?</button>
-            <div class="hinweis" aria-live="polite"></div>
+    <header class="page-header-bar seiten-kopf">
+        <div>
+            <div class="breadcrumbs-trail">
+                <a th:href="@{/}">WebTestHelper</a>
+                <span>/</span>
+                <span th:text="#{ui.titel.stummschaltungen}">Stummschaltungen</span>
+            </div>
+            <div class="seiten-kopf-titel-zeile abschnitt-ueberschrift-zeile" style="border-bottom: none; margin-bottom: 0; padding-bottom: 0;">
+                <h1 class="page-main-title" th:text="#{ui.stummschaltungen.titel}">Stummschaltungen</h1>
+                <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
+                        th:data-hx-get="@{/hilfe/hinweis/{id}(id='stummschaltungen')}"
+                        data-hx-target="next .hinweis" data-hx-swap="innerHTML">?</button>
+                <div class="hinweis" aria-live="polite"></div>
+            </div>
         </div>
     </header>
 
-    <div th:if="${flashMessage}" class="erfolgs-meldung" role="status" th:text="${flashMessage}"></div>
-    <div th:if="${flashError}" class="fehler-meldung" role="alert" th:text="${flashError}"></div>
+    <div th:if="${flashMessage}" class="hinweis erfolgs-meldung" role="status" style="margin-bottom: 1.5rem;" th:text="${flashMessage}"></div>
+    <div th:if="${flashError}" class="fehler fehler-meldung" role="alert" style="margin-bottom: 1.5rem;" th:text="${flashError}"></div>
 
-    <section class="detail-bereich">
+    <section class="card-box detail-bereich" style="margin-bottom: 1.5rem;">
         <h2 th:text="#{ui.stummschaltungen.neu.titel}">Neue Stummschaltung anlegen</h2>
-        <form th:action="@{/stummschaltungen}" method="post" class="formular-bereich">
-            <div class="form-raster">
-                <div class="form-gruppe">
+        <form th:action="@{/stummschaltungen}" method="post" class="formular-bereich formular" style="background: transparent; border: none; padding: 0; max-width: 100%; box-shadow: none;">
+            <div class="form-raster" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+                <div class="form-gruppe" style="margin-bottom: 0;">
                     <label for="siteId" th:text="#{ui.stummschaltungen.neu.website}">Website</label>
-                    <select id="siteId" name="siteId" class="form-eingabe"
+                    <select id="siteId" name="siteId" class="form-select form-eingabe"
                             th:attr="data-hx-get=@{/stummschaltungen/vorschau}"
                             data-hx-trigger="change"
                             data-hx-target="#regelvorschau"
@@ -34,9 +41,9 @@
                     </select>
                 </div>
 
-                <div class="form-gruppe">
+                <div class="form-gruppe" style="margin-bottom: 0;">
                     <label for="checkType" th:text="#{ui.stummschaltungen.neu.pruefungsart}">Prüfungsart</label>
-                    <select id="checkType" name="checkType" class="form-eingabe"
+                    <select id="checkType" name="checkType" class="form-select form-eingabe"
                             th:attr="data-hx-get=@{/stummschaltungen/vorschau}"
                             data-hx-trigger="change"
                             data-hx-target="#regelvorschau"
@@ -46,9 +53,9 @@
                     </select>
                 </div>
 
-                <div class="form-gruppe">
+                <div class="form-gruppe" style="margin-bottom: 0;">
                     <label for="subjectPattern" th:text="#{ui.stummschaltungen.neu.subject_pattern}">Betreff-Muster</label>
-                    <input type="text" id="subjectPattern" name="subjectPattern" class="form-eingabe"
+                    <input type="text" id="subjectPattern" name="subjectPattern" class="form-input form-eingabe"
                            th:placeholder="#{ui.stummschaltungen.neu.subject_pattern.placeholder}"
                            th:attr="data-hx-get=@{/stummschaltungen/vorschau}"
                            data-hx-trigger="input changed delay:300ms, change"
@@ -56,9 +63,9 @@
                            data-hx-include="closest form">
                 </div>
 
-                <div class="form-gruppe">
+                <div class="form-gruppe" style="margin-bottom: 0;">
                     <label for="locationPattern" th:text="#{ui.stummschaltungen.neu.location_pattern}">Fundort-Muster</label>
-                    <input type="text" id="locationPattern" name="locationPattern" class="form-eingabe"
+                    <input type="text" id="locationPattern" name="locationPattern" class="form-input form-eingabe"
                            th:placeholder="#{ui.stummschaltungen.neu.location_pattern.placeholder}"
                            th:attr="data-hx-get=@{/stummschaltungen/vorschau}"
                            data-hx-trigger="input changed delay:300ms, change"
@@ -67,36 +74,38 @@
                 </div>
             </div>
 
-            <div id="regelvorschau" class="regelvorschau-container">
+            <div id="regelvorschau" class="regelvorschau-container" style="margin-bottom: 1rem;">
                 <div th:replace="~{fragments/regelvorschau :: regelvorschau}"></div>
             </div>
 
             <div class="form-gruppe">
                 <label for="reason" th:text="#{ui.stummschaltungen.neu.grund}">Begründung</label>
-                <input type="text" id="reason" name="reason" class="form-eingabe" required
+                <input type="text" id="reason" name="reason" class="form-input form-eingabe" required
                        th:placeholder="#{ui.stummschaltungen.neu.grund.placeholder}">
             </div>
 
-            <div class="form-gruppe">
+            <div class="form-gruppe" style="max-width: 240px;">
                 <label for="expiresAt" th:text="#{ui.stummschaltungen.neu.stumm_bis}">Stumm bis</label>
-                <input type="date" id="expiresAt" name="expiresAt" class="form-eingabe" required
+                <input type="date" id="expiresAt" name="expiresAt" class="form-input form-eingabe" required
                        th:value="${#temporals.format(form.expiresAt, 'yyyy-MM-dd')}">
             </div>
 
             <div class="form-aktionen">
-                <button type="submit" class="button primär" th:text="#{ui.stummschaltungen.neu.anlegen}">Stummschaltung anlegen</button>
+                <button type="submit" class="btn-ui btn-ui-primary button primär" th:text="#{ui.stummschaltungen.neu.anlegen}">Stummschaltung anlegen</button>
             </div>
         </form>
     </section>
 
-    <section class="detail-bereich">
-        <h2 th:text="#{ui.stummschaltungen.titel}">Stummschaltungen</h2>
-        <div th:if="${#lists.isEmpty(rules)}" class="leer-zustand">
-            <p th:text="#{ui.stummschaltungen.leer}">Keine Stummschaltungsregeln vorhanden.</p>
+    <section class="card-box detail-bereich" style="padding: 0; overflow: hidden;">
+        <div style="padding: 1.25rem 1.5rem 1rem; border-bottom: 1px solid var(--border-subtle);">
+            <h2 style="margin: 0; border: none; padding: 0;" th:text="#{ui.stummschaltungen.titel}">Stummschaltungen</h2>
+        </div>
+        <div th:if="${#lists.isEmpty(rules)}" class="leer-zustand" style="padding: 3rem 1.5rem; text-align: center;">
+            <p th:text="#{ui.stummschaltungen.leer}" style="color: var(--text-muted);">Keine Stummschaltungsregeln vorhanden.</p>
         </div>
 
         <div th:if="${!#lists.isEmpty(rules)}" class="tabelle-container">
-            <table class="tabelle">
+            <table class="daten-tabelle tabelle" style="margin-top: 0; border: none; border-radius: 0; box-shadow: none;">
                 <thead>
                     <tr>
                         <th th:text="#{ui.stummschaltungen.tabelle.website}">Website</th>
@@ -109,26 +118,26 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr th:each="rule : ${rules}" th:class="${rule.isExpired(now) ? 'regel-abgelaufen' : 'regel-aktiv'}">
+                    <tr th:each="rule : ${rules}" th:class="${rule.isExpired(now) ? 'regel-abgelaufen zeile-gedaempft' : 'regel-aktiv'}">
                         <td>
-                            <span th:if="${rule.siteId != null}" th:text="${siteMap.get(rule.siteId) != null ? siteMap.get(rule.siteId) : ('Website #' + rule.siteId)}">Website</span>
-                            <span th:if="${rule.siteId == null}" class="badge-global" th:text="#{ui.stummschaltungen.global}">Global (alle Websites)</span>
+                            <strong th:if="${rule.siteId != null}" th:text="${siteMap.get(rule.siteId) != null ? siteMap.get(rule.siteId) : ('Website #' + rule.siteId)}">Website</strong>
+                            <span th:if="${rule.siteId == null}" class="siteweit-badge badge-global" th:text="#{ui.stummschaltungen.global}">Global (alle Websites)</span>
                         </td>
                         <td>
-                            <span th:if="${rule.checkType != null}" class="kriterium-tag" th:text="#{${'check.' + rule.checkType.name() + '.title'}}">Check</span>
-                            <code th:if="${rule.subjectPattern != null}" class="muster-code" th:text="${rule.subjectPattern}">*pattern*</code>
-                            <code th:if="${rule.locationPattern != null}" class="muster-code" th:text="${rule.locationPattern}">*pattern*</code>
+                            <span th:if="${rule.checkType != null}" class="type-pill-mono kriterium-tag" th:text="#{${'check.' + rule.checkType.name() + '.title'}}">Check</span>
+                            <code th:if="${rule.subjectPattern != null}" class="code-pill muster-code" th:text="${rule.subjectPattern}">*pattern*</code>
+                            <code th:if="${rule.locationPattern != null}" class="code-pill muster-code" th:text="${rule.locationPattern}">*pattern*</code>
                         </td>
                         <td th:text="${rule.reason}">Begründung</td>
                         <td th:text="${rule.createdBy != null ? rule.createdBy : '-'}">Autor</td>
-                        <td th:text="${#temporals.format(rule.expiresAt, 'dd.MM.yyyy')}">25.11.2026</td>
+                        <td style="font-variant-numeric: tabular-nums;" th:text="${#temporals.format(rule.expiresAt, 'dd.MM.yyyy')}">25.11.2026</td>
                         <td>
-                            <span th:if="${rule.isExpired(now)}" class="status-badge abgelaufen" th:text="#{ui.stummschaltungen.status.abgelaufen}">Abgelaufen</span>
-                            <span th:if="${!rule.isExpired(now)}" class="status-badge aktiv" th:text="#{ui.stummschaltungen.status.aktiv}">Aktiv</span>
+                            <span th:if="${rule.isExpired(now)}" class="status-badge status-inaktiv abgelaufen" th:text="#{ui.stummschaltungen.status.abgelaufen}">Abgelaufen</span>
+                            <span th:if="${!rule.isExpired(now)}" class="status-badge badge-warning aktiv" th:text="#{ui.stummschaltungen.status.aktiv}">Aktiv</span>
                         </td>
                         <td>
                             <form th:action="@{/stummschaltungen/{id}/loeschen(id=${rule.id})}" method="post" class="inline-form">
-                                <button type="submit" class="button link-loeschen"
+                                <button type="submit" class="btn-ui btn-ui-danger btn-ui-sm button link-loeschen"
                                         th:attr="onclick='return confirm(\'' + #{ui.stummschaltungen.loeschen.bestaetigung} + '\')'"
                                         th:text="#{ui.stummschaltungen.loeschen}">Löschen</button>
                             </form>

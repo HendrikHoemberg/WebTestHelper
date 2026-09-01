@@ -7,16 +7,23 @@
 </head>
 <body>
 <main>
-    <header class="seiten-kopf">
+    <header class="page-header-bar seiten-kopf">
         <div>
-            <h1 th:text="${topic.title}">Thementitel</h1>
+            <div class="breadcrumbs-trail">
+                <a th:href="@{/}">WebTestHelper</a>
+                <span>/</span>
+                <a th:href="@{/hilfe}">Handbuch</a>
+                <span>/</span>
+                <span th:text="${topic.title}">Thema</span>
+            </div>
+            <h1 class="page-main-title" th:text="${topic.title}">Thementitel</h1>
         </div>
-        <div class="seiten-kopf-aktionen">
-            <a th:href="@{/hilfe}" class="button sekundär" th:text="#{ui.hilfe.zurueck}">Zurück zur Übersicht</a>
+        <div class="header-actions-cluster seiten-kopf-aktionen">
+            <a th:href="@{/hilfe}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.hilfe.zurueck}">Zurück zur Übersicht</a>
         </div>
     </header>
 
-    <article class="detail-bereich hilfe-artikel">
+    <article class="card-box detail-bereich hilfe-artikel" style="padding: 2rem; max-width: 820px; line-height: 1.7; font-size: 0.95rem;">
         <div class="markdown-inhalt" th:utext="${topic.html}">
             Vollständiger Hilfetext...
         </div>

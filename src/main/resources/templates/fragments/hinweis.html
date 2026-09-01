@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
-<div th:fragment="hinweis" class="hinweis-kasten">
-    <div class="hinweis-teaser" th:utext="${thema.teaserHtml}">Teaser-Text</div>
-    <a th:href="@{/hilfe/{id}(id=${thema.id})}" class="hinweis-link" th:text="#{ui.hilfe.mehr_dazu}">Mehr dazu im Handbuch</a>
+<div th:fragment="hinweis" class="hinweis-kasten" style="padding: 0.85rem 1rem; background: var(--surface-card); border: 1px solid var(--border-subtle); border-radius: 8px; box-shadow: var(--shadow-card); margin-top: 0.5rem;">
+    <div class="hinweis-teaser" style="font-size: 0.875rem; color: var(--text-body); margin-bottom: 0.5rem; line-height: 1.4;" th:utext="${thema.teaserHtml}">Teaser-Text</div>
+    <a th:href="@{/hilfe/{id}(id=${thema.id})}" class="hinweis-link" style="font-size: 0.825rem; font-weight: 700; color: var(--text-main); text-decoration: underline;" th:text="#{ui.hilfe.mehr_dazu}">Mehr dazu im Handbuch</a>
 </div>
 </body>
 </html>

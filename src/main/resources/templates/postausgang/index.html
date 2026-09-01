@@ -5,16 +5,23 @@
 </head>
 <body>
 <main>
-    <header class="seiten-kopf">
-        <h1 th:text="#{ui.postausgang.titel}">Postausgang</h1>
+    <header class="page-header-bar seiten-kopf">
+        <div>
+            <div class="breadcrumbs-trail">
+                <a th:href="@{/}">WebTestHelper</a>
+                <span>/</span>
+                <span th:text="#{ui.titel.postausgang}">Postausgang</span>
+            </div>
+            <h1 class="page-main-title" th:text="#{ui.postausgang.titel}">Postausgang</h1>
+        </div>
     </header>
 
-    <div th:if="${#lists.isEmpty(eintraege)}" class="leer-zustand">
-        <p th:text="#{ui.postausgang.leer}">Keine Benachrichtigungen vorhanden.</p>
+    <div th:if="${#lists.isEmpty(eintraege)}" class="card-box leer-zustand" style="padding: 3rem 1.5rem; text-align: center;">
+        <p th:text="#{ui.postausgang.leer}" style="color: var(--text-muted); font-size: 0.95rem;">Keine Benachrichtigungen vorhanden.</p>
     </div>
 
-    <div th:if="${!#lists.isEmpty(eintraege)}" class="tabelle-container">
-        <table class="tabelle">
+    <div th:if="${!#lists.isEmpty(eintraege)}" class="card-box tabelle-container" style="padding: 0; overflow: hidden;">
+        <table class="daten-tabelle tabelle" style="margin-top: 0; border: none; border-radius: 0; box-shadow: none;">
             <thead>
                 <tr>
                     <th th:text="#{ui.postausgang.tabelle.id}">ID</th>
@@ -30,18 +37,19 @@
             </thead>
             <tbody>
                 <tr th:each="eintrag : ${eintraege}" th:class="${'status-' + eintrag.state}">
-                    <td th:text="${eintrag.id}">1</td>
+                    <td style="font-weight: 700; font-variant-numeric: tabular-nums;" th:text="${eintrag.id}">1</td>
                     <td th:text="${eintrag.recipient}">user@example.com</td>
-                    <td th:text="${eintrag.subject}">Betreff</td>
+                    <td style="font-weight: 500;" th:text="${eintrag.subject}">Betreff</td>
                     <td>
                         <span th:class="${'status-badge status-' + eintrag.state}"
+                              th:classappend="${eintrag.state.name() == 'SENT' ? 'badge-healthy' : (eintrag.state.name() == 'FAILED' ? 'badge-failing' : 'status-inaktiv')}"
                               th:text="#{${'ui.notificationstate.' + eintrag.state}}">Ausstehend</span>
                     </td>
-                    <td th:text="${eintrag.attempts}">0</td>
-                    <td th:text="${#temporals.format(eintrag.createdAt, 'dd.MM.yyyy HH:mm:ss')}">01.01.2026 12:00:00</td>
-                    <td th:text="${eintrag.sentAt != null ? #temporals.format(eintrag.sentAt, 'dd.MM.yyyy HH:mm:ss') : '-'}">-</td>
-                    <td th:text="${eintrag.nextAttemptAt != null ? #temporals.format(eintrag.nextAttemptAt, 'dd.MM.yyyy HH:mm:ss') : '-'}">-</td>
-                    <td class="fehler-text" th:text="${eintrag.lastError != null ? eintrag.lastError : '-'}">-</td>
+                    <td style="font-variant-numeric: tabular-nums;" th:text="${eintrag.attempts}">0</td>
+                    <td style="font-variant-numeric: tabular-nums;" th:text="${#temporals.format(eintrag.createdAt, 'dd.MM.yyyy HH:mm:ss')}">01.01.2026 12:00:00</td>
+                    <td style="font-variant-numeric: tabular-nums;" th:text="${eintrag.sentAt != null ? #temporals.format(eintrag.sentAt, 'dd.MM.yyyy HH:mm:ss') : '-'}">-</td>
+                    <td style="font-variant-numeric: tabular-nums;" th:text="${eintrag.nextAttemptAt != null ? #temporals.format(eintrag.nextAttemptAt, 'dd.MM.yyyy HH:mm:ss') : '-'}">-</td>
+                    <td class="fehler-text" style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--status-error-dot);" th:text="${eintrag.lastError != null ? eintrag.lastError : '-'}">-</td>
                 </tr>
             </tbody>
         </table>

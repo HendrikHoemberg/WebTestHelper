@@ -7,30 +7,35 @@
      th:attr="hx-get=@{/websites/{id}/einrichtung/stand(id=${siteId})},hx-trigger=${laeuft ? 'every 2s' : null}"
      aria-live="polite">
 
-    <div th:if="${laeuft}" class="einrichtungsstand-laeuft">
-        <p th:text="#{ui.einrichtung.laeuft}">Wir untersuchen die Website gerade — das kann einen Moment dauern.</p>
+    <div th:if="${laeuft}" class="einrichtungsstand-laeuft card-box" style="background: var(--surface-subtle); padding: 1.5rem; text-align: center; border: 1px solid var(--border-subtle);">
+        <div class="status-dot-pulse" style="background: var(--status-info-dot); width: 12px; height: 12px; margin: 0 auto 0.75rem;"></div>
+        <p style="margin: 0; font-size: 0.95rem; font-weight: 500;" th:text="#{ui.einrichtung.laeuft}">Wir untersuchen die Website gerade — das kann einen Moment dauern.</p>
     </div>
 
     <div th:if="${fertig or fehlgeschlagen}" class="einrichtungsstand-vorschlag">
-        <p th:if="${fertig and not #lists.isEmpty(formPages)}" class="hinweis-text"
+        <p th:if="${fertig and not #lists.isEmpty(formPages)}" class="hinweis-text" style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;"
            th:text="#{ui.einrichtung.form_gefunden(${#strings.listJoin(formPages, ' · ')})}">
             Kontaktformular auf /kontakt gefunden
         </p>
-        <p th:if="${fehlgeschlagen}" class="fehler" th:text="${error}">Fehlermeldung</p>
-        <form th:action="@{/websites/{id}/einrichtung(id=${siteId})}" method="post" class="einrichtung-formular">
-            <div th:each="item : ${checks}" class="einrichtung-check">
-                <label>
-                    <input type="checkbox" name="aktiv" th:value="${item.type}" th:checked="${item.suggested}">
-                    <span th:text="#{${'check.' + item.type.name() + '.title'}}">Tote Links</span>
-                    <span class="text-gedaempft" th:text="${item.reason}">Grundprüfung, immer sinnvoll</span>
-                </label>
+        <p th:if="${fehlgeschlagen}" class="fehler" style="margin-bottom: 1rem;" th:text="${error}">Fehlermeldung</p>
+        <form th:action="@{/websites/{id}/einrichtung(id=${siteId})}" method="post" class="einrichtung-formular formular" style="background: transparent; border: none; padding: 0; max-width: 100%; box-shadow: none;">
+            <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem;">
+                <div th:each="item : ${checks}" class="einrichtung-check" style="padding: 0.85rem 1rem; background: var(--surface-subtle); border: 1px solid var(--border-subtle); border-radius: 8px;">
+                    <label style="display: flex; align-items: flex-start; gap: 0.75rem; cursor: pointer;">
+                        <input type="checkbox" name="aktiv" th:value="${item.type}" th:checked="${item.suggested}">
+                        <div>
+                            <span style="font-weight: 700; font-size: 0.95rem; color: var(--text-main); display: block;" th:text="#{${'check.' + item.type.name() + '.title'}}">Tote Links</span>
+                            <span class="text-gedaempft" style="font-size: 0.825rem; color: var(--text-muted);" th:text="${item.reason}">Grundprüfung, immer sinnvoll</span>
+                        </div>
+                    </label>
+                </div>
             </div>
             <div class="form-aktionen">
-                <button type="submit" class="button primär" th:text="#{ui.einrichtung.uebernehmen}">Übernehmen</button>
+                <button type="submit" class="btn-ui btn-ui-primary button primär" th:text="#{ui.einrichtung.uebernehmen}">Übernehmen</button>
             </div>
         </form>
-        <form th:if="${fehlgeschlagen}" th:action="@{/websites/{id}/einrichtung/neu(id=${siteId})}" method="post" class="inline-form">
-            <button type="submit" class="button sekundär" th:text="#{ui.einrichtung.erneut}">Erneut versuchen</button>
+        <form th:if="${fehlgeschlagen}" th:action="@{/websites/{id}/einrichtung/neu(id=${siteId})}" method="post" class="inline-form" style="margin-top: 0.75rem;">
+            <button type="submit" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.einrichtung.erneut}">Erneut versuchen</button>
         </form>
     </div>
 

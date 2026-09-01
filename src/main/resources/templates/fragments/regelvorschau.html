@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
-<div th:fragment="regelvorschau" class="regelvorschau">
-    <span class="treffer-text" th:text="#{ui.stummschaltungen.vorschau.treffer(${trefferAnzahl})}">Trifft aktuell auf 0 Feststellungen zu.</span>
+<div th:fragment="regelvorschau" class="regelvorschau" style="padding: 0.6rem 0.85rem; background: var(--surface-subtle); border-left: 3px solid #09090b; border-radius: 0 6px 6px 0;">
+    <span class="treffer-text" style="font-size: 0.85rem; color: var(--text-main); font-weight: 500;"
+          th:text="#{ui.stummschaltungen.vorschau.treffer(${trefferAnzahl})}">Trifft aktuell auf 0 Feststellungen zu.</span>
 </div>
 </body>
 </html>

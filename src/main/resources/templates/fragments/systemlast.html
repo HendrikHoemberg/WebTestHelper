@@ -1,19 +1,31 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
-<section id="systemlast" class="detail-bereich" th:fragment="systemlast">
-    <div class="abschnitt-ueberschrift-zeile">
-        <h2 th:text="#{ui.einstellungen.systemlast.titel}">Systemauslastung</h2>
+<section id="systemlast" class="card-box detail-bereich" th:fragment="systemlast" style="margin-top: 1.5rem;">
+    <div class="abschnitt-ueberschrift-zeile" style="border-bottom: 1px solid var(--border-subtle); margin-bottom: 1rem; padding-bottom: 0.5rem;">
+        <h2 style="margin: 0; border: none; padding: 0;" th:text="#{ui.einstellungen.systemlast.titel}">Systemauslastung</h2>
     </div>
-    <p class="kapazitaet-zeile"
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+        <strong style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Browser-Worker</strong>
+        <span style="font-family: var(--font-mono); font-size: 0.85rem; font-weight: 700;"
+              th:text="${systemlast.browserWorkersBusy()} + ' / ' + ${systemlast.browserWorkersTotal()} + ' belegt'">
+            1 / 4 belegt
+        </span>
+    </div>
+    <div class="capacity-bar-track" style="margin-bottom: 0.75rem;">
+        <div class="capacity-bar-fill"
+             th:style="'width: ' + (${systemlast.browserWorkersTotal() > 0 ? (systemlast.browserWorkersBusy() * 100 / systemlast.browserWorkersTotal()) : 0}) + '%;'"></div>
+    </div>
+    <p class="kapazitaet-zeile" style="font-size: 0.875rem; margin-bottom: 0.35rem;"
        th:text="#{ui.einstellungen.systemlast.browser(${systemlast.browserWorkersBusy()}, ${systemlast.browserWorkersTotal()})}">
         Browser-Arbeiter: 1 belegt von 4.
     </p>
-    <p class="hinweis-text"
+    <p class="hinweis-text" style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.25rem;"
        th:text="#{ui.einstellungen.systemlast.envvar('WTH_BROWSER_WORKERS')}">
         Umgebungsvariable: WTH_BROWSER_WORKERS
     </p>
-    <p class="hinweis-text" th:text="#{ui.einstellungen.systemlast.neustart}">
+    <p class="hinweis-text" style="font-size: 0.8rem; color: var(--text-muted); margin: 0;"
+       th:text="#{ui.einstellungen.systemlast.neustart}">
         Eine Änderung der Anzahl wird erst nach einem Neustart der Anwendung wirksam.
     </p>
 </section>

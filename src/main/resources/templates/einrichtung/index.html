@@ -7,12 +7,23 @@
 </head>
 <body>
 <main>
-    <header class="seiten-kopf">
+    <header class="page-header-bar seiten-kopf">
         <div>
-            <h1 th:text="#{ui.einrichtung.titel}">Website einrichten</h1>
-            <span class="text-gedaempft" th:text="${siteName}">Website Name</span>
+            <div class="breadcrumbs-trail">
+                <a th:href="@{/}">WebTestHelper</a>
+                <span>/</span>
+                <a th:href="@{/websites}">Websites</a>
+                <span>/</span>
+                <a th:href="@{/websites/{id}(id=${siteId})}" th:text="${siteName}">Website</a>
+                <span>/</span>
+                <span th:text="#{ui.einrichtung.titel}">Einrichtung</span>
+            </div>
+            <h1 class="page-main-title" th:text="#{ui.einrichtung.titel}">Website einrichten</h1>
+            <div style="margin-top: 0.25rem;">
+                <span class="text-gedaempft" style="font-weight: 600;" th:text="${siteName}">Website Name</span>
+            </div>
         </div>
-        <div class="seiten-kopf-aktionen">
+        <div class="header-actions-cluster seiten-kopf-aktionen">
             <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
                     th:data-hx-get="@{/hilfe/hinweis/{id}(id='einrichtung')}"
                     data-hx-target="next .hinweis" data-hx-swap="innerHTML">?</button>
@@ -20,15 +31,17 @@
         </div>
     </header>
 
-    <p class="hinweis-text" th:text="#{ui.einrichtung.einleitung}">
-        Wir untersuchen die Website kurz und schlagen Ihnen daraus die passenden Prüfungen vor.
-    </p>
+    <div class="card-box" style="max-width: 680px; margin: 0 auto 1.5rem;">
+        <p class="hinweis-text" style="font-size: 0.95rem; color: var(--text-body); margin-top: 0; margin-bottom: 1.25rem;" th:text="#{ui.einrichtung.einleitung}">
+            Wir untersuchen die Website kurz und schlagen Ihnen daraus die passenden Prüfungen vor.
+        </p>
 
-    <div th:replace="~{fragments/einrichtungsstand :: stand}"></div>
+        <div th:replace="~{fragments/einrichtungsstand :: stand}"></div>
 
-    <div class="form-aktionen">
-        <a th:href="@{/websites/{id}(id=${siteId})}" class="button sekundär"
-           th:text="#{ui.einrichtung.abbrechen}">Abbrechen</a>
+        <div class="form-aktionen" style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-subtle);">
+            <a th:href="@{/websites/{id}(id=${siteId})}" class="btn-ui btn-ui-secondary button sekundär"
+               th:text="#{ui.einrichtung.abbrechen}">Abbrechen</a>
+        </div>
     </div>
 </main>
 </body>
