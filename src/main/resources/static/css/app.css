@@ -273,17 +273,12 @@ body {
     min-height: 100vh;
 }
 
+.app-main-wrapper > main,
 .workspace-content {
     padding: 2rem 2.5rem 5rem;
     max-width: 1200px;
     width: 100%;
     margin: 0 auto;
-}
-
-main {
-    width: 100%;
-    margin: 0;
-    padding: 0;
 }
 
 /* Global Health & Status Banners */
