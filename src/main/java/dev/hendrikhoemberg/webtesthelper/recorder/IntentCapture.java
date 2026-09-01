@@ -5,6 +5,7 @@ import org.springframework.core.io.ClassPathResource;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -111,5 +112,50 @@ public final class IntentCapture {
         List<CapturedEvent> copy = new ArrayList<>(events);
         events.clear();
         return List.copyOf(copy);
+    }
+
+    /**
+     * Waits up to {@code timeout} until at least {@code minCount} events have been captured, then
+     * drains and returns them. Playwright delivers {@code exposeBinding} calls to this side
+     * asynchronously, so acting on the page and immediately draining can race the delivery.
+     *
+     * @return an unmodifiable list of captured events (may hold fewer than {@code minCount} on timeout)
+     */
+    public List<CapturedEvent> awaitEvents(int minCount, Duration timeout) {
+        long deadlineNanos = System.nanoTime() + timeout.toNanos();
+        while (events.size() < minCount && System.nanoTime() < deadlineNanos) {
+            sleepBriefly();
+        }
+        return drain();
+    }
+
+    /**
+     * Waits up to {@code timeout} until an event of the given {@code kind} has been captured, then
+     * drains and returns them. Useful when a single page action raises several events (a submit
+     * click raises both a click and a submit) and the caller cares about one specific kind.
+     *
+     * @return an unmodifiable list of captured events (possibly empty on timeout)
+     */
+    public List<CapturedEvent> awaitEvent(CapturedEvent.EventKind kind, Duration timeout) {
+        long deadlineNanos = System.nanoTime() + timeout.toNanos();
+        while (System.nanoTime() < deadlineNanos) {
+            boolean found;
+            synchronized (events) {
+                found = events.stream().anyMatch(e -> e.kind() == kind);
+            }
+            if (found) {
+                return drain();
+            }
+            sleepBriefly();
+        }
+        return drain();
+    }
+
+    private static void sleepBriefly() {
+        try {
+            Thread.sleep(5);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 }

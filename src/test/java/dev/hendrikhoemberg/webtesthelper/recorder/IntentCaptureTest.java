@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import dev.hendrikhoemberg.webtesthelper.support.SharedBrowser;
 
+import java.time.Duration;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -24,6 +25,8 @@ class IntentCaptureTest {
     private static BrowserContext context;
     private static Page page;
     private static IntentCapture capture;
+
+    private static final Duration WAIT = Duration.ofSeconds(10);
 
     @BeforeAll
     static void setUp() {
@@ -49,7 +52,7 @@ class IntentCaptureTest {
         capture.drain();
         page.locator("#btn-submit").click();
 
-        List<CapturedEvent> events = capture.drain();
+        List<CapturedEvent> events = capture.awaitEvents(1, WAIT);
         assertThat(events).hasSize(1);
 
         CapturedEvent event = events.getFirst();
@@ -74,7 +77,12 @@ class IntentCaptureTest {
         capture.drain();
         page.locator("#user-email").fill("alice@example.com");
 
-        List<CapturedEvent> events = capture.drain();
+        // Wait for the page-side capture script to observe the input, then drain — the binding
+        // delivery to this side is asynchronous, so polling the Java list alone races it.
+        page.waitForFunction("() => (window.__wth_capture_count__ || 0) >= 1",
+                null, new Page.WaitForFunctionOptions().setTimeout(30_000));
+
+        List<CapturedEvent> events = capture.awaitEvent(EventKind.INPUT, WAIT);
         assertThat(events).isNotEmpty();
 
         CapturedEvent lastEvent = events.getLast();
@@ -99,7 +107,7 @@ class IntentCaptureTest {
         capture.drain();
         page.locator("#country-select").selectOption("at");
 
-        List<CapturedEvent> events = capture.drain();
+        List<CapturedEvent> events = capture.awaitEvent(EventKind.CHANGE, WAIT);
         assertThat(events).isNotEmpty();
 
         CapturedEvent event = events.stream()
@@ -124,7 +132,7 @@ class IntentCaptureTest {
         capture.drain();
         page.locator("#sub-btn").click();
 
-        List<CapturedEvent> events = capture.drain();
+        List<CapturedEvent> events = capture.awaitEvent(EventKind.SUBMIT, WAIT);
         assertThat(events).isNotEmpty();
 
         CapturedEvent submitEvent = events.stream()
@@ -147,7 +155,7 @@ class IntentCaptureTest {
         capture.drain();
         page.locator("#child-icon").click();
 
-        List<CapturedEvent> events = capture.drain();
+        List<CapturedEvent> events = capture.awaitEvents(1, WAIT);
         assertThat(events).hasSize(1);
 
         CapturedEvent event = events.getFirst();
@@ -171,7 +179,7 @@ class IntentCaptureTest {
                 + "</body></html>");
         page.locator("#page2-btn").click();
 
-        List<CapturedEvent> events = capture.drain();
+        List<CapturedEvent> events = capture.awaitEvents(2, WAIT);
         assertThat(events).hasSize(2);
         assertThat(events.get(0).id()).isEqualTo("page1-btn");
         assertThat(events.get(0).textContent()).isEqualTo("Seite 1");
@@ -187,7 +195,7 @@ class IntentCaptureTest {
         capture.drain();
         page.locator("#drain-btn").click();
 
-        List<CapturedEvent> firstDrain = capture.drain();
+        List<CapturedEvent> firstDrain = capture.awaitEvents(1, WAIT);
         assertThat(firstDrain).hasSize(1);
 
         List<CapturedEvent> secondDrain = capture.drain();
@@ -205,7 +213,7 @@ class IntentCaptureTest {
         page.locator("#cy-btn").click();
         page.locator("#dt-btn").click();
 
-        List<CapturedEvent> events = capture.drain();
+        List<CapturedEvent> events = capture.awaitEvents(2, WAIT);
         assertThat(events).hasSize(2);
         assertThat(events.get(0).testId()).isEqualTo("cypress-btn");
         assertThat(events.get(1).testId()).isEqualTo("test-btn");
@@ -222,7 +230,7 @@ class IntentCaptureTest {
         capture.drain();
         page.locator("#labelledby-btn").click();
 
-        List<CapturedEvent> events = capture.drain();
+        List<CapturedEvent> events = capture.awaitEvents(1, WAIT);
         assertThat(events).hasSize(1);
         assertThat(events.getFirst().accessibleName()).isEqualTo("Vorname Nachname");
     }
@@ -236,7 +244,7 @@ class IntentCaptureTest {
         capture.drain();
         page.locator("#nav-link").click();
 
-        List<CapturedEvent> events = capture.drain();
+        List<CapturedEvent> events = capture.awaitEvents(1, WAIT);
         assertThat(events).hasSize(1);
         assertThat(events.getFirst().role()).isEqualTo("link");
         assertThat(events.getFirst().textContent()).isEqualTo("Zur Zielseite");
@@ -251,7 +259,7 @@ class IntentCaptureTest {
         capture.drain();
         page.locator("#message-box").fill("Hallo Welt");
 
-        List<CapturedEvent> events = capture.drain();
+        List<CapturedEvent> events = capture.awaitEvent(EventKind.INPUT, WAIT);
         assertThat(events).isNotEmpty();
         CapturedEvent lastEvent = events.getLast();
         assertThat(lastEvent.kind()).isEqualTo(EventKind.INPUT);

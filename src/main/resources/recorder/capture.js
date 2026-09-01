@@ -179,6 +179,9 @@
 
   function report(kind, el, valueOverride) {
     if (!el || el.nodeType !== Node.ELEMENT_NODE) return;
+    // Count every report on the page so tests (and the recorder) can wait for the capture script
+    // to have observed an event before draining it on the Java side, whose delivery is async.
+    window.__wth_capture_count__ = (window.__wth_capture_count__ || 0) + 1;
     try {
       const payload = {
         kind: kind,
