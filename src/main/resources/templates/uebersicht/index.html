@@ -5,47 +5,116 @@
 </head>
 <body>
 <main>
-    <header class="seiten-kopf">
-        <div class="abschnitt-ueberschrift-zeile">
-            <h1 th:text="#{ui.titel.uebersicht}">Übersicht</h1>
-            <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
-                    th:data-hx-get="@{/hilfe/hinweis/{id}(id='uebersicht')}"
-                    data-hx-target="next .hinweis" data-hx-swap="innerHTML">?</button>
-            <div class="hinweis" aria-live="polite"></div>
+    <!-- Page Context Header -->
+    <header class="page-header-bar seiten-kopf">
+        <div>
+            <div class="breadcrumbs-trail">
+                <a th:href="@{/}">WebTestHelper</a>
+                <span>/</span>
+                <span th:text="#{ui.titel.uebersicht}">Übersicht</span>
+            </div>
+            <div class="abschnitt-ueberschrift-zeile" style="border-bottom: none; margin-bottom: 0; padding-bottom: 0;">
+                <h1 class="page-main-title" th:text="#{ui.titel.uebersicht}">Übersicht</h1>
+                <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
+                        th:data-hx-get="@{/hilfe/hinweis/{id}(id='uebersicht')}"
+                        data-hx-target="next .hinweis" data-hx-swap="innerHTML">?</button>
+                <div class="hinweis" aria-live="polite"></div>
+            </div>
+        </div>
+        <div class="header-actions-cluster seiten-kopf-aktionen">
+            <a sec:authorize="hasRole('ADMIN')" th:href="@{/websites/neu}" class="btn-ui btn-ui-primary button primär">
+                <span th:replace="~{fragments/icons :: plus}"></span>
+                <span th:text="#{ui.websites.neu}">Neue Website anlegen</span>
+            </a>
         </div>
     </header>
 
-    <section class="uebersicht-kennzahlen">
-        <div class="kennzahl" th:text="#{ui.uebersicht.fehler(${uebersicht.totals.errors()})}">3 Fehler</div>
-        <div class="kennzahl">
-            <span th:if="${uebersicht.totals.warnings() == 1}"
-                  th:text="#{ui.uebersicht.warnung.einzahl}">1 Warnung</span>
-            <span th:if="${uebersicht.totals.warnings() != 1}"
-                  th:text="#{ui.uebersicht.warnung.mehrzahl(${uebersicht.totals.warnings()})}">0 Warnungen</span>
+    <!-- KPI Hero Metrics Strip -->
+    <section class="kpi-hero-grid uebersicht-kennzahlen">
+        <div class="kpi-card kennzahl">
+            <div class="kpi-eyebrow">
+                <span th:text="#{ui.schweregrad.ERROR}">Fehler</span>
+                <span class="status-dot-pulse" style="background: var(--status-error-dot);"></span>
+            </div>
+            <div class="kpi-number-row">
+                <span class="kpi-value" style="color: var(--status-error-dot);" th:text="${uebersicht.totals.errors()}">0</span>
+            </div>
+            <div class="kpi-subtext" th:text="#{ui.uebersicht.fehler(${uebersicht.totals.errors()})}">0 Fehler</div>
         </div>
-        <div class="kennzahl">
-            <span th:if="${uebersicht.totals.infos() == 1}"
-                  th:text="#{ui.uebersicht.hinweis.einzahl}">1 Hinweis</span>
-            <span th:if="${uebersicht.totals.infos() != 1}"
-                  th:text="#{ui.uebersicht.hinweis.mehrzahl(${uebersicht.totals.infos()})}">0 Hinweise</span>
+
+        <div class="kpi-card kennzahl">
+            <div class="kpi-eyebrow">
+                <span th:text="#{ui.schweregrad.WARN}">Warnungen</span>
+                <span class="status-dot-pulse" style="background: var(--status-warning-dot);"></span>
+            </div>
+            <div class="kpi-number-row">
+                <span class="kpi-value" style="color: var(--status-warning-dot);" th:text="${uebersicht.totals.warnings()}">0</span>
+            </div>
+            <div class="kpi-subtext">
+                <span th:if="${uebersicht.totals.warnings() == 1}"
+                      th:text="#{ui.uebersicht.warnung.einzahl}">1 Warnung</span>
+                <span th:if="${uebersicht.totals.warnings() != 1}"
+                      th:text="#{ui.uebersicht.warnung.mehrzahl(${uebersicht.totals.warnings()})}">0 Warnungen</span>
+            </div>
         </div>
-        <div class="kennzahl">
-            <span th:if="${uebersicht.runsInFlight() == 1}"
-                  th:text="#{ui.uebersicht.laeufe_laeuft.einzahl}">1 Lauf läuft</span>
-            <span th:if="${uebersicht.runsInFlight() != 1}"
-                  th:text="#{ui.uebersicht.laeufe_laeuft.mehrzahl(${uebersicht.runsInFlight()})}">2 Läufe laufen</span>
+
+        <div class="kpi-card kennzahl">
+            <div class="kpi-eyebrow">
+                <span th:text="#{ui.schweregrad.INFO}">Hinweise</span>
+                <span class="status-dot-pulse" style="background: var(--status-info-dot);"></span>
+            </div>
+            <div class="kpi-number-row">
+                <span class="kpi-value" style="color: var(--status-info-dot);" th:text="${uebersicht.totals.infos()}">0</span>
+            </div>
+            <div class="kpi-subtext">
+                <span th:if="${uebersicht.totals.infos() == 1}"
+                      th:text="#{ui.uebersicht.hinweis.einzahl}">1 Hinweis</span>
+                <span th:if="${uebersicht.totals.infos() != 1}"
+                      th:text="#{ui.uebersicht.hinweis.mehrzahl(${uebersicht.totals.infos()})}">0 Hinweise</span>
+            </div>
+        </div>
+
+        <div class="kpi-card kennzahl">
+            <div class="kpi-eyebrow">
+                <span>Aktive Läufe</span>
+                <span class="status-dot-pulse" style="background: var(--status-success-dot);" th:if="${uebersicht.runsInFlight() > 0}"></span>
+            </div>
+            <div class="kpi-number-row">
+                <span class="kpi-value" th:text="${uebersicht.runsInFlight()}">0</span>
+            </div>
+            <div class="kpi-subtext">
+                <span th:if="${uebersicht.runsInFlight() == 1}"
+                      th:text="#{ui.uebersicht.laeufe_laeuft.einzahl}">1 Lauf läuft</span>
+                <span th:if="${uebersicht.runsInFlight() != 1}"
+                      th:text="#{ui.uebersicht.laeufe_laeuft.mehrzahl(${uebersicht.runsInFlight()})}">2 Läufe laufen</span>
+            </div>
         </div>
     </section>
 
-    <p class="kapazitaet-zeile"
-       th:text="#{ui.uebersicht.kapazitaet(${uebersicht.capacity.browserWorkersBusy()},
-           ${uebersicht.capacity.browserWorkersTotal()},
-           ${uebersicht.capacity.queuedRuns()},
-           ${uebersicht.capacity.failedMails()},
-           ${uebersicht.capacity.schedulerThreads()})}">
-        Kapazität: 1/2 Browser-Arbeiter belegt · 4 Läufe in Warteschlange · 1 fehlgeschlagene Versendung · 5 Hintergrund-Aufgaben.
-    </p>
+    <!-- System Capacity & Background Info -->
+    <div class="card-box" style="margin-bottom: 2rem; padding: 1rem 1.25rem;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+            <strong style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Systemkapazität</strong>
+            <span style="font-family: var(--font-mono); font-size: 0.8rem; font-weight: 700;"
+                  th:text="${uebersicht.capacity.browserWorkersBusy()} + ' / ' + ${uebersicht.capacity.browserWorkersTotal()} + ' Worker belegt'">
+                0 / 2 Worker belegt
+            </span>
+        </div>
+        <div class="capacity-bar-track">
+            <div class="capacity-bar-fill"
+                 th:style="'width: ' + (${uebersicht.capacity.browserWorkersTotal() > 0 ? (uebersicht.capacity.browserWorkersBusy() * 100 / uebersicht.capacity.browserWorkersTotal()) : 0}) + '%;'"></div>
+        </div>
+        <p class="kapazitaet-zeile" style="margin-top: 0.6rem;"
+           th:text="#{ui.uebersicht.kapazitaet(${uebersicht.capacity.browserWorkersBusy()},
+               ${uebersicht.capacity.browserWorkersTotal()},
+               ${uebersicht.capacity.queuedRuns()},
+               ${uebersicht.capacity.failedMails()},
+               ${uebersicht.capacity.schedulerThreads()})}">
+            Kapazität: 1/2 Browser-Arbeiter belegt · 4 Läufe in Warteschlange · 1 fehlgeschlagene Versendung · 5 Hintergrund-Aufgaben.
+        </p>
+    </div>
 
+    <!-- Live Polling Target Tiles Grid -->
     <div th:replace="~{fragments/kacheln :: kacheln}"></div>
 </main>
 </body>
