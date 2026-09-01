@@ -7,61 +7,77 @@
 </head>
 <body>
 <main>
-    <header class="seiten-kopf">
+    <header class="page-header-bar seiten-kopf">
         <div>
-            <h1 th:text="#{ui.journey.edit.ueberschrift(${journey.name})}">Ablauf bearbeiten – Name</h1>
-            <a th:href="@{/websites/{id}(id=${site.siteId})}" th:text="${site.name}" class="basis-url-link">Website Name</a>
+            <div class="breadcrumbs-trail">
+                <a th:href="@{/}">WebTestHelper</a>
+                <span>/</span>
+                <a th:href="@{/websites}">Websites</a>
+                <span>/</span>
+                <a th:href="@{/websites/{id}(id=${site.siteId})}" th:text="${site.name}">Website</a>
+                <span>/</span>
+                <a th:href="@{/sites/{siteId}/journeys(siteId=${site.siteId})}">Abläufe</a>
+                <span>/</span>
+                <a th:href="@{/sites/{siteId}/journeys/{journeyId}(siteId=${site.siteId},journeyId=${journey.id})}" th:text="${journey.name}">Ablauf</a>
+                <span>/</span>
+                <span>Bearbeiten</span>
+            </div>
+            <h1 class="page-main-title" th:text="#{ui.journey.edit.ueberschrift(${journey.name})}">Ablauf bearbeiten – Name</h1>
+            <div style="margin-top: 0.25rem;">
+                <a th:href="@{/websites/{id}(id=${site.siteId})}" th:text="${site.name}" class="basis-url-link" style="font-weight: 600;">Website Name</a>
+            </div>
         </div>
-        <div class="seiten-kopf-aktionen">
-            <a th:href="@{/sites/{siteId}/journeys/{journeyId}(siteId=${site.siteId},journeyId=${journey.id})}" class="button sekundär" th:text="#{ui.journey.edit.zurueck_detail}">Zurück zu den Details</a>
-            <a th:href="@{/sites/{siteId}/journeys(siteId=${site.siteId})}" class="button sekundär" th:text="#{ui.journey.edit.zurueck_liste}">Zurück zur Übersicht</a>
+        <div class="header-actions-cluster seiten-kopf-aktionen">
+            <a th:href="@{/sites/{siteId}/journeys/{journeyId}(siteId=${site.siteId},journeyId=${journey.id})}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.journey.edit.zurueck_detail}">Zurück zu den Details</a>
+            <a th:href="@{/sites/{siteId}/journeys(siteId=${site.siteId})}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.journey.edit.zurueck_liste}">Zurück zur Übersicht</a>
         </div>
     </header>
 
-    <div th:if="${errorMessage}" class="detail-bereich warnung-kasten">
-        <strong th:text="#{ui.journey.edit.fehler}">Fehler beim Speichern</strong>
-        <p class="hinweis-text" th:text="${errorMessage}">Fehlermeldung</p>
+    <div th:if="${errorMessage}" class="detail-bereich warnung-kasten" style="background: var(--status-error-bg); border: 1px solid var(--status-error-border); border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1.5rem;">
+        <strong th:text="#{ui.journey.edit.fehler}" style="color: var(--status-error-text);">Fehler beim Speichern</strong>
+        <p class="hinweis-text" style="color: var(--status-error-text); margin: 0.25rem 0 0 0;" th:text="${errorMessage}">Fehlermeldung</p>
     </div>
 
     <form th:action="@{/sites/{siteId}/journeys/{journeyId}/bearbeiten(siteId=${site.siteId},journeyId=${journey.id})}"
           method="post"
-          class="formular">
+          class="formular" style="background: transparent; border: none; padding: 0; max-width: 100%; box-shadow: none;">
 
-        <section class="detail-bereich">
+        <section class="card-box detail-bereich" style="margin-bottom: 1.5rem;">
             <h2 th:text="#{ui.journey.edit.grunddaten.titel}">Grunddaten</h2>
             <div class="form-gruppe">
                 <label for="name" th:text="#{ui.journey.edit.name}">Name des Ablaufs</label>
-                <input type="text" id="name" name="name" th:value="${form.name}" required class="eingabe-feld">
+                <input type="text" id="name" name="name" th:value="${form.name}" required class="form-input">
             </div>
 
-            <div class="form-gruppe form-gruppe-checkbox">
-                <label>
-                    <input type="checkbox" name="enabled" value="true" th:checked="${form.enabled}">
+            <div class="form-gruppe form-gruppe-checkbox" style="margin-bottom: 0;">
+                <label style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    <input type="checkbox" name="enabled" value="true" th:checked="${form.enabled}" style="width: 1.1rem; height: 1.1rem;">
                     <input type="hidden" name="_enabled" value="on">
-                    <span th:text="#{ui.journey.edit.aktiviert}">Ablauf aktiviert</span>
+                    <span th:text="#{ui.journey.edit.aktiviert}" style="font-weight: 600;">Ablauf aktiviert</span>
                 </label>
-                <p class="hinweis-text" th:text="#{ui.journey.edit.aktiviert_hinweis}">
+                <p class="hinweis-text" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;" th:text="#{ui.journey.edit.aktiviert_hinweis}">
                     Deaktivierte Abläufe werden bei regulären Prüfläufen übersprungen.
                 </p>
             </div>
         </section>
 
-        <section class="detail-bereich">
-            <div class="abschnitt-ueberschrift-zeile">
-                <h2 th:text="#{ui.journey.edit.schritte.titel}">Schritte</h2>
+        <section class="card-box detail-bereich">
+            <div class="abschnitt-ueberschrift-zeile" style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); margin-bottom: 1rem; padding-bottom: 0.5rem;">
+                <h2 style="margin: 0; border: none; padding: 0;" th:text="#{ui.journey.edit.schritte.titel}">Schritte</h2>
                 <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
                         th:data-hx-get="@{/hilfe/hinweis/{id}(id='reisen')}"
                         data-hx-target="next .hinweis" data-hx-swap="innerHTML">?</button>
                 <div class="hinweis" aria-live="polite"></div>
             </div>
 
-            <p class="hinweis-text" th:text="#{ui.journey.edit.schritte.hinweis}">
+            <p class="hinweis-text" style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;" th:text="#{ui.journey.edit.schritte.hinweis}">
                 Passen Sie hier die Reihenfolge, Eingabewerte, Prüfungen und Optionen der einzelnen Schritte an.
             </p>
 
-            <div id="schritte-liste" class="schritte-editor-liste">
+            <div id="schritte-liste" class="schritte-editor-liste" style="display: flex; flex-direction: column; gap: 1rem;">
                 <div th:each="step, stat : ${form.steps}"
-                     class="schritt-editor-karte runder-kasten mb-3"
+                     class="schritt-editor-karte card-box mb-3"
+                     style="background: var(--surface-subtle); border: 1px solid var(--border-subtle); margin-bottom: 0; padding: 1rem 1.25rem;"
                      th:id="'step-card-' + ${stat.index}"
                      th:data-index="${stat.index}">
 
@@ -69,36 +85,36 @@
                     <input type="hidden" th:name="'steps[' + ${stat.index} + '].ordinal'" th:value="${stat.index}" class="step-ordinal-input">
                     <input type="hidden" th:name="'steps[' + ${stat.index} + '].action'" th:value="${step.action}">
 
-                    <div class="schritt-editor-kopf">
-                        <div class="schritt-editor-titel">
-                            <span class="schritt-nummer-badge" th:text="'#' + (${stat.index} + 1)">#1</span>
-                            <strong th:text="${step.action}" class="schritt-aktion-badge">GOTO</strong>
+                    <div class="schritt-editor-kopf" style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.75rem; margin-bottom: 0.75rem;">
+                        <div class="schritt-editor-titel" style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span class="type-pill-mono schritt-nummer-badge" th:text="'#' + (${stat.index} + 1)">#1</span>
+                            <strong th:text="${step.action}" class="schritt-aktion-badge" style="font-size: 0.95rem;">GOTO</strong>
                             <span th:if="${#lists.isEmpty(step.locatorCandidates)}" class="text-gedaempft ml-2">-</span>
-                            <span th:if="${not #lists.isEmpty(step.locatorCandidates)}" class="schritt-lokator-vorschau ml-2">
-                                <span class="status-badge status-inaktiv" th:text="${step.locatorCandidates[0].strategy}">TEST_ID</span>
-                                <code th:text="${step.locatorCandidates[0].value}">element</code>
+                            <span th:if="${not #lists.isEmpty(step.locatorCandidates)}" class="schritt-lokator-vorschau ml-2" style="display: inline-flex; align-items: center; gap: 0.35rem;">
+                                <span class="status-badge status-inaktiv" style="font-size: 0.7rem;" th:text="${step.locatorCandidates[0].strategy}">TEST_ID</span>
+                                <code class="code-pill" th:text="${step.locatorCandidates[0].value}">element</code>
                             </span>
                         </div>
-                        <div class="schritt-editor-aktionen">
-                            <button type="button" class="button button-klein sekundär btn-move-up" th:text="#{ui.journey.edit.schritte.nach_oben}" onclick="moveStepUp(this)">▲</button>
-                            <button type="button" class="button button-klein sekundär btn-move-down" th:text="#{ui.journey.edit.schritte.nach_unten}" onclick="moveStepDown(this)">▼</button>
-                            <button type="button" class="button button-klein gefahr btn-delete-step" th:text="#{ui.journey.edit.schritte.loeschen}" onclick="deleteStep(this)">✕</button>
+                        <div class="schritt-editor-aktionen" style="display: flex; align-items: center; gap: 0.35rem;">
+                            <button type="button" class="btn-ui btn-ui-secondary btn-ui-sm button button-klein sekundär btn-move-up" th:text="#{ui.journey.edit.schritte.nach_oben}" onclick="moveStepUp(this)">▲</button>
+                            <button type="button" class="btn-ui btn-ui-secondary btn-ui-sm button button-klein sekundär btn-move-down" th:text="#{ui.journey.edit.schritte.nach_unten}" onclick="moveStepDown(this)">▼</button>
+                            <button type="button" class="btn-ui btn-ui-danger btn-ui-sm button button-klein gefahr btn-delete-step" th:text="#{ui.journey.edit.schritte.loeschen}" onclick="deleteStep(this)">✕</button>
                         </div>
                     </div>
 
                     <div class="schritt-editor-felder mt-2">
-                        <div class="form-gruppe">
-                            <label th:text="#{ui.journey.edit.schritte.wert}">Wert / Eingabe / URL</label>
+                        <div class="form-gruppe" style="margin-bottom: 0.75rem;">
+                            <label style="font-size: 0.8rem;" th:text="#{ui.journey.edit.schritte.wert}">Wert / Eingabe / URL</label>
                             <input type="text" th:name="'steps[' + ${stat.index} + '].value'"
                                    th:value="${step.value}"
-                                   class="eingabe-feld"
+                                   class="form-input eingabe-feld"
                                    placeholder="z. B. https://example.com/ oder {{cred.login.password}}">
                         </div>
 
-                        <div class="form-gruppe-inline">
-                            <div class="form-gruppe">
-                                <label th:text="#{ui.journey.edit.schritte.pruefung_typ}">Prüfung (Assertion)</label>
-                                <select th:name="'steps[' + ${stat.index} + '].assertionType'" class="eingabe-feld">
+                        <div class="form-gruppe-inline" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 0.75rem;">
+                            <div class="form-gruppe" style="margin-bottom: 0;">
+                                <label style="font-size: 0.8rem;" th:text="#{ui.journey.edit.schritte.pruefung_typ}">Prüfung (Assertion)</label>
+                                <select th:name="'steps[' + ${stat.index} + '].assertionType'" class="form-select eingabe-feld">
                                     <option value="" th:selected="${step.assertionType == null}" th:text="#{ui.journey.edit.schritte.keine_pruefung}">-- Keine Prüfung --</option>
                                     <option value="TEXT_CONTAINS" th:selected="${step.assertionType != null and step.assertionType.name() == 'TEXT_CONTAINS'}">TEXT_CONTAINS (Text enthält)</option>
                                     <option value="VISIBLE" th:selected="${step.assertionType != null and step.assertionType.name() == 'VISIBLE'}">VISIBLE (Sichtbar)</option>
@@ -107,29 +123,29 @@
                                 </select>
                             </div>
 
-                            <div class="form-gruppe">
-                                <label th:text="#{ui.journey.edit.schritte.pruefung_erwartung}">Erwarteter Wert</label>
+                            <div class="form-gruppe" style="margin-bottom: 0;">
+                                <label style="font-size: 0.8rem;" th:text="#{ui.journey.edit.schritte.pruefung_erwartung}">Erwarteter Wert</label>
                                 <input type="text" th:name="'steps[' + ${stat.index} + '].assertionExpected'"
                                        th:value="${step.assertionExpected}"
-                                       class="eingabe-feld"
+                                       class="form-input eingabe-feld"
                                        placeholder="z. B. Willkommen oder https://...">
                             </div>
                         </div>
 
-                        <div class="form-gruppe-inline mt-2">
-                            <div class="form-gruppe form-gruppe-checkbox">
-                                <label>
+                        <div class="form-gruppe-inline mt-2" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+                            <div class="form-gruppe form-gruppe-checkbox" style="margin-bottom: 0;">
+                                <label style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer;">
                                     <input type="checkbox" th:name="'steps[' + ${stat.index} + '].optional'" value="true" th:checked="${step.optional}">
                                     <input type="hidden" th:name="'_steps[' + ${stat.index} + '].optional'" value="on">
-                                    <span th:text="#{ui.journey.edit.schritte.optional}">Optional (bei Fehlen nicht abbrechen)</span>
+                                    <span th:text="#{ui.journey.edit.schritte.optional}" style="font-size: 0.85rem;">Optional (bei Fehlen nicht abbrechen)</span>
                                 </label>
                             </div>
 
-                            <div class="form-gruppe">
-                                <label th:text="#{ui.journey.edit.schritte.timeout}">Zeitlimit (ms)</label>
+                            <div class="form-gruppe" style="margin-bottom: 0; display: flex; align-items: center; gap: 0.5rem;">
+                                <label style="font-size: 0.8rem; margin-bottom: 0;" th:text="#{ui.journey.edit.schritte.timeout}">Zeitlimit (ms)</label>
                                 <input type="number" th:name="'steps[' + ${stat.index} + '].timeoutMs'"
                                        th:value="${step.timeoutMs > 0 ? step.timeoutMs : 5000}"
-                                       min="500" max="60000" step="500" class="eingabe-feld-schmal">
+                                       min="500" max="60000" step="500" class="form-input eingabe-feld-schmal" style="max-width: 120px; font-variant-numeric: tabular-nums;">
                             </div>
                         </div>
                     </div>
@@ -137,9 +153,9 @@
             </div>
         </section>
 
-        <div class="form-aktionen">
-            <button type="submit" class="button primär" th:text="#{ui.journey.edit.speichern}">Änderungen speichern</button>
-            <a th:href="@{/sites/{siteId}/journeys/{journeyId}(siteId=${site.siteId},journeyId=${journey.id})}" class="button sekundär" th:text="#{ui.journey.edit.abbrechen}">Abbrechen</a>
+        <div class="form-aktionen" style="margin-top: 1.5rem;">
+            <button type="submit" class="btn-ui btn-ui-primary button primär" th:text="#{ui.journey.edit.speichern}">Änderungen speichern</button>
+            <a th:href="@{/sites/{siteId}/journeys/{journeyId}(siteId=${site.siteId},journeyId=${journey.id})}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.journey.edit.abbrechen}">Abbrechen</a>
         </div>
     </form>
 

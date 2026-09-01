@@ -7,76 +7,87 @@
 </head>
 <body>
 <main>
-    <header class="seiten-kopf">
+    <header class="page-header-bar seiten-kopf">
         <div>
-            <h1 th:text="${journey.name}">Ablauf Name</h1>
-            <a th:href="@{/websites/{id}(id=${site.siteId})}" th:text="${site.name}" class="basis-url-link">Website Name</a>
+            <div class="breadcrumbs-trail">
+                <a th:href="@{/}">WebTestHelper</a>
+                <span>/</span>
+                <a th:href="@{/websites}">Websites</a>
+                <span>/</span>
+                <a th:href="@{/websites/{id}(id=${site.siteId})}" th:text="${site.name}">Website</a>
+                <span>/</span>
+                <a th:href="@{/sites/{siteId}/journeys(siteId=${site.siteId})}">Abläufe</a>
+                <span>/</span>
+                <span th:text="${journey.name}">Ablauf Name</span>
+            </div>
+            <h1 class="page-main-title" th:text="${journey.name}">Ablauf Name</h1>
+            <div style="margin-top: 0.25rem;">
+                <a th:href="@{/websites/{id}(id=${site.siteId})}" th:text="${site.name}" class="basis-url-link" style="font-weight: 600;">Website Name</a>
+            </div>
         </div>
-        <div class="seiten-kopf-aktionen">
-            <a th:href="@{/sites/{siteId}/journeys/{journeyId}/bearbeiten(siteId=${site.siteId},journeyId=${journey.id})}" class="button primär" th:text="#{ui.journey.detail.bearbeiten}">Ablauf bearbeiten</a>
-            <a th:href="@{/sites/{siteId}/journeys(siteId=${site.siteId})}" class="button sekundär" th:text="#{ui.journey.detail.zurueck_liste}">Zurück zur Übersicht</a>
-            <a th:href="@{/websites/{id}(id=${site.siteId})}" class="button sekundär" th:text="#{ui.journey.detail.zurueck_website}">Zurück zur Website</a>
+        <div class="header-actions-cluster seiten-kopf-aktionen">
+            <a th:href="@{/sites/{siteId}/journeys/{journeyId}/bearbeiten(siteId=${site.siteId},journeyId=${journey.id})}" class="btn-ui btn-ui-primary button primär" th:text="#{ui.journey.detail.bearbeiten}">Ablauf bearbeiten</a>
+            <a th:href="@{/sites/{siteId}/journeys(siteId=${site.siteId})}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.journey.detail.zurueck_liste}">Zurück zur Übersicht</a>
+            <a th:href="@{/websites/{id}(id=${site.siteId})}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.journey.detail.zurueck_website}">Zurück zur Website</a>
         </div>
     </header>
 
-    <div class="detail-bereich">
-        <div class="abschnitt-ueberschrift-zeile">
-            <h2 th:text="#{ui.journey.detail.uebersicht}">Übersicht</h2>
+    <div class="card-box detail-bereich" style="margin-bottom: 1.5rem;">
+        <div class="abschnitt-ueberschrift-zeile" style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); margin-bottom: 1rem; padding-bottom: 0.5rem;">
+            <h2 style="margin: 0; border: none; padding: 0;" th:text="#{ui.journey.detail.uebersicht}">Übersicht</h2>
             <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
                     th:data-hx-get="@{/hilfe/hinweis/{id}(id='reisen')}"
                     data-hx-target="next .hinweis" data-hx-swap="innerHTML">?</button>
             <div class="hinweis" aria-live="polite"></div>
         </div>
         <dl class="schluessel-werte">
-            <div>
-                <dt th:text="#{ui.journey.detail.name}">Name</dt>
-                <dd th:text="${journey.name}">Anmeldung</dd>
-            </div>
-            <div>
-                <dt th:text="#{ui.journey.detail.status}">Status</dt>
-                <dd>
-                    <span th:if="${journey.enabled}" class="status-badge status-aktiv" th:text="#{ui.journey.status.aktiv}">Aktiv</span>
-                    <span th:unless="${journey.enabled}" class="status-badge status-inaktiv" th:text="#{ui.journey.status.inaktiv}">Inaktiv</span>
-                </dd>
-            </div>
-            <div>
-                <dt th:text="#{ui.journey.detail.schrittanzahl}">Anzahl Schritte</dt>
-                <dd th:text="${#lists.size(journey.steps)}">5</dd>
-            </div>
-            <div>
-                <dt th:text="#{ui.journey.detail.letzter_erfolg}">Letzter Erfolg</dt>
-                <dd>
-                    <span th:if="${health != null and health.lastSuccessAt != null}" th:text="${#temporals.format(health.lastSuccessAt, 'dd.MM.yyyy HH:mm')}">28.08.2026 10:00</span>
-                    <span th:if="${health == null or health.lastSuccessAt == null}" class="text-gedaempft" th:text="#{ui.journey.health.nie}">Noch nie</span>
-                </dd>
-            </div>
-            <div>
-                <dt th:text="#{ui.journey.detail.fehlschlaege}">Fehlschläge in Folge</dt>
-                <dd th:text="${health != null ? health.consecutiveFailures : 0}">0</dd>
-            </div>
-            <div>
-                <dt th:text="#{ui.journey.detail.drift_anzahl}">Selektor-Abweichungen (Drift)</dt>
-                <dd th:text="${health != null ? health.driftCount : 0}">0</dd>
-            </div>
+            <dt th:text="#{ui.journey.detail.name}">Name</dt>
+            <dd><strong th:text="${journey.name}">Anmeldung</strong></dd>
+            
+            <dt th:text="#{ui.journey.detail.status}">Status</dt>
+            <dd>
+                <span th:if="${journey.enabled}" class="status-badge badge-healthy status-aktiv">
+                    <span class="status-dot-pulse"></span>
+                    <span th:text="#{ui.journey.status.aktiv}">Aktiv</span>
+                </span>
+                <span th:unless="${journey.enabled}" class="status-badge status-inaktiv" th:text="#{ui.journey.status.inaktiv}">Inaktiv</span>
+            </dd>
+            
+            <dt th:text="#{ui.journey.detail.schrittanzahl}">Anzahl Schritte</dt>
+            <dd><span class="type-pill-mono" th:text="${#lists.size(journey.steps)}">5</span></dd>
+            
+            <dt th:text="#{ui.journey.detail.letzter_erfolg}">Letzter Erfolg</dt>
+            <dd>
+                <span th:if="${health != null and health.lastSuccessAt != null}" style="font-variant-numeric: tabular-nums;" th:text="${#temporals.format(health.lastSuccessAt, 'dd.MM.yyyy HH:mm')}">28.08.2026 10:00</span>
+                <span th:if="${health == null or health.lastSuccessAt == null}" class="text-gedaempft" th:text="#{ui.journey.health.nie}">Noch nie</span>
+            </dd>
+            
+            <dt th:text="#{ui.journey.detail.fehlschlaege}">Fehlschläge in Folge</dt>
+            <dd style="font-variant-numeric: tabular-nums;" th:text="${health != null ? health.consecutiveFailures : 0}">0</dd>
+            
+            <dt th:text="#{ui.journey.detail.drift_anzahl}">Selektor-Abweichungen (Drift)</dt>
+            <dd style="font-variant-numeric: tabular-nums;" th:text="${health != null ? health.driftCount : 0}">0</dd>
         </dl>
-        <div th:if="${health != null and health.needsRerecording}" class="feld-warnung runder-kasten mt-2">
-            <strong th:text="#{ui.journey.health.neuaufzeichnung_erforderlich}">Neuaufzeichnung erforderlich</strong>
-            <p class="hinweis-text" th:text="#{ui.journey.health.neuaufzeichnung_hinweis}">
-                Dieser Ablauf schlägt nach wiederholten Selektor-Abweichungen (Drift) fehl. Die gespeicherten Selektoren passen nicht mehr zur aktuellen Website. Bitte zeichnen Sie diesen Ablauf neu auf.
+        <div th:if="${health != null and health.needsRerecording}" class="feld-warnung runder-kasten mt-2" style="background: var(--status-warning-bg); border: 1px solid var(--status-warning-border); border-radius: 6px; padding: 0.75rem 1rem; margin-top: 1rem;">
+            <strong th:text="#{ui.journey.health.neuaufzeichnung_erforderlich}" style="color: var(--status-warning-text);">Neuaufzeichnung erforderlich</strong>
+            <p class="hinweis-text" style="color: var(--status-warning-text); margin: 0.25rem 0 0 0; font-size: 0.85rem;" th:text="#{ui.journey.health.neuaufzeichnung_hinweis}">
+                Dieser Ablauf schlägt nach wiederholten Selektor-Abweichungen (Drift) fehl.
             </p>
         </div>
     </div>
 
-    <section class="detail-bereich">
-        <h2 th:text="#{ui.journey.detail.schritte.titel}">Schritte</h2>
-        <div th:if="${#lists.isEmpty(journey.steps)}" class="leer-zustand">
-            <p th:text="#{ui.journey.detail.schritte.leer}">Dieser Ablauf enthält noch keine Schritte.</p>
+    <section class="card-box detail-bereich" style="padding: 0; overflow: hidden;">
+        <div style="padding: 1.25rem 1.5rem 1rem; border-bottom: 1px solid var(--border-subtle);">
+            <h2 style="margin: 0; border: none; padding: 0;" th:text="#{ui.journey.detail.schritte.titel}">Schritte</h2>
+        </div>
+        <div th:if="${#lists.isEmpty(journey.steps)}" class="leer-zustand" style="padding: 3rem 1.5rem; text-align: center;">
+            <p th:text="#{ui.journey.detail.schritte.leer}" style="color: var(--text-muted);">Dieser Ablauf enthält noch keine Schritte.</p>
         </div>
         <p th:if="${health != null and not #lists.isEmpty(health.lastDriftedStepIds)}"
-           class="hinweis-text" th:text="#{ui.journey.detail.schritte.drift_hinweis}">
+           class="hinweis-text" style="padding: 0.75rem 1.5rem; margin: 0; background: var(--surface-subtle); border-bottom: 1px solid var(--border-subtle); font-size: 0.825rem;" th:text="#{ui.journey.detail.schritte.drift_hinweis}">
             Mit „Abweichung“ markierte Schritte wurden beim letzten Prüflauf erst über einen nachrangigen Ausweich-Selektor gefunden.
         </p>
-        <table th:if="${not #lists.isEmpty(journey.steps)}" class="daten-tabelle">
+        <table th:if="${not #lists.isEmpty(journey.steps)}" class="daten-tabelle" style="margin-top: 0; border: none; border-radius: 0; box-shadow: none;">
             <thead>
                 <tr>
                     <th th:text="#{ui.journey.detail.schritte.nr}">#</th>
@@ -90,31 +101,31 @@
             </thead>
             <tbody>
                 <tr th:each="step : ${journey.steps}">
-                    <td th:text="${step.ordinal + 1}">1</td>
+                    <td style="font-variant-numeric: tabular-nums; font-weight: 700;" th:text="${step.ordinal + 1}">1</td>
                     <td>
                         <strong th:text="${step.action}">GOTO</strong>
                         <span th:if="${health != null and health.lastDriftedStepIds.contains(step.id)}"
-                              class="status-badge schritt-drift"
+                              class="status-badge badge-warning schritt-drift"
                               th:text="#{ui.journey.detail.schritte.drift}">Abweichung</span>
                     </td>
                     <td>
                         <div th:if="${#lists.isEmpty(step.locatorCandidates)}" class="text-gedaempft">-</div>
-                        <ul th:if="${not #lists.isEmpty(step.locatorCandidates)}" class="muster-liste">
-                            <li th:each="candidate : ${step.locatorCandidates}">
-                                <span class="status-badge status-inaktiv" th:text="${candidate.strategy}">TEST_ID</span>
-                                <code th:text="${candidate.value}">element-id</code>
+                        <ul th:if="${not #lists.isEmpty(step.locatorCandidates)}" class="muster-liste" style="list-style: none; padding-left: 0; display: flex; flex-direction: column; gap: 0.25rem;">
+                            <li th:each="candidate : ${step.locatorCandidates}" style="display: flex; align-items: center; gap: 0.35rem;">
+                                <span class="status-badge status-inaktiv" style="font-size: 0.7rem;" th:text="${candidate.strategy}">TEST_ID</span>
+                                <code class="code-pill" th:text="${candidate.value}">element-id</code>
                             </li>
                         </ul>
                     </td>
                     <td>
-                        <code th:if="${step.value != null and !step.value.isEmpty()}" th:text="${step.value}">https://example.com</code>
+                        <code class="code-pill" th:if="${step.value != null and !step.value.isEmpty()}" th:text="${step.value}">https://example.com</code>
                         <span th:if="${step.value == null or step.value.isEmpty()}" class="text-gedaempft">-</span>
                     </td>
                     <td>
                         <span th:if="${step.assertion != null}">
-                            <span th:text="${step.assertion.type}">VISIBLE</span>
+                            <span th:text="${step.assertion.type}" style="font-weight: 600;">VISIBLE</span>
                             <span th:if="${step.assertion.expected != null and !step.assertion.expected.isEmpty()}">
-                                : <code th:text="${step.assertion.expected}">text</code>
+                                : <code class="code-pill" th:text="${step.assertion.expected}">text</code>
                             </span>
                         </span>
                         <span th:if="${step.assertion == null}" class="text-gedaempft">-</span>
@@ -124,7 +135,7 @@
                         <span th:unless="${step.optional}" class="text-gedaempft" th:text="#{ui.journey.detail.schritte.nein}">Nein</span>
                     </td>
                     <td>
-                        <span th:text="${step.timeoutMs} + ' ms'">5000 ms</span>
+                        <span style="font-variant-numeric: tabular-nums;" th:text="${step.timeoutMs} + ' ms'">5000 ms</span>
                     </td>
                 </tr>
             </tbody>
