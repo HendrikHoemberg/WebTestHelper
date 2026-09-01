@@ -1,9 +1,13 @@
 # Project Instructions
 
 ## Commands
-- **Verify (everything)**: `./mvnw test` (full suite incl. `@Tag("browser")` acceptance tests; ~6 min)
 - **Single test**: `./mvnw test -Dtest=FindingListControllerTest`
-- **Fast loop**: `./mvnw test -Pfast` (skips browser group only)
+- **Verify (default)**: `./mvnw test -Pfast` — everything except the `@Tag("browser")` group; ~30 s
+- **Verify (full)**: `./mvnw test` — complete suite incl. browser acceptance tests; ~6 min
+- **When full is required instead of default**: the change can reach browser acceptance tests —
+  templates, `messages.properties`, controllers, layout/security, or the runner, crawler,
+  recorder, checks, journeys modules. Pure Java-domain changes (services, utils, repositories)
+  may finish with the default gate.
 - **Run app**: `WTH_ADMIN_PASSWORD=evalpass123 WTH_BASE_URL=http://localhost:9090 ./mvnw spring-boot:run -Dspring-boot.run.arguments=--server.port=9090`
   (needs Postgres: `docker run -d --name wth-pg -e POSTGRES_DB=webtesthelper -e POSTGRES_USER=webtesthelper -e POSTGRES_PASSWORD=webtesthelper -p 5432:5432 postgres:17-alpine`)
 
