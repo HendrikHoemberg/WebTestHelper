@@ -112,12 +112,34 @@ class DashboardControllerTest {
 
     @Test
     @WithMockUser(roles = "USER")
-    void dashboardShowsCapacityLineWithoutJargon() throws Exception {
+    void dashboardShowsFriendlyCapacityStatusWithoutJargon() throws Exception {
         when(dashboardService.overview()).thenReturn(sampleView());
+
+        // sampleView: 1 of 2 browser workers busy -> capacity available -> "Bereit für Prüfungen".
+        mvc.perform(get("/"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Bereit für Prüfungen")))
+                .andExpect(content().string(not(containsString("Browser-Arbeiter belegt"))))
+                .andExpect(content().string(not(containsString("Hintergrund-Aufgaben"))))
+                .andExpect(content().string(not(containsString("Warteschlange"))));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void dashboardShowsBusyStatusWhenAllWorkersBusy() throws Exception {
+        DashboardView busy = new DashboardView(
+                sampleView().tiles(),
+                sampleView().totals(),
+                sampleView().runsInFlight(),
+                sampleView().nextFireAt(),
+                false,
+                new SystemCapacity(2, 2, 4, 1, Duration.ofSeconds(30), 5));
+
+        when(dashboardService.overview()).thenReturn(busy);
 
         mvc.perform(get("/"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(not(containsString("Planungs-Threads"))));
+                .andExpect(content().string(containsString("Ausgelastet")));
     }
 
     @Test

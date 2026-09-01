@@ -115,11 +115,6 @@ class JourneyEditControllerTest {
                 .andExpect(content().string(containsString("VISIBLE")))
                 .andExpect(content().string(containsString("URL_MATCHES")))
                 .andExpect(content().string(containsString("COUNT")));
-
-        // Also test German route alias
-        mvc.perform(get("/websites/1/reisen/10/bearbeiten"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("journey/edit"));
     }
 
     @Test

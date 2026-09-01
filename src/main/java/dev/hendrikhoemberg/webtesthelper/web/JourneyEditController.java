@@ -51,7 +51,7 @@ public class JourneyEditController {
         this.siteService = Objects.requireNonNull(siteService, "siteService must not be null");
     }
 
-    @GetMapping({"/sites/{siteId}/journeys/{journeyId}/bearbeiten", "/websites/{siteId}/reisen/{journeyId}/bearbeiten"})
+    @GetMapping("/sites/{siteId}/journeys/{journeyId}/bearbeiten")
     public String editForm(@PathVariable("siteId") long siteId,
                            @PathVariable("journeyId") long journeyId,
                            Model model) {
@@ -67,7 +67,7 @@ public class JourneyEditController {
         return "journey/edit";
     }
 
-    @PostMapping({"/sites/{siteId}/journeys/{journeyId}/bearbeiten", "/websites/{siteId}/reisen/{journeyId}/bearbeiten"})
+    @PostMapping("/sites/{siteId}/journeys/{journeyId}/bearbeiten")
     public String updateJourney(@PathVariable("siteId") long siteId,
                                 @PathVariable("journeyId") long journeyId,
                                 @ModelAttribute("form") JourneyEditForm form,

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="de" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="#{ui.fehler.titel}">Fehler</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+    <main class="anmelde-seite">
+        <div class="anmelde-marke">
+            <div class="brand-icon-box" style="display: inline-flex; vertical-align: middle; margin-right: 0.5rem; background: #09090b; color: #ffffff;">W</div>
+            <span>WebTestHelper</span>
+        </div>
+        <div class="anmelde-karte" style="text-align: center;">
+            <h1 style="font-size: 1.4rem; margin-bottom: 0.75rem;"
+                th:text="${status != null && status == 404} ? #{ui.fehler.nicht_gefunden} : #{ui.fehler.allgemein}">Seite nicht gefunden</h1>
+            <p style="color: var(--text-muted); margin-bottom: 1.5rem;"
+               th:text="${status != null && status == 404} ? #{ui.fehler.nicht_gefunden.text} : #{ui.fehler.allgemein.text}">Die angeforderte Seite wurde nicht gefunden.</p>
+            <div class="form-aktionen">
+                <a th:href="@{/}" class="btn-ui btn-ui-primary button primär" th:text="#{ui.fehler.zurueck}">Zur Übersicht</a>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

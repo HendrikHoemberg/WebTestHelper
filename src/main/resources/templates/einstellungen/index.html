@@ -199,6 +199,8 @@
                 <button type="submit" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.einstellungen.imap.test}">Postfach prüfen</button>
             </form>
         </div>
+
+        <a th:href="@{/einstellungen/benutzer}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.nav.benutzer}">Benutzerverwaltung</a>
     </div>
 
     <div class="systemlast-bereich" th:replace="~{fragments/systemlast :: systemlast}"></div>

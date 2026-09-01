@@ -4,6 +4,7 @@ import dev.hendrikhoemberg.webtesthelper.findings.TriageValidationException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.context.MessageSource;
 import org.springframework.http.HttpStatus;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -26,7 +27,9 @@ public class WebExceptionHandler {
 
     @ExceptionHandler(IllegalArgumentException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public void handleIllegalArgumentException() {
+    public String handleIllegalArgumentException(Model model) {
+        model.addAttribute("status", 404);
+        return "error";
     }
 
     @ExceptionHandler(TriageValidationException.class)

@@ -20,6 +20,8 @@ all German UI copy in `src/main/resources/messages.properties`. Postgres + Flywa
 - German-only UI; message keys `ui.*`; no internal identifiers (enum names, `{0}` placeholders, raw ISO instants) in rendered HTML.
 - View tests: `@WebMvcTest` + MockMvc; assertions on text/markup, not on CSS.
 - Journey recorder steps carry multiple ranked locator candidates; keep 0/2/4 worker pool sizes untouched.
+- Desktop-only UI: mobile/responsive layout is out of scope. Do not add mobile breakpoints or a
+  collapsible sidebar; treat small-viewport findings as non-issues.
 
 ## Boundaries
 - Do not edit: `data/`, `target/`, `.env`, `compose.yaml` runtime volumes.

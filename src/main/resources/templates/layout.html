@@ -51,6 +51,10 @@
                     <span th:replace="~{fragments/icons :: settings}"></span>
                     <span th:text="#{ui.nav.einstellungen}">Einstellungen</span>
                 </a>
+                <a th:href="@{/einstellungen/benutzer}" class="nav-item-btn">
+                    <span th:replace="~{fragments/icons :: benutzer}"></span>
+                    <span th:text="#{ui.nav.benutzer}">Benutzerverwaltung</span>
+                </a>
                 <a th:href="@{/postausgang}" class="nav-item-btn">
                     <span th:replace="~{fragments/icons :: outbox}"></span>
                     <span th:text="#{ui.nav.postausgang}">Postausgang</span>

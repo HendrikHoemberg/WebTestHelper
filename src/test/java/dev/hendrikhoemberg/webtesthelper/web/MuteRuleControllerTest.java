@@ -266,6 +266,15 @@ class MuteRuleControllerTest extends AbstractPostgresTest {
 
     @Test
     @WithMockUser(roles = "USER")
+    void muteFormWithoutPattern_showsNeutralPreviewHintInsteadOfNull() throws Exception {
+        mvc.perform(get("/stummschaltungen"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Geben Sie ein Muster ein")))
+                .andExpect(content().string(not(containsString("null Feststellungen"))));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
     void auswahlListsOpenFindingsAsPrefillButtons() throws Exception {
         createFinding(siteA, "https://linkedin.com/user1", "/team");
         createFinding(siteA, "https://facebook.com/user2", "/archiv");

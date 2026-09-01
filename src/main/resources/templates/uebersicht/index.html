@@ -39,7 +39,7 @@
             <div class="kpi-number-row">
                 <span class="kpi-value" style="color: var(--status-error-dot);" th:text="${uebersicht.totals.errors()}">0</span>
             </div>
-            <div class="kpi-subtext" th:text="#{ui.uebersicht.fehler(${uebersicht.totals.errors()})}">0 Fehler</div>
+            <div class="kpi-subtext" th:text="#{ui.uebersicht.kpi.fehler}">Fehler</div>
         </div>
 
         <div class="kpi-card kennzahl">
@@ -50,12 +50,7 @@
             <div class="kpi-number-row">
                 <span class="kpi-value" style="color: var(--status-warning-dot);" th:text="${uebersicht.totals.warnings()}">0</span>
             </div>
-            <div class="kpi-subtext">
-                <span th:if="${uebersicht.totals.warnings() == 1}"
-                      th:text="#{ui.uebersicht.warnung.einzahl}">1 Warnung</span>
-                <span th:if="${uebersicht.totals.warnings() != 1}"
-                      th:text="#{ui.uebersicht.warnung.mehrzahl(${uebersicht.totals.warnings()})}">0 Warnungen</span>
-            </div>
+            <div class="kpi-subtext" th:text="${uebersicht.totals.warnings() == 1} ? #{ui.uebersicht.kpi.warnung.einzahl} : #{ui.uebersicht.kpi.warnung.mehrzahl}">Warnungen</div>
         </div>
 
         <div class="kpi-card kennzahl">
@@ -66,12 +61,7 @@
             <div class="kpi-number-row">
                 <span class="kpi-value" style="color: var(--status-info-dot);" th:text="${uebersicht.totals.infos()}">0</span>
             </div>
-            <div class="kpi-subtext">
-                <span th:if="${uebersicht.totals.infos() == 1}"
-                      th:text="#{ui.uebersicht.hinweis.einzahl}">1 Hinweis</span>
-                <span th:if="${uebersicht.totals.infos() != 1}"
-                      th:text="#{ui.uebersicht.hinweis.mehrzahl(${uebersicht.totals.infos()})}">0 Hinweise</span>
-            </div>
+            <div class="kpi-subtext" th:text="${uebersicht.totals.infos() == 1} ? #{ui.uebersicht.kpi.hinweis.einzahl} : #{ui.uebersicht.kpi.hinweis.mehrzahl}">Hinweise</div>
         </div>
 
         <div class="kpi-card kennzahl">
@@ -82,37 +72,22 @@
             <div class="kpi-number-row">
                 <span class="kpi-value" th:text="${uebersicht.runsInFlight()}">0</span>
             </div>
-            <div class="kpi-subtext">
-                <span th:if="${uebersicht.runsInFlight() == 1}"
-                      th:text="#{ui.uebersicht.laeufe_laeuft.einzahl}">1 Lauf läuft</span>
-                <span th:if="${uebersicht.runsInFlight() != 1}"
-                      th:text="#{ui.uebersicht.laeufe_laeuft.mehrzahl(${uebersicht.runsInFlight()})}">2 Läufe laufen</span>
-            </div>
+            <div class="kpi-subtext" th:text="${uebersicht.runsInFlight() == 1} ? #{ui.uebersicht.kpi.laeufe.einzahl} : #{ui.uebersicht.kpi.laeufe.mehrzahl}">läuft gerade</div>
         </div>
     </section>
 
-    <!-- System Capacity & Background Info -->
+    <!-- System Capacity: laienfreundlicher Status statt technischer Zähler -->
     <div class="card-box" style="margin-bottom: 2rem; padding: 1rem 1.25rem;">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem;">
             <strong style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);"
                     th:text="#{ui.uebersicht.systemkapazitaet}">Systemkapazität</strong>
-            <span style="font-family: var(--font-mono); font-size: 0.8rem; font-weight: 700;"
-                  th:text="#{ui.uebersicht.worker_belegt(${uebersicht.capacity.browserWorkersBusy()}, ${uebersicht.capacity.browserWorkersTotal()})}">
-                0 / 2 Worker belegt
-            </span>
+            <span th:if="${uebersicht.capacity.browserWorkersBusy() < uebersicht.capacity.browserWorkersTotal()}"
+                  class="status-badge badge-healthy"
+                  th:text="#{ui.uebersicht.kapazitaet.bereit}">Bereit für Prüfungen</span>
+            <span th:if="${uebersicht.capacity.browserWorkersBusy() >= uebersicht.capacity.browserWorkersTotal()}"
+                  class="status-badge badge-warning"
+                  th:text="#{ui.uebersicht.kapazitaet.ausgelastet}">Ausgelastet</span>
         </div>
-        <div class="capacity-bar-track">
-            <div class="capacity-bar-fill"
-                 th:style="'width: ' + (${uebersicht.capacity.browserWorkersTotal() > 0 ? (uebersicht.capacity.browserWorkersBusy() * 100 / uebersicht.capacity.browserWorkersTotal()) : 0}) + '%;'"></div>
-        </div>
-        <p class="kapazitaet-zeile" style="margin-top: 0.6rem;"
-           th:text="#{ui.uebersicht.kapazitaet(${uebersicht.capacity.browserWorkersBusy()},
-               ${uebersicht.capacity.browserWorkersTotal()},
-               ${uebersicht.capacity.queuedRuns()},
-               ${uebersicht.capacity.failedMails()},
-               ${uebersicht.capacity.schedulerThreads()})}">
-            Kapazität: 1/2 Browser-Arbeiter belegt · 4 Läufe in Warteschlange · 1 fehlgeschlagene Versendung · 5 Hintergrund-Aufgaben.
-        </p>
     </div>
 
     <!-- Live Polling Target Tiles Grid -->

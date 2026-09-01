@@ -30,7 +30,7 @@ public class JourneyController {
         this.journeyHealthService = journeyHealthService;
     }
 
-    @GetMapping({"/sites/{siteId}/journeys", "/websites/{siteId}/reisen"})
+    @GetMapping("/sites/{siteId}/journeys")
     public String list(@PathVariable("siteId") long siteId, Model model) {
         SiteContext site = siteService.contextFor(siteId);
         List<JourneyDefinition> journeys = journeyService.findBySite(siteId);
@@ -41,7 +41,7 @@ public class JourneyController {
         return "journey/list";
     }
 
-    @GetMapping({"/sites/{siteId}/journeys/{journeyId}", "/websites/{siteId}/reisen/{journeyId}"})
+    @GetMapping("/sites/{siteId}/journeys/{journeyId}")
     public String detail(@PathVariable("siteId") long siteId,
                          @PathVariable("journeyId") long journeyId,
                          Model model) {
