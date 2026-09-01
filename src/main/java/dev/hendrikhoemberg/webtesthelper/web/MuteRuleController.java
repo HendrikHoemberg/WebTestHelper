@@ -2,10 +2,15 @@ package dev.hendrikhoemberg.webtesthelper.web;
 
 import dev.hendrikhoemberg.webtesthelper.catalog.SiteService;
 import dev.hendrikhoemberg.webtesthelper.catalog.SiteSummary;
+import dev.hendrikhoemberg.webtesthelper.findings.Finding;
+import dev.hendrikhoemberg.webtesthelper.findings.FindingQuery;
+import dev.hendrikhoemberg.webtesthelper.findings.FindingService;
 import dev.hendrikhoemberg.webtesthelper.findings.MuteRule;
 import dev.hendrikhoemberg.webtesthelper.findings.MuteRuleForm;
 import dev.hendrikhoemberg.webtesthelper.findings.MuteRuleService;
 import dev.hendrikhoemberg.webtesthelper.model.CheckType;
+import dev.hendrikhoemberg.webtesthelper.model.ObservedStatus;
+import dev.hendrikhoemberg.webtesthelper.model.TriageStatus;
 import dev.hendrikhoemberg.webtesthelper.scheduling.ScheduleService;
 import org.springframework.context.MessageSource;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -24,9 +29,11 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -42,16 +49,19 @@ public class MuteRuleController {
     private final MuteRuleService muteRuleService;
     private final SiteService siteService;
     private final ScheduleService scheduleService;
+    private final FindingService findingService;
     private final MessageSource messageSource;
 
     public MuteRuleController(
             MuteRuleService muteRuleService,
             SiteService siteService,
             ScheduleService scheduleService,
+            FindingService findingService,
             MessageSource messageSource) {
         this.muteRuleService = muteRuleService;
         this.siteService = siteService;
         this.scheduleService = scheduleService;
+        this.findingService = findingService;
         this.messageSource = messageSource;
     }
 
@@ -151,6 +161,21 @@ public class MuteRuleController {
         int count = muteRuleService.countMatching(siteId, checkType, subjectPattern, locationPattern);
         model.addAttribute("trefferAnzahl", count);
         return "fragments/regelvorschau :: regelvorschau";
+    }
+
+    @GetMapping("/stummschaltungen/auswahl")
+    public String auswahl(
+            @RequestParam(name = "siteId", required = false) Long siteId,
+            Model model) {
+        model.addAttribute("siteGewaehlt", siteId != null);
+        Set<CheckType> zulaessig = EnumSet.complementOf(
+                EnumSet.of(CheckType.JOURNEY_STEP_FAILED, CheckType.SELECTOR_DRIFT));
+        List<Finding> findings = siteId == null ? List.of() : findingService.search(
+                new FindingQuery(siteId, Set.of(),
+                        Set.of(TriageStatus.UNTRIAGED, TriageStatus.ACKNOWLEDGED),
+                        ObservedStatus.ACTIVE, zulaessig, 1, 20)).findings();
+        model.addAttribute("auswahlFindings", findings);
+        return "fragments/stummschaltungsauswahl :: stummschaltungsauswahl";
     }
 
     private void checkGlobalRuleAdmin(Authentication authentication) {

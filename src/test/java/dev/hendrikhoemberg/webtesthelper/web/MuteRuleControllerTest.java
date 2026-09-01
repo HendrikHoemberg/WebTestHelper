@@ -254,6 +254,59 @@ class MuteRuleControllerTest extends AbstractPostgresTest {
 
     @Test
     @WithMockUser(roles = "USER")
+    void muteFormOffersPatternChipsAndDatalistSuggestions() throws Exception {
+        mvc.perform(get("/stummschaltungen"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("id=\"betreff-muster-vorschlaege\"")))
+                .andExpect(content().string(containsString("id=\"fundort-muster-vorschlaege\"")))
+                .andExpect(content().string(containsString("data-muster=\"*/archiv/*\"")))
+                .andExpect(content().string(containsString("data-muster=\"*linkedin.com*\"")))
+                .andExpect(content().string(containsString("Aus Feststellungen übernehmen")));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void auswahlListsOpenFindingsAsPrefillButtons() throws Exception {
+        createFinding(siteA, "https://linkedin.com/user1", "/team");
+        createFinding(siteA, "https://facebook.com/user2", "/archiv");
+
+        mvc.perform(get("/stummschaltungen/auswahl")
+                        .param("siteId", String.valueOf(siteA)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Tote Links")))
+                .andExpect(content().string(containsString("data-check-type=\"DEAD_LINK\"")))
+                .andExpect(content().string(containsString("data-location-muster=\"*/team*\"")))
+                .andExpect(content().string(containsString("data-location-muster=\"*/archiv*\"")));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void auswahlExcludesAlreadyMutedFindings() throws Exception {
+        createFinding(siteA, "https://linkedin.com/user1", "/team");
+        muteRuleService.create(new MuteRuleForm(
+                siteA, CheckType.DEAD_LINK, "*linkedin.com*", null, "bereits stumm",
+                now.plus(30, ChronoUnit.DAYS)), "alice", now);
+
+        mvc.perform(get("/stummschaltungen/auswahl")
+                        .param("siteId", String.valueOf(siteA)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Keine offenen Feststellungen")))
+                .andExpect(content().string(not(containsString("data-location-muster=\"*/team*\""))));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void auswahlWithoutSiteShowsHintInsteadOfFindings() throws Exception {
+        createFinding(siteA, "https://linkedin.com/user1", "/team");
+
+        mvc.perform(get("/stummschaltungen/auswahl"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Zuerst eine Website auswählen")))
+                .andExpect(content().string(not(containsString("data-location-muster"))));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
     void previewReturnsFragmentWithMatchingCount_andZeroForNoMatch() throws Exception {
         createFinding(siteA, "https://linkedin.com/user1", "/page1");
         createFinding(siteA, "https://linkedin.com/user2", "/page2");

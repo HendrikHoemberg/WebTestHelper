@@ -182,6 +182,9 @@ class SiteDetailControllerTest {
                 .andExpect(content().string(containsString("Puls-Prüfung")))
                 .andExpect(content().string(containsString("Vollständige Prüfung")))
                 .andExpect(content().string(containsString("Tiefenprüfung")))
+                .andExpect(content().string(containsString("Schneller täglicher Check der wichtigsten Seiten")))
+                .andExpect(content().string(containsString("Wöchentlicher Check der gesamten Website")))
+                .andExpect(content().string(containsString("Monatlicher Volltest inkl. Kontaktformular-Prüfung")))
                 .andExpect(content().string(containsString("Zeitpläne")))
                 // §13.1: the raw cron is an internal identifier and must not reach the reader's
                 // prose. The common case is a time of day, so no cron literal appears anywhere.

@@ -1,7 +1,7 @@
 # Project Instructions
 
 ## Commands
-- **Verify (everything)**: `./mvnw test` (full suite incl. `@Tag("browser")` acceptance tests; ~95 s)
+- **Verify (everything)**: `./mvnw test` (full suite incl. `@Tag("browser")` acceptance tests; ~6 min)
 - **Single test**: `./mvnw test -Dtest=FindingListControllerTest`
 - **Fast loop**: `./mvnw test -Pfast` (skips browser group only)
 - **Run app**: `WTH_ADMIN_PASSWORD=evalpass123 WTH_BASE_URL=http://localhost:9090 ./mvnw spring-boot:run -Dspring-boot.run.arguments=--server.port=9090`

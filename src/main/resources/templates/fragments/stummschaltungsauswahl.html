@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="stummschaltungsauswahl" class="feststellungsauswahl-inhalt"
+     style="padding: 0.75rem; background: var(--surface-subtle); border-left: 3px solid #09090b; border-radius: 0 6px 6px 0;">
+    <p th:if="${!siteGewaehlt}" class="hinweis-text" style="margin: 0; font-size: 0.8rem; color: var(--text-muted);"
+       th:text="#{ui.stummschaltungen.auswahl.keineWebsite}">Zuerst eine Website auswählen.</p>
+
+    <p th:if="${siteGewaehlt and #lists.isEmpty(auswahlFindings)}" class="hinweis-text"
+       style="margin: 0; font-size: 0.8rem; color: var(--text-muted);"
+       th:text="#{ui.stummschaltungen.auswahl.leer}">Keine offenen Feststellungen für diese Website.</p>
+
+    <div th:if="${siteGewaehlt and !#lists.isEmpty(auswahlFindings)}" style="display: flex; flex-direction: column; gap: 0.4rem;">
+        <p style="margin: 0 0 0.25rem 0; font-size: 0.8rem; font-weight: 600; color: var(--text-main);"
+           th:text="#{ui.stummschaltungen.auswahl.titel}">Offene Feststellungen</p>
+        <button th:each="f : ${auswahlFindings}" type="button"
+                class="btn-ui btn-ui-secondary btn-ui-sm button sekundär klein auswahl-eintrag"
+                th:attr="data-check-type=${f.type().name()},data-location-muster=${f.locationKey() == '*' ? '*' : '*/' + #strings.substring(f.locationKey(), 1) + '*'}"
+                onclick="var formEl=this.closest('form');var ct=formEl.querySelector('#checkType');var lo=formEl.querySelector('#locationPattern');ct.value=this.dataset.checkType;lo.value=this.dataset.locationMuster;ct.dispatchEvent(new Event('change',{bubbles:true}));lo.dispatchEvent(new Event('change',{bubbles:true}));return false;"
+                style="text-align: left; display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; width: 100%; justify-content: flex-start;">
+            <span class="status-badge"
+                  th:classappend="${f.severity().name() == 'ERROR' ? 'badge-failing' : (f.severity().name() == 'WARN' ? 'badge-warning' : 'status-inaktiv')}"
+                  th:text="#{${'ui.severity.' + f.severity().name()}}">Fehler</span>
+            <span th:text="#{${'check.' + f.type().name() + '.title'}}">Prüfungsart</span>
+            <span th:if="${f.locationKey() == '*'}" class="siteweit-badge" th:text="#{ui.befund.siteweit}">Website-weit</span>
+            <code th:if="${f.locationKey() != '*'}" class="code-pill" style="font-size: 0.75rem;" th:text="${f.locationKey()}">/pfad</code>
+        </button>
+    </div>
+</div>
+</body>
+</html>

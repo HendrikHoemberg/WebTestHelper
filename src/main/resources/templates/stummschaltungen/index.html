@@ -55,24 +55,67 @@
 
                 <div class="form-gruppe" style="margin-bottom: 0;">
                     <label for="subjectPattern" th:text="#{ui.stummschaltungen.neu.subject_pattern}">Betreff-Muster</label>
-                    <input type="text" id="subjectPattern" name="subjectPattern" class="form-input form-eingabe"
+                    <input type="text" id="subjectPattern" name="subjectPattern" class="form-input form-eingabe" list="betreff-muster-vorschlaege"
                            th:placeholder="#{ui.stummschaltungen.neu.subject_pattern.placeholder}"
                            th:attr="data-hx-get=@{/stummschaltungen/vorschau}"
                            data-hx-trigger="input changed delay:300ms, change"
                            data-hx-target="#regelvorschau"
                            data-hx-include="closest form">
+                    <datalist id="betreff-muster-vorschlaege">
+                        <option value="*linkedin.com*"></option>
+                        <option value="*twitter.com*"></option>
+                        <option value="*facebook.com*"></option>
+                        <option value="*instagram.com*"></option>
+                    </datalist>
+                    <div class="muster-chips" style="margin-top: 0.35rem; display: flex; flex-wrap: wrap; gap: 0.3rem;">
+                        <button type="button" class="code-pill" data-muster="*linkedin.com*"
+                                onclick="var f=document.getElementById('subjectPattern');f.value=this.dataset.muster;f.dispatchEvent(new Event('change',{bubbles:true}));return false;">*linkedin.com*</button>
+                        <button type="button" class="code-pill" data-muster="*twitter.com*"
+                                onclick="var f=document.getElementById('subjectPattern');f.value=this.dataset.muster;f.dispatchEvent(new Event('change',{bubbles:true}));return false;">*twitter.com*</button>
+                        <button type="button" class="code-pill" data-muster="*facebook.com*"
+                                onclick="var f=document.getElementById('subjectPattern');f.value=this.dataset.muster;f.dispatchEvent(new Event('change',{bubbles:true}));return false;">*facebook.com*</button>
+                        <button type="button" class="code-pill" data-muster="*instagram.com*"
+                                onclick="var f=document.getElementById('subjectPattern');f.value=this.dataset.muster;f.dispatchEvent(new Event('change',{bubbles:true}));return false;">*instagram.com*</button>
+                    </div>
                 </div>
 
                 <div class="form-gruppe" style="margin-bottom: 0;">
                     <label for="locationPattern" th:text="#{ui.stummschaltungen.neu.location_pattern}">Fundort-Muster</label>
-                    <input type="text" id="locationPattern" name="locationPattern" class="form-input form-eingabe"
+                    <input type="text" id="locationPattern" name="locationPattern" class="form-input form-eingabe" list="fundort-muster-vorschlaege"
                            th:placeholder="#{ui.stummschaltungen.neu.location_pattern.placeholder}"
                            th:attr="data-hx-get=@{/stummschaltungen/vorschau}"
                            data-hx-trigger="input changed delay:300ms, change"
                            data-hx-target="#regelvorschau"
                            data-hx-include="closest form">
+                    <datalist id="fundort-muster-vorschlaege">
+                        <option value="*/archiv/*"></option>
+                        <option value="*/blog/*"></option>
+                        <option value="*/intern/*"></option>
+                        <option value="*/admin/*"></option>
+                    </datalist>
+                    <div class="muster-chips" style="margin-top: 0.35rem; display: flex; flex-wrap: wrap; gap: 0.3rem;">
+                        <button type="button" class="code-pill" data-muster="*/archiv/*"
+                                onclick="var f=document.getElementById('locationPattern');f.value=this.dataset.muster;f.dispatchEvent(new Event('change',{bubbles:true}));return false;">*/archiv/*</button>
+                        <button type="button" class="code-pill" data-muster="*/blog/*"
+                                onclick="var f=document.getElementById('locationPattern');f.value=this.dataset.muster;f.dispatchEvent(new Event('change',{bubbles:true}));return false;">*/blog/*</button>
+                        <button type="button" class="code-pill" data-muster="*/intern/*"
+                                onclick="var f=document.getElementById('locationPattern');f.value=this.dataset.muster;f.dispatchEvent(new Event('change',{bubbles:true}));return false;">*/intern/*</button>
+                        <button type="button" class="code-pill" data-muster="*/admin/*"
+                                onclick="var f=document.getElementById('locationPattern');f.value=this.dataset.muster;f.dispatchEvent(new Event('change',{bubbles:true}));return false;">*/admin/*</button>
+                    </div>
                 </div>
             </div>
+
+            <div class="form-gruppe" style="margin-bottom: 1rem;">
+                <button type="button" class="btn-ui btn-ui-secondary btn-ui-sm button sekundär klein"
+                        th:attr="data-hx-get=@{/stummschaltungen/auswahl}"
+                        data-hx-include="closest form"
+                        data-hx-target="#feststellungsauswahl"
+                        data-hx-swap="innerHTML"
+                        th:text="#{ui.stummschaltungen.neu.aus_feststellungen}">Aus Feststellungen übernehmen</button>
+            </div>
+
+            <div id="feststellungsauswahl" style="margin-bottom: 1rem;"></div>
 
             <div id="regelvorschau" class="regelvorschau-container" style="margin-bottom: 1rem;">
                 <div th:replace="~{fragments/regelvorschau :: regelvorschau}"></div>

@@ -36,6 +36,13 @@
                 <span th:if="${#fields.hasErrors('baseUrl')}" th:errors="*{baseUrl}" class="feld-fehler">Fehler</span>
             </div>
 
+            <div th:attr="x-data=|{ erweitert: ${siteId != null} }|" style="margin: 1rem 0;">
+                <button type="button" @click="erweitert = !erweitert" class="btn-ui btn-ui-secondary btn-ui-sm button sekundär klein"
+                        th:text="#{ui.websites.formular.erweitert.schalter}">Erweiterte Einstellungen (optional)</button>
+                <p class="hinweis-text" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.35rem;"
+                   th:text="#{ui.websites.formular.erweitert.hinweis}">Diese Werte sind sinnvoll vorbefüllt. Nur ändern, wenn die Website besondere Anforderungen hat.</p>
+                <div x-show="erweitert" style="display: none; margin-top: 1rem;">
+
             <div class="form-gruppe form-gruppe-inline" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
                 <div>
                     <label for="maxPages" th:text="#{ui.websites.formular.maxPages}">Seitenlimit</label>
@@ -113,6 +120,9 @@
                     <p class="hinweis-text" style="font-size: 0.8rem; color: var(--text-muted);" th:text="#{ui.websites.formular.formTestMode.nurTief}">Abgeschickt wird ausschließlich beim monatlichen Tiefenlauf.</p>
                 </div>
                 <span th:if="${#fields.hasErrors('formTestMode')}" th:errors="*{formTestMode}" class="feld-fehler">Fehler</span>
+            </div>
+
+                </div>
             </div>
 
             <div class="form-aktionen" style="margin-top: 2rem;">

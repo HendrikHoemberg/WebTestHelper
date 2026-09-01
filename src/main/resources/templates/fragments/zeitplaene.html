@@ -18,6 +18,8 @@
           th:object="${zeitplaene}" method="post" class="zeitplaene-form">
         <div th:each="row,status : ${zeitplaene.zeitplaene}" class="zeitplan-karte" style="background: var(--surface-subtle); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
             <h3 style="font-size: 0.95rem; font-weight: 700; margin-top: 0; margin-bottom: 0.35rem; color: var(--text-main);" th:text="#{${'ui.runscope.' + row.scope}}">Puls-Prüfung</h3>
+            <p style="margin: 0 0 0.5rem 0; font-size: 0.85rem; color: var(--text-muted);"
+               th:text="#{${'ui.runscope.' + row.scope + '.kurz'}}">Schneller täglicher Check der wichtigsten Seiten</p>
             <p th:if="${!#strings.isEmpty(row.zeit)}" style="margin: 0 0 0.5rem 0; font-size: 0.85rem; color: var(--text-muted);"
                th:text="#{${'ui.zeitplan.beschreibung.' + row.scope}(${row.zeit})}">Täglich um 03:00 Uhr</p>
             <p th:if="${#strings.isEmpty(row.zeit)}" class="text-gedaempft" style="margin: 0 0 0.5rem 0; font-size: 0.85rem;"
