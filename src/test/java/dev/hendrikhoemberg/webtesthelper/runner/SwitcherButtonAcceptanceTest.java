@@ -42,6 +42,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Real FixtureSite, real PostgreSQL container, real BrowserPool and real CheckRegistry.
  */
 @Tag("browser")
+@org.junit.jupiter.api.parallel.ResourceLock("browser")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class SwitcherButtonAcceptanceTest extends AbstractPostgresTest {
 

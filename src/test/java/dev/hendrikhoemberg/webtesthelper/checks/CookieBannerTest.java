@@ -7,6 +7,7 @@ import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Playwright;
 import dev.hendrikhoemberg.webtesthelper.checks.CookieBanner.BannerOutcome;
 import dev.hendrikhoemberg.webtesthelper.support.FixtureSite;
+import dev.hendrikhoemberg.webtesthelper.support.SharedBrowser;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -17,27 +18,20 @@ import java.time.Duration;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Tag("browser")
+@org.junit.jupiter.api.parallel.ResourceLock("browser")
 class CookieBannerTest {
 
     private static FixtureSite site;
-    private static Playwright playwright;
     private static Browser browser;
 
     @BeforeAll
     static void start() {
         site = FixtureSite.start();
-        playwright = Playwright.create();
-        browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true));
+        browser = SharedBrowser.browser();
     }
 
     @AfterAll
     static void stop() {
-        if (browser != null) {
-            browser.close();
-        }
-        if (playwright != null) {
-            playwright.close();
-        }
         if (site != null) {
             site.close();
         }

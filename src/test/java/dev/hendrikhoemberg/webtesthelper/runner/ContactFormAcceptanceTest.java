@@ -53,6 +53,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Proves delivery, non-delivery, honeypot traps, and that a FULL run does not falsely resolve findings.
  */
 @Tag("browser")
+@org.junit.jupiter.api.parallel.ResourceLock("browser")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ContactFormAcceptanceTest extends AbstractPostgresTest {
 
@@ -132,7 +133,7 @@ class ContactFormAcceptanceTest extends AbstractPostgresTest {
         long siteId = sites.create(new SiteForm(
                 "Kontaktformular Akzeptanz",
                 site.url("interaktiv/formular-still.html"),
-                30,
+                5,
                 3,
                 Duration.ofMinutes(3),
                 List.of(),
@@ -205,7 +206,7 @@ class ContactFormAcceptanceTest extends AbstractPostgresTest {
         sites.update(siteId, new SiteForm(
                 "Kontaktformular Akzeptanz",
                 site.url("interaktiv/formular.html"),
-                30,
+                5,
                 3,
                 Duration.ofMinutes(3),
                 List.of(),

@@ -40,6 +40,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
+@org.junit.jupiter.api.parallel.ResourceLock("spring-context")
 @WebMvcTest(JourneyController.class)
 class JourneyControllerTest {
 

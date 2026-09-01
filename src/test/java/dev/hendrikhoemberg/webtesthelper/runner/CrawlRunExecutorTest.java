@@ -37,6 +37,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @Tag("browser")
+@org.junit.jupiter.api.parallel.ResourceLock("browser")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class CrawlRunExecutorTest extends AbstractPostgresTest {
 

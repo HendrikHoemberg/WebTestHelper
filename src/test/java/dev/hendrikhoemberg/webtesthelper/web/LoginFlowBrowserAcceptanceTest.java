@@ -6,6 +6,7 @@ import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Playwright;
 import com.microsoft.playwright.options.RequestOptions;
 import dev.hendrikhoemberg.webtesthelper.support.AbstractPostgresTest;
+import dev.hendrikhoemberg.webtesthelper.support.SharedBrowser;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -25,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * /error?continue (HTTP 500). Real browser, real Postgres, real server.
  */
 @Tag("browser")
+@org.junit.jupiter.api.parallel.ResourceLock("browser")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -36,7 +38,6 @@ class LoginFlowBrowserAcceptanceTest extends AbstractPostgresTest {
     @Autowired
     AppUserService appUserService;
 
-    Playwright playwright;
     Browser browser;
 
     @BeforeAll
@@ -50,18 +51,11 @@ class LoginFlowBrowserAcceptanceTest extends AbstractPostgresTest {
                 throw ex;
             }
         }
-        playwright = Playwright.create();
-        browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true));
+        browser = SharedBrowser.browser();
     }
 
     @AfterAll
     void closeBrowser() {
-        if (browser != null) {
-            browser.close();
-        }
-        if (playwright != null) {
-            playwright.close();
-        }
     }
 
     private String base() {

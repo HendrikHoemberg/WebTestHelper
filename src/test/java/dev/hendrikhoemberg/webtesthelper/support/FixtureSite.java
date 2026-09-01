@@ -324,12 +324,12 @@ public final class FixtureSite implements AutoCloseable {
                     sendHtml(exchange, 200, "<!doctype html><html lang=\"de\"><body><h1>Endlich</h1></body></html>");
                 }
                 case "/wackeliges-netz.html" -> {
-                    // The network-flap fixture: request 1 outlasts the test profile's 5s navigation
+                    // The network-flap fixture: request 1 outlasts the test profile's 1.5s navigation
                     // timeout (a transient transport failure), every later request serves the page.
                     // Without the retry the crawl marks this page unreachable.
                     int seen = requestCounts.get(path).get();
                     if (seen <= 1) {
-                        sleep(8000);
+                        sleep(2500);
                     }
                     sendHtml(exchange, 200, """
                             <!doctype html><html lang="de"><head><meta charset="utf-8">
@@ -440,12 +440,12 @@ public final class FixtureSite implements AutoCloseable {
     }
 
     /**
-     * Outlasts the test profile's navigation timeout (5s) with enough margin that a loaded
+     * Outlasts the test profile's navigation timeout (1.5s) with enough margin that a loaded
      * machine cannot make /langsam answer in time, and no more — every second beyond that is
      * paid twice, once per test that drives this slot.
      */
-    private static void sleep() {
-        sleep(8000);
+     private static void sleep() {
+        sleep(2500);
     }
 
     private static void sleep(long millis) {

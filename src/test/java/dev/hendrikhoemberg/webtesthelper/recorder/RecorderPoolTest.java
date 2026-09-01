@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @Tag("browser")
+@org.junit.jupiter.api.parallel.ResourceLock("browser")
 class RecorderPoolTest {
 
     private static FixtureSite site;

@@ -19,6 +19,7 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Tag("browser")
+@org.junit.jupiter.api.parallel.ResourceLock("browser")
 class SetupProbeTest {
 
     private static FixtureSite site;

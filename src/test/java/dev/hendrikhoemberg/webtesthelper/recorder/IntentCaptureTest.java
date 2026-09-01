@@ -10,14 +10,16 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import dev.hendrikhoemberg.webtesthelper.support.SharedBrowser;
+
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Tag("browser")
+@org.junit.jupiter.api.parallel.ResourceLock("browser")
 class IntentCaptureTest {
 
-    private static Playwright playwright;
     private static Browser browser;
     private static BrowserContext context;
     private static Page page;
@@ -25,8 +27,7 @@ class IntentCaptureTest {
 
     @BeforeAll
     static void setUp() {
-        playwright = Playwright.create();
-        browser = playwright.chromium().launch();
+        browser = SharedBrowser.browser();
         context = browser.newContext();
         capture = IntentCapture.install(context);
         page = context.newPage();
@@ -36,12 +37,6 @@ class IntentCaptureTest {
     static void tearDown() {
         if (context != null) {
             context.close();
-        }
-        if (browser != null) {
-            browser.close();
-        }
-        if (playwright != null) {
-            playwright.close();
         }
     }
 

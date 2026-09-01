@@ -1,6 +1,7 @@
 package dev.hendrikhoemberg.webtesthelper.runner;
 
 import com.microsoft.playwright.Browser;
+import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.BrowserType;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Playwright;
@@ -22,31 +23,31 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.UUID;
 
+import dev.hendrikhoemberg.webtesthelper.support.SharedBrowser;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Tag("browser")
+@org.junit.jupiter.api.parallel.ResourceLock("browser")
 class StepExecutorTest {
 
     private static FixtureSite fixtureSite;
-    private static Playwright playwright;
     private static Browser browser;
+    private static BrowserContext context;
     private static Page page;
 
     @BeforeAll
     static void start() {
         fixtureSite = FixtureSite.start();
-        playwright = Playwright.create();
-        browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true));
-        page = browser.newPage();
+        browser = SharedBrowser.browser();
+        context = browser.newContext();
+        page = context.newPage();
     }
 
     @AfterAll
     static void stop() {
-        if (browser != null) {
-            browser.close();
-        }
-        if (playwright != null) {
-            playwright.close();
+        if (context != null) {
+            context.close();
         }
         if (fixtureSite != null) {
             fixtureSite.close();

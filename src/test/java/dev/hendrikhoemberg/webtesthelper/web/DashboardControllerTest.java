@@ -38,6 +38,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * assertion is something a user would see or rely on — a label, a link, a poll cadence — not a
  * value the controller stuffed into {@code Model}.
  */
+@org.junit.jupiter.api.parallel.ResourceLock("spring-context")
 @WebMvcTest(DashboardController.class)
 class DashboardControllerTest {
 

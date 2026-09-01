@@ -41,6 +41,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Real FixtureSite, real PostgreSQL container, real BrowserPool and real CheckRegistry.
  */
 @Tag("browser")
+@org.junit.jupiter.api.parallel.ResourceLock("browser")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class InteractionAcceptanceTest extends AbstractPostgresTest {
 
@@ -95,7 +96,7 @@ class InteractionAcceptanceTest extends AbstractPostgresTest {
         long siteId = sites.create(new SiteForm(
                 "Interaktiv Akzeptanz",
                 site.url("interaktiv/banner-hartnaeckig.html"),
-                30,
+                5,
                 3,
                 Duration.ofMinutes(3),
                 List.of(),

@@ -46,6 +46,7 @@ import static org.mockito.Mockito.when;
  * that typed passwords never appear in step objects or persisted JSON.
  */
 @Tag("browser")
+@org.junit.jupiter.api.parallel.ResourceLock("browser")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class RecordToReplayAcceptanceTest extends AbstractPostgresTest {
 

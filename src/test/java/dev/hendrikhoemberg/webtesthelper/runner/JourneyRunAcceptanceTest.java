@@ -59,6 +59,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * </ol>
  */
 @Tag("browser")
+@org.junit.jupiter.api.parallel.ResourceLock("browser")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class JourneyRunAcceptanceTest extends AbstractPostgresTest {
 
@@ -123,7 +124,7 @@ class JourneyRunAcceptanceTest extends AbstractPostgresTest {
         long site1Id = sites.create(new SiteForm(
                 "Reise Portal",
                 fixtureSite.url("reise/start.html"),
-                30,
+                5,
                 3,
                 Duration.ofMinutes(3),
                 List.of(),
@@ -279,7 +280,7 @@ class JourneyRunAcceptanceTest extends AbstractPostgresTest {
         long site2Id = sites.create(new SiteForm(
                 "Zweites Reise Portal",
                 fixtureSite.url("index.html"),
-                30,
+                5,
                 3,
                 Duration.ofMinutes(3),
                 List.of(),

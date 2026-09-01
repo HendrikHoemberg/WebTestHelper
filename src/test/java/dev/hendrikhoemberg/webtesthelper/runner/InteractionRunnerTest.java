@@ -43,6 +43,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Tag("browser")
+@org.junit.jupiter.api.parallel.ResourceLock("browser")
 class InteractionRunnerTest {
 
     private static FixtureSite fixtureSite;

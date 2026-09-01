@@ -38,6 +38,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * classes sequentially in one JVM, so no other class interleaves with this one.
  */
 @Tag("browser")
+@org.junit.jupiter.api.parallel.ResourceLock("browser")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class CrawlServiceFullCrawlTest extends AbstractPostgresTest {
 

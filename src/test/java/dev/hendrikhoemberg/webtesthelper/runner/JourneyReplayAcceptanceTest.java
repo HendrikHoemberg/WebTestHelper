@@ -42,6 +42,7 @@ import static org.mockito.Mockito.mock;
  * Acceptance test for {@link JourneyReplayer} (§10.2, §10.4, Task 6).
  */
 @Tag("browser")
+@org.junit.jupiter.api.parallel.ResourceLock("browser")
 class JourneyReplayAcceptanceTest {
 
     private static FixtureSite fixtureSite;

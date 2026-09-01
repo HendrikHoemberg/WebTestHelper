@@ -30,6 +30,8 @@ import dev.hendrikhoemberg.webtesthelper.model.UrlVerifications;
 
 import java.time.Duration;
 import java.time.Instant;
+import dev.hendrikhoemberg.webtesthelper.support.SharedBrowser;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -38,28 +40,21 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @Tag("browser")
+@org.junit.jupiter.api.parallel.ResourceLock("browser")
 class ContactFormCheckTest {
 
     private static FixtureSite fixtureSite;
-    private static Playwright playwright;
     private static Browser browser;
     private final ContactFormCheck check = new ContactFormCheck();
 
     @BeforeAll
     static void start() {
         fixtureSite = FixtureSite.start();
-        playwright = Playwright.create();
-        browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true));
+        browser = SharedBrowser.browser();
     }
 
     @AfterAll
     static void stop() {
-        if (browser != null) {
-            browser.close();
-        }
-        if (playwright != null) {
-            playwright.close();
-        }
         if (fixtureSite != null) {
             fixtureSite.close();
         }

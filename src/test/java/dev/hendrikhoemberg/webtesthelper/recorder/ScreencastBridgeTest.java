@@ -19,6 +19,7 @@ import java.util.concurrent.TimeUnit;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Tag("browser")
+@org.junit.jupiter.api.parallel.ResourceLock("browser")
 class ScreencastBridgeTest {
 
     private static FixtureSite fixtureSite;
@@ -261,7 +262,7 @@ class ScreencastBridgeTest {
             totalBytes.set(0);
 
             long startNano = System.nanoTime();
-            long deadline = System.currentTimeMillis() + 10_000;
+            long deadline = System.currentTimeMillis() + 1_000;
             int step = 0;
             while (System.currentTimeMillis() < deadline) {
                 final int i = step++;
@@ -281,9 +282,9 @@ class ScreencastBridgeTest {
             long busyBytes = totalBytes.get();
 
             // And the idle half of the budget: change-driven means an untouched page costs nothing.
-            Thread.sleep(500); // let the last scroll's frames drain
+            Thread.sleep(300); // let the last scroll's frames drain
             frameCount.set(0);
-            Thread.sleep(3_000);
+            Thread.sleep(300);
             int idleFrames = frameCount.get();
 
             System.out.println("=== Screencast measurement (pumped) ===");

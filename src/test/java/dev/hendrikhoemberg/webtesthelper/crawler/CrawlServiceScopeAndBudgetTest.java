@@ -27,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * {@link CrawlServiceFullCrawlTest}, which pays for that crawl once.
  */
 @Tag("browser")
+@org.junit.jupiter.api.parallel.ResourceLock("browser")
 class CrawlServiceScopeAndBudgetTest extends AbstractPostgresTest {
 
     @Autowired CrawlService crawler;

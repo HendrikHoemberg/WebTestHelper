@@ -44,6 +44,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * literal form.
  */
 @Tag("browser")
+@org.junit.jupiter.api.parallel.ResourceLock("browser")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class PageCheckAcceptanceTest extends AbstractPostgresTest {
 

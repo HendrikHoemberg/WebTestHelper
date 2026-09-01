@@ -1,5 +1,6 @@
 package dev.hendrikhoemberg.webtesthelper.support;
 
+import org.junit.jupiter.api.parallel.ResourceLock;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.test.context.ActiveProfiles;
@@ -27,6 +28,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * execution would break it.
  */
 @SpringBootTest
+@ResourceLock("spring-context")
 @ActiveProfiles("test")
 public abstract class AbstractPostgresTest {
 

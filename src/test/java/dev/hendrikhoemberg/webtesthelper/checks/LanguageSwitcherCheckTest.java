@@ -21,34 +21,29 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import dev.hendrikhoemberg.webtesthelper.support.SharedBrowser;
+
 import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Tag("browser")
+@org.junit.jupiter.api.parallel.ResourceLock("browser")
 class LanguageSwitcherCheckTest {
 
     private static FixtureSite fixtureSite;
-    private static Playwright playwright;
     private static Browser browser;
     private final LanguageSwitcherCheck check = new LanguageSwitcherCheck();
 
     @BeforeAll
     static void start() {
         fixtureSite = FixtureSite.start();
-        playwright = Playwright.create();
-        browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true));
+        browser = SharedBrowser.browser();
     }
 
     @AfterAll
     static void stop() {
-        if (browser != null) {
-            browser.close();
-        }
-        if (playwright != null) {
-            playwright.close();
-        }
         if (fixtureSite != null) {
             fixtureSite.close();
         }

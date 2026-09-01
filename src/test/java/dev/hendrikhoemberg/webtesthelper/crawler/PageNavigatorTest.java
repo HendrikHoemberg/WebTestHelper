@@ -12,6 +12,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Tag("browser")
+@org.junit.jupiter.api.parallel.ResourceLock("browser")
 class PageNavigatorTest {
 
     private static FixtureSite site;
@@ -23,9 +24,9 @@ class PageNavigatorTest {
     static void start() throws Exception {
         site = FixtureSite.start();
         artifacts = Files.createTempDirectory("wth-navigator");
-        // Matches application-test.properties. The fixture's /langsam sleeps 8s, so the
+        // Matches application-test.properties. The fixture's /langsam sleeps 2.5s, so the
         // timeout case still fires with margin, and no real fixture page comes close.
-        CrawlerProperties properties = new CrawlerProperties(1, 10, Duration.ofSeconds(5),
+        CrawlerProperties properties = new CrawlerProperties(1, 10, Duration.ofMillis(1500),
                 Duration.ZERO, artifacts, true, false);
         pool = new BrowserPool(properties);
         navigator = new PageNavigator(properties, new HostThrottle());
