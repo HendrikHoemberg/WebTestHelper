@@ -81,14 +81,14 @@
     <!-- Main Workspace Container -->
     <div class="app-main-wrapper">
         <!-- Global Health Banners -->
-        <div th:if="${mailFailures != null && mailFailures > 0}" class="system-banner warnung" role="alert">
+        <div th:if="${mailFailures != null && mailFailures > 0}" class="gesundheits-banner warnung system-banner" role="alert">
             <div class="banner-msg">
                 <span th:replace="~{fragments/icons :: alert}"></span>
                 <span th:text="#{ui.banner.mail_fehler(${mailFailures})}">Beim E-Mail-Versand sind Fehler aufgetreten.</span>
             </div>
             <a th:href="@{/postausgang}" class="banner-link" th:text="#{ui.banner.postausgang_link}">Zum Postausgang</a>
         </div>
-        <div th:if="${schedulingPaused}" class="system-banner info" role="status">
+        <div th:if="${schedulingPaused}" class="gesundheits-banner info system-banner" role="status">
             <div class="banner-msg">
                 <span th:replace="~{fragments/icons :: alert}"></span>
                 <span th:text="#{ui.banner.planung_pausiert}">Die Planung ist angehalten. Es startet kein Prüflauf von selbst.</span>
