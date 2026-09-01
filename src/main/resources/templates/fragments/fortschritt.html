@@ -5,16 +5,22 @@
      th:attr="hx-get=@{/laeufe/{id}/fortschritt(id=${run.id})}"
      hx-trigger="every 3s"
      hx-swap="outerHTML"
-     class="fortschritt-kasten">
-    <div class="fortschritt-kopf">
+     class="card-box fortschritt-kasten" style="border-left: 4px solid var(--status-info-dot);">
+    <div class="fortschritt-kopf" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
         <span class="status-badge"
-              th:classappend="${run.status.name() == 'COMPLETED' ? 'status-aktiv' : (run.status.name() == 'FAILED' ? 'severity-CRITICAL' : 'status-inaktiv')}"
-              th:text="#{${'ui.runstatus.' + run.status}}">Läuft</span>
-        <span th:text="#{ui.lauf.fortschritt.seiten(${run.pagesVisited})}">0 Seiten geprüft</span>
+              th:classappend="${run.status.name() == 'COMPLETED' ? 'badge-healthy status-aktiv' : (run.status.name() == 'FAILED' ? 'badge-failing severity-CRITICAL' : 'badge-running status-inaktiv')}">
+            <span class="status-dot-pulse"></span>
+            <span th:text="#{${'ui.runstatus.' + run.status}}">Läuft</span>
+        </span>
+        <span style="font-family: var(--font-mono); font-size: 0.85rem; font-weight: 700; color: var(--text-main);"
+              th:text="#{ui.lauf.fortschritt.seiten(${run.pagesVisited})}">0 Seiten geprüft</span>
     </div>
-    <p th:if="${run.status.name() == 'QUEUED'}" th:text="#{ui.lauf.fortschritt.wartet}">Wartet auf Ausführung...</p>
-    <p th:if="${run.status.name() == 'RUNNING'}" th:text="#{ui.lauf.fortschritt.laeuft}">Prüflauf wird ausgeführt...</p>
-    <button type="button" class="button sekundär" @click="$dispatch('abbrechen-offen')"
+    <div class="capacity-bar-track" style="margin-bottom: 0.75rem;">
+        <div class="capacity-bar-fill" style="width: 60%; animation: pulse-ring 2s infinite;"></div>
+    </div>
+    <p th:if="${run.status.name() == 'QUEUED'}" style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.75rem;" th:text="#{ui.lauf.fortschritt.wartet}">Wartet auf Ausführung...</p>
+    <p th:if="${run.status.name() == 'RUNNING'}" style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.75rem;" th:text="#{ui.lauf.fortschritt.laeuft}">Prüflauf wird ausgeführt...</p>
+    <button type="button" class="btn-ui btn-ui-danger btn-ui-sm button sekundär" @click="$dispatch('abbrechen-offen')"
             th:text="#{ui.lauf.abbrechen.button}">Lauf abbrechen</button>
 </div>
 </body>

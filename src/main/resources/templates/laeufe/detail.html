@@ -7,18 +7,29 @@
 </head>
 <body>
 <main>
-    <div th:if="${flashMessage}" class="hinweis" th:text="${flashMessage}">Erfolgsmeldung</div>
+    <div th:if="${flashMessage}" class="hinweis" style="margin-bottom: 1.5rem;" th:text="${flashMessage}">Erfolgsmeldung</div>
 
-    <header class="seiten-kopf">
+    <header class="page-header-bar seiten-kopf">
         <div>
-            <h1 th:text="#{ui.lauf.detail.titel(${run.id})}">Prüflauf #101</h1>
-            <a th:href="@{/websites/{id}(id=${site.siteId})}" th:text="${site.name}" class="basis-url-link">Website Name</a>
-            <span class="text-gedaempft">·</span>
-            <a th:href="${site.baseUrl.value}" th:text="${site.baseUrl.value}" target="_blank" rel="noopener noreferrer" class="basis-url-link">https://example.com/</a>
+            <div class="breadcrumbs-trail">
+                <a th:href="@{/}">WebTestHelper</a>
+                <span>/</span>
+                <a th:href="@{/websites}">Websites</a>
+                <span>/</span>
+                <a th:href="@{/websites/{id}(id=${site.siteId})}" th:text="${site.name}">Website</a>
+                <span>/</span>
+                <span th:text="#{ui.lauf.detail.titel(${run.id})}">Prüflauf #101</span>
+            </div>
+            <h1 class="page-main-title" th:text="#{ui.lauf.detail.titel(${run.id})}">Prüflauf #101</h1>
+            <div style="margin-top: 0.25rem;">
+                <a th:href="@{/websites/{id}(id=${site.siteId})}" th:text="${site.name}" class="basis-url-link" style="font-weight: 600;">Website Name</a>
+                <span class="text-gedaempft" style="margin: 0 0.35rem;">·</span>
+                <a th:href="${site.baseUrl.value}" th:text="${site.baseUrl.value}" target="_blank" rel="noopener noreferrer" class="basis-url-link" style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-muted);">https://example.com/</a>
+            </div>
         </div>
-        <div class="seiten-kopf-aktionen">
-            <a th:href="@{/websites/{id}/befunde(id=${site.siteId})}" class="button sekundär" th:text="#{ui.lauf.alle_befunde}">Alle Feststellungen</a>
-            <a th:href="@{/websites/{id}(id=${site.siteId})}" class="button sekundär" th:text="#{ui.lauf.zurueck_zur_website}">Zurück zur Website</a>
+        <div class="header-actions-cluster seiten-kopf-aktionen">
+            <a th:href="@{/websites/{id}/befunde(id=${site.siteId})}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.lauf.alle_befunde}">Alle Feststellungen</a>
+            <a th:href="@{/websites/{id}(id=${site.siteId})}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.lauf.zurueck_zur_website}">Zurück zur Website</a>
         </div>
     </header>
 
@@ -29,33 +40,33 @@
 
     <!-- Abbrechen (nur bei wartenden oder laufenden Läufen) -->
     <section th:if="${run.status.name() == 'QUEUED' or run.status.name() == 'RUNNING'}"
-             class="detail-bereich" x-data="{ offen: false }" @abbrechen-offen.window="offen = true">
+             class="card-box detail-bereich" x-data="{ offen: false }" @abbrechen-offen.window="offen = true">
         <h2 th:text="#{ui.lauf.abbrechen.titel}">Lauf abbrechen</h2>
         <div class="ausgangsbestand-zeile">
-            <button type="button" @click="offen = !offen" class="button sekundär"
+            <button type="button" @click="offen = !offen" class="btn-ui btn-ui-danger button sekundär"
                     th:text="#{ui.lauf.abbrechen.button}">Lauf abbrechen</button>
         </div>
-        <div x-show="offen" class="ausgangsbestand-panel" style="display: none; margin-top: 1rem;">
-            <p th:text="#{ui.lauf.abbrechen.folge}">
+        <div x-show="offen" class="ausgangsbestand-panel" style="display: none; margin-top: 1rem; padding: 1rem; background: var(--status-warning-bg); border: 1px solid var(--status-warning-border); border-radius: 8px;">
+            <p th:text="#{ui.lauf.abbrechen.folge}" style="margin-top: 0; color: var(--status-warning-text); font-size: 0.9rem;">
                 Der Prüflauf wird gestoppt, sobald der laufende Schritt beendet ist...
             </p>
-            <form th:action="@{/laeufe/{id}/abbrechen(id=${run.id})}" method="post" class="inline-form">
-                <button type="submit" class="button primär" th:text="#{ui.lauf.abbrechen.bestaetigen}">Jetzt abbrechen</button>
-                <button type="button" @click="offen = false" class="button sekundär"
+            <form th:action="@{/laeufe/{id}/abbrechen(id=${run.id})}" method="post" class="inline-form" style="display: flex; gap: 0.5rem;">
+                <button type="submit" class="btn-ui btn-ui-danger button primär" th:text="#{ui.lauf.abbrechen.bestaetigen}">Jetzt abbrechen</button>
+                <button type="button" @click="offen = false" class="btn-ui btn-ui-secondary button sekundär"
                         th:text="#{ui.lauf.ausgangsbestand.abbrechen}">Abbrechen</button>
             </form>
         </div>
     </section>
 
     <!-- Übersicht / Metadaten -->
-    <section class="detail-bereich">
+    <section class="card-box detail-bereich">
         <h2 th:text="#{ui.lauf.uebersicht}">Übersicht</h2>
         <dl class="schluessel-werte">
             <div>
                 <dt th:text="#{ui.lauf.tabelle.status}">Status</dt>
                 <dd>
                     <span class="status-badge"
-                          th:classappend="${run.status.name() == 'COMPLETED' ? 'status-aktiv' : (run.status.name() == 'FAILED' ? 'severity-CRITICAL' : 'status-inaktiv')}"
+                          th:classappend="${run.status.name() == 'COMPLETED' ? 'badge-healthy status-aktiv' : (run.status.name() == 'FAILED' ? 'badge-failing severity-CRITICAL' : 'status-inaktiv')}"
                           th:text="#{${'ui.runstatus.' + run.status}}">Abgeschlossen</span>
                 </dd>
             </div>
@@ -65,71 +76,71 @@
             </div>
             <div>
                 <dt th:text="#{ui.lauf.tabelle.umfang}">Umfang</dt>
-                <dd th:text="#{${'ui.runscope.' + run.scope}}">Vollständig</dd>
+                <dd><span class="type-pill-mono" th:text="#{${'ui.runscope.' + run.scope}}">Vollständig</span></dd>
             </div>
             <div th:if="${run.startedAt != null}">
                 <dt th:text="#{ui.lauf.tabelle.gestartet}">Gestartet</dt>
-                <dd th:text="${#temporals.format(run.startedAt, 'dd.MM.yyyy HH:mm')}">25.08.2026 12:00</dd>
+                <dd style="font-variant-numeric: tabular-nums;" th:text="${#temporals.format(run.startedAt, 'dd.MM.yyyy HH:mm')}">25.08.2026 12:00</dd>
             </div>
             <div th:if="${run.finishedAt != null}">
                 <dt th:text="#{ui.lauf.tabelle.beendet}">Beendet</dt>
-                <dd th:text="${#temporals.format(run.finishedAt, 'dd.MM.yyyy HH:mm')}">25.08.2026 12:00</dd>
+                <dd style="font-variant-numeric: tabular-nums;" th:text="${#temporals.format(run.finishedAt, 'dd.MM.yyyy HH:mm')}">25.08.2026 12:00</dd>
             </div>
         </dl>
     </section>
 
     <!-- Abdeckung -->
-    <section th:if="${run.status.name() == 'COMPLETED' or run.status.name() == 'FAILED'}" class="detail-bereich">
-        <div class="abschnitt-ueberschrift-zeile">
-            <h2 th:text="#{ui.lauf.abdeckung.titel}">Abdeckung</h2>
+    <section th:if="${run.status.name() == 'COMPLETED' or run.status.name() == 'FAILED'}" class="card-box detail-bereich">
+        <div class="abschnitt-ueberschrift-zeile" style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); margin-bottom: 1rem; padding-bottom: 0.5rem;">
+            <h2 style="margin: 0; border: none; padding: 0;" th:text="#{ui.lauf.abdeckung.titel}">Abdeckung</h2>
             <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
                     th:data-hx-get="@{/hilfe/hinweis/{id}(id='bericht-lesen')}"
                     data-hx-target="next .hinweis" data-hx-swap="innerHTML">?</button>
             <div class="hinweis" aria-live="polite"></div>
         </div>
-        <p class="abdeckung-zeile">
-            <span th:text="#{ui.lauf.abdeckung.seiten_besucht(${run.pagesVisited})}">85 Seiten besucht</span>,
-            <span th:text="#{ui.lauf.abdeckung.seiten_fehlgeschlagen(${run.pagesFailed})}">2 fehlgeschlagen</span>.
+        <p class="abdeckung-zeile" style="font-size: 0.95rem; margin-bottom: 0.5rem;">
+            <strong style="font-variant-numeric: tabular-nums;" th:text="#{ui.lauf.abdeckung.seiten_besucht(${run.pagesVisited})}">85 Seiten besucht</strong>,
+            <span style="font-variant-numeric: tabular-nums; color: var(--text-muted);" th:text="#{ui.lauf.abdeckung.seiten_fehlgeschlagen(${run.pagesFailed})}">2 fehlgeschlagen</span>.
         </p>
-        <p class="abdeckung-zeile">
+        <p class="abdeckung-zeile" style="font-size: 0.85rem; color: var(--text-muted);">
             <span th:if="${run.coveredInteractionCheckTypes == null or #sets.isEmpty(run.coveredInteractionCheckTypes) or run.coveredInteractionUrls == null or #lists.isEmpty(run.coveredInteractionUrls)}"
                   th:text="#{ui.lauf.abdeckung.interaktiv.keine}">Interaktive Prüfungen: keine</span>
             <span th:if="${run.coveredInteractionCheckTypes != null and not #sets.isEmpty(run.coveredInteractionCheckTypes) and run.coveredInteractionUrls != null and not #lists.isEmpty(run.coveredInteractionUrls)}"
                   th:text="#{ui.lauf.abdeckung.interaktiv.ergebnis(${#sets.size(run.coveredInteractionCheckTypes)}, ${#lists.size(run.coveredInteractionUrls)})}">Interaktive Prüfungen: 2 Prüfungen auf 3 Seiten</span>
         </p>
-        <p th:if="${run.partialCoverage}" class="fehler" th:text="#{ui.lauf.abdeckung.teilweise}">
-            Der Prüflauf hat das Seiten- oder Zeitlimit erreicht und nicht alle Seiten geprüft. Nicht besuchte Seiten wurden nicht ausgewertet und darin liegende Feststellungen nicht als behoben markiert.
+        <p th:if="${run.partialCoverage}" class="fehler" style="margin-top: 0.75rem;" th:text="#{ui.lauf.abdeckung.teilweise}">
+            Der Prüflauf hat das Seiten- oder Zeitlimit erreicht und nicht alle Seiten geprüft.
         </p>
     </section>
 
     <!-- Technische Fehlermeldung bei FAILED -->
-    <section th:if="${run.errorMessage != null and not #strings.isEmpty(run.errorMessage)}" class="detail-bereich">
+    <section th:if="${run.errorMessage != null and not #strings.isEmpty(run.errorMessage)}" class="card-box detail-bereich">
         <h2 th:text="#{ui.lauf.technische_details.titel}">Technische Details</h2>
-        <pre class="technischer-block" th:text="${run.errorMessage}">Fehlermeldung...</pre>
+        <pre class="technischer-block" style="background: #09090b; color: #f4f4f5; padding: 1rem; border-radius: 8px; font-family: var(--font-mono); font-size: 0.8rem; overflow-x: auto;" th:text="${run.errorMessage}">Fehlermeldung...</pre>
     </section>
 
     <!-- Ausgangsbestand-Aktion -->
-    <section th:if="${run.status.name() == 'COMPLETED'}" class="detail-bereich">
+    <section th:if="${run.status.name() == 'COMPLETED'}" class="card-box detail-bereich">
         <h2 th:text="#{ui.lauf.ausgangsbestand.titel}">Ausgangsbestand</h2>
         <div th:if="${!run.baselineAccepted}" x-data="{ offen: false }" class="ausgangsbestand-block">
-            <div class="ausgangsbestand-zeile">
-                <button type="button" @click="offen = !offen" class="button sekundär" th:text="#{ui.lauf.ausgangsbestand.button}">Als Ausgangsbestand übernehmen</button>
+            <div class="ausgangsbestand-zeile" style="display: flex; align-items: center; gap: 0.5rem;">
+                <button type="button" @click="offen = !offen" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.lauf.ausgangsbestand.button}">Als Ausgangsbestand übernehmen</button>
                 <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
                         th:data-hx-get="@{/hilfe/hinweis/{id}(id='ausgangsbestand')}"
                         data-hx-target="next .hinweis" data-hx-swap="innerHTML">?</button>
                 <div class="hinweis" aria-live="polite"></div>
             </div>
-            <div x-show="offen" class="ausgangsbestand-panel" style="display: none; margin-top: 1rem;">
-                <p th:text="#{ui.lauf.ausgangsbestand.folge(${diff != null ? diff.observedTotal() : run.findingsTotal})}">
+            <div x-show="offen" class="ausgangsbestand-panel" style="display: none; margin-top: 1rem; padding: 1rem; background: var(--surface-subtle); border: 1px solid var(--border-subtle); border-radius: 8px;">
+                <p style="margin-top: 0; font-size: 0.9rem;" th:text="#{ui.lauf.ausgangsbestand.folge(${diff != null ? diff.observedTotal() : run.findingsTotal})}">
                     Hiermit werden alle noch ungeprüften Feststellungen...
                 </p>
-                <form th:action="@{/laeufe/{id}/ausgangsbestand(id=${run.id})}" method="post" class="inline-form">
-                    <button type="submit" class="button primär" th:text="#{ui.lauf.ausgangsbestand.bestaetigen}">Ausgangsbestand jetzt festlegen</button>
-                    <button type="button" @click="offen = false" class="button sekundär" th:text="#{ui.lauf.ausgangsbestand.abbrechen}">Abbrechen</button>
+                <form th:action="@{/laeufe/{id}/ausgangsbestand(id=${run.id})}" method="post" class="inline-form" style="display: flex; gap: 0.5rem;">
+                    <button type="submit" class="btn-ui btn-ui-primary button primär" th:text="#{ui.lauf.ausgangsbestand.bestaetigen}">Ausgangsbestand jetzt festlegen</button>
+                    <button type="button" @click="offen = false" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.lauf.ausgangsbestand.abbrechen}">Abbrechen</button>
                 </form>
             </div>
         </div>
-        <div th:if="${run.baselineAccepted}" class="ausgangsbestand-uebernommen">
+        <div th:if="${run.baselineAccepted}" class="ausgangsbestand-uebernommen" style="display: flex; align-items: center; gap: 0.5rem;">
             <span class="status-badge status-inaktiv" th:text="#{ui.lauf.ausgangsbestand.bereits_uebernommen}">Ausgangsbestand wurde übernommen</span>
             <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
                     th:data-hx-get="@{/hilfe/hinweis/{id}(id='ausgangsbestand')}"
@@ -138,17 +149,18 @@
         </div>
     </section>
 
-    <!-- Die fünf Berichtsabschnitte (nur Abschnitte mit Befunden haben Überschriften) -->
-    <div th:if="${sections != null and not #maps.isEmpty(sections)}" class="bericht-abschnitte">
-        <section th:each="entry : ${sections}" th:if="${not #lists.isEmpty(entry.value)}" class="detail-bereich" th:classappend="${'abschnitt-' + entry.key}">
-            <div class="abschnitt-ueberschrift-zeile">
-                <h2 th:text="#{${'ui.reportsection.' + entry.key}} + ' (' + ${#lists.size(entry.value)} + ')'">Neu aufgetreten (2)</h2>
+    <!-- Die fünf Berichtsabschnitte -->
+    <div th:if="${sections != null and not #maps.isEmpty(sections)}" class="bericht-abschnitte" style="display: flex; flex-direction: column; gap: 1.5rem;">
+        <section th:each="entry : ${sections}" th:if="${not #lists.isEmpty(entry.value)}"
+                 class="card-box detail-bereich" th:classappend="${'abschnitt-' + entry.key}">
+            <div class="abschnitt-ueberschrift-zeile" style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); margin-bottom: 1rem; padding-bottom: 0.5rem;">
+                <h2 style="margin: 0; border: none; padding: 0;" th:text="#{${'ui.reportsection.' + entry.key}} + ' (' + ${#lists.size(entry.value)} + ')'">Neu aufgetreten (2)</h2>
                 <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
                         th:data-hx-get="@{/hilfe/hinweis/{id}(id='bericht-lesen')}"
                         data-hx-target="next .hinweis" data-hx-swap="innerHTML">?</button>
                 <div class="hinweis" aria-live="polite"></div>
             </div>
-            <div class="befunde-liste">
+            <div class="befunde-liste inspector-card-shell" style="margin-bottom: 0;">
                 <div th:each="befundItem : ${entry.value}">
                     <div th:replace="~{fragments/befundzeile :: befundzeile(${befundItem}, false)}"></div>
                 </div>
