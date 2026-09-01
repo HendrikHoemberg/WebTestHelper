@@ -8,22 +8,25 @@
 </head>
 <body>
     <main class="anmelde-seite">
-        <div class="anmelde-marke">WebTestHelper</div>
+        <div class="anmelde-marke">
+            <div class="brand-icon-box" style="display: inline-flex; vertical-align: middle; margin-right: 0.5rem; background: #09090b; color: #ffffff;">W</div>
+            <span>WebTestHelper</span>
+        </div>
         <div class="anmelde-karte">
-            <h1 th:text="#{ui.anmelden.titel}">Anmelden</h1>
+            <h1 th:text="#{ui.anmelden.titel}" style="font-size: 1.4rem; margin-bottom: 1.25rem;">Anmelden</h1>
             <div th:if="${param.error}" class="fehler" th:text="#{ui.anmelden.fehler}">Benutzername oder Passwort ist nicht korrekt.</div>
             <div th:if="${param.abgemeldet}" class="hinweis" th:text="#{ui.anmelden.abgemeldet}">Sie wurden erfolgreich abgemeldet.</div>
             <form th:action="@{/anmelden}" method="post">
                 <div class="form-gruppe">
                     <label for="username" th:text="#{ui.anmelden.benutzer}">Benutzername</label>
-                    <input type="text" id="username" name="username" required autofocus>
+                    <input type="text" id="username" name="username" class="form-input" required autofocus>
                 </div>
                 <div class="form-gruppe">
                     <label for="password" th:text="#{ui.anmelden.passwort}">Passwort</label>
-                    <input type="password" id="password" name="password" required>
+                    <input type="password" id="password" name="password" class="form-input" required>
                 </div>
                 <div class="form-aktionen">
-                    <button type="submit" class="button primär" th:text="#{ui.anmelden.absenden}">Anmelden</button>
+                    <button type="submit" class="btn-ui btn-ui-primary button primär" style="width: 100%;" th:text="#{ui.anmelden.absenden}">Anmelden</button>
                 </div>
             </form>
         </div>

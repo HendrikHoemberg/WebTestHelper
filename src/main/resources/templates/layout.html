@@ -10,31 +10,93 @@
     <script th:src="@{/js/kopieren.js}"></script>
 </head>
 <body>
-    <nav class="hauptnavigation">
-        <div class="nav-links">
-            <a th:href="@{/}" class="brand-link">WebTestHelper</a>
-            <a th:href="@{/}" th:text="#{ui.nav.uebersicht}">Übersicht</a>
-            <a th:href="@{/websites}" th:text="#{ui.nav.websites}">Websites</a>
-            <a th:href="@{/stummschaltungen}" th:text="#{ui.nav.stummschaltungen}">Stummschaltungen</a>
-            <a th:href="@{/hilfe}" th:text="#{ui.nav.hilfe}">Hilfe</a>
-            <a sec:authorize="hasRole('ADMIN')" th:href="@{/einstellungen}" th:text="#{ui.nav.einstellungen}">Einstellungen</a>
-            <a sec:authorize="hasRole('ADMIN')" th:href="@{/postausgang}" th:text="#{ui.nav.postausgang}">Postausgang</a>
+    <!-- Left Sidebar Navigation -->
+    <aside class="app-sidebar">
+        <div class="sidebar-brand-box">
+            <div class="brand-icon-box">W</div>
+            <a th:href="@{/}" class="brand-title-text">WebTestHelper</a>
         </div>
-        <div class="nav-user">
-            <span sec:authentication="name" class="benutzername">Benutzer</span>
+
+        <div class="sidebar-nav-scroll">
+            <!-- Gruppe: Überwachung -->
+            <div class="nav-section-group">
+                <div class="nav-group-heading" th:text="#{ui.nav.gruppe.ueberwachung}">Überwachung</div>
+                <a th:href="@{/}" class="nav-item-btn">
+                    <span th:replace="~{fragments/icons :: dashboard}"></span>
+                    <span th:text="#{ui.nav.uebersicht}">Übersicht</span>
+                </a>
+                <a th:href="@{/websites}" class="nav-item-btn">
+                    <span th:replace="~{fragments/icons :: globe}"></span>
+                    <span th:text="#{ui.nav.websites}">Websites</span>
+                </a>
+            </div>
+
+            <!-- Gruppe: Analyse & Regeln -->
+            <div class="nav-section-group">
+                <div class="nav-group-heading" th:text="#{ui.nav.gruppe.analyse}">Analyse &amp; Regeln</div>
+                <a th:href="@{/stummschaltungen}" class="nav-item-btn">
+                    <span th:replace="~{fragments/icons :: mute}"></span>
+                    <span th:text="#{ui.nav.stummschaltungen}">Stummschaltungen</span>
+                </a>
+                <a th:href="@{/hilfe}" class="nav-item-btn">
+                    <span th:replace="~{fragments/icons :: help}"></span>
+                    <span th:text="#{ui.nav.hilfe}">Hilfe</span>
+                </a>
+            </div>
+
+            <!-- Gruppe: System & Admin -->
+            <div sec:authorize="hasRole('ADMIN')" class="nav-section-group">
+                <div class="nav-group-heading" th:text="#{ui.nav.gruppe.system}">System &amp; Admin</div>
+                <a th:href="@{/einstellungen}" class="nav-item-btn">
+                    <span th:replace="~{fragments/icons :: settings}"></span>
+                    <span th:text="#{ui.nav.einstellungen}">Einstellungen</span>
+                </a>
+                <a th:href="@{/postausgang}" class="nav-item-btn">
+                    <span th:replace="~{fragments/icons :: outbox}"></span>
+                    <span th:text="#{ui.nav.postausgang}">Postausgang</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- User Profile & Sign Out Footer -->
+        <div class="sidebar-user-footer">
+            <div class="user-info-side">
+                <div class="avatar-circle">
+                    <span sec:authentication="name" th:text="${#strings.substring(#authentication.name, 0, 1).toUpperCase()}">U</span>
+                </div>
+                <div class="user-names-col">
+                    <span sec:authentication="name" class="u-name">Benutzer</span>
+                    <span sec:authorize="hasRole('ADMIN')" class="u-role" th:text="#{ui.nav.rolle_admin}">Administrator</span>
+                    <span sec:authorize="!hasRole('ADMIN')" class="u-role" th:text="#{ui.nav.rolle_user}">Benutzer</span>
+                </div>
+            </div>
             <form th:action="@{/abmelden}" method="post" class="inline-form">
-                <button type="submit" class="logout-button" th:text="#{ui.nav.abmelden}">Abmelden</button>
+                <button type="submit" class="btn-sidebar-logout" th:title="#{ui.nav.abmelden}">
+                    <span th:replace="~{fragments/icons :: logout}"></span>
+                </button>
             </form>
         </div>
-    </nav>
-    <div th:if="${mailFailures != null && mailFailures > 0}" class="gesundheits-banner warnung" role="alert">
-        <span th:text="#{ui.banner.mail_fehler(${mailFailures})}">Beim E-Mail-Versand sind Fehler aufgetreten.</span>
-        <a th:href="@{/postausgang}" th:text="#{ui.banner.postausgang_link}">Zum Postausgang</a>
+    </aside>
+
+    <!-- Main Workspace Container -->
+    <div class="app-main-wrapper">
+        <!-- Global Health Banners -->
+        <div th:if="${mailFailures != null && mailFailures > 0}" class="system-banner warnung" role="alert">
+            <div class="banner-msg">
+                <span th:replace="~{fragments/icons :: alert}"></span>
+                <span th:text="#{ui.banner.mail_fehler(${mailFailures})}">Beim E-Mail-Versand sind Fehler aufgetreten.</span>
+            </div>
+            <a th:href="@{/postausgang}" class="banner-link" th:text="#{ui.banner.postausgang_link}">Zum Postausgang</a>
+        </div>
+        <div th:if="${schedulingPaused}" class="system-banner info" role="status">
+            <div class="banner-msg">
+                <span th:replace="~{fragments/icons :: alert}"></span>
+                <span th:text="#{ui.banner.planung_pausiert}">Die Planung ist angehalten. Es startet kein Prüflauf von selbst.</span>
+            </div>
+            <a th:href="@{/einstellungen}" class="banner-link" th:text="#{ui.banner.planung_oeffnen}">Zu den Einstellungen</a>
+        </div>
+
+        <main class="workspace-content" th:replace="${inhalt}"></main>
     </div>
-    <div th:if="${schedulingPaused}" class="gesundheits-banner info" role="status">
-        <span th:text="#{ui.banner.planung_pausiert}">Die Planung ist angehalten. Es startet kein Prüflauf von selbst.</span>
-        <a th:href="@{/einstellungen}" th:text="#{ui.banner.planung_oeffnen}">Zu den Einstellungen</a>
-    </div>
-    <main th:replace="${inhalt}"></main>
 </body>
 </html>
