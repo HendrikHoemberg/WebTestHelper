@@ -50,53 +50,55 @@
     </div>
 
     <div th:if="${not #lists.isEmpty(journeys)}" class="card-box" style="padding: 0; overflow: hidden;">
-        <table class="daten-tabelle" style="margin-top: 0; border: none; border-radius: 0; box-shadow: none;">
-            <thead>
-                <tr>
-                    <th th:text="#{ui.journey.liste.tabelle.name}">Name</th>
-                    <th th:text="#{ui.journey.liste.tabelle.schritte}">Schritte</th>
-                    <th th:text="#{ui.journey.liste.tabelle.status}">Status</th>
-                    <th th:text="#{ui.journey.liste.tabelle.letzter_erfolg}">Letzter Erfolg</th>
-                    <th th:text="#{ui.journey.liste.tabelle.fehlschlaege}">Fehlschläge</th>
-                    <th th:text="#{ui.journey.liste.tabelle.aktionen}">Aktionen</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr th:each="journey : ${journeys}" th:with="health=${healthByJourneyId != null ? healthByJourneyId.get(journey.id) : null}">
-                    <td>
-                        <a th:href="@{/sites/{siteId}/journeys/{journeyId}(siteId=${site.siteId}, journeyId=${journey.id})}" th:text="${journey.name}" style="font-weight: 700; font-size: 0.95rem;">Ablauf Name</a>
-                        <div th:if="${health != null and health.needsRerecording}" class="feld-warnung runder-kasten mt-2" style="background: var(--status-warning-bg); border: 1px solid var(--status-warning-border); border-radius: 6px; padding: 0.5rem 0.75rem; margin-top: 0.5rem;">
-                            <strong th:text="#{ui.journey.health.neuaufzeichnung_erforderlich}" style="color: var(--status-warning-text); font-size: 0.85rem;">Neuaufzeichnung erforderlich</strong>
-                            <p class="hinweis-text" style="font-size: 0.8rem; color: var(--status-warning-text); margin: 0.25rem 0 0 0;" th:text="#{ui.journey.health.neuaufzeichnung_hinweis}">
-                                Dieser Ablauf schlägt nach wiederholten Selektor-Abweichungen (Drift) fehl.
-                            </p>
-                        </div>
-                    </td>
-                    <td>
-                        <span class="type-pill-mono" th:text="${#lists.size(journey.steps)} + ' Schritte'">0</span>
-                    </td>
-                    <td>
-                        <span th:if="${journey.enabled}" class="status-badge badge-healthy status-aktiv">
-                            <span class="status-dot-pulse"></span>
-                            <span th:text="#{ui.journey.status.aktiv}">Aktiv</span>
-                        </span>
-                        <span th:unless="${journey.enabled}" class="status-badge status-inaktiv" th:text="#{ui.journey.status.inaktiv}">Inaktiv</span>
-                    </td>
-                    <td>
-                        <span th:if="${health != null and health.lastSuccessAt != null}" style="font-variant-numeric: tabular-nums;" th:text="${#temporals.format(health.lastSuccessAt, 'dd.MM.yyyy HH:mm')}">28.08.2026 10:00</span>
-                        <span th:if="${health == null or health.lastSuccessAt == null}" class="text-gedaempft" th:text="#{ui.journey.health.nie}">Noch nie</span>
-                    </td>
-                    <td>
-                        <span style="font-weight: 700; font-variant-numeric: tabular-nums;"
-                              th:style="${health != null and health.consecutiveFailures > 0 ? 'color: var(--status-error-dot);' : 'color: var(--text-muted);'}"
-                              th:text="${health != null ? health.consecutiveFailures : 0}">0</span>
-                    </td>
-                    <td>
-                        <a th:href="@{/sites/{siteId}/journeys/{journeyId}(siteId=${site.siteId}, journeyId=${journey.id})}" class="btn-ui btn-ui-secondary btn-ui-sm" th:text="#{ui.journey.liste.ansehen}">Ansehen</a>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+        <div class="tabelle-container">
+            <table class="daten-tabelle" style="margin-top: 0; border: none; border-radius: 0; box-shadow: none;">
+                <thead>
+                    <tr>
+                        <th th:text="#{ui.journey.liste.tabelle.name}">Name</th>
+                        <th class="zell-badge" th:text="#{ui.journey.liste.tabelle.schritte}">Schritte</th>
+                        <th class="zell-badge" th:text="#{ui.journey.liste.tabelle.status}">Status</th>
+                        <th class="zell-zeit" th:text="#{ui.journey.liste.tabelle.letzter_erfolg}">Letzter Erfolg</th>
+                        <th class="text-rechts" th:text="#{ui.journey.liste.tabelle.fehlschlaege}">Fehlschläge</th>
+                        <th class="text-rechts zell-aktion" th:text="#{ui.journey.liste.tabelle.aktionen}">Aktionen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="journey : ${journeys}" th:with="health=${healthByJourneyId != null ? healthByJourneyId.get(journey.id) : null}">
+                        <td>
+                            <a th:href="@{/sites/{siteId}/journeys/{journeyId}(siteId=${site.siteId}, journeyId=${journey.id})}" th:text="${journey.name}" style="font-weight: 700; font-size: 0.95rem;">Ablauf Name</a>
+                            <div th:if="${health != null and health.needsRerecording}" class="feld-warnung runder-kasten mt-2" style="background: var(--status-warning-bg); border: 1px solid var(--status-warning-border); border-radius: 6px; padding: 0.5rem 0.75rem; margin-top: 0.5rem;">
+                                <strong th:text="#{ui.journey.health.neuaufzeichnung_erforderlich}" style="color: var(--status-warning-text); font-size: 0.85rem;">Neuaufzeichnung erforderlich</strong>
+                                <p class="hinweis-text" style="font-size: 0.8rem; color: var(--status-warning-text); margin: 0.25rem 0 0 0;" th:text="#{ui.journey.health.neuaufzeichnung_hinweis}">
+                                    Dieser Ablauf schlägt nach wiederholten Selektor-Abweichungen (Drift) fehl.
+                                </p>
+                            </div>
+                        </td>
+                        <td class="zell-badge">
+                            <span class="type-pill-mono" th:text="${#lists.size(journey.steps)} + ' Schritte'">0</span>
+                        </td>
+                        <td class="zell-badge">
+                            <span th:if="${journey.enabled}" class="status-badge badge-healthy status-aktiv">
+                                <span class="status-dot-pulse"></span>
+                                <span th:text="#{ui.journey.status.aktiv}">Aktiv</span>
+                            </span>
+                            <span th:unless="${journey.enabled}" class="status-badge status-inaktiv" th:text="#{ui.journey.status.inaktiv}">Inaktiv</span>
+                        </td>
+                        <td class="zell-zeit">
+                            <span th:if="${health != null and health.lastSuccessAt != null}" style="font-variant-numeric: tabular-nums;" th:text="${#temporals.format(health.lastSuccessAt, 'dd.MM.yyyy HH:mm')}">28.08.2026 10:00</span>
+                            <span th:if="${health == null or health.lastSuccessAt == null}" class="text-gedaempft" th:text="#{ui.journey.health.nie}">Noch nie</span>
+                        </td>
+                        <td class="text-rechts">
+                            <span style="font-weight: 700; font-variant-numeric: tabular-nums;"
+                                  th:style="${health != null and health.consecutiveFailures > 0 ? 'color: var(--status-error-dot);' : 'color: var(--text-muted);'}"
+                                  th:text="${health != null ? health.consecutiveFailures : 0}">0</span>
+                        </td>
+                        <td class="text-rechts zell-aktion">
+                            <a th:href="@{/sites/{siteId}/journeys/{journeyId}(siteId=${site.siteId}, journeyId=${journey.id})}" class="btn-ui btn-ui-secondary btn-ui-sm" th:text="#{ui.journey.liste.ansehen}">Ansehen</a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 </main>
 </body>

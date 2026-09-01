@@ -774,24 +774,30 @@ body {
 }
 
 /* ==========================================================================
-   9. DATA TABLES
+   9. DATA TABLES & RESPONSIVE CONTAINERS
    ========================================================================== */
+.tabelle-container {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
 .daten-tabelle {
     width: 100%;
     border-collapse: collapse;
     background-color: var(--surface-card);
     border: 1px solid var(--border-subtle);
     border-radius: 10px;
-    overflow: hidden;
     margin-top: 1rem;
     box-shadow: var(--shadow-card);
 }
 
 .daten-tabelle th,
 .daten-tabelle td {
-    padding: 0.85rem 1.2rem;
+    padding: 0.75rem 1rem;
     text-align: left;
     border-bottom: 1px solid var(--border-subtle);
+    vertical-align: middle;
 }
 
 .daten-tabelle th {
@@ -801,6 +807,7 @@ body {
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    white-space: nowrap;
 }
 
 .daten-tabelle tbody tr:hover {
@@ -819,6 +826,40 @@ body {
 
 .daten-tabelle a:hover {
     text-decoration: underline;
+}
+
+/* Alignment utilities */
+.daten-tabelle th.text-rechts,
+.daten-tabelle td.text-rechts,
+.text-rechts {
+    text-align: right;
+}
+
+.daten-tabelle th.text-mitte,
+.daten-tabelle td.text-mitte,
+.text-mitte {
+    text-align: center;
+}
+
+/* Column width and nowrap helpers */
+.daten-tabelle .zell-id {
+    width: 1%;
+    white-space: nowrap;
+}
+
+.daten-tabelle .zell-zeit,
+.daten-tabelle .zell-badge,
+.daten-tabelle .zell-aktion {
+    white-space: nowrap;
+}
+
+.daten-tabelle .zell-aktion {
+    text-align: right;
+}
+
+.daten-tabelle .type-pill-mono,
+.daten-tabelle .status-badge {
+    white-space: nowrap;
 }
 
 /* ==========================================================================

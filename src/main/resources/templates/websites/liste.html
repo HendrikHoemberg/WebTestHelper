@@ -29,49 +29,52 @@
     </div>
 
     <div th:if="${not #lists.isEmpty(sites)}" class="card-box" style="padding: 0; overflow: hidden;">
-        <table class="daten-tabelle" style="margin-top: 0; border: none; border-radius: 0; box-shadow: none;">
-            <thead>
-                <tr>
-                    <th th:text="#{ui.websites.tabelle.name}">Name</th>
-                    <th th:text="#{ui.websites.tabelle.url}">Basis-URL</th>
-                    <th th:text="#{ui.websites.tabelle.status}">Status</th>
-                    <th th:text="#{ui.websites.tabelle.pruefungen}">Prüfungen</th>
-                    <th th:text="#{ui.websites.tabelle.aktionen}">Aktionen</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr th:each="site : ${sites}">
-                    <td>
-                        <a th:href="@{/websites/{id}(id=${site.id})}" th:text="${site.name}" style="font-weight: 700; font-size: 0.95rem;">Site Name</a>
-                    </td>
-                    <td>
-                        <a th:href="${site.baseUrl}" th:text="${site.baseUrl}" target="_blank" rel="noopener noreferrer" style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-muted);">https://example.com/</a>
-                    </td>
-                    <td>
-                        <span th:if="${site.enabled}" class="status-badge badge-healthy status-aktiv">
-                            <span class="status-dot-pulse"></span>
-                            <span th:text="#{ui.websites.status.aktiv}">Aktiv</span>
-                        </span>
-                        <span th:unless="${site.enabled}" class="status-badge status-inaktiv">
-                            <span th:text="#{ui.websites.status.inaktiv}">Inaktiv</span>
-                        </span>
-                    </td>
-                    <td>
-                        <span class="type-pill-mono" th:text="${site.settingCount} + ' aktiv'">10</span>
-                    </td>
-                    <td>
-                        <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            <a sec:authorize="hasRole('ADMIN')" th:href="@{/websites/{id}/bearbeiten(id=${site.id})}" class="btn-ui btn-ui-secondary btn-ui-sm" th:text="#{ui.websites.aktionen.bearbeiten}">Bearbeiten</a>
-                            <form sec:authorize="hasRole('ADMIN')" th:action="@{/websites/{id}/loeschen(id=${site.id})}" method="post" class="inline-form">
-                                <button type="submit" class="btn-ui btn-ui-danger btn-ui-sm button link-loeschen"
-                                        th:attr="onclick='return confirm(\'' + #{ui.websites.loeschen.bestaetigung} + '\')'"
-                                        th:text="#{ui.websites.loeschen}">Löschen</button>
-                            </form>
-                        </div>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+        <div class="tabelle-container">
+            <table class="daten-tabelle" style="margin-top: 0; border: none; border-radius: 0; box-shadow: none;">
+                <thead>
+                    <tr>
+                        <th th:text="#{ui.websites.tabelle.name}">Name</th>
+                        <th th:text="#{ui.websites.tabelle.url}">Basis-URL</th>
+                        <th class="zell-badge" th:text="#{ui.websites.tabelle.status}">Status</th>
+                        <th class="zell-badge" th:text="#{ui.websites.tabelle.pruefungen}">Prüfungen</th>
+                        <th class="text-rechts zell-aktion" th:text="#{ui.websites.tabelle.aktionen}">Aktionen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="site : ${sites}">
+                        <td>
+                            <a th:href="@{/websites/{id}(id=${site.id})}" th:text="${site.name}" style="font-weight: 700; font-size: 0.95rem;">Site Name</a>
+                        </td>
+                        <td>
+                            <a th:href="${site.baseUrl}" th:text="${site.baseUrl}" target="_blank" rel="noopener noreferrer" style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-muted);">https://example.com/</a>
+                        </td>
+                        <td class="zell-badge">
+                            <span th:if="${site.enabled}" class="status-badge badge-healthy status-aktiv">
+                                <span class="status-dot-pulse"></span>
+                                <span th:text="#{ui.websites.status.aktiv}">Aktiv</span>
+                            </span>
+                            <span th:unless="${site.enabled}" class="status-badge status-inaktiv">
+                                <span th:text="#{ui.websites.status.inaktiv}">Inaktiv</span>
+                            </span>
+                        </td>
+                        <td class="zell-badge">
+                            <span class="type-pill-mono" th:text="${site.settingCount} + ' aktiv'">10</span>
+                        </td>
+                        <td class="text-rechts zell-aktion">
+                            <div style="display: flex; align-items: center; justify-content: flex-end; gap: 0.5rem;">
+                                <a sec:authorize="hasRole('ADMIN')" th:href="@{/websites/{id}/bearbeiten(id=${site.id})}" class="btn-ui btn-ui-secondary btn-ui-sm" th:text="#{ui.websites.aktionen.bearbeiten}">Bearbeiten</a>
+                                <form sec:authorize="hasRole('ADMIN')" th:action="@{/websites/{id}/loeschen(id=${site.id})}" method="post" class="inline-form">
+                                    <button type="submit" class="btn-ui btn-ui-danger btn-ui-sm"
+                                            th:data-confirm="#{ui.websites.loeschen.bestaetigung}"
+                                            onclick="return confirm(this.getAttribute('data-confirm'))"
+                                            th:text="#{ui.websites.loeschen}">Löschen</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 </main>
 </body>

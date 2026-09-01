@@ -87,59 +87,61 @@
            class="hinweis-text" style="padding: 0.75rem 1.5rem; margin: 0; background: var(--surface-subtle); border-bottom: 1px solid var(--border-subtle); font-size: 0.825rem;" th:text="#{ui.journey.detail.schritte.drift_hinweis}">
             Mit „Abweichung“ markierte Schritte wurden beim letzten Prüflauf erst über einen nachrangigen Ausweich-Selektor gefunden.
         </p>
-        <table th:if="${not #lists.isEmpty(journey.steps)}" class="daten-tabelle" style="margin-top: 0; border: none; border-radius: 0; box-shadow: none;">
-            <thead>
-                <tr>
-                    <th th:text="#{ui.journey.detail.schritte.nr}">#</th>
-                    <th th:text="#{ui.journey.detail.schritte.aktion}">Aktion</th>
-                    <th th:text="#{ui.journey.detail.schritte.ziel}">Ziel / Selektoren</th>
-                    <th th:text="#{ui.journey.detail.schritte.wert}">Wert</th>
-                    <th th:text="#{ui.journey.detail.schritte.pruefung}">Prüfung</th>
-                    <th th:text="#{ui.journey.detail.schritte.optional}">Optional</th>
-                    <th th:text="#{ui.journey.detail.schritte.timeout}">Zeitlimit</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr th:each="step : ${journey.steps}">
-                    <td style="font-variant-numeric: tabular-nums; font-weight: 700;" th:text="${step.ordinal + 1}">1</td>
-                    <td>
-                        <strong th:text="${step.action}">GOTO</strong>
-                        <span th:if="${health != null and health.lastDriftedStepIds.contains(step.id)}"
-                              class="status-badge badge-warning schritt-drift"
-                              th:text="#{ui.journey.detail.schritte.drift}">Abweichung</span>
-                    </td>
-                    <td>
-                        <div th:if="${#lists.isEmpty(step.locatorCandidates)}" class="text-gedaempft">-</div>
-                        <ul th:if="${not #lists.isEmpty(step.locatorCandidates)}" class="muster-liste" style="list-style: none; padding-left: 0; display: flex; flex-direction: column; gap: 0.25rem;">
-                            <li th:each="candidate : ${step.locatorCandidates}" style="display: flex; align-items: center; gap: 0.35rem;">
-                                <span class="status-badge status-inaktiv" style="font-size: 0.7rem;" th:text="${candidate.strategy}">TEST_ID</span>
-                                <code class="code-pill" th:text="${candidate.value}">element-id</code>
-                            </li>
-                        </ul>
-                    </td>
-                    <td>
-                        <code class="code-pill" th:if="${step.value != null and !step.value.isEmpty()}" th:text="${step.value}">https://example.com</code>
-                        <span th:if="${step.value == null or step.value.isEmpty()}" class="text-gedaempft">-</span>
-                    </td>
-                    <td>
-                        <span th:if="${step.assertion != null}">
-                            <span th:text="${step.assertion.type}" style="font-weight: 600;">VISIBLE</span>
-                            <span th:if="${step.assertion.expected != null and !step.assertion.expected.isEmpty()}">
-                                : <code class="code-pill" th:text="${step.assertion.expected}">text</code>
+        <div th:if="${not #lists.isEmpty(journey.steps)}" class="tabelle-container">
+            <table class="daten-tabelle" style="margin-top: 0; border: none; border-radius: 0; box-shadow: none;">
+                <thead>
+                    <tr>
+                        <th class="zell-id" th:text="#{ui.journey.detail.schritte.nr}">#</th>
+                        <th class="zell-badge" th:text="#{ui.journey.detail.schritte.aktion}">Aktion</th>
+                        <th th:text="#{ui.journey.detail.schritte.ziel}">Ziel / Selektoren</th>
+                        <th th:text="#{ui.journey.detail.schritte.wert}">Wert</th>
+                        <th th:text="#{ui.journey.detail.schritte.pruefung}">Prüfung</th>
+                        <th class="zell-badge" th:text="#{ui.journey.detail.schritte.optional}">Optional</th>
+                        <th class="text-rechts zell-zeit" th:text="#{ui.journey.detail.schritte.timeout}">Zeitlimit</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="step : ${journey.steps}">
+                        <td class="zell-id" style="font-variant-numeric: tabular-nums; font-weight: 700;" th:text="${step.ordinal + 1}">1</td>
+                        <td class="zell-badge">
+                            <strong th:text="${step.action}">GOTO</strong>
+                            <span th:if="${health != null and health.lastDriftedStepIds.contains(step.id)}"
+                                  class="status-badge badge-warning schritt-drift"
+                                  th:text="#{ui.journey.detail.schritte.drift}">Abweichung</span>
+                        </td>
+                        <td>
+                            <div th:if="${#lists.isEmpty(step.locatorCandidates)}" class="text-gedaempft">-</div>
+                            <ul th:if="${not #lists.isEmpty(step.locatorCandidates)}" class="muster-liste" style="list-style: none; padding-left: 0; display: flex; flex-direction: column; gap: 0.25rem;">
+                                <li th:each="candidate : ${step.locatorCandidates}" style="display: flex; align-items: center; gap: 0.35rem;">
+                                    <span class="status-badge status-inaktiv" style="font-size: 0.7rem;" th:text="${candidate.strategy}">TEST_ID</span>
+                                    <code class="code-pill" th:text="${candidate.value}">element-id</code>
+                                </li>
+                            </ul>
+                        </td>
+                        <td>
+                            <code class="code-pill" th:if="${step.value != null and !step.value.isEmpty()}" th:text="${step.value}">https://example.com</code>
+                            <span th:if="${step.value == null or step.value.isEmpty()}" class="text-gedaempft">-</span>
+                        </td>
+                        <td>
+                            <span th:if="${step.assertion != null}">
+                                <span th:text="${step.assertion.type}" style="font-weight: 600;">VISIBLE</span>
+                                <span th:if="${step.assertion.expected != null and !step.assertion.expected.isEmpty()}">
+                                    : <code class="code-pill" th:text="${step.assertion.expected}">text</code>
+                                </span>
                             </span>
-                        </span>
-                        <span th:if="${step.assertion == null}" class="text-gedaempft">-</span>
-                    </td>
-                    <td>
-                        <span th:if="${step.optional}" class="status-badge status-inaktiv" th:text="#{ui.journey.detail.schritte.optional}">Optional</span>
-                        <span th:unless="${step.optional}" class="text-gedaempft" th:text="#{ui.journey.detail.schritte.nein}">Nein</span>
-                    </td>
-                    <td>
-                        <span style="font-variant-numeric: tabular-nums;" th:text="${step.timeoutMs} + ' ms'">5000 ms</span>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+                            <span th:if="${step.assertion == null}" class="text-gedaempft">-</span>
+                        </td>
+                        <td class="zell-badge">
+                            <span th:if="${step.optional}" class="status-badge status-inaktiv" th:text="#{ui.journey.detail.schritte.optional}">Optional</span>
+                            <span th:unless="${step.optional}" class="text-gedaempft" th:text="#{ui.journey.detail.schritte.nein}">Nein</span>
+                        </td>
+                        <td class="text-rechts zell-zeit">
+                            <span style="font-variant-numeric: tabular-nums;" th:text="${step.timeoutMs} + ' ms'">5000 ms</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </section>
 </main>
 </body>

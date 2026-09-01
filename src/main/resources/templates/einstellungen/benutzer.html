@@ -52,96 +52,98 @@
         <p th:if="${#lists.isEmpty(benutzer)}" class="text-gedaempft" style="padding: 3rem 1.5rem; text-align: center;"
            th:text="#{ui.einstellungen.benutzer.liste.leer}">(noch keine Benutzer)</p>
 
-        <table th:if="${!#lists.isEmpty(benutzer)}" class="daten-tabelle tabelle" style="margin-top: 0; border: none; border-radius: 0; box-shadow: none;">
-            <thead>
-            <tr>
-                <th th:text="#{ui.einstellungen.benutzer.liste.benutzername}">Benutzername</th>
-                <th th:text="#{ui.einstellungen.benutzer.liste.rolle}">Rolle</th>
-                <th th:text="#{ui.einstellungen.benutzer.liste.status}">Status</th>
-                <th th:text="#{ui.einstellungen.benutzer.liste.aktionen}">Aktionen</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr th:each="b : ${benutzer}"
-                th:with="geschuetzt=${b.role().name() == 'ADMIN' and b.enabled() and letzterAdminGeschuetzt}"
-                th:classappend="${b.enabled()} ? '' : 'zeile-gedaempft'">
-                <td>
-                    <strong th:text="${b.username()}" style="font-size: 0.95rem;">alice</strong>
-                </td>
-                <td>
-                    <span class="type-pill-mono" th:text="#{${'ui.approle.' + b.role()}}">Benutzer</span>
-                </td>
-                <td>
-                    <span th:if="${b.enabled()}" class="status-badge badge-healthy aktiv">
-                        <span class="status-dot-pulse"></span>
-                        <span th:text="#{ui.einstellungen.benutzer.status.aktiv}">Aktiv</span>
-                    </span>
-                    <span th:unless="${b.enabled()}" class="status-badge status-inaktiv inaktiv" th:text="#{ui.einstellungen.benutzer.status.inaktiv}">Deaktiviert</span>
-                </td>
-                <td class="benutzer-aktionen">
-                    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-                        <div th:if="${!geschuetzt}">
-                            <form th:if="${b.role().name() == 'ADMIN'}"
-                                  th:action="@{/einstellungen/benutzer/{id}(id=${b.id()})}" method="post" class="inline-form">
-                                <input type="hidden" name="aktion" value="rolle">
-                                <input type="hidden" name="sollAdministrator" value="false">
-                                <button type="submit" class="btn-ui btn-ui-secondary btn-ui-sm button sekundär klein" th:text="#{ui.einstellungen.benutzer.herabstufen}">Zum Benutzer zurückstufen</button>
-                            </form>
-                            <form th:if="${b.role().name() == 'USER'}"
-                                  th:action="@{/einstellungen/benutzer/{id}(id=${b.id()})}" method="post" class="inline-form">
-                                <input type="hidden" name="aktion" value="rolle">
-                                <input type="hidden" name="sollAdministrator" value="true">
-                                <button type="submit" class="btn-ui btn-ui-secondary btn-ui-sm button sekundär klein" th:text="#{ui.einstellungen.benutzer.befoerdern}">Zum Administrator machen</button>
-                            </form>
-                            <form th:if="${b.enabled()}"
-                                  th:action="@{/einstellungen/benutzer/{id}(id=${b.id()})}" method="post" class="inline-form">
-                                <input type="hidden" name="aktion" value="aktiv">
-                                <input type="hidden" name="aktiv" value="false">
-                                <button type="submit" class="btn-ui btn-ui-secondary btn-ui-sm button sekundär klein" th:text="#{ui.einstellungen.benutzer.deaktivieren}">Deaktivieren</button>
-                                <p class="hinweis-text" style="display: none;" th:text="#{ui.einstellungen.benutzer.deaktivieren.hinweis}">Diese Person kann sich danach nicht mehr anmelden.</p>
-                            </form>
-                            <form th:if="${!b.enabled()}"
-                                  th:action="@{/einstellungen/benutzer/{id}(id=${b.id()})}" method="post" class="inline-form">
-                                <input type="hidden" name="aktion" value="aktiv">
-                                <input type="hidden" name="aktiv" value="true">
-                                <button type="submit" class="btn-ui btn-ui-secondary btn-ui-sm button sekundär klein" th:text="#{ui.einstellungen.benutzer.aktivieren}">Aktivieren</button>
-                            </form>
-                        </div>
-
-                        <form th:action="@{/einstellungen/benutzer/{id}(id=${b.id()})}" method="post" class="inline-form" style="display: flex; gap: 0.35rem; align-items: center;">
-                            <input type="hidden" name="aktion" value="passwort">
-                            <input type="password" name="passwort" th:placeholder="#{ui.einstellungen.benutzer.passwort.platzhalter}"
-                                   th:attr="aria-label=#{ui.einstellungen.benutzer.passwort.aria}"
-                                   autocomplete="new-password" class="form-input passwort-eingabe" style="padding: 0.35rem 0.5rem; font-size: 0.8rem; width: 140px;">
-                            <button type="submit" class="btn-ui btn-ui-secondary btn-ui-sm button sekundär klein" th:text="#{ui.einstellungen.benutzer.passwort.setzen}">Passwort setzen</button>
-                        </form>
-
-                        <div th:if="${!geschuetzt}">
-                            <div x-data="{ offen: false, text: '' }" class="benutzer-loeschen">
-                                <button type="button" class="btn-ui btn-ui-danger btn-ui-sm button sekundär klein" @click="offen = true"
-                                        th:text="#{ui.einstellungen.benutzer.loeschen}">Löschen</button>
-                                <form th:action="@{/einstellungen/benutzer/{id}/loeschen(id=${b.id()})}" method="post"
-                                      x-show="offen" style="display: none; margin-top: 0.5rem; padding: 0.5rem; background: var(--status-error-bg); border-radius: 6px;" class="loeschen-bestaetigung">
-                                    <p class="hinweis-text" style="font-size: 0.75rem; color: var(--status-error-text); margin: 0 0 0.35rem 0;" th:text="#{ui.einstellungen.benutzer.loeschen.hinweis}">
-                                        Geben Sie zur Bestätigung „LÖSCHEN" ein.
-                                    </p>
-                                    <div style="display: flex; gap: 0.35rem;">
-                                        <input type="text" x-model="text" name="bestaetigung" class="form-input" style="padding: 0.3rem 0.5rem; font-size: 0.75rem; width: 100px;"
-                                               th:attr="aria-label=#{ui.einstellungen.benutzer.loeschen.aria}"
-                                               th:placeholder="#{ui.einstellungen.benutzer.loeschen.bestaetigung}" autocomplete="off">
-                                        <button type="submit" class="btn-ui btn-ui-danger btn-ui-sm button gefährlich"
-                                                :disabled="text !== $el.dataset.bestaetigung"
-                                                th:data-bestaetigung="#{ui.einstellungen.benutzer.loeschen.bestaetigung}"
-                                                th:text="#{ui.einstellungen.benutzer.loeschen.bestaetigen}">Endgültig löschen</button>
-                                    </div>
+        <div th:if="${!#lists.isEmpty(benutzer)}" class="tabelle-container">
+            <table class="daten-tabelle tabelle" style="margin-top: 0; border: none; border-radius: 0; box-shadow: none;">
+                <thead>
+                <tr>
+                    <th th:text="#{ui.einstellungen.benutzer.liste.benutzername}">Benutzername</th>
+                    <th class="zell-badge" th:text="#{ui.einstellungen.benutzer.liste.rolle}">Rolle</th>
+                    <th class="zell-badge" th:text="#{ui.einstellungen.benutzer.liste.status}">Status</th>
+                    <th class="text-rechts zell-aktion" th:text="#{ui.einstellungen.benutzer.liste.aktionen}">Aktionen</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="b : ${benutzer}"
+                    th:with="geschuetzt=${b.role().name() == 'ADMIN' and b.enabled() and letzterAdminGeschuetzt}"
+                    th:classappend="${b.enabled()} ? '' : 'zeile-gedaempft'">
+                    <td>
+                        <strong th:text="${b.username()}" style="font-size: 0.95rem;">alice</strong>
+                    </td>
+                    <td class="zell-badge">
+                        <span class="type-pill-mono" th:text="#{${'ui.approle.' + b.role()}}">Benutzer</span>
+                    </td>
+                    <td class="zell-badge">
+                        <span th:if="${b.enabled()}" class="status-badge badge-healthy aktiv">
+                            <span class="status-dot-pulse"></span>
+                            <span th:text="#{ui.einstellungen.benutzer.status.aktiv}">Aktiv</span>
+                        </span>
+                        <span th:unless="${b.enabled()}" class="status-badge status-inaktiv inaktiv" th:text="#{ui.einstellungen.benutzer.status.inaktiv}">Deaktiviert</span>
+                    </td>
+                    <td class="benutzer-aktionen text-rechts">
+                        <div style="display: flex; align-items: center; justify-content: flex-end; gap: 0.5rem; flex-wrap: wrap;">
+                            <div th:if="${!geschuetzt}">
+                                <form th:if="${b.role().name() == 'ADMIN'}"
+                                      th:action="@{/einstellungen/benutzer/{id}(id=${b.id()})}" method="post" class="inline-form">
+                                    <input type="hidden" name="aktion" value="rolle">
+                                    <input type="hidden" name="sollAdministrator" value="false">
+                                    <button type="submit" class="btn-ui btn-ui-secondary btn-ui-sm button sekundär klein" th:text="#{ui.einstellungen.benutzer.herabstufen}">Zum Benutzer zurückstufen</button>
+                                </form>
+                                <form th:if="${b.role().name() == 'USER'}"
+                                      th:action="@{/einstellungen/benutzer/{id}(id=${b.id()})}" method="post" class="inline-form">
+                                    <input type="hidden" name="aktion" value="rolle">
+                                    <input type="hidden" name="sollAdministrator" value="true">
+                                    <button type="submit" class="btn-ui btn-ui-secondary btn-ui-sm button sekundär klein" th:text="#{ui.einstellungen.benutzer.befoerdern}">Zum Administrator machen</button>
+                                </form>
+                                <form th:if="${b.enabled()}"
+                                      th:action="@{/einstellungen/benutzer/{id}(id=${b.id()})}" method="post" class="inline-form">
+                                    <input type="hidden" name="aktion" value="aktiv">
+                                    <input type="hidden" name="aktiv" value="false">
+                                    <button type="submit" class="btn-ui btn-ui-secondary btn-ui-sm button sekundär klein" th:text="#{ui.einstellungen.benutzer.deaktivieren}">Deaktivieren</button>
+                                    <p class="hinweis-text" style="display: none;" th:text="#{ui.einstellungen.benutzer.deaktivieren.hinweis}">Diese Person kann sich danach nicht mehr anmelden.</p>
+                                </form>
+                                <form th:if="${!b.enabled()}"
+                                      th:action="@{/einstellungen/benutzer/{id}(id=${b.id()})}" method="post" class="inline-form">
+                                    <input type="hidden" name="aktion" value="aktiv">
+                                    <input type="hidden" name="aktiv" value="true">
+                                    <button type="submit" class="btn-ui btn-ui-secondary btn-ui-sm button sekundär klein" th:text="#{ui.einstellungen.benutzer.aktivieren}">Aktivieren</button>
                                 </form>
                             </div>
+
+                            <form th:action="@{/einstellungen/benutzer/{id}(id=${b.id()})}" method="post" class="inline-form" style="display: flex; gap: 0.35rem; align-items: center;">
+                                <input type="hidden" name="aktion" value="passwort">
+                                <input type="password" name="passwort" th:placeholder="#{ui.einstellungen.benutzer.passwort.platzhalter}"
+                                       th:attr="aria-label=#{ui.einstellungen.benutzer.passwort.aria}"
+                                       autocomplete="new-password" class="form-input passwort-eingabe" style="padding: 0.35rem 0.5rem; font-size: 0.8rem; width: 140px;">
+                                <button type="submit" class="btn-ui btn-ui-secondary btn-ui-sm button sekundär klein" th:text="#{ui.einstellungen.benutzer.passwort.setzen}">Passwort setzen</button>
+                            </form>
+
+                            <div th:if="${!geschuetzt}">
+                                <div x-data="{ offen: false, text: '' }" class="benutzer-loeschen">
+                                    <button type="button" class="btn-ui btn-ui-danger btn-ui-sm button sekundär klein" @click="offen = true"
+                                            th:text="#{ui.einstellungen.benutzer.loeschen}">Löschen</button>
+                                    <form th:action="@{/einstellungen/benutzer/{id}/loeschen(id=${b.id()})}" method="post"
+                                          x-show="offen" style="display: none; margin-top: 0.5rem; padding: 0.5rem; background: var(--status-error-bg); border-radius: 6px;" class="loeschen-bestaetigung">
+                                        <p class="hinweis-text" style="font-size: 0.75rem; color: var(--status-error-text); margin: 0 0 0.35rem 0;" th:text="#{ui.einstellungen.benutzer.loeschen.hinweis}">
+                                            Geben Sie zur Bestätigung „LÖSCHEN" ein.
+                                        </p>
+                                        <div style="display: flex; gap: 0.35rem;">
+                                            <input type="text" x-model="text" name="bestaetigung" class="form-input" style="padding: 0.3rem 0.5rem; font-size: 0.75rem; width: 100px;"
+                                                   th:attr="aria-label=#{ui.einstellungen.benutzer.loeschen.aria}"
+                                                   th:placeholder="#{ui.einstellungen.benutzer.loeschen.bestaetigung}" autocomplete="off">
+                                            <button type="submit" class="btn-ui btn-ui-danger btn-ui-sm button gefährlich"
+                                                    :disabled="text !== $el.dataset.bestaetigung"
+                                                    th:data-bestaetigung="#{ui.einstellungen.benutzer.loeschen.bestaetigung}"
+                                                    th:text="#{ui.einstellungen.benutzer.loeschen.bestaetigen}">Endgültig löschen</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </td>
-            </tr>
-            </tbody>
-        </table>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
     </section>
 </main>
 </body>
