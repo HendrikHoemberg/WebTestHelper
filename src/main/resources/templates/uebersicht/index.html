@@ -76,7 +76,7 @@
 
         <div class="kpi-card kennzahl">
             <div class="kpi-eyebrow">
-                <span>Aktive Läufe</span>
+                <span th:text="#{ui.uebersicht.kpi.aktive_laeufe}">Aktive Läufe</span>
                 <span class="status-dot-pulse" style="background: var(--status-success-dot);" th:if="${uebersicht.runsInFlight() > 0}"></span>
             </div>
             <div class="kpi-number-row">
@@ -94,9 +94,10 @@
     <!-- System Capacity & Background Info -->
     <div class="card-box" style="margin-bottom: 2rem; padding: 1rem 1.25rem;">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
-            <strong style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Systemkapazität</strong>
+            <strong style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);"
+                    th:text="#{ui.uebersicht.systemkapazitaet}">Systemkapazität</strong>
             <span style="font-family: var(--font-mono); font-size: 0.8rem; font-weight: 700;"
-                  th:text="${uebersicht.capacity.browserWorkersBusy()} + ' / ' + ${uebersicht.capacity.browserWorkersTotal()} + ' Worker belegt'">
+                  th:text="#{ui.uebersicht.worker_belegt(${uebersicht.capacity.browserWorkersBusy()}, ${uebersicht.capacity.browserWorkersTotal()})}">
                 0 / 2 Worker belegt
             </span>
         </div>
