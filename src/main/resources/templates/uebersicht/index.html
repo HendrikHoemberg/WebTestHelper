@@ -17,7 +17,7 @@
                 <h1 class="page-main-title" th:text="#{ui.titel.uebersicht}">Übersicht</h1>
                 <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
                         th:data-hx-get="@{/hilfe/hinweis/{id}(id='uebersicht')}"
-                        data-hx-target="next .hinweis" data-hx-swap="innerHTML">?</button>
+                        data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">?</button>
                 <div class="hinweis" aria-live="polite"></div>
             </div>
         </div>

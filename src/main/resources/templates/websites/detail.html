@@ -93,7 +93,7 @@
                 <h2 style="margin: 0; border: none; padding: 0;" th:text="#{ui.websites.detail.pins.titel}">Schlüsselseiten (Pulse-Prüfung)</h2>
                 <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
                         th:data-hx-get="@{/hilfe/hinweis/{id}(id='zeitplaene')}"
-                        data-hx-target="next .hinweis" data-hx-swap="innerHTML">?</button>
+                        data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">?</button>
                 <div class="hinweis" aria-live="polite"></div>
             </div>
             <ul th:if="${not #lists.isEmpty(site.pinnedKeyPages)}" class="muster-liste" style="list-style: none; padding-left: 0; display: flex; flex-direction: column; gap: 0.35rem;">
@@ -118,7 +118,7 @@
             <h2 style="margin: 0; border: none; padding: 0;" th:text="#{ui.websites.detail.pruefungen.titel}">Prüfungen</h2>
             <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
                     th:data-hx-get="@{/hilfe/hinweis/{id}(id='pruefungen')}"
-                    data-hx-target="next .hinweis" data-hx-swap="innerHTML">?</button>
+                    data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">?</button>
             <div class="hinweis" aria-live="polite"></div>
         </div>
         <form th:action="@{/websites/{id}/pruefungen(id=${site.siteId})}" method="post">

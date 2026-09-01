@@ -49,7 +49,7 @@
             <h2 style="margin: 0; border: none; padding: 0;" th:text="#{ui.befunde.triage.titel}">Feststellung bewerten</h2>
             <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
                     th:data-hx-get="@{/hilfe/hinweis/{id}(id='stummschaltungen')}"
-                    data-hx-target="next .hinweis" data-hx-swap="innerHTML">?</button>
+                    data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">?</button>
             <div class="hinweis" aria-live="polite"></div>
         </div>
         <div th:replace="~{fragments/bewertung :: bewertung(@{/befunde/{id}/bewerten(id=${finding.id})}, false, ${finding.id})}"></div>

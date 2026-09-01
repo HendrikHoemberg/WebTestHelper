@@ -1189,3 +1189,111 @@ body {
     color: var(--text-main);
 }
 
+/* Hilfe-Modal */
+.wth-hilfe-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+}
+
+.wth-hilfe-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(9, 9, 11, 0.45);
+    -webkit-backdrop-filter: blur(3px);
+    backdrop-filter: blur(3px);
+}
+
+.wth-hilfe-modal-dialog {
+    position: relative;
+    width: min(100%, 34rem);
+    max-height: calc(100vh - 2.5rem);
+    overflow-y: auto;
+    background: var(--surface-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 10px;
+    box-shadow: var(--shadow-elevated);
+}
+
+.wth-hilfe-modal-kopf {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.25rem 0.75rem;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.wth-hilfe-modal-titel {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-main);
+    line-height: 1.3;
+}
+
+.wth-hilfe-modal-schliessen {
+    flex-shrink: 0;
+    width: 1.75rem;
+    height: 1.75rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border-subtle);
+    border-radius: 9999px;
+    background: var(--surface-subtle);
+    color: var(--text-muted);
+    font-size: 1.15rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.wth-hilfe-modal-schliessen:hover {
+    border-color: var(--border-strong);
+    color: var(--text-main);
+}
+
+.wth-hilfe-modal-inhalt {
+    padding: 1rem 1.25rem 1.25rem;
+    color: var(--text-body);
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.wth-hilfe-modal-inhalt > :first-child {
+    margin-top: 0;
+}
+
+.wth-hilfe-modal-inhalt p {
+    margin: 0 0 0.75rem;
+}
+
+.wth-hilfe-modal-inhalt a {
+    font-size: 0.825rem;
+    font-weight: 700;
+    color: var(--text-main);
+    text-decoration: underline;
+}
+
+.wth-hilfe-modal-inhalt:empty::before {
+    content: "";
+    display: block;
+    width: 1.5rem;
+    height: 1.5rem;
+    margin: 0.5rem auto;
+    border: 2px solid var(--border-subtle);
+    border-top-color: var(--text-muted);
+    border-radius: 9999px;
+    animation: wth-hilfe-spin 0.7s linear infinite;
+}
+
+@keyframes wth-hilfe-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+

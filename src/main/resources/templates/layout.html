@@ -79,7 +79,7 @@
     </aside>
 
     <!-- Main Workspace Container -->
-    <div class="app-main-wrapper">
+    <div class="app-main-wrapper" x-data="{ hilfeModalOffen: false }">
         <!-- Global Health Banners -->
         <div th:if="${mailFailures != null && mailFailures > 0}" class="gesundheits-banner warnung system-banner" role="alert">
             <div class="banner-msg">
@@ -97,6 +97,19 @@
         </div>
 
         <main class="workspace-content" th:replace="${inhalt}"></main>
+
+        <!-- Hilfe-Modal -->
+        <div x-cloak x-show="hilfeModalOffen" @keydown.escape.window="hilfeModalOffen = false" class="wth-hilfe-modal">
+            <div class="wth-hilfe-modal-backdrop" @click.self="hilfeModalOffen = false"></div>
+            <div class="wth-hilfe-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="hilfe-modal-titel">
+                <div class="wth-hilfe-modal-kopf">
+                    <h2 id="hilfe-modal-titel" class="wth-hilfe-modal-titel"></h2>
+                    <button type="button" class="wth-hilfe-modal-schliessen" @click="hilfeModalOffen = false"
+                            th:attr="aria-label=#{ui.hilfe.schliessen}, title=#{ui.hilfe.schliessen}">×</button>
+                </div>
+                <div id="hilfe-modal-inhalt" class="wth-hilfe-modal-inhalt"></div>
+            </div>
+        </div>
     </div>
 </body>
 </html>

@@ -6,7 +6,7 @@
         <h2 style="margin: 0; border: none; padding: 0;" th:text="#{ui.websites.detail.zugangsdaten.titel}">Zugangsdaten</h2>
         <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
                 th:data-hx-get="@{/hilfe/hinweis/{id}(id='zugangsdaten')}"
-                data-hx-target="next .hinweis" data-hx-swap="innerHTML">?</button>
+                data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">?</button>
         <div class="hinweis" aria-live="polite"></div>
     </div>
 

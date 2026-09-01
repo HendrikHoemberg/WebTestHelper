@@ -54,7 +54,7 @@
                     <label for="fallbackRecipients" th:text="#{ui.einstellungen.fallbackRecipients}">Ausweich-Empfänger (Fallback)</label>
                     <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
                             th:data-hx-get="@{/hilfe/hinweis/{id}(id='benachrichtigungen')}"
-                            data-hx-target="next .hinweis" data-hx-swap="innerHTML">?</button>
+                            data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">?</button>
                     <div class="hinweis" aria-live="polite"></div>
                 </div>
                 <textarea id="fallbackRecipients" th:field="*{fallbackRecipients}" rows="3" class="form-input" placeholder="empfaenger@example.com"></textarea>
@@ -77,7 +77,7 @@
                 <h2 style="margin: 0; border: none; padding: 0;" th:text="#{ui.einstellungen.smtp.titel}">E-Mail-Versand (SMTP)</h2>
                 <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
                         th:data-hx-get="@{/hilfe/hinweis/{id}(id='smtp-einrichten')}"
-                        data-hx-target="next .hinweis" data-hx-swap="innerHTML">?</button>
+                        data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">?</button>
                 <div class="hinweis" aria-live="polite"></div>
             </div>
 
@@ -128,7 +128,7 @@
                 <h2 style="margin: 0; border: none; padding: 0;" th:text="#{ui.einstellungen.imap.titel}">Prüfpostfach</h2>
                 <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
                         th:data-hx-get="@{/hilfe/hinweis/{id}(id='pruefpostfach')}"
-                        data-hx-target="next .hinweis" data-hx-swap="innerHTML">?</button>
+                        data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">?</button>
                 <div class="hinweis" aria-live="polite"></div>
             </div>
             <p class="hinweis-text" style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;" th:text="#{ui.einstellungen.imap.hinweis}">In dieses Postfach muss eine Kopie der Formularnachricht gelangen.</p>

@@ -95,7 +95,7 @@
             <h2 style="margin: 0; border: none; padding: 0;" th:text="#{ui.lauf.abdeckung.titel}">Abdeckung</h2>
             <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
                     th:data-hx-get="@{/hilfe/hinweis/{id}(id='bericht-lesen')}"
-                    data-hx-target="next .hinweis" data-hx-swap="innerHTML">?</button>
+                    data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">?</button>
             <div class="hinweis" aria-live="polite"></div>
         </div>
         <p class="abdeckung-zeile" style="font-size: 0.95rem; margin-bottom: 0.5rem;">
@@ -127,7 +127,7 @@
                 <button type="button" @click="offen = !offen" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.lauf.ausgangsbestand.button}">Als Ausgangsbestand übernehmen</button>
                 <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
                         th:data-hx-get="@{/hilfe/hinweis/{id}(id='ausgangsbestand')}"
-                        data-hx-target="next .hinweis" data-hx-swap="innerHTML">?</button>
+                        data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">?</button>
                 <div class="hinweis" aria-live="polite"></div>
             </div>
             <div x-show="offen" class="ausgangsbestand-panel" style="display: none; margin-top: 1rem; padding: 1rem; background: var(--surface-subtle); border: 1px solid var(--border-subtle); border-radius: 8px;">
@@ -144,7 +144,7 @@
             <span class="status-badge status-inaktiv" th:text="#{ui.lauf.ausgangsbestand.bereits_uebernommen}">Ausgangsbestand wurde übernommen</span>
             <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
                     th:data-hx-get="@{/hilfe/hinweis/{id}(id='ausgangsbestand')}"
-                    data-hx-target="next .hinweis" data-hx-swap="innerHTML">?</button>
+                    data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">?</button>
             <div class="hinweis" aria-live="polite"></div>
         </div>
     </section>
@@ -157,7 +157,7 @@
                 <h2 style="margin: 0; border: none; padding: 0;" th:text="#{${'ui.reportsection.' + entry.key}} + ' (' + ${#lists.size(entry.value)} + ')'">Neu aufgetreten (2)</h2>
                 <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
                         th:data-hx-get="@{/hilfe/hinweis/{id}(id='bericht-lesen')}"
-                        data-hx-target="next .hinweis" data-hx-swap="innerHTML">?</button>
+                        data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">?</button>
                 <div class="hinweis" aria-live="polite"></div>
             </div>
             <div class="befunde-liste inspector-card-shell" style="margin-bottom: 0;">
