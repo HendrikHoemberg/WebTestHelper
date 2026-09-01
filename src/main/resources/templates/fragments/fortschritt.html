@@ -14,6 +14,8 @@
     </div>
     <p th:if="${run.status.name() == 'QUEUED'}" th:text="#{ui.lauf.fortschritt.wartet}">Wartet auf Ausführung...</p>
     <p th:if="${run.status.name() == 'RUNNING'}" th:text="#{ui.lauf.fortschritt.laeuft}">Prüflauf wird ausgeführt...</p>
+    <button type="button" class="button sekundär" @click="$dispatch('abbrechen-offen')"
+            th:text="#{ui.lauf.abbrechen.button}">Lauf abbrechen</button>
 </div>
 </body>
 </html>

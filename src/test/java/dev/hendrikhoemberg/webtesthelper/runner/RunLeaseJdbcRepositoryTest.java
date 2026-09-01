@@ -225,6 +225,64 @@ class RunLeaseJdbcRepositoryTest extends AbstractPostgresTest {
     }
 
     @Test
+    void cancelMarksAQueuedRunCancelledAndFinished() {
+        long runId = queueRun(siteA);
+
+        assertThat(leases.cancel(runId)).isTrue();
+
+        assertThat(jdbc.queryForObject("SELECT status FROM run WHERE id = ?", String.class, runId))
+                .isEqualTo("CANCELLED");
+        assertThat(jdbc.queryForObject("SELECT finished_at IS NOT NULL FROM run WHERE id = ?",
+                Boolean.class, runId)).isTrue();
+        assertThat(jdbc.queryForObject("SELECT lease_owner FROM run WHERE id = ?", String.class, runId))
+                .isNull();
+        // A cancelled run is never claimed (spec 14's queue is the only path to RUNNING).
+        assertThat(leases.claimNext("worker-1", Duration.ofMinutes(5))).isEmpty();
+    }
+
+    @Test
+    void cancelMarksARunningRunCancelledAndClearsTheLease() {
+        long runId = queueRun(siteA);
+        leases.claimNext("worker-1", Duration.ofMinutes(5)).orElseThrow();
+
+        assertThat(leases.cancel(runId)).isTrue();
+
+        assertThat(jdbc.queryForObject("SELECT status FROM run WHERE id = ?", String.class, runId))
+                .isEqualTo("CANCELLED");
+        assertThat(jdbc.queryForObject("SELECT lease_owner FROM run WHERE id = ?", String.class, runId))
+                .isNull();
+        assertThat(jdbc.queryForObject("SELECT lease_expires_at FROM run WHERE id = ?",
+                java.sql.Timestamp.class, runId)).isNull();
+    }
+
+    @Test
+    void cancelOfATerminalRunIsANoOp() {
+        long runId = queueRun(siteA);
+        leases.claimNext("worker-1", Duration.ofMinutes(5)).orElseThrow();
+        leases.finish(runId, "worker-1", RunStatus.COMPLETED, null);
+
+        assertThat(leases.cancel(runId)).isFalse();
+        assertThat(jdbc.queryForObject("SELECT status FROM run WHERE id = ?", String.class, runId))
+                .isEqualTo("COMPLETED");
+    }
+
+    @Test
+    void cancelOfAnUnknownRunIsANoOp() {
+        assertThat(leases.cancel(9_999_999L)).isFalse();
+    }
+
+    @Test
+    void finishDoesNotOverwriteACancelledRun() {
+        long runId = queueRun(siteA);
+        leases.claimNext("worker-1", Duration.ofMinutes(5)).orElseThrow();
+        leases.cancel(runId);
+
+        assertThat(leases.finish(runId, "worker-1", RunStatus.COMPLETED, null)).isFalse();
+        assertThat(jdbc.queryForObject("SELECT status FROM run WHERE id = ?", String.class, runId))
+                .isEqualTo("CANCELLED");
+    }
+
+    @Test
     void aDeposedOwnerCannotHeartbeatOrFinishAfterTheLeaseWasReclaimed() {
         long runId = queueRun(siteA);
         leases.claimNext("worker-1", Duration.ofMinutes(5)).orElseThrow();

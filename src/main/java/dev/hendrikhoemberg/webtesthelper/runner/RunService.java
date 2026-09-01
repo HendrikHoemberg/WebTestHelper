@@ -8,6 +8,7 @@ import dev.hendrikhoemberg.webtesthelper.model.RunStatus;
 import dev.hendrikhoemberg.webtesthelper.model.RunTrigger;
 import dev.hendrikhoemberg.webtesthelper.runner.persistence.RunDashboardJdbcRepository;
 import dev.hendrikhoemberg.webtesthelper.runner.persistence.RunEntity;
+import dev.hendrikhoemberg.webtesthelper.runner.persistence.RunLeaseJdbcRepository;
 import dev.hendrikhoemberg.webtesthelper.runner.persistence.RunRepository;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Limit;
@@ -38,13 +39,15 @@ public class RunService {
 
     private final RunRepository runs;
     private final RunDashboardJdbcRepository dashboard;
+    private final RunLeaseJdbcRepository leases;
     private final SiteService sites;
     private final FindingService findings;
 
     public RunService(RunRepository runs, RunDashboardJdbcRepository dashboard,
-                      SiteService sites, FindingService findings) {
+                      RunLeaseJdbcRepository leases, SiteService sites, FindingService findings) {
         this.runs = runs;
         this.dashboard = dashboard;
+        this.leases = leases;
         this.sites = sites;
         this.findings = findings;
     }
@@ -110,6 +113,14 @@ public class RunService {
     public RunSummary summary(long runId) {
         return runs.findById(runId).map(this::toSummary)
                 .orElseThrow(() -> new IllegalArgumentException("Lauf " + runId + " existiert nicht"));
+    }
+
+    /**
+     * Cancels a QUEUED or RUNNING run. True when the run was cancelled, false when it does not
+     * exist or already ended — a terminal run is deliberately left untouched.
+     */
+    public boolean cancel(long runId) {
+        return leases.cancel(runId);
     }
 
     /**

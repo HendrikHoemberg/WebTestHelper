@@ -27,6 +27,26 @@
         <div th:replace="~{fragments/fortschritt :: fortschritt}"></div>
     </th:block>
 
+    <!-- Abbrechen (nur bei wartenden oder laufenden Läufen) -->
+    <section th:if="${run.status.name() == 'QUEUED' or run.status.name() == 'RUNNING'}"
+             class="detail-bereich" x-data="{ offen: false }" @abbrechen-offen.window="offen = true">
+        <h2 th:text="#{ui.lauf.abbrechen.titel}">Lauf abbrechen</h2>
+        <div class="ausgangsbestand-zeile">
+            <button type="button" @click="offen = !offen" class="button sekundär"
+                    th:text="#{ui.lauf.abbrechen.button}">Lauf abbrechen</button>
+        </div>
+        <div x-show="offen" class="ausgangsbestand-panel" style="display: none; margin-top: 1rem;">
+            <p th:text="#{ui.lauf.abbrechen.folge}">
+                Der Prüflauf wird gestoppt, sobald der laufende Schritt beendet ist...
+            </p>
+            <form th:action="@{/laeufe/{id}/abbrechen(id=${run.id})}" method="post" class="inline-form">
+                <button type="submit" class="button primär" th:text="#{ui.lauf.abbrechen.bestaetigen}">Jetzt abbrechen</button>
+                <button type="button" @click="offen = false" class="button sekundär"
+                        th:text="#{ui.lauf.ausgangsbestand.abbrechen}">Abbrechen</button>
+            </form>
+        </div>
+    </section>
+
     <!-- Übersicht / Metadaten -->
     <section class="detail-bereich">
         <h2 th:text="#{ui.lauf.uebersicht}">Übersicht</h2>

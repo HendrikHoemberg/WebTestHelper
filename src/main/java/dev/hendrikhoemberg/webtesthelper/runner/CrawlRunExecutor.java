@@ -99,21 +99,24 @@ public class CrawlRunExecutor implements RunExecutor {
 
     @Override
     public void execute(RunLease lease) {
+        heartbeatOrThrow(lease);
         SiteContext site = sites.contextFor(lease.siteId());
         Instant startedAt = Instant.now();
         CrawlResult result = crawler.crawl(
                 new CrawlRequest(lease.runId(), site, lease.scope(), identity.name()),
                 (visited, failed) -> {
                     // A crawl outlives the 30-minute lease it was claimed under; without this
-                    // the sweep would reclaim a run that is perfectly healthy (spec 14).
-                    leases.heartbeat(lease.runId(), identity.name(), LEASE_EXTENSION);
+                    // the sweep would reclaim a run that is perfectly healthy (spec 14). The
+                    // heartbeat doubles as the crawl's cancellation checkpoint: once the user
+                    // cancels the run, the next batch boundary ends the crawl.
+                    heartbeatOrThrow(lease);
                     results.updateProgress(lease.runId(), visited, failed);
                 });
 
         // Verification and the check pass both run outside the crawl's heartbeat callback, and a
         // large site's verification pass is minutes of blocking I/O. One extension here closes the
         // stale-lease window so the sweep cannot reclaim a run that is still working (spec 14).
-        leases.heartbeat(lease.runId(), identity.name(), LEASE_EXTENSION);
+        heartbeatOrThrow(lease);
 
         // Ping every link the crawl did not itself navigate, and probe the base URL's certificate.
         UrlVerifications verifications = verifier.verify(site, result.snapshots(),
@@ -130,7 +133,7 @@ public class CrawlRunExecutor implements RunExecutor {
 
         InteractionOutcome interactionOutcome;
         if (lease.scope() != RunScope.PULSE) {
-            leases.heartbeat(lease.runId(), identity.name(), LEASE_EXTENSION);
+            heartbeatOrThrow(lease);
             Path runArtifacts = crawlerProperties.artifactDir().resolve(String.valueOf(lease.runId()));
             interactionOutcome = interactionRunner.run(result.snapshots(), site, facts, runArtifacts);
             if (interactionOutcome == null) {
@@ -143,7 +146,7 @@ public class CrawlRunExecutor implements RunExecutor {
 
         JourneyPassResult journeyPassResult;
         if (lease.scope() != RunScope.PULSE) {
-            leases.heartbeat(lease.runId(), identity.name(), LEASE_EXTENSION);
+            heartbeatOrThrow(lease);
             Path runArtifacts = crawlerProperties.artifactDir().resolve(String.valueOf(lease.runId()));
             journeyPassResult = journeyPass.run(site, lease.scope(), runArtifacts);
             if (journeyPassResult == null) {
@@ -152,6 +155,8 @@ public class CrawlRunExecutor implements RunExecutor {
         } else {
             journeyPassResult = JourneyPassResult.NONE;
         }
+
+        heartbeatOrThrow(lease);
 
         // A dead-link finding is a chance for a false positive: re-check every subject the first
         // pass called DEAD and that the crawl did not itself visit. Anything that answers OK on a
@@ -211,6 +216,18 @@ public class CrawlRunExecutor implements RunExecutor {
                 diff.count(ReportSection.NEW), diff.count(ReportSection.FIXED));
 
         pinKeyPagesAfterFullCrawl(lease, site, result);
+    }
+
+    /**
+     * One cancellation checkpoint: the heartbeat requires {@code status = 'RUNNING'}, so a run
+     * the user cancelled (or whose lease was reclaimed) makes it return false — which is the
+     * executor's stop signal. Checkpoints sit at run start, at every crawl batch boundary and
+     * between the long phases, so a cancelled run stops within one batch.
+     */
+    private void heartbeatOrThrow(RunLease lease) {
+        if (!leases.heartbeat(lease.runId(), identity.name(), LEASE_EXTENSION)) {
+            throw new RunCancelledException("Lauf " + lease.runId() + " wurde abgebrochen");
+        }
     }
 
     /**

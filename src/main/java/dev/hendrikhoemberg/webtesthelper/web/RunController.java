@@ -84,4 +84,14 @@ public class RunController {
         redirectAttributes.addFlashAttribute("flashMessage", msg);
         return "redirect:/laeufe/" + id;
     }
+
+    @PostMapping("/{id}/abbrechen")
+    public String abbrechen(@PathVariable("id") long id, RedirectAttributes redirectAttributes, Locale locale) {
+        boolean cancelled = runService.cancel(id);
+        String msg = messageSource.getMessage(
+                cancelled ? "ui.lauf.abbrechen.erfolg" : "ui.lauf.abbrechen.bereits_beendet",
+                null, locale);
+        redirectAttributes.addFlashAttribute("flashMessage", msg);
+        return "redirect:/laeufe/" + id;
+    }
 }

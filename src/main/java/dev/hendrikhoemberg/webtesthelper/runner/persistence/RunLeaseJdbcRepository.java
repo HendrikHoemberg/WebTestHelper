@@ -71,7 +71,24 @@ public class RunLeaseJdbcRepository {
                    lease_owner      = NULL,
                    lease_expires_at = NULL,
                    error_message    = ?
-             WHERE id = ? AND lease_owner = ?
+             WHERE id = ? AND lease_owner = ? AND status = 'RUNNING'
+            """;
+
+    /**
+     * Cancels a run the user wants stopped. Matches only QUEUED and RUNNING: a terminal run is
+     * deliberately left untouched (its outcome is already recorded, and the dashboard's last
+     * terminal projection only reads COMPLETED/FAILED anyway). Clearing the lease is what the
+     * worker's next heartbeat cannot see past — a cancelled RUNNING row fails the heartbeat's
+     * {@code status = 'RUNNING'} guard, which the executor treats as its stop signal.
+     */
+    private static final String CANCEL_SQL = """
+            UPDATE run
+               SET status           = 'CANCELLED',
+                   finished_at      = now(),
+                   lease_owner      = NULL,
+                   lease_expires_at = NULL,
+                   error_message    = NULL
+             WHERE id = ? AND status IN ('QUEUED', 'RUNNING')
             """;
 
     /**
@@ -161,6 +178,16 @@ public class RunLeaseJdbcRepository {
 
     public boolean finish(long runId, String owner, RunStatus status, String errorMessage) {
         return jdbc.update(FINISH_SQL, status.name(), errorMessage, runId, owner) == 1;
+    }
+
+    /**
+     * Cancels a QUEUED or RUNNING run; false when the run does not exist or already ended.
+     * The status guard makes the finish path race-safe: a worker that completes just as the
+     * cancel lands cannot overwrite CANCELLED with COMPLETED, because FINISH_SQL only matches
+     * rows that are still RUNNING.
+     */
+    public boolean cancel(long runId) {
+        return jdbc.update(CANCEL_SQL, runId) == 1;
     }
 
     /**

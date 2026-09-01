@@ -168,6 +168,15 @@ class RunServiceTest extends AbstractPostgresTest {
         assertThat(summary.coveredInteractionUrls()).isNotNull().isEmpty();
     }
 
+    @Test
+    void cancelReturnsTrueForAQueuedRunAndFalseForATerminalOne() {
+        long queued = runs.enqueue(siteId, RunTrigger.MANUAL, RunScope.FULL);
+
+        assertThat(runs.cancel(queued)).isTrue();
+        assertThat(runs.cancel(queued)).isFalse();   // idempotent: already terminal
+        assertThat(runs.cancel(9_999_999L)).isFalse();
+    }
+
     private <T> List<T> inParallel(int threads, Callable<T> work) throws Exception {
         try (ExecutorService pool = Executors.newFixedThreadPool(threads)) {
             List<Future<T>> futures = pool.invokeAll(java.util.Collections.nCopies(threads, work));

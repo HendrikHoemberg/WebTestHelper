@@ -56,6 +56,11 @@ public class RunWorker {
             } else {
                 log.warn("Run {} beendet, aber nicht mehr Eigentümer", lease.runId());
             }
+        } catch (RunCancelledException cancelled) {
+            // The cancel endpoint (or the lease sweep) already moved the row out of RUNNING; the
+            // guarded FINISH_SQL would refuse a finish here, and that is correct — a requeued run
+            // must stay QUEUED for its next worker, a cancelled one stays CANCELLED.
+            log.info("Run {} abgebrochen", lease.runId());
         } catch (Exception e) {
             String message = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
             log.error("Run {} fehlgeschlagen", lease.runId(), e);

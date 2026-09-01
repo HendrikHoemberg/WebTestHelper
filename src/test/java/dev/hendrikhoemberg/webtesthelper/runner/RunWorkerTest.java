@@ -70,6 +70,24 @@ class RunWorkerTest extends AbstractPostgresTest {
     }
 
     @Test
+    void aRunCancelledMidExecutionIsFinishedAsCancelled() {
+        long runId = runs.enqueue(siteId, RunTrigger.MANUAL, RunScope.FULL);
+        worker.withExecutorForTest(lease -> {
+            // The cancel lands while the run executes.
+            jdbc.update("UPDATE run SET status = 'CANCELLED', finished_at = now(), "
+                    + "lease_owner = NULL, lease_expires_at = NULL WHERE id = ?", lease.runId());
+            throw new RunCancelledException("Lauf " + lease.runId() + " wurde abgebrochen");
+        });
+
+        assertThat(worker.workOnce()).isTrue();
+
+        assertThat(jdbc.queryForObject("SELECT status FROM run WHERE id = ?", String.class, runId))
+                .isEqualTo("CANCELLED");
+        assertThat(jdbc.queryForObject("SELECT error_message FROM run WHERE id = ?", String.class, runId))
+                .isNull();
+    }
+
+    @Test
     void anEmptyQueueIsANoOp() {
         assertThat(worker.workOnce()).isFalse();
     }

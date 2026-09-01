@@ -369,6 +369,39 @@ class RunControllerTest {
 
     @Test
     @WithMockUser(roles = "USER")
+    void postAbbrechenWithoutCsrfIsForbidden() throws Exception {
+        mvc.perform(post("/laeufe/101/abbrechen"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void postAbbrechenCancelsAndRedirectsWithFlashMessage() throws Exception {
+        long runId = 101L;
+        when(runService.cancel(runId)).thenReturn(true);
+
+        mvc.perform(post("/laeufe/" + runId + "/abbrechen").with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/laeufe/" + runId))
+                .andExpect(flash().attributeExists("flashMessage"));
+
+        verify(runService).cancel(runId);
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void postAbbrechenOfAnAlreadyFinishedRunStillRedirects() throws Exception {
+        long runId = 102L;
+        when(runService.cancel(runId)).thenReturn(false);
+
+        mvc.perform(post("/laeufe/" + runId + "/abbrechen").with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/laeufe/" + runId))
+                .andExpect(flash().attributeExists("flashMessage"));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
     void postAusgangsbestandWithoutCsrfIsForbidden() throws Exception {
         mvc.perform(post("/laeufe/101/ausgangsbestand"))
                 .andExpect(status().isForbidden());
@@ -427,6 +460,50 @@ class RunControllerTest {
                 .andExpect(content().string(containsString("Als Ausgangsbestand übernehmen")))
                 .andExpect(content().string(containsString("x-data=\"{ offen: false }\"")))
                 .andExpect(content().string(containsString("Hiermit werden alle")));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void queuedRunDetailRendersTheCancelPanel() throws Exception {
+        long runId = 110L;
+        long siteId = 42L;
+        when(runService.summary(runId)).thenReturn(sampleSummary(runId, siteId, RunStatus.QUEUED, false, false, null));
+        when(siteService.contextFor(siteId)).thenReturn(sampleSite(siteId));
+
+        mvc.perform(get("/laeufe/" + runId))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Lauf abbrechen")))
+                .andExpect(content().string(containsString("Jetzt abbrechen")))
+                .andExpect(content().string(containsString("x-data=\"{ offen: false }\"")));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void completedRunDetailDoesNotRenderTheCancelPanel() throws Exception {
+        long runId = 111L;
+        long siteId = 42L;
+        when(runService.summary(runId)).thenReturn(sampleSummary(runId, siteId, RunStatus.COMPLETED, false, false, null));
+        when(siteService.contextFor(siteId)).thenReturn(sampleSite(siteId));
+        when(findingService.diffOf(siteId, runId)).thenReturn(new RunDiff(runId, Map.of()));
+        when(findingViewFactory.of(eq(new RunDiff(runId, Map.of())), any(Locale.class))).thenReturn(Map.of());
+
+        mvc.perform(get("/laeufe/" + runId))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("Lauf abbrechen"))))
+                .andExpect(content().string(not(containsString("Jetzt abbrechen"))));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void fortschrittForRunningRunOffersTheCancelDispatch() throws Exception {
+        long runId = 112L;
+        RunSummary summary = sampleSummary(runId, 42L, RunStatus.RUNNING, false, false, null);
+
+        when(runService.summary(runId)).thenReturn(summary);
+
+        mvc.perform(get("/laeufe/" + runId + "/fortschritt"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("$dispatch('abbrechen-offen')")));
     }
 
     @Test

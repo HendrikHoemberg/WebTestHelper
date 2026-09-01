@@ -11,6 +11,7 @@ import dev.hendrikhoemberg.webtesthelper.model.RunSnapshots;
 import dev.hendrikhoemberg.webtesthelper.model.RunTrigger;
 import dev.hendrikhoemberg.webtesthelper.model.Severity;
 import dev.hendrikhoemberg.webtesthelper.model.UrlNormalizer;
+import dev.hendrikhoemberg.webtesthelper.runner.persistence.RunLeaseJdbcRepository;
 import dev.hendrikhoemberg.webtesthelper.support.AbstractPostgresTest;
 import dev.hendrikhoemberg.webtesthelper.support.FixtureSite;
 import org.junit.jupiter.api.AfterAll;
@@ -45,6 +46,8 @@ class CrawlRunExecutorTest extends AbstractPostgresTest {
     @Autowired JdbcTemplate jdbc;
     @Autowired CrawlerProperties properties;
     @Autowired RunnerProperties runnerProperties;
+    @Autowired RunLeaseJdbcRepository leases;
+    @Autowired RunExecutor defaultExecutor;
     @MockitoBean InteractionRunner interactionRunner;
 
     private static FixtureSite site;
@@ -380,8 +383,26 @@ class CrawlRunExecutorTest extends AbstractPostgresTest {
     }
 
     @Test
-    void aPulseRunNeverCallsTheInteractionRunner() {
-        long pulseRunId = runs.enqueue(siteId, RunTrigger.MANUAL, RunScope.PULSE);
+    void aCancelledRunStopsBeforeTheCrawl() {
+        // Cancel the run between claim and execute: the executor's first checkpoint must throw
+        // before any page is fetched, and the worker must leave the run CANCELLED.
+        long runId = runs.enqueue(siteId, RunTrigger.MANUAL, RunScope.FULL);
+        worker.withExecutorForTest(lease -> {
+            leases.cancel(lease.runId());
+            defaultExecutor.execute(lease);
+        });
+
+        assertThat(worker.workOnce()).isTrue();
+
+        assertThat(jdbc.queryForObject("SELECT status FROM run WHERE id = ?", String.class, runId))
+                .isEqualTo("CANCELLED");
+        assertThat(jdbc.queryForObject(
+                "SELECT count(*) FROM crawl_queue_item WHERE run_id = ? AND status = 'DONE'",
+                Integer.class, runId)).isZero();
+    }
+
+    @Test
+    void aPulseRunNeverCallsTheInteractionRunner() {        long pulseRunId = runs.enqueue(siteId, RunTrigger.MANUAL, RunScope.PULSE);
         assertThat(worker.workOnce()).isTrue();
 
         verify(interactionRunner, never()).run(any(), any(), argThat(facts -> facts != null && facts.scope() == RunScope.PULSE), any());
