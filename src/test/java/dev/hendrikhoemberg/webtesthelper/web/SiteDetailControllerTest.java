@@ -150,7 +150,9 @@ class SiteDetailControllerTest {
                 .andExpect(content().string(containsString("Seitenstatus")))
                 .andExpect(content().string(containsString("Tote Links")))
                 .andExpect(content().string(containsString("101")))
-                .andExpect(content().string(containsString("Abgeschlossen")));
+                .andExpect(content().string(containsString("Abgeschlossen")))
+                .andExpect(content().string(containsString("25.08.2026 12:00")))
+                .andExpect(content().string(not(containsString("2026-08-25T10:00:00Z"))));
     }
 
     @Test

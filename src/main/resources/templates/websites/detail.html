@@ -150,7 +150,7 @@
                     <td>
                         <a th:href="@{/laeufe/{id}(id=${run.id})}" th:text="${run.id}" style="font-weight: 700;">101</a>
                     </td>
-                    <td style="font-variant-numeric: tabular-nums;" th:text="${run.queuedAt}">2026-08-25T10:00:00Z</td>
+                    <td style="font-variant-numeric: tabular-nums;" th:text="${#temporals.format(run.queuedAt, 'dd.MM.yyyy HH:mm')}">25.08.2026 10:00</td>
                     <td th:text="#{${'ui.runtrigger.' + run.trigger}}">Manuell</td>
                     <td>
                         <span class="type-pill-mono" th:text="#{${'ui.runscope.' + run.scope}}">Vollständig</span>
