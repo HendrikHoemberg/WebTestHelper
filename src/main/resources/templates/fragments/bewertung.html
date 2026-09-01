@@ -43,9 +43,9 @@
             </template>
         </div>
 
-        <div class="triage-form-raster">
-            <div class="form-gruppe">
-                <label for="triage-aktion" th:text="#{ui.befunde.triage.aktion}">Aktion</label>
+        <div class="triage-form-raster" style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;">
+            <div class="form-gruppe" style="margin-bottom: 0; min-width: 200px;">
+                <label for="triage-aktion" style="font-size: 0.8rem; margin-bottom: 0.25rem;" th:text="#{ui.befunde.triage.aktion}">Aktion</label>
                 <select id="triage-aktion" name="aktion" x-model="aktion" class="form-select">
                     <option th:each="st : ${triageFormActions}"
                             th:value="${st.name()}"
@@ -53,43 +53,40 @@
                 </select>
             </div>
 
-            <div class="form-gruppe" x-show="requiresExpiry()" style="display: none;">
-                <label for="triage-stumm-bis" th:text="#{ui.befunde.triage.stumm_bis}">Stumm bis</label>
+            <div class="form-gruppe" x-show="requiresExpiry()" style="display: none; margin-bottom: 0;">
+                <label for="triage-stumm-bis" style="font-size: 0.8rem; margin-bottom: 0.25rem;" th:text="#{ui.befunde.triage.stumm_bis}">Stumm bis</label>
                 <input type="date" id="triage-stumm-bis" name="stummBis" x-model="stummBis" class="form-input">
             </div>
 
-            <div class="form-gruppe form-gruppe-breit" x-show="allowsReason()">
-                <label for="triage-grund">
+            <div class="form-gruppe form-gruppe-breit" x-show="allowsReason()" style="flex: 1; min-width: 240px; margin-bottom: 0;">
+                <label for="triage-grund" style="font-size: 0.8rem; margin-bottom: 0.25rem;">
                     <span th:text="#{ui.befunde.triage.grund}">Begründung</span>
-                    <span x-show="requiresReason()" class="text-pflicht" style="color: var(--danger-color, #dc2626);">*</span>
+                    <span x-show="requiresReason()" class="text-pflicht" style="color: var(--status-error-dot);">*</span>
                 </label>
                 <input type="text" id="triage-grund" name="grund" x-model="grund"
                        th:placeholder="#{ui.befunde.triage.grund.placeholder}"
                        class="form-input">
             </div>
+
+            <div class="form-aktionen" style="margin-top: 0; margin-bottom: 0; display: flex; align-items: center; gap: 0.75rem;">
+                <button type="submit" class="btn-ui btn-ui-primary button primär"
+                        th:text="${isBulk ? #messages.msg('ui.befunde.triage.anwenden') : #messages.msg('ui.befunde.triage.speichern')}">
+                    Speichern
+                </button>
+                <span th:if="${isBulk}" x-show="selected.length > 0" class="text-gedaempft" style="align-self: center; font-size: 0.85rem; font-weight: 600;"
+                      th:with="auswahl=${#messages.msg('ui.befunde.triage.ausgewaehlt', '#WERT#')}"><span
+                        th:text="${#strings.substringBefore(auswahl, '#WERT#')}"></span><span
+                        x-text="selected.length">0</span><span
+                        th:text="${#strings.substringAfter(auswahl, '#WERT#')}"> ausgewählt</span></span>
+            </div>
         </div>
 
-        <!-- §13.4 Consequence text stated before the click. The date is only known to Alpine, so
-             the message is fetched with a marker as its {0} and split around that — the sentence
-             itself stays in messages.properties where §13.1 requires it. -->
-        <div x-show="requiresExpiry()" class="hinweis-folge" style="display: none; margin-top: 0.75rem; margin-bottom: 0.75rem;"
+        <div x-show="requiresExpiry()" class="hinweis-folge" style="display: none; margin-top: 0.75rem; padding: 0.6rem 0.85rem; background: var(--surface-subtle); border-left: 3px solid #09090b; border-radius: 0 6px 6px 0;"
              th:with="folge=${#messages.msg(isBulk ? 'ui.befunde.triage.stumm_folge_bulk' : 'ui.befunde.triage.stumm_folge', '#WERT#')}">
-            <p class="text-gedaempft" style="font-size: 0.9rem; margin: 0;"><span
+            <p class="text-gedaempft" style="font-size: 0.85rem; margin: 0;"><span
                     th:text="${#strings.substringBefore(folge, '#WERT#')}">Dieser Befund erscheint bis zum </span><strong
-                    x-text="formatDate(stummBis)"></strong><span
+                    x-text="formatDate(stummBis)" style="color: var(--text-main);"></strong><span
                     th:text="${#strings.substringAfter(folge, '#WERT#')}"> nicht mehr in Berichten oder E-Mails.</span></p>
-        </div>
-
-        <div class="form-aktionen" style="margin-top: 0.75rem;">
-            <button type="submit" class="button primär"
-                    th:text="${isBulk ? #messages.msg('ui.befunde.triage.anwenden') : #messages.msg('ui.befunde.triage.speichern')}">
-                Speichern
-            </button>
-            <span th:if="${isBulk}" x-show="selected.length > 0" class="text-gedaempft" style="align-self: center; font-size: 0.85rem;"
-                  th:with="auswahl=${#messages.msg('ui.befunde.triage.ausgewaehlt', '#WERT#')}"><span
-                    th:text="${#strings.substringBefore(auswahl, '#WERT#')}"></span><span
-                    x-text="selected.length">0</span><span
-                    th:text="${#strings.substringAfter(auswahl, '#WERT#')}"> ausgewählt</span></span>
         </div>
     </form>
 </div>

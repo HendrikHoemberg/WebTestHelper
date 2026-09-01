@@ -10,21 +10,32 @@
     <div th:if="${flashMessage}" class="hinweis" style="margin-bottom: 1.5rem;" th:text="${flashMessage}">Erfolgsmeldung</div>
     <div th:if="${flashError}" class="fehler" style="margin-bottom: 1.5rem;" th:text="${flashError}">Fehlermeldung</div>
 
-    <header class="seiten-kopf">
+    <header class="page-header-bar seiten-kopf">
         <div>
-            <div class="abschnitt-ueberschrift-zeile">
-                <h1 th:text="#{ui.websites.befunde.titel}">Feststellungen</h1>
+            <div class="breadcrumbs-trail">
+                <a th:href="@{/}">WebTestHelper</a>
+                <span>/</span>
+                <a th:href="@{/websites}">Websites</a>
+                <span>/</span>
+                <a th:href="@{/websites/{id}(id=${site.siteId})}" th:text="${site.name}">Website</a>
+                <span>/</span>
+                <span th:text="#{ui.websites.befunde.titel}">Feststellungen</span>
+            </div>
+            <div class="abschnitt-ueberschrift-zeile" style="border-bottom: none; margin-bottom: 0; padding-bottom: 0;">
+                <h1 class="page-main-title" th:text="#{ui.websites.befunde.titel}">Feststellungen</h1>
                 <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
                         th:data-hx-get="@{/hilfe/hinweis/{id}(id='stummschaltungen')}"
                         data-hx-target="next .hinweis" data-hx-swap="innerHTML">?</button>
                 <div class="hinweis" aria-live="polite"></div>
             </div>
-            <a th:href="@{/websites/{id}(id=${site.siteId})}" th:text="${site.name}" class="basis-url-link">Website Name</a>
-            <span class="text-gedaempft">·</span>
-            <a th:href="${site.baseUrl.value}" th:text="${site.baseUrl.value}" target="_blank" rel="noopener noreferrer" class="basis-url-link">https://example.com/</a>
+            <div style="margin-top: 0.25rem;">
+                <a th:href="@{/websites/{id}(id=${site.siteId})}" th:text="${site.name}" class="basis-url-link" style="font-weight: 600;">Website Name</a>
+                <span class="text-gedaempft" style="margin: 0 0.35rem;">·</span>
+                <a th:href="${site.baseUrl.value}" th:text="${site.baseUrl.value}" target="_blank" rel="noopener noreferrer" class="basis-url-link" style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-muted);">https://example.com/</a>
+            </div>
         </div>
-        <div class="seiten-kopf-aktionen">
-            <a th:href="@{/websites/{id}(id=${site.siteId})}" class="button sekundär" th:text="#{ui.lauf.zurueck_zur_website}">Zurück zur Website</a>
+        <div class="header-actions-cluster seiten-kopf-aktionen">
+            <a th:href="@{/websites/{id}(id=${site.siteId})}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.lauf.zurueck_zur_website}">Zurück zur Website</a>
         </div>
     </header>
 
@@ -37,54 +48,53 @@
         <!-- Befundliste -->
         <section class="befunde-ergebnis-bereich" id="befunde-liste-container">
             <div th:fragment="befundListe" class="befunde-liste-inhalt">
-                <!-- Sammel-Bewertungsleiste (§13.4) -->
-                <div class="bulk-triage-leiste" style="background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 6px; padding: 1rem; margin-bottom: 1rem;">
+                <!-- Sammel-Bewertungsleiste -->
+                <div class="bulk-triage-leiste card-box" style="padding: 1rem 1.25rem; margin-bottom: 1.25rem;">
                     <div th:replace="~{fragments/bewertung :: bewertung(@{/websites/{id}/befunde/bewerten(id=${site.siteId})}, true, null)}"></div>
                 </div>
 
-                <div class="befunde-liste-kopf">
-
-                    <div class="befunde-auswahl-kopf">
-                        <label class="form-gruppe-checkbox befund-auswahl-alle">
-                            <input type="checkbox" @change="toggleAll($event)" :checked="isAllSelected()" :indeterminate="isIndeterminate()">
-                            <span th:text="#{ui.befunde.liste.alle_auswaehlen}">Alle auswählen</span>
-                        </label>
+                <div class="inspector-card-shell">
+                    <div class="befunde-liste-kopf inspector-header">
+                        <div class="befunde-auswahl-kopf">
+                            <label class="form-gruppe-checkbox befund-auswahl-alle" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; margin: 0;">
+                                <input type="checkbox" @change="toggleAll($event)" :checked="isAllSelected()" :indeterminate="isIndeterminate()" style="width: 1.1rem; height: 1.1rem;">
+                                <span th:text="#{ui.befunde.liste.alle_auswaehlen}" style="font-weight: 600; font-size: 0.85rem;">Alle auswählen</span>
+                            </label>
+                        </div>
+                        <div class="befunde-anzahl" style="font-size: 0.85rem; color: var(--text-muted); font-variant-numeric: tabular-nums;" th:text="#{ui.befunde.liste.gesamt(${page.total})}">
+                            120 Feststellungen gefunden
+                        </div>
                     </div>
-                    <div class="befunde-anzahl" th:text="#{ui.befunde.liste.gesamt(${page.total})}">
-                        120 Feststellungen gefunden
+
+                    <div th:if="${#lists.isEmpty(findings)}" class="leer-zustand" style="padding: 3rem 1.5rem; text-align: center;">
+                        <p th:text="#{ui.befunde.liste.keine}" style="color: var(--text-muted);">Keine Feststellungen für die gewählten Filter vorhanden.</p>
                     </div>
-                </div>
 
-                <div th:if="${#lists.isEmpty(findings)}" class="leer-zustand">
-                    <p th:text="#{ui.befunde.liste.keine}">Keine Feststellungen für die gewählten Filter vorhanden.</p>
-                </div>
-
-                <div th:if="${not #lists.isEmpty(findings)}" class="befunde-liste">
-                    <div th:each="befund : ${findings}">
-                        <div th:replace="~{fragments/befundzeile :: befundzeile(${befund}, true)}"></div>
+                    <div th:if="${not #lists.isEmpty(findings)}" class="befunde-liste" style="display: flex; flex-direction: column;">
+                        <div th:each="befund : ${findings}">
+                            <div th:replace="~{fragments/befundzeile :: befundzeile(${befund}, true)}"></div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Paginierung -->
-                <div th:if="${page.pageCount() > 1}" class="pagination-zeile">
+                <div th:if="${page.pageCount() > 1}" class="pagination-zeile" style="display: flex; justify-content: center; align-items: center; gap: 1rem; margin-top: 1.5rem;">
                     <a th:if="${page.page() > 1}"
                        th:href="@{/websites/{id}/befunde(id=${site.siteId}, severities=${filter.severities}, triageStatuses=${filter.triageStatuses}, observed=${filter.observed}, checkTypes=${filter.checkTypes}, page=${page.page() - 1}, size=${page.size()})}"
                        th:attr="data-hx-get=@{/websites/{id}/befunde(id=${site.siteId}, severities=${filter.severities}, triageStatuses=${filter.triageStatuses}, observed=${filter.observed}, checkTypes=${filter.checkTypes}, page=${page.page() - 1}, size=${page.size()})}"
                        data-hx-target="#befunde-liste-container" data-hx-swap="innerHTML" data-hx-push-url="true"
-                       class="button sekundär klein" th:text="#{ui.befunde.pagination.vorherige}">Vorherige</a>
-                    <span class="pagination-info" th:text="#{ui.befunde.pagination.seite(${page.page()}, ${page.pageCount()})}">Seite 1 von 3</span>
+                       class="btn-ui btn-ui-secondary btn-ui-sm button sekundär klein" th:text="#{ui.befunde.pagination.vorherige}">Vorherige</a>
+                    <span class="pagination-info" style="font-size: 0.85rem; color: var(--text-muted); font-variant-numeric: tabular-nums;" th:text="#{ui.befunde.pagination.seite(${page.page()}, ${page.pageCount()})}">Seite 1 von 3</span>
                     <a th:if="${page.page() < page.pageCount()}"
                        th:href="@{/websites/{id}/befunde(id=${site.siteId}, severities=${filter.severities}, triageStatuses=${filter.triageStatuses}, observed=${filter.observed}, checkTypes=${filter.checkTypes}, page=${page.page() + 1}, size=${page.size()})}"
                        th:attr="data-hx-get=@{/websites/{id}/befunde(id=${site.siteId}, severities=${filter.severities}, triageStatuses=${filter.triageStatuses}, observed=${filter.observed}, checkTypes=${filter.checkTypes}, page=${page.page() + 1}, size=${page.size()})}"
                        data-hx-target="#befunde-liste-container" data-hx-swap="innerHTML" data-hx-push-url="true"
-                       class="button sekundär klein" th:text="#{ui.befunde.pagination.naechste}">Nächste</a>
+                       class="btn-ui btn-ui-secondary btn-ui-sm button sekundär klein" th:text="#{ui.befunde.pagination.naechste}">Nächste</a>
                 </div>
             </div>
         </section>
     </div>
 
-    <!-- Inside <main>: the layout inserts only ~{::main}, so a script placed after it is
-         silently dropped and x-data="findingsSelection()" resolves to nothing. -->
     <script>
     function findingsSelection() {
         return {

@@ -1,65 +1,71 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
-<!-- auswaehlbar: only the findings list carries a selection scope (findingsSelection()). The run
-     report reuses this fragment without one, and bulk triage deliberately does not live there. -->
-<div th:fragment="befundzeile(befund, auswaehlbar)" class="befund-karte"
+<div th:fragment="befundzeile(befund, auswaehlbar)" class="triage-row-item befund-karte"
      th:classappend="${'karte-severity-' + befund.severity}">
-    <div class="befund-kopf">
-        <div class="befund-titel-zeile">
-            <label th:if="${auswaehlbar}" class="befund-checkbox-label">
-                <input type="checkbox" name="ids" th:value="${befund.id}" class="befund-checkbox"
-                       @change="toggle($el.value)" :checked="isSelected($el.value)">
-            </label>
-            <span class="status-badge" th:classappend="${'severity-' + befund.severity}" th:text="#{${'ui.severity.' + befund.severity}}">Fehler</span>
-            <a th:href="@{/befunde/{id}(id=${befund.id})}" class="befund-titel-link">
-                <strong th:text="${befund.title}">Tote Links</strong>
-            </a>
-            <span th:if="${befund.siteWide}" class="siteweit-badge" th:text="#{ui.befund.siteweit}">Website-weit</span>
-            <span class="status-badge status-inaktiv" th:text="#{${'ui.triagestatus.' + befund.triage}}">Ungeprüft</span>
+    <div style="flex: 1; min-width: 0;">
+        <div class="befund-kopf" style="margin-bottom: 0.35rem;">
+            <div class="befund-titel-zeile" style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0.25rem;">
+                <label th:if="${auswaehlbar}" class="befund-checkbox-label" style="display: inline-flex; align-items: center; cursor: pointer; margin-right: 0.2rem;">
+                    <input type="checkbox" name="ids" th:value="${befund.id}" class="befund-checkbox"
+                           @change="toggle($el.value)" :checked="isSelected($el.value)" style="width: 1.05rem; height: 1.05rem; cursor: pointer;">
+                </label>
+                <span class="status-badge"
+                      th:classappend="${befund.severity.name() == 'ERROR' ? 'badge-failing' : (befund.severity.name() == 'WARN' ? 'badge-warning' : 'status-inaktiv')} + ' severity-' + ${befund.severity}"
+                      th:text="#{${'ui.severity.' + befund.severity}}">Fehler</span>
+                <a th:href="@{/befunde/{id}(id=${befund.id})}" class="befund-titel-link" style="color: var(--text-main); text-decoration: none;">
+                    <strong th:text="${befund.title}" style="font-size: 0.95rem; font-weight: 700;">Tote Links</strong>
+                </a>
+                <span th:if="${befund.siteWide}" class="siteweit-badge" th:text="#{ui.befund.siteweit}">Website-weit</span>
+                <span class="status-badge status-inaktiv" th:text="#{${'ui.triagestatus.' + befund.triage}}">Ungeprüft</span>
+            </div>
+            <div class="befund-ort" style="margin-left: ${auswaehlbar ? '1.5rem' : '0'};">
+                <a th:if="${!befund.siteWide and #strings.startsWith(befund.locationText, '/')}"
+                   th:href="${site.baseUrl.origin() + befund.locationText}"
+                   target="_blank" rel="noopener noreferrer" class="befund-ort-link"
+                   th:attr="aria-label=#{ui.befund.ort.aufrufen}">
+                    <code class="code-pill" th:text="${befund.locationText}">/pfad</code>
+                </a>
+                <code th:if="${befund.siteWide or !#strings.startsWith(befund.locationText, '/')}"
+                      class="code-pill"
+                      th:text="${befund.locationText}">auf 7 Seiten</code>
+            </div>
         </div>
-        <div class="befund-ort">
-            <a th:if="${!befund.siteWide and #strings.startsWith(befund.locationText, '/')}"
-               th:href="${site.baseUrl.origin() + befund.locationText}"
-               target="_blank" rel="noopener noreferrer" class="befund-ort-link"
-               th:attr="aria-label=#{ui.befund.ort.aufrufen}">
-                <code th:text="${befund.locationText}">/pfad</code>
-            </a>
-            <code th:if="${befund.siteWide or !#strings.startsWith(befund.locationText, '/')}"
-                  th:text="${befund.locationText}">auf 7 Seiten</code>
+        <div class="befund-koerper">
+            <p class="befund-meldung" style="font-size: 0.875rem; color: var(--text-body); margin: 0.35rem 0;" th:text="${befund.message}">Meldung</p>
+            <div class="befund-link-zeile" th:if="${befund.subjectUrl != null}" x-data="wthKopiere()" style="display: flex; align-items: center; gap: 0.4rem; margin: 0.35rem 0;">
+                <a th:href="${befund.subjectUrl}" target="_blank" rel="noopener noreferrer"
+                   class="befund-subjekt-link" th:attr="aria-label=#{ui.befund.subject.aufrufen}"
+                   th:text="${befund.subjectUrl}">https://example.com/tot</a>
+                <button type="button" class="kopie-button"
+                        th:data-url="${befund.subjectUrl}"
+                        th:attr="aria-label=#{ui.befund.subject.kopieren},title=#{ui.befund.subject.kopieren}"
+                        @click="kopiere($event)">
+                    <span th:text="#{ui.befund.subject.kopieren_kurz}">Kopieren</span>
+                </button>
+                <span class="kopie-rueckmeldung" x-cloak x-show="kopiert" aria-live="polite"
+                      th:text="#{ui.befund.subject.kopiert}">Kopiert!</span>
+            </div>
+            <div class="remediation-callout" style="margin-top: 0.5rem;">
+                <strong th:text="#{ui.befund.behebung.label}" style="color: var(--text-main);">Abhilfe:</strong>
+                <span th:text="${befund.remediation}" class="befund-behebung">Abhilfe-Text</span>
+            </div>
+            <p th:if="${befund.mutedUntil != null}" class="befund-leise-zeile befund-stumm" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.4rem;">
+                <span th:if="${befund.triageReason != null and !#strings.isEmpty(befund.triageReason)}"
+                      th:text="#{ui.befund.stumm_bis_mit_grund(${#temporals.format(befund.mutedUntil, 'dd.MM.yyyy')}, ${befund.triageReason})}">Stumm bis 24.11.2026 · Grund: ...</span>
+                <span th:if="${befund.triageReason == null or #strings.isEmpty(befund.triageReason)}"
+                      th:text="#{ui.befund.stumm_bis_ohne_grund(${#temporals.format(befund.mutedUntil, 'dd.MM.yyyy')})}">Stumm bis 24.11.2026</span>
+            </p>
+            <p th:if="${befund.muteExpired != null}" class="befund-leise-zeile befund-abgelaufen" style="font-size: 0.8rem; color: var(--status-warning-text); margin-top: 0.4rem;">
+                <span th:if="${befund.triageReason != null and !#strings.isEmpty(befund.triageReason)}"
+                      th:text="#{ui.befund.mute_abgelaufen_mit_grund(${#temporals.format(befund.muteExpired, 'dd.MM.yyyy')}, ${befund.triageReason})}">Stummschaltung abgelaufen am ... · Damalige Begründung: ...</span>
+                <span th:if="${befund.triageReason == null or #strings.isEmpty(befund.triageReason)}"
+                      th:text="#{ui.befund.mute_abgelaufen_ohne_grund(${#temporals.format(befund.muteExpired, 'dd.MM.yyyy')})}">Stummschaltung abgelaufen am ...</span>
+            </p>
         </div>
     </div>
-    <div class="befund-koerper">
-        <p class="befund-meldung" th:text="${befund.message}">Meldung</p>
-        <div class="befund-link-zeile" th:if="${befund.subjectUrl != null}" x-data="wthKopiere()">
-            <a th:href="${befund.subjectUrl}" target="_blank" rel="noopener noreferrer"
-               class="befund-subjekt-link" th:attr="aria-label=#{ui.befund.subject.aufrufen}"
-               th:text="${befund.subjectUrl}">https://example.com/tot</a>
-            <button type="button" class="kopie-button"
-                    th:data-url="${befund.subjectUrl}"
-                    th:attr="aria-label=#{ui.befund.subject.kopieren},title=#{ui.befund.subject.kopieren}"
-                    @click="kopiere($event)">
-                <span th:text="#{ui.befund.subject.kopieren_kurz}">Kopieren</span>
-            </button>
-            <span class="kopie-rueckmeldung" x-cloak x-show="kopiert" aria-live="polite"
-                  th:text="#{ui.befund.subject.kopiert}">Kopiert!</span>
-        </div>
-        <p class="befund-behebung">
-            <strong th:text="#{ui.befund.behebung.label}">Abhilfe:</strong>
-            <span th:text="${befund.remediation}">Abhilfe-Text</span>
-        </p>
-        <p th:if="${befund.mutedUntil != null}" class="befund-leise-zeile befund-stumm">
-            <span th:if="${befund.triageReason != null and !#strings.isEmpty(befund.triageReason)}"
-                  th:text="#{ui.befund.stumm_bis_mit_grund(${#temporals.format(befund.mutedUntil, 'dd.MM.yyyy')}, ${befund.triageReason})}">Stumm bis 24.11.2026 · Grund: ...</span>
-            <span th:if="${befund.triageReason == null or #strings.isEmpty(befund.triageReason)}"
-                  th:text="#{ui.befund.stumm_bis_ohne_grund(${#temporals.format(befund.mutedUntil, 'dd.MM.yyyy')})}">Stumm bis 24.11.2026</span>
-        </p>
-        <p th:if="${befund.muteExpired != null}" class="befund-leise-zeile befund-abgelaufen">
-            <span th:if="${befund.triageReason != null and !#strings.isEmpty(befund.triageReason)}"
-                  th:text="#{ui.befund.mute_abgelaufen_mit_grund(${#temporals.format(befund.muteExpired, 'dd.MM.yyyy')}, ${befund.triageReason})}">Stummschaltung abgelaufen am ... · Damalige Begründung: ...</span>
-            <span th:if="${befund.triageReason == null or #strings.isEmpty(befund.triageReason)}"
-                  th:text="#{ui.befund.mute_abgelaufen_ohne_grund(${#temporals.format(befund.muteExpired, 'dd.MM.yyyy')})}">Stummschaltung abgelaufen am ...</span>
-        </p>
+    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem; flex-shrink: 0;">
+        <a th:href="@{/befunde/{id}(id=${befund.id})}" class="btn-ui btn-ui-secondary btn-ui-sm">Details →</a>
     </div>
 </div>
 </body>
