@@ -5,111 +5,122 @@
 </head>
 <body>
 <main>
-    <header class="seiten-kopf">
-        <h1 th:text="${siteId != null} ? #{ui.websites.formular.titel.bearbeiten} : #{ui.websites.formular.titel.neu}">Website</h1>
+    <header class="page-header-bar seiten-kopf">
+        <div>
+            <div class="breadcrumbs-trail">
+                <a th:href="@{/}">WebTestHelper</a>
+                <span>/</span>
+                <a th:href="@{/websites}">Websites</a>
+                <span>/</span>
+                <span th:text="${siteId != null} ? #{ui.websites.formular.titel.bearbeiten} : #{ui.websites.formular.titel.neu}">Website</span>
+            </div>
+            <h1 class="page-main-title" th:text="${siteId != null} ? #{ui.websites.formular.titel.bearbeiten} : #{ui.websites.formular.titel.neu}">Website</h1>
+        </div>
     </header>
 
-    <form th:action="${siteId != null} ? @{/websites/{id}(id=${siteId})} : @{/websites}"
-          th:object="${form}"
-          method="post"
-          class="formular">
+    <div class="card-box" style="max-width: 760px; margin: 0 auto;">
+        <form th:action="${siteId != null} ? @{/websites/{id}(id=${siteId})} : @{/websites}"
+              th:object="${form}"
+              method="post"
+              class="formular" style="background: transparent; border: none; padding: 0; max-width: 100%; box-shadow: none;">
 
-        <div class="form-gruppe">
-            <label for="name" th:text="#{ui.websites.formular.name}">Name</label>
-            <input type="text" id="name" th:field="*{name}" required>
-            <span th:if="${#fields.hasErrors('name')}" th:errors="*{name}" class="feld-fehler">Fehler</span>
-        </div>
-
-        <div class="form-gruppe">
-            <label for="baseUrl" th:text="#{ui.websites.formular.baseUrl}">Basis-URL</label>
-            <input type="text" id="baseUrl" th:field="*{baseUrl}" placeholder="https://www.example.com/" required>
-            <span th:if="${#fields.hasErrors('baseUrl')}" th:errors="*{baseUrl}" class="feld-fehler">Fehler</span>
-        </div>
-
-        <div class="form-gruppe form-gruppe-inline">
-            <div>
-                <label for="maxPages" th:text="#{ui.websites.formular.maxPages}">Seitenlimit</label>
-                <input type="number" id="maxPages" th:field="*{maxPages}" min="1" required>
-                <span th:if="${#fields.hasErrors('maxPages')}" th:errors="*{maxPages}" class="feld-fehler">Fehler</span>
+            <div class="form-gruppe">
+                <label for="name" th:text="#{ui.websites.formular.name}">Name</label>
+                <input type="text" id="name" th:field="*{name}" class="form-input" required>
+                <span th:if="${#fields.hasErrors('name')}" th:errors="*{name}" class="feld-fehler">Fehler</span>
             </div>
-            <div>
-                <label for="maxDepth" th:text="#{ui.websites.formular.maxDepth}">Maximale Tiefe</label>
-                <input type="number" id="maxDepth" th:field="*{maxDepth}" min="0" required>
-                <span th:if="${#fields.hasErrors('maxDepth')}" th:errors="*{maxDepth}" class="feld-fehler">Fehler</span>
+
+            <div class="form-gruppe">
+                <label for="baseUrl" th:text="#{ui.websites.formular.baseUrl}">Basis-URL</label>
+                <input type="text" id="baseUrl" th:field="*{baseUrl}" class="form-input" placeholder="https://www.example.com/" required>
+                <span th:if="${#fields.hasErrors('baseUrl')}" th:errors="*{baseUrl}" class="feld-fehler">Fehler</span>
             </div>
-            <div>
-                <label for="maxDurationMinutes" th:text="#{ui.websites.formular.maxDurationMinutes}">Zeitlimit (Minuten)</label>
-                <input type="number" id="maxDurationMinutes" th:field="*{maxDurationMinutes}" min="1" required>
-                <span th:if="${#fields.hasErrors('maxDurationMinutes')}" th:errors="*{maxDurationMinutes}" class="feld-fehler">Fehler</span>
+
+            <div class="form-gruppe form-gruppe-inline" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
+                <div>
+                    <label for="maxPages" th:text="#{ui.websites.formular.maxPages}">Seitenlimit</label>
+                    <input type="number" id="maxPages" th:field="*{maxPages}" class="form-input" min="1" required>
+                    <span th:if="${#fields.hasErrors('maxPages')}" th:errors="*{maxPages}" class="feld-fehler">Fehler</span>
+                </div>
+                <div>
+                    <label for="maxDepth" th:text="#{ui.websites.formular.maxDepth}">Maximale Tiefe</label>
+                    <input type="number" id="maxDepth" th:field="*{maxDepth}" class="form-input" min="0" required>
+                    <span th:if="${#fields.hasErrors('maxDepth')}" th:errors="*{maxDepth}" class="feld-fehler">Fehler</span>
+                </div>
+                <div>
+                    <label for="maxDurationMinutes" th:text="#{ui.websites.formular.maxDurationMinutes}">Zeitlimit (Minuten)</label>
+                    <input type="number" id="maxDurationMinutes" th:field="*{maxDurationMinutes}" class="form-input" min="1" required>
+                    <span th:if="${#fields.hasErrors('maxDurationMinutes')}" th:errors="*{maxDurationMinutes}" class="feld-fehler">Fehler</span>
+                </div>
             </div>
-        </div>
 
-        <div class="form-gruppe">
-            <label for="includePatterns" th:text="#{ui.websites.formular.includePatterns}">Eingeschlossene Pfade (ein Muster pro Zeile)</label>
-            <textarea id="includePatterns" th:field="*{includePatterns}" rows="4" placeholder="/blog/*"></textarea>
-            <span th:if="${#fields.hasErrors('includePatterns')}" th:errors="*{includePatterns}" class="feld-fehler">Fehler</span>
-        </div>
-
-        <div class="form-gruppe">
-            <label for="excludePatterns" th:text="#{ui.websites.formular.excludePatterns}">Ausgeschlossene Pfade (ein Muster pro Zeile)</label>
-            <textarea id="excludePatterns" th:field="*{excludePatterns}" rows="4" placeholder="/intern/*"></textarea>
-            <span th:if="${#fields.hasErrors('excludePatterns')}" th:errors="*{excludePatterns}" class="feld-fehler">Fehler</span>
-        </div>
-
-        <div class="form-gruppe form-gruppe-checkbox">
-            <label>
-                <input type="checkbox" th:field="*{respectRobots}">
-                <span th:text="#{ui.websites.formular.respectRobots}">robots.txt beachten</span>
-            </label>
-            <span th:if="${#fields.hasErrors('respectRobots')}" th:errors="*{respectRobots}" class="feld-fehler">Fehler</span>
-        </div>
-
-        <div class="form-gruppe form-gruppe-checkbox">
-            <label>
-                <input type="checkbox" th:field="*{enabled}">
-                <span th:text="#{ui.websites.formular.enabled}">Website aktiviert</span>
-            </label>
-            <p class="hinweis-text" th:text="#{ui.websites.formular.enabled.hinweis}">Deaktivierte Websites werden nicht mehr automatisch geprüft. Ein Lauf über „Jetzt prüfen" ist weiterhin möglich.</p>
-            <span th:if="${#fields.hasErrors('enabled')}" th:errors="*{enabled}" class="feld-fehler">Fehler</span>
-        </div>
-
-        <div class="form-gruppe">
-            <label for="userAgent" th:text="#{ui.websites.formular.userAgent}">Eigener User-Agent (optional)</label>
-            <input type="text" id="userAgent" th:field="*{userAgent}" placeholder="Standard: WebTestHelper/1.0 (+internes Website-Monitoring)">
-            <span th:if="${#fields.hasErrors('userAgent')}" th:errors="*{userAgent}" class="feld-fehler">Fehler</span>
-        </div>
-
-        <div class="form-gruppe">
-            <label for="pinnedKeyPages" th:text="#{ui.websites.formular.pinnedKeyPages}">Schlüsselseiten (ein URL pro Zeile)</label>
-            <textarea id="pinnedKeyPages" th:field="*{pinnedKeyPages}" rows="4" placeholder="https://example.com/leistungen.html"></textarea>
-        </div>
-
-        <div class="form-gruppe"
-             th:data-mode="*{formTestMode} ?: 'NO_SUBMIT'"
-             x-data="{ mode: $el.dataset.mode || 'NO_SUBMIT' }">
-            <label for="formTestMode" th:text="#{ui.websites.formular.formTestMode}">Kontaktformular-Prüfung</label>
-            <select id="formTestMode" th:field="*{formTestMode}" x-model="mode">
-                <option value="NO_SUBMIT" th:text="#{ui.websites.formular.formTestMode.NO_SUBMIT}">Nur ausfüllen, nicht absenden</option>
-                <option value="SUBMIT" th:text="#{ui.websites.formular.formTestMode.SUBMIT}">Ausfüllen und absenden</option>
-                <option value="SUBMIT_AND_VERIFY_MAIL" th:text="#{ui.websites.formular.formTestMode.SUBMIT_AND_VERIFY_MAIL}">Absenden und Zustellung im Prüfpostfach nachweisen</option>
-            </select>
-            <p class="hinweis-text" x-show="mode === 'NO_SUBMIT'" th:text="#{ui.websites.formular.formTestMode.folge.NO_SUBMIT}">Es wird nichts abgeschickt. Diese Prüfung hat keine Auswirkung auf den Kunden.</p>
-            <div x-show="mode === 'SUBMIT'" style="display: none;">
-                <p class="hinweis-text" th:text="#{ui.websites.formular.formTestMode.folge.SUBMIT}">Dies verschickt beim Monatslauf eine als Test gekennzeichnete Nachricht über das Kontaktformular dieser Website. Sie landet im Postfach, das dieses Formular bedient.</p>
-                <p class="hinweis-text" th:text="#{ui.websites.formular.formTestMode.nurTief}">Abgeschickt wird ausschließlich beim monatlichen Tiefenlauf.</p>
+            <div class="form-gruppe">
+                <label for="includePatterns" th:text="#{ui.websites.formular.includePatterns}">Eingeschlossene Pfade (ein Muster pro Zeile)</label>
+                <textarea id="includePatterns" th:field="*{includePatterns}" class="form-input" rows="3" placeholder="/blog/*"></textarea>
+                <span th:if="${#fields.hasErrors('includePatterns')}" th:errors="*{includePatterns}" class="feld-fehler">Fehler</span>
             </div>
-            <div x-show="mode === 'SUBMIT_AND_VERIFY_MAIL'" style="display: none;">
-                <p class="hinweis-text" th:text="#{ui.websites.formular.formTestMode.folge.SUBMIT_AND_VERIFY_MAIL}">Wie „Ausfüllen und absenden“, zusätzlich wird geprüft, ob eine Kopie im Prüfpostfach ankommt. Dafür muss das Formular eine Blindkopie an die in den Einstellungen hinterlegte Prüfadresse senden.</p>
-                <p class="hinweis-text" th:text="#{ui.websites.formular.formTestMode.nurTief}">Abgeschickt wird ausschließlich beim monatlichen Tiefenlauf.</p>
-            </div>
-            <span th:if="${#fields.hasErrors('formTestMode')}" th:errors="*{formTestMode}" class="feld-fehler">Fehler</span>
-        </div>
 
-        <div class="form-aktionen">
-            <button type="submit" class="button primär" th:text="#{ui.websites.formular.speichern}">Speichern</button>
-            <a th:href="@{/websites}" class="button sekundär" th:text="#{ui.websites.formular.abbrechen}">Abbrechen</a>
-        </div>
-    </form>
+            <div class="form-gruppe">
+                <label for="excludePatterns" th:text="#{ui.websites.formular.excludePatterns}">Ausgeschlossene Pfade (ein Muster pro Zeile)</label>
+                <textarea id="excludePatterns" th:field="*{excludePatterns}" class="form-input" rows="3" placeholder="/intern/*"></textarea>
+                <span th:if="${#fields.hasErrors('excludePatterns')}" th:errors="*{excludePatterns}" class="feld-fehler">Fehler</span>
+            </div>
+
+            <div class="form-gruppe form-gruppe-checkbox" style="display: flex; align-items: center; gap: 0.5rem; margin: 1rem 0;">
+                <label style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: 500;">
+                    <input type="checkbox" th:field="*{respectRobots}" style="width: 1.1rem; height: 1.1rem;">
+                    <span th:text="#{ui.websites.formular.respectRobots}">robots.txt beachten</span>
+                </label>
+                <span th:if="${#fields.hasErrors('respectRobots')}" th:errors="*{respectRobots}" class="feld-fehler">Fehler</span>
+            </div>
+
+            <div class="form-gruppe form-gruppe-checkbox" style="margin-bottom: 1.25rem;">
+                <label style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: 500;">
+                    <input type="checkbox" th:field="*{enabled}" style="width: 1.1rem; height: 1.1rem;">
+                    <span th:text="#{ui.websites.formular.enabled}">Website aktiviert</span>
+                </label>
+                <p class="hinweis-text" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;" th:text="#{ui.websites.formular.enabled.hinweis}">Deaktivierte Websites werden nicht mehr automatisch geprüft.</p>
+                <span th:if="${#fields.hasErrors('enabled')}" th:errors="*{enabled}" class="feld-fehler">Fehler</span>
+            </div>
+
+            <div class="form-gruppe">
+                <label for="userAgent" th:text="#{ui.websites.formular.userAgent}">Eigener User-Agent (optional)</label>
+                <input type="text" id="userAgent" th:field="*{userAgent}" class="form-input" placeholder="Standard: WebTestHelper/1.0 (+internes Website-Monitoring)">
+                <span th:if="${#fields.hasErrors('userAgent')}" th:errors="*{userAgent}" class="feld-fehler">Fehler</span>
+            </div>
+
+            <div class="form-gruppe">
+                <label for="pinnedKeyPages" th:text="#{ui.websites.formular.pinnedKeyPages}">Schlüsselseiten (ein URL pro Zeile)</label>
+                <textarea id="pinnedKeyPages" th:field="*{pinnedKeyPages}" class="form-input" rows="3" placeholder="https://example.com/leistungen.html"></textarea>
+            </div>
+
+            <div class="form-gruppe"
+                 th:data-mode="*{formTestMode} ?: 'NO_SUBMIT'"
+                 x-data="{ mode: $el.dataset.mode || 'NO_SUBMIT' }">
+                <label for="formTestMode" th:text="#{ui.websites.formular.formTestMode}">Kontaktformular-Prüfung</label>
+                <select id="formTestMode" th:field="*{formTestMode}" x-model="mode" class="form-select">
+                    <option value="NO_SUBMIT" th:text="#{ui.websites.formular.formTestMode.NO_SUBMIT}">Nur ausfüllen, nicht absenden</option>
+                    <option value="SUBMIT" th:text="#{ui.websites.formular.formTestMode.SUBMIT}">Ausfüllen und absenden</option>
+                    <option value="SUBMIT_AND_VERIFY_MAIL" th:text="#{ui.websites.formular.formTestMode.SUBMIT_AND_VERIFY_MAIL}">Absenden und Zustellung im Prüfpostfach nachweisen</option>
+                </select>
+                <p class="hinweis-text" x-show="mode === 'NO_SUBMIT'" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.35rem;" th:text="#{ui.websites.formular.formTestMode.folge.NO_SUBMIT}">Es wird nichts abgeschickt. Diese Prüfung hat keine Auswirkung auf den Kunden.</p>
+                <div x-show="mode === 'SUBMIT'" style="display: none;">
+                    <p class="hinweis-text" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.35rem;" th:text="#{ui.websites.formular.formTestMode.folge.SUBMIT}">Dies verschickt beim Monatslauf eine als Test gekennzeichnete Nachricht.</p>
+                    <p class="hinweis-text" style="font-size: 0.8rem; color: var(--text-muted);" th:text="#{ui.websites.formular.formTestMode.nurTief}">Abgeschickt wird ausschließlich beim monatlichen Tiefenlauf.</p>
+                </div>
+                <div x-show="mode === 'SUBMIT_AND_VERIFY_MAIL'" style="display: none;">
+                    <p class="hinweis-text" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.35rem;" th:text="#{ui.websites.formular.formTestMode.folge.SUBMIT_AND_VERIFY_MAIL}">Wie „Ausfüllen und absenden“, zusätzlich wird geprüft, ob eine Kopie ankommt.</p>
+                    <p class="hinweis-text" style="font-size: 0.8rem; color: var(--text-muted);" th:text="#{ui.websites.formular.formTestMode.nurTief}">Abgeschickt wird ausschließlich beim monatlichen Tiefenlauf.</p>
+                </div>
+                <span th:if="${#fields.hasErrors('formTestMode')}" th:errors="*{formTestMode}" class="feld-fehler">Fehler</span>
+            </div>
+
+            <div class="form-aktionen" style="margin-top: 2rem;">
+                <button type="submit" class="btn-ui btn-ui-primary button primär" th:text="#{ui.websites.formular.speichern}">Speichern</button>
+                <a th:href="@{/websites}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.websites.formular.abbrechen}">Abbrechen</a>
+            </div>
+        </form>
+    </div>
 </main>
 </body>
 </html>
