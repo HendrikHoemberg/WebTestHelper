@@ -3,6 +3,7 @@ package dev.hendrikhoemberg.webtesthelper.catalog;
 import dev.hendrikhoemberg.webtesthelper.model.CheckType;
 import dev.hendrikhoemberg.webtesthelper.model.CrawlBudget;
 import dev.hendrikhoemberg.webtesthelper.model.FormTestMode;
+import dev.hendrikhoemberg.webtesthelper.model.Severity;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
 import dev.hendrikhoemberg.webtesthelper.support.AbstractPostgresTest;
 import org.junit.jupiter.api.Test;
@@ -55,6 +56,29 @@ class SiteServiceTest extends AbstractPostgresTest {
         sites.setCheckEnabled(id, CheckType.CONSOLE_ERRORS, true);
 
         assertThat(sites.contextFor(id).enabled(CheckType.CONSOLE_ERRORS)).isTrue();
+    }
+
+    @Test
+    void updateCheckSettingPersistsEnabledAndSeverityOverride() {
+        long id = sites.create(form());
+
+        sites.updateCheckSetting(id, CheckType.PAGE_STATUS, false, Severity.WARN);
+
+        SiteContext context = sites.contextFor(id);
+        assertThat(context.enabled(CheckType.PAGE_STATUS)).isFalse();
+        assertThat(context.severityFor(CheckType.PAGE_STATUS, Severity.ERROR))
+                .isEqualTo(Severity.WARN);
+    }
+
+    @Test
+    void updateCheckSettingWithNullSeverityClearsTheOverride() {
+        long id = sites.create(form());
+        sites.updateCheckSetting(id, CheckType.PAGE_STATUS, true, Severity.WARN);
+
+        sites.updateCheckSetting(id, CheckType.PAGE_STATUS, true, null);
+
+        assertThat(sites.contextFor(id).severityFor(CheckType.PAGE_STATUS, Severity.ERROR))
+                .isEqualTo(Severity.ERROR);
     }
 
     @Test

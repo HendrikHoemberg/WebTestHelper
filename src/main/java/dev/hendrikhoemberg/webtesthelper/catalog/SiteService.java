@@ -9,6 +9,7 @@ import dev.hendrikhoemberg.webtesthelper.model.CheckType;
 import dev.hendrikhoemberg.webtesthelper.model.CrawlBudget;
 import dev.hendrikhoemberg.webtesthelper.model.FormTestMode;
 import dev.hendrikhoemberg.webtesthelper.model.NormalizedUrl;
+import dev.hendrikhoemberg.webtesthelper.model.Severity;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
 import dev.hendrikhoemberg.webtesthelper.model.UrlNormalizer;
 import org.springframework.stereotype.Service;
@@ -135,6 +136,15 @@ public class SiteService {
         // A concurrent insert of the same (site_id, check_type) would violate ux_site_check and
         // roll back this transaction — accepted rather than retried, because a conflict here is
         // vanishingly rare (settings are seeded for every CheckType at create()).
+        checkSettings.save(setting);
+    }
+
+    public void updateCheckSetting(long siteId, CheckType type, boolean enabled, Severity severityOverride) {
+        requireSite(siteId);
+        SiteCheckSettingEntity setting = checkSettings.findBySiteIdAndCheckType(siteId, type)
+                .orElseGet(() -> newSetting(siteId, type));
+        setting.setEnabled(enabled);
+        setting.setSeverityOverride(severityOverride);
         checkSettings.save(setting);
     }
 
