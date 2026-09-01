@@ -37,6 +37,7 @@ import static org.hamcrest.Matchers.containsStringIgnoringCase;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -117,13 +118,16 @@ class RunControllerTest {
         long siteId = 42L;
         when(runService.summary(runId)).thenReturn(sampleSummary(runId, siteId, RunStatus.COMPLETED, false, false, null));
         when(siteService.contextFor(siteId)).thenReturn(sampleSite(siteId));
-        when(findingService.diffOf(siteId, runId)).thenReturn(new RunDiff(runId, Map.of()));
+        when(findingService.diffForReport(siteId, runId)).thenReturn(new RunDiff(runId, Map.of()));
         when(findingViewFactory.of(eq(new RunDiff(runId, Map.of())), any(Locale.class))).thenReturn(Map.of());
 
         mvc.perform(get("/laeufe/" + runId))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("25.08.2026")))
                 .andExpect(content().string(not(containsString("2026-08-25T10:00:00Z"))));
+
+        verify(findingService).diffForReport(siteId, runId);
+        verify(findingService, never()).diffOf(siteId, runId);
     }
 
     @Test
@@ -156,7 +160,7 @@ class RunControllerTest {
 
         when(runService.summary(runId)).thenReturn(summary);
         when(siteService.contextFor(siteId)).thenReturn(site);
-        when(findingService.diffOf(siteId, runId)).thenReturn(diff);
+        when(findingService.diffForReport(siteId, runId)).thenReturn(diff);
         when(findingViewFactory.of(eq(diff), any(Locale.class))).thenReturn(sections);
 
         mvc.perform(get("/laeufe/" + runId))
@@ -187,7 +191,7 @@ class RunControllerTest {
 
         when(runService.summary(runId)).thenReturn(summary);
         when(siteService.contextFor(siteId)).thenReturn(site);
-        when(findingService.diffOf(siteId, runId)).thenReturn(diff);
+        when(findingService.diffForReport(siteId, runId)).thenReturn(diff);
         when(findingViewFactory.of(eq(diff), any(Locale.class))).thenReturn(Map.of());
 
         mvc.perform(get("/laeufe/" + runId))
@@ -209,7 +213,7 @@ class RunControllerTest {
 
         when(runService.summary(runId)).thenReturn(summary);
         when(siteService.contextFor(siteId)).thenReturn(site);
-        when(findingService.diffOf(siteId, runId)).thenReturn(diff);
+        when(findingService.diffForReport(siteId, runId)).thenReturn(diff);
         when(findingViewFactory.of(eq(diff), any(Locale.class))).thenReturn(Map.of());
 
         mvc.perform(get("/laeufe/" + runId))
@@ -251,7 +255,7 @@ class RunControllerTest {
 
         when(runService.summary(runId)).thenReturn(summary);
         when(siteService.contextFor(siteId)).thenReturn(site);
-        when(findingService.diffOf(siteId, runId)).thenReturn(diff);
+        when(findingService.diffForReport(siteId, runId)).thenReturn(diff);
         when(findingViewFactory.of(eq(diff), any(Locale.class))).thenReturn(Map.of());
 
         mvc.perform(get("/laeufe/" + runId))
@@ -291,7 +295,7 @@ class RunControllerTest {
 
         when(runService.summary(runId)).thenReturn(summary);
         when(siteService.contextFor(siteId)).thenReturn(site);
-        when(findingService.diffOf(siteId, runId)).thenReturn(diff);
+        when(findingService.diffForReport(siteId, runId)).thenReturn(diff);
         when(findingViewFactory.of(eq(diff), any(Locale.class))).thenReturn(Map.of());
 
         mvc.perform(get("/laeufe/" + runId))
@@ -326,7 +330,7 @@ class RunControllerTest {
         long siteId = 42L;
         when(runService.summary(runId)).thenReturn(sampleSummary(runId, siteId, RunStatus.COMPLETED, false, false, null));
         when(siteService.contextFor(siteId)).thenReturn(sampleSite(siteId));
-        when(findingService.diffOf(siteId, runId)).thenReturn(new RunDiff(runId, Map.of()));
+        when(findingService.diffForReport(siteId, runId)).thenReturn(new RunDiff(runId, Map.of()));
         when(findingViewFactory.of(eq(new RunDiff(runId, Map.of())), any(Locale.class))).thenReturn(Map.of());
 
         mvc.perform(get("/laeufe/" + runId))
@@ -432,7 +436,7 @@ class RunControllerTest {
 
         when(runService.summary(runId)).thenReturn(summary);
         when(siteService.contextFor(siteId)).thenReturn(site);
-        when(findingService.diffOf(siteId, runId)).thenReturn(diff);
+        when(findingService.diffForReport(siteId, runId)).thenReturn(diff);
         when(findingViewFactory.of(eq(diff), any(Locale.class))).thenReturn(Map.of());
 
         mvc.perform(get("/laeufe/" + runId))
@@ -452,7 +456,7 @@ class RunControllerTest {
 
         when(runService.summary(runId)).thenReturn(summary);
         when(siteService.contextFor(siteId)).thenReturn(site);
-        when(findingService.diffOf(siteId, runId)).thenReturn(diff);
+        when(findingService.diffForReport(siteId, runId)).thenReturn(diff);
         when(findingViewFactory.of(eq(diff), any(Locale.class))).thenReturn(Map.of());
 
         mvc.perform(get("/laeufe/" + runId))
@@ -484,7 +488,7 @@ class RunControllerTest {
         long siteId = 42L;
         when(runService.summary(runId)).thenReturn(sampleSummary(runId, siteId, RunStatus.COMPLETED, false, false, null));
         when(siteService.contextFor(siteId)).thenReturn(sampleSite(siteId));
-        when(findingService.diffOf(siteId, runId)).thenReturn(new RunDiff(runId, Map.of()));
+        when(findingService.diffForReport(siteId, runId)).thenReturn(new RunDiff(runId, Map.of()));
         when(findingViewFactory.of(eq(new RunDiff(runId, Map.of())), any(Locale.class))).thenReturn(Map.of());
 
         mvc.perform(get("/laeufe/" + runId))

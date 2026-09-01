@@ -24,6 +24,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -204,8 +205,11 @@ public class FindingStore {
              GROUP BY site_id, severity
             """, SILENCING_IN_CLAUSE);
 
-    private static final String DIFF_SQL = String.format("""
-            SELECT f.*, CASE
+    private static final String SECTION_SQL = String.format("""
+            CASE
+                WHEN f.observed_status = 'RESOLVED' AND f.resolved_at_run = ?
+                     AND f.message_key IN ('finding.DEAD_LINK.unverifiable',
+                                           'finding.DEAD_LINK.technicalFailure') THEN 'EXPIRED'
                 WHEN f.observed_status = 'RESOLVED' AND f.resolved_at_run = ? THEN 'FIXED'
                 -- D47: a mute that stops applying the moment the thing flaps is not a mute. Placed above
                 -- NEW and REGRESSED, below FIXED. The IN list is built from TriageStatus.SILENCING so the
@@ -214,13 +218,46 @@ public class FindingStore {
                 WHEN f.first_seen_run = ?                                     THEN 'NEW'
                 WHEN f.regressed_at_run = ?                                   THEN 'REGRESSED'
                 WHEN f.triage_status <> 'UNTRIAGED'                           THEN 'KNOWN'
-                ELSE 'STILL_OPEN' END AS section
+                ELSE 'STILL_OPEN' END
+            """, SILENCING_IN_CLAUSE);
+
+    private static final String DIFF_SQL = String.format("""
+            SELECT f.*, %s AS section
               FROM finding f
              WHERE f.site_id = ?
                AND (f.last_seen_run = ? OR (f.observed_status = 'RESOLVED' AND f.resolved_at_run = ?))
              ORDER BY CASE f.severity WHEN 'ERROR' THEN 0 WHEN 'WARN' THEN 1 ELSE 2 END,
+                       f.check_type, f.location_key, f.subject_key
+            """, SECTION_SQL);
+
+    private static final String SNAPSHOT_DELETE_SQL = "DELETE FROM run_finding_section WHERE run_id = ?";
+
+    private static final String SNAPSHOT_MARK_SQL = """
+            INSERT INTO run_report_snapshot (run_id) VALUES (?)
+            ON CONFLICT (run_id) DO NOTHING
+            """;
+
+    private static final String SNAPSHOT_EXISTS_SQL = """
+            SELECT EXISTS (SELECT FROM run_report_snapshot WHERE run_id = ?)
+            """;
+
+    private static final String SNAPSHOT_INSERT_SQL = String.format("""
+            INSERT INTO run_finding_section (run_id, finding_id, section)
+            SELECT ?, f.id, %s
+              FROM finding f
+             WHERE f.site_id = ?
+               AND (f.last_seen_run = ? OR (f.observed_status = 'RESOLVED' AND f.resolved_at_run = ?))
+            """, SECTION_SQL);
+
+    private static final String SNAPSHOT_READ_SQL = """
+            SELECT f.*, s.section
+              FROM run_finding_section s
+              JOIN finding f ON f.id = s.finding_id
+             WHERE s.run_id = ?
+               AND f.site_id = ?
+             ORDER BY CASE f.severity WHEN 'ERROR' THEN 0 WHEN 'WARN' THEN 1 ELSE 2 END,
                       f.check_type, f.location_key, f.subject_key
-            """, SILENCING_IN_CLAUSE);
+            """;
 
     private static final String COUNT_SQL = """
             SELECT count(*) FROM finding
@@ -430,6 +467,26 @@ public class FindingStore {
 
     public List<FindingOccurrence> occurrencesOfLastRun(long findingId, int limit) {
         return jdbc.query(OCCURRENCES_OF_LAST_RUN_SQL, occurrenceRow, findingId, limit);
+    }
+
+    /** Replaces the report classification captured for one run. */
+    public void snapshotDiff(long siteId, long runId) {
+        jdbc.update(SNAPSHOT_MARK_SQL, runId);
+        jdbc.update(SNAPSHOT_DELETE_SQL, runId);
+        jdbc.update(SNAPSHOT_INSERT_SQL, runId, runId, runId, runId, runId, siteId, runId, runId);
+    }
+
+    /** Reads a run's frozen report classification, if a snapshot exists. */
+    public Optional<RunDiff> snapshotOf(long siteId, long runId) {
+        Boolean exists = jdbc.queryForObject(SNAPSHOT_EXISTS_SQL, Boolean.class, runId);
+        if (!Boolean.TRUE.equals(exists)) {
+            return Optional.empty();
+        }
+        List<SectionedFinding> rows = jdbc.query(SNAPSHOT_READ_SQL, (rs, rn) -> {
+            Finding f = findingRow.mapRow(rs, rn);
+            return new SectionedFinding(f, ReportSection.valueOf(rs.getString("section")));
+        }, runId, siteId);
+        return Optional.of(toDiff(runId, rows));
     }
 
     /** Insert-or-revive each finding, returning its id in input order. */
@@ -775,8 +832,12 @@ public class FindingStore {
         List<SectionedFinding> rows = jdbc.query(DIFF_SQL, (rs, rn) -> {
             Finding f = findingRow.mapRow(rs, rn);
             return new SectionedFinding(f, ReportSection.valueOf(rs.getString("section")));
-        }, runId, runId, runId, siteId, runId, runId);
+        }, runId, runId, runId, runId, siteId, runId, runId);
 
+        return toDiff(runId, rows);
+    }
+
+    private RunDiff toDiff(long runId, List<SectionedFinding> rows) {
         Map<ReportSection, List<Finding>> bySection = new LinkedHashMap<>();
         for (ReportSection section : ReportSection.values()) {
             bySection.put(section, new ArrayList<>());
@@ -784,6 +845,7 @@ public class FindingStore {
         for (SectionedFinding r : rows) {
             bySection.get(r.section()).add(r.finding());
         }
+        bySection.remove(ReportSection.EXPIRED);
         return new RunDiff(runId, bySection);
     }
 

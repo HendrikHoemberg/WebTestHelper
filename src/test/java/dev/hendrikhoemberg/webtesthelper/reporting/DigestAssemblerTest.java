@@ -195,6 +195,12 @@ class DigestAssemblerTest extends AbstractPostgresTest {
         assertThat(siteDigest3.errorCount()).isEqualTo(1); // /c is REGRESSED ERROR
         assertThat(siteDigest3.stillOpenCount()).isEqualTo(2); // /a and /b
         assertThat(siteDigest3.fixedCount()).isZero();
+
+        // A delayed digest for run 2 must retain its report classification after run 3 mutates
+        // the findings' live lifecycle pointers.
+        SiteDigest delayedRun2 = assembler.assemble(window2, Locale.GERMAN).sites().get(0);
+        assertThat(delayedRun2.fixedCount()).isEqualTo(1);
+        assertThat(delayedRun2.stillOpenCount()).isEqualTo(2);
     }
 
     @Test

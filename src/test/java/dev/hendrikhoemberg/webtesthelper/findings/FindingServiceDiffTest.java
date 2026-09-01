@@ -5,6 +5,7 @@ import dev.hendrikhoemberg.webtesthelper.model.CheckFinding;
 import dev.hendrikhoemberg.webtesthelper.model.CheckType;
 import dev.hendrikhoemberg.webtesthelper.model.Evidence;
 import dev.hendrikhoemberg.webtesthelper.model.NormalizedUrl;
+import dev.hendrikhoemberg.webtesthelper.model.ObservedStatus;
 import dev.hendrikhoemberg.webtesthelper.model.RunCoverage;
 import dev.hendrikhoemberg.webtesthelper.model.RunScope;
 import dev.hendrikhoemberg.webtesthelper.model.Severity;
@@ -247,6 +248,40 @@ class FindingServiceDiffTest extends AbstractPostgresTest {
         Finding regressed = run3.of(ReportSection.REGRESSED).get(0);
         assertThat(regressed.resolvedAtRun()).isEqualTo(2);
         assertThat(regressed.regressedAtRun()).isEqualTo(3);
+    }
+
+    @Test
+    void anUnverifiableLinkThatStopsReproducingExpiresSilently() {
+        String subject = "https://external.example/blocked";
+        String location = "/u";
+        CheckFinding unverifiable = new CheckFinding(CheckType.DEAD_LINK, Severity.INFO, subject,
+                page(location), "finding.DEAD_LINK.unverifiable", List.of(subject, "403"), Evidence.NONE);
+        String fingerprint = Fingerprint.of(siteId, CheckType.DEAD_LINK, subject, location);
+
+        RunDiff run1 = service.record(1, siteId, List.of(unverifiable), fullCoverage(List.of(location)), observedAt);
+        assertThat(run1.count(ReportSection.NEW)).isEqualTo(1);
+
+        RunDiff run2 = service.record(2, siteId, List.of(), fullCoverage(List.of(location)), observedAt);
+
+        assertThat(run2.count(ReportSection.FIXED)).isZero();
+        assertThat(noSectionContains(run2, fingerprint)).isTrue();
+        assertThat(observedStatus(fingerprint)).isEqualTo(ObservedStatus.RESOLVED);
+    }
+
+    @Test
+    void aTechnicalFailureThatStopsReproducingExpiresSilently() {
+        String subject = "https://external.example/timeout";
+        String location = "/timeout";
+        CheckFinding technicalFailure = new CheckFinding(CheckType.DEAD_LINK, Severity.INFO, subject,
+                page(location), "finding.DEAD_LINK.technicalFailure", List.of(subject, "Zeitüberschreitung"), Evidence.NONE);
+        String fingerprint = Fingerprint.of(siteId, CheckType.DEAD_LINK, subject, location);
+
+        service.record(1, siteId, List.of(technicalFailure), fullCoverage(List.of(location)), observedAt);
+        RunDiff run2 = service.record(2, siteId, List.of(), fullCoverage(List.of(location)), observedAt);
+
+        assertThat(run2.count(ReportSection.FIXED)).isZero();
+        assertThat(noSectionContains(run2, fingerprint)).isTrue();
+        assertThat(observedStatus(fingerprint)).isEqualTo(ObservedStatus.RESOLVED);
     }
 
     private List<CheckFinding> threeFindings() {

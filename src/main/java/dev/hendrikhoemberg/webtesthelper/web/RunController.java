@@ -54,7 +54,7 @@ public class RunController {
         SiteContext site = siteService.contextFor(run.siteId());
 
         if (run.status().isTerminal()) {
-            RunDiff diff = findingService.diffOf(run.siteId(), id);
+            RunDiff diff = findingService.diffForReport(run.siteId(), id);
             Map<ReportSection, List<FindingView>> sections = findingViewFactory.of(diff, locale);
             model.addAttribute("diff", diff);
             model.addAttribute("sections", sections);

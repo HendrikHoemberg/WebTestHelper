@@ -13,9 +13,9 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * The findings write path. {@link #record} is four statements in one transaction — upsert,
- * occurrences, recount, resolve — and then it reads the diff back out of the database rather than
- * computing it in memory, so the report and the table can never disagree (plan 4, task 3).
+ * The findings write path. {@link #record} performs the lifecycle writes and report snapshot in one
+ * transaction, then reads the diff back out of the database rather than computing it in memory, so
+ * the report and the table can never disagree (plan 4, task 3).
  */
 @Service
 @Transactional
@@ -90,11 +90,16 @@ public class FindingService {
         store.resolveOutsideRun(siteId, runId, coverage, excluded);
         // D46: Apply mute rules after resolveOutsideRun and before diffOf inside the same transaction
         muteRuleApplier.applyToRun(siteId, runId, observedAt);
+        store.snapshotDiff(siteId, runId);
         return store.diffOf(siteId, runId);
     }
 
     public RunDiff diffOf(long siteId, long runId) {
         return store.diffOf(siteId, runId);
+    }
+
+    public RunDiff diffForReport(long siteId, long runId) {
+        return store.snapshotOf(siteId, runId).orElseGet(() -> store.diffOf(siteId, runId));
     }
 
     /**
@@ -134,4 +139,3 @@ public class FindingService {
         return store.openCountsBySite();
     }
 }
-

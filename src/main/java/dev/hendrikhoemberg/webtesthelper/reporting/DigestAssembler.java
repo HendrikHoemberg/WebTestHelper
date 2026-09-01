@@ -70,7 +70,7 @@ public class DigestAssembler {
                 continue;
             }
 
-            RunDiff diff = findingService.diffOf(siteId, run.id());
+            RunDiff diff = findingService.diffForReport(siteId, run.id());
 
             List<Finding> newFindings = diff.of(ReportSection.NEW);
             List<Finding> regressedFindings = diff.of(ReportSection.REGRESSED);

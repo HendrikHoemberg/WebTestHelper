@@ -8,5 +8,5 @@ package dev.hendrikhoemberg.webtesthelper.findings;
  * presented below the news.
  */
 public enum ReportSection {
-    FIXED, NEW, REGRESSED, KNOWN, STILL_OPEN
+    FIXED, NEW, REGRESSED, KNOWN, STILL_OPEN, EXPIRED
 }

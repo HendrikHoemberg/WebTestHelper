@@ -62,6 +62,8 @@ class RunReportAcceptanceTest extends AbstractPostgresTest {
     void resetTables() {
         jdbc.update("DELETE FROM notification");
         jdbc.update("DELETE FROM crawl_queue_item");
+        jdbc.update("DELETE FROM run_finding_section");
+        jdbc.update("DELETE FROM run_report_snapshot");
         jdbc.update("DELETE FROM finding_occurrence");
         jdbc.update("DELETE FROM finding");
         jdbc.update("DELETE FROM run");
@@ -102,8 +104,8 @@ class RunReportAcceptanceTest extends AbstractPostgresTest {
                 "finding.DEAD_LINK.dead", List.of("https://www.example.com/dead1", "404 Not Found"), Evidence.NONE);
         CheckFinding f2 = new CheckFinding(CheckType.DEAD_LINK, Severity.ERROR, "https://www.example.com/dead2", page2,
                 "finding.DEAD_LINK.dead", List.of("https://www.example.com/dead2", "404 Not Found"), Evidence.NONE);
-        CheckFinding f3 = new CheckFinding(CheckType.DEAD_LINK, Severity.ERROR, "https://www.example.com/dead3", page3,
-                "finding.DEAD_LINK.dead", List.of("https://www.example.com/dead3", "404 Not Found"), Evidence.NONE);
+        CheckFinding f3 = new CheckFinding(CheckType.DEAD_LINK, Severity.INFO, "https://www.example.com/dead3", page3,
+                "finding.DEAD_LINK.unverifiable", List.of("https://www.example.com/dead3", "403 Forbidden"), Evidence.NONE);
 
         RunEntity run1 = new RunEntity();
         run1.setSiteId(siteId);
@@ -152,8 +154,8 @@ class RunReportAcceptanceTest extends AbstractPostgresTest {
                 .andExpect(content().string(not(containsString("Als Ausgangsbestand übernehmen"))))
                 .andExpect(content().string(containsString("Ausgangsbestand wurde übernommen")));
 
-        // 4. Materialise run 2 with two of the three findings and full coverage;
-        //    GET /laeufe/{2} shows zero under Neu, one under Behoben and two under Bekannt.
+        // 4. Materialise run 2 with two of the three findings and full coverage. The
+        //    unverifiable INFO link disappears quietly rather than appearing under Behoben.
         RunEntity run2 = new RunEntity();
         run2.setSiteId(siteId);
         run2.setStatus(RunStatus.COMPLETED);
@@ -181,9 +183,15 @@ class RunReportAcceptanceTest extends AbstractPostgresTest {
         MvcResult run2Result = mvc.perform(get("/laeufe/" + runId2))
                 .andExpect(status().isOk())
                 .andExpect(content().string(not(containsString("Neu aufgetreten"))))
-                .andExpect(content().string(containsString("Behoben (1)")))
+                .andExpect(content().string(not(containsString("Behoben"))))
                 .andExpect(content().string(containsString("Bekannt (2)")))
                 .andReturn();
+
+        // The first run keeps the section membership it had when it completed, even after the
+        // second run moved two findings' live last_seen_run pointers forward.
+        mvc.perform(get("/laeufe/" + runId1))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Neu aufgetreten (3)")));
 
         // 5. A finding's Befund link resolves and its detail page carries all three §13.2 paragraphs.
         List<Long> findingIds = jdbc.queryForList(
