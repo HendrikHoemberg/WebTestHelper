@@ -138,7 +138,7 @@ class SiteDetailControllerTest {
         mvc.perform(get("/websites/42"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("websites/detail"))
-                .andExpect(model().attributeExists("site", "recentRuns", "activeChecks"))
+                .andExpect(model().attributeExists("site", "recentRuns", "checkRows"))
                 .andExpect(content().string(containsString("Acme Shop")))
                 .andExpect(content().string(containsString("https://acme.example.com/")))
                 .andExpect(content().string(containsString("120")))
@@ -152,7 +152,11 @@ class SiteDetailControllerTest {
                 .andExpect(content().string(containsString("101")))
                 .andExpect(content().string(containsString("Abgeschlossen")))
                 .andExpect(content().string(containsString("25.08.2026 12:00")))
-                .andExpect(content().string(not(containsString("2026-08-25T10:00:00Z"))));
+                .andExpect(content().string(not(containsString("2026-08-25T10:00:00Z"))))
+                .andExpect(content().string(containsString("Prüfungen speichern")))
+                .andExpect(content().string(containsString("name=\"aktiv\"")))
+                .andExpect(content().string(containsString("schweregrad[PAGE_STATUS]")))
+                .andExpect(content().string(not(containsString("späteren Ausbaustufe"))));
     }
 
     @Test

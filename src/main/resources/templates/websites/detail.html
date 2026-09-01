@@ -112,16 +112,34 @@
         <div th:replace="~{fragments/zugangsdaten :: zugangsdaten}"></div>
     </div>
 
-    <!-- Aktive Prüfungen -->
+    <!-- Prüfungen -->
     <section class="card-box detail-bereich">
-        <h2 th:text="#{ui.websites.detail.pruefungen.titel}">Aktive Prüfungen</h2>
-        <p class="hinweis-text" style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;" th:text="#{ui.websites.detail.pruefungen.hinweis}">Die aktiven Prüfungen werden für diese Website ausgeführt.</p>
-        <div class="pruefungen-gitter" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
-            <div th:each="check : ${activeChecks}" class="pruefung-karte" style="background: var(--surface-subtle); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 1rem;">
-                <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.35rem; color: var(--text-main);" th:text="#{${check.titleKey}}">Prüfungs-Titel</h3>
-                <p style="font-size: 0.825rem; color: var(--text-muted); margin: 0; line-height: 1.4;" th:text="#{${check.descriptionKey}}">Prüfungs-Beschreibung</p>
+        <h2 th:text="#{ui.websites.detail.pruefungen.titel}">Prüfungen</h2>
+        <form th:action="@{/websites/{id}/pruefungen(id=${site.siteId})}" method="post">
+            <p th:if="${checkSettingsError}" class="fehler-text" th:text="${checkSettingsError}">Fehler</p>
+            <div class="pruefungen-gitter" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+                <div th:each="row : ${checkRows}" class="pruefung-karte" style="background: var(--surface-subtle); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 1rem;">
+                    <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.35rem; color: var(--text-main);" th:text="#{${row.check.titleKey}}">Prüfungs-Titel</h3>
+                    <p style="font-size: 0.825rem; color: var(--text-muted); margin: 0 0 0.75rem; line-height: 1.4;" th:text="#{${row.check.descriptionKey}}">Prüfungs-Beschreibung</p>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; margin-bottom: 0.5rem;">
+                        <input type="checkbox" name="aktiv" th:value="${row.check.type}" th:checked="${row.enabled}">
+                        <span th:text="#{ui.websites.detail.pruefungen.aktiviert}">Prüfung aktiviert</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem;">
+                        <span th:text="#{ui.websites.detail.pruefungen.schweregrad}">Schweregrad</span>
+                        <select th:attr="name=|schweregrad[${row.check.type}]|" class="form-select" style="flex: 1;">
+                            <option value="" th:selected="${row.severityOverride == null}" th:text="#{ui.websites.detail.pruefungen.schweregrad.standard}">Standard</option>
+                            <option value="ERROR" th:selected="${row.severityOverride?.name() == 'ERROR'}" th:text="#{ui.severity.ERROR}">Fehler</option>
+                            <option value="WARN" th:selected="${row.severityOverride?.name() == 'WARN'}" th:text="#{ui.severity.WARN}">Warnung</option>
+                            <option value="INFO" th:selected="${row.severityOverride?.name() == 'INFO'}" th:text="#{ui.severity.INFO}">Hinweis</option>
+                        </select>
+                    </label>
+                </div>
             </div>
-        </div>
+            <div class="form-aktionen">
+                <button type="submit" class="btn-ui btn-ui-primary button primär" th:text="#{ui.websites.detail.pruefungen.speichern}">Prüfungen speichern</button>
+            </div>
+        </form>
     </section>
 
     <!-- Verlauf der Prüfläufe -->

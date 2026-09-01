@@ -8,6 +8,8 @@ import dev.hendrikhoemberg.webtesthelper.catalog.RecipientService;
 import dev.hendrikhoemberg.webtesthelper.catalog.SiteService;
 import dev.hendrikhoemberg.webtesthelper.checks.CheckDescriptor;
 import dev.hendrikhoemberg.webtesthelper.checks.CheckRegistry;
+import dev.hendrikhoemberg.webtesthelper.model.CheckSetting;
+import dev.hendrikhoemberg.webtesthelper.model.Severity;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
 import dev.hendrikhoemberg.webtesthelper.runner.RunService;
 import dev.hendrikhoemberg.webtesthelper.runner.RunSummary;
@@ -54,8 +56,13 @@ public class SiteDetailModel {
     public void populate(long siteId, Model model) {
         SiteContext site = siteService.contextFor(siteId);
         List<RunSummary> recentRuns = runService.recentForSite(siteId, RECENT_RUNS);
-        List<CheckDescriptor> activeChecks = checkRegistry.all().stream()
-                .filter(check -> site.enabled(check.type()))
+        List<CheckRowView> checkRows = checkRegistry.all().stream()
+                .map(check -> {
+                    CheckSetting setting = site.checkSettings().get(check.type());
+                    return new CheckRowView(check,
+                            setting != null && setting.enabled(),
+                            setting == null ? null : setting.severityOverride());
+                })
                 .toList();
         List<Schedule> schedules = scheduleService.forSite(siteId);
         List<Recipient> recipients = recipientService.list(siteId);
@@ -64,11 +71,15 @@ public class SiteDetailModel {
 
         model.addAttribute("site", site);
         model.addAttribute("recentRuns", recentRuns);
-        model.addAttribute("activeChecks", activeChecks);
+        model.addAttribute("checkRows", checkRows);
         model.addAttribute("zeitplaene", ScheduleFormModel.of(schedules));
         model.addAttribute("zeitplaeneDetail", ScheduleView.detailByScope(schedules));
         model.addAttribute("recipients", recipients);
         model.addAttribute("fallbackRecipients", fallbackRecipients);
         model.addAttribute("credentials", credentials);
+    }
+
+    /** One editable row of the per-check configuration: the check plus its site state. */
+    public record CheckRowView(CheckDescriptor check, boolean enabled, Severity severityOverride) {
     }
 }
