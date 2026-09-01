@@ -156,6 +156,7 @@ class SiteDetailControllerTest {
                 .andExpect(content().string(containsString("Prüfungen speichern")))
                 .andExpect(content().string(containsString("name=\"aktiv\"")))
                 .andExpect(content().string(containsString("schweregrad[PAGE_STATUS]")))
+                .andExpect(content().string(containsString("/hilfe/hinweis/pruefungen")))
                 .andExpect(content().string(not(containsString("späteren Ausbaustufe"))));
     }
 

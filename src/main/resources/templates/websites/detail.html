@@ -114,7 +114,13 @@
 
     <!-- Prüfungen -->
     <section class="card-box detail-bereich">
-        <h2 th:text="#{ui.websites.detail.pruefungen.titel}">Prüfungen</h2>
+        <div class="abschnitt-ueberschrift-zeile" style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); margin-bottom: 1rem; padding-bottom: 0.5rem;">
+            <h2 style="margin: 0; border: none; padding: 0;" th:text="#{ui.websites.detail.pruefungen.titel}">Prüfungen</h2>
+            <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
+                    th:data-hx-get="@{/hilfe/hinweis/{id}(id='pruefungen')}"
+                    data-hx-target="next .hinweis" data-hx-swap="innerHTML">?</button>
+            <div class="hinweis" aria-live="polite"></div>
+        </div>
         <form th:action="@{/websites/{id}/pruefungen(id=${site.siteId})}" method="post">
             <p th:if="${checkSettingsError}" class="fehler-text" th:text="${checkSettingsError}">Fehler</p>
             <div class="pruefungen-gitter" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
