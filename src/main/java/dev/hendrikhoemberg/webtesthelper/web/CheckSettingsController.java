@@ -59,10 +59,10 @@ public class CheckSettingsController {
             try {
                 overrides.put(check.type(), Severity.valueOf(value));
             } catch (IllegalArgumentException e) {
-                siteDetailModel.populate(id, model);
+                siteDetailModel.populateConfig(id, model);
                 model.addAttribute("checkSettingsError", messageSource.getMessage(
                         "ui.websites.detail.pruefungen.fehler.schweregrad", null, locale));
-                return "websites/detail";
+                return "websites/konfiguration";
             }
         }
 
@@ -72,6 +72,6 @@ public class CheckSettingsController {
         }
         redirectAttributes.addFlashAttribute("flashMessage", messageSource.getMessage(
                 "ui.websites.detail.pruefungen.gespeichert", null, locale));
-        return "redirect:/websites/" + id;
+        return "redirect:/websites/" + id + "/konfiguration";
     }
 }

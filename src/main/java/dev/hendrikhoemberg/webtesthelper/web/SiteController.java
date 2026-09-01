@@ -78,9 +78,21 @@ public class SiteController {
     }
 
     @GetMapping("/websites/{id}")
-    public String detail(@PathVariable("id") long id, Model model) {
-        siteDetailModel.populate(id, model);
-        return "websites/detail";
+    public String uebersicht(@PathVariable("id") long id, Model model, Locale locale) {
+        siteDetailModel.populateOverview(id, model, locale);
+        return "websites/uebersicht";
+    }
+
+    @GetMapping("/websites/{id}/laeufe")
+    public String laeufe(@PathVariable("id") long id, Model model) {
+        siteDetailModel.populateRuns(id, model);
+        return "websites/laeufe";
+    }
+
+    @GetMapping("/websites/{id}/konfiguration")
+    public String konfiguration(@PathVariable("id") long id, Model model) {
+        siteDetailModel.populateConfig(id, model);
+        return "websites/konfiguration";
     }
 
     @PostMapping("/websites/{id}/pruefen")

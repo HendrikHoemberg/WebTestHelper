@@ -42,13 +42,16 @@ public class ScheduleController {
     private final SiteService siteService;
     private final RunService runService;
     private final CheckRegistry checkRegistry;
+    private final SiteDetailModel siteDetailModel;
 
     public ScheduleController(ScheduleService scheduleService, SiteService siteService,
-                              RunService runService, CheckRegistry checkRegistry) {
+                              RunService runService, CheckRegistry checkRegistry,
+                              SiteDetailModel siteDetailModel) {
         this.scheduleService = scheduleService;
         this.siteService = siteService;
         this.runService = runService;
         this.checkRegistry = checkRegistry;
+        this.siteDetailModel = siteDetailModel;
     }
 
     @PostMapping("/websites/{id}/zeitplaene")
@@ -60,14 +63,9 @@ public class ScheduleController {
         validate(form, bindingResult);
 
         if (bindingResult.hasErrors()) {
-            SiteContext site = siteService.contextFor(id);
-            model.addAttribute("site", site);
-            model.addAttribute("recentRuns", runService.recentForSite(id, 20));
-            model.addAttribute("activeChecks", checkRegistry.all().stream()
-                    .filter(check -> site.enabled(check.type()))
-                    .toList());
+            siteDetailModel.populateConfigContext(id, model);
             model.addAttribute("zeitplaeneDetail", ScheduleView.detailByScope(current));
-            return "websites/detail";
+            return "websites/konfiguration";
         }
 
         Map<RunScope, Schedule> byScope = new EnumMap<>(RunScope.class);
@@ -87,7 +85,7 @@ public class ScheduleController {
             scheduleService.update(schedule.id(), cron, row.timezone(),
                     Boolean.TRUE.equals(row.enabled()), now);
         }
-        return "redirect:/websites/" + id;
+        return "redirect:/websites/" + id + "/konfiguration";
     }
 
     /** Cross-field rule for one row: the cron, when filled, is taken verbatim and the time ignored. */

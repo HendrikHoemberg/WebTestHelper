@@ -5,10 +5,13 @@ import dev.hendrikhoemberg.webtesthelper.catalog.Credential;
 import dev.hendrikhoemberg.webtesthelper.catalog.CredentialService;
 import dev.hendrikhoemberg.webtesthelper.catalog.RecipientService;
 import dev.hendrikhoemberg.webtesthelper.catalog.SiteService;
+import dev.hendrikhoemberg.webtesthelper.catalog.SiteSummary;
 import dev.hendrikhoemberg.webtesthelper.checks.CheckRegistry;
+import dev.hendrikhoemberg.webtesthelper.findings.FindingService;
 import dev.hendrikhoemberg.webtesthelper.model.CrawlBudget;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
 import dev.hendrikhoemberg.webtesthelper.model.UrlNormalizer;
+import dev.hendrikhoemberg.webtesthelper.reporting.FindingViewFactory;
 import dev.hendrikhoemberg.webtesthelper.runner.RunService;
 import dev.hendrikhoemberg.webtesthelper.scheduling.ScheduleService;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,6 +30,7 @@ import java.util.Map;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -69,6 +73,12 @@ class CredentialControllerTest {
     @MockitoBean
     AppUserService appUserService;
 
+    @MockitoBean
+    FindingService findingService;
+
+    @MockitoBean
+    FindingViewFactory findingViewFactory;
+
     private SiteContext testSite;
 
     @BeforeEach
@@ -82,8 +92,12 @@ class CredentialControllerTest {
                 true, "AcmeBot/2.0", Map.of()
         );
         when(siteService.contextFor(1L)).thenReturn(testSite);
+        when(siteService.summary(1L)).thenReturn(new SiteSummary(1L, "Acme Shop", "https://acme.example.com/", true, 0));
         when(runService.recentForSite(1L, 20)).thenReturn(List.of());
+        when(runService.recentForSite(1L, 1)).thenReturn(List.of());
+        when(findingService.openCountsBySite()).thenReturn(Map.of());
         when(checkRegistry.all()).thenReturn(CheckRegistry.standard().all());
+        when(checkRegistry.category(any())).thenAnswer(inv -> CheckRegistry.standard().category(inv.getArgument(0)));
         when(scheduleService.forSite(1L)).thenReturn(List.of());
         when(recipientService.list(1L)).thenReturn(List.of());
         when(appSettings.fallbackRecipients()).thenReturn(List.of());
@@ -96,9 +110,9 @@ class CredentialControllerTest {
                 new Credential(10L, 1L, "login", "admin", Instant.parse("2026-08-27T10:00:00Z"), true)
         ));
 
-        mvc.perform(get("/websites/1"))
+        mvc.perform(get("/websites/1/konfiguration"))
                 .andExpect(status().isOk())
-                .andExpect(view().name("websites/detail"))
+                .andExpect(view().name("websites/konfiguration"))
                 .andExpect(content().string(containsString("login")))
                 .andExpect(content().string(containsString("admin")))
                 .andExpect(content().string(containsString("{{cred.login.password}}")))
@@ -119,7 +133,7 @@ class CredentialControllerTest {
                         .param("benutzername", "admin")
                         .param("passwort", "geheim123"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/websites/1"));
+                .andExpect(redirectedUrl("/websites/1/konfiguration"));
 
         verify(credentialService).create(1L, "login", "admin", "geheim123");
     }
@@ -132,7 +146,7 @@ class CredentialControllerTest {
                         .param("benutzername", "newadmin")
                         .param("passwort", ""))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/websites/1"));
+                .andExpect(redirectedUrl("/websites/1/konfiguration"));
 
         verify(credentialService).update(1L, 10L, "newadmin", "");
     }
@@ -150,7 +164,7 @@ class CredentialControllerTest {
                         .param("benutzername", "admin")
                         .param("passwort", "super-secret-password-123"))
                 .andExpect(status().isOk())
-                .andExpect(view().name("websites/detail"))
+                .andExpect(view().name("websites/konfiguration"))
                 .andExpect(content().string(containsString("bereits Zugangsdaten mit diesem Namen hinterlegt")))
                 .andExpect(content().string(not(containsString("super-secret-password-123"))));
     }
@@ -161,7 +175,7 @@ class CredentialControllerTest {
         mvc.perform(post("/websites/1/zugangsdaten/10/loeschen")
                         .with(csrf()))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/websites/1"));
+                .andExpect(redirectedUrl("/websites/1/konfiguration"));
 
         verify(credentialService).delete(1L, 10L);
     }
@@ -173,9 +187,9 @@ class CredentialControllerTest {
                 new Credential(10L, 1L, "broken", "user", Instant.parse("2026-08-27T10:00:00Z"), false)
         ));
 
-        mvc.perform(get("/websites/1"))
+        mvc.perform(get("/websites/1/konfiguration"))
                 .andExpect(status().isOk())
-                .andExpect(view().name("websites/detail"))
+                .andExpect(view().name("websites/konfiguration"))
                 .andExpect(content().string(containsString("Dieses Passwort lässt sich nicht mehr entschlüsseln")));
     }
 }

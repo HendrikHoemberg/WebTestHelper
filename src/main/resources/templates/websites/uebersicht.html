@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html th:replace="~{layout :: seite(${site.name} + ' – ' + #{ui.websites.detail.titel}, ~{::main})}"
+      xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title th:text="${site.name} + ' – ' + #{ui.websites.detail.titel}">Website-Details</title>
+</head>
+<body>
+<main>
+    <div th:replace="~{fragments/site-kopf :: kopf(${site}, ${trafficLight})}"></div>
+    <div th:replace="~{fragments/site-tabs :: tabs(${site}, 'uebersicht')}"></div>
+
+    <div class="uebersicht-kacheln" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
+        <section class="card-box detail-bereich">
+            <h2 style="margin-top: 0;" th:text="#{ui.websites.detail.status.offene}">Offene Feststellungen</h2>
+            <p style="font-size: 1.4rem; font-weight: 700; margin: 0 0 0.5rem;">
+                <span th:text="${openCounts.errors()}">0</span> <span th:text="#{ui.websites.detail.status.fehler}">Fehler</span>
+                &middot;
+                <span th:text="${openCounts.warnings()}">0</span> <span th:text="#{ui.websites.detail.status.hinweise}">Hinweise</span>
+            </p>
+            <a th:href="@{/websites/{id}/befunde(id=${site.siteId})}" class="btn-ui btn-ui-secondary btn-ui-sm button sekundär klein"
+               th:text="#{ui.websites.detail.status.alle}">Zu allen Feststellungen &rarr;</a>
+        </section>
+        <section class="card-box detail-bereich">
+            <h2 style="margin-top: 0;" th:text="#{ui.websites.detail.status.letzte}">Letzte Prüfung</h2>
+            <p th:if="${lastRun == null}" class="text-gedaempft" th:text="#{ui.websites.detail.status.noch_nie}">Noch keine Prüfung.</p>
+            <p th:if="${lastRun != null}" style="margin: 0;">
+                <span style="font-weight: 700; font-variant-numeric: tabular-nums;"
+                      th:text="${#temporals.format(lastRun.finishedAt(), 'dd.MM.yyyy HH:mm')}">25.08.2026 10:02</span><br>
+                <span class="text-gedaempft" style="font-size: 0.85rem;"
+                      th:text="#{ui.websites.detail.status.dauer(${T(java.time.Duration).between(lastRun.startedAt(), lastRun.finishedAt()).toMinutes()})}">Dauer: 4 Min.</span>
+            </p>
+        </section>
+        <section class="card-box detail-bereich">
+            <h2 style="margin-top: 0;" th:text="#{ui.websites.detail.status.naechste}">Nächste Prüfung</h2>
+            <p th:if="${nextRun == null}" class="text-gedaempft" th:text="#{ui.websites.detail.status.keine}">Keine geplant.</p>
+            <p th:if="${nextRun != null}" style="margin: 0;">
+                <span style="font-weight: 700; font-variant-numeric: tabular-nums;"
+                      th:text="${#temporals.format(nextRun.nextFireAt(), 'dd.MM.yyyy HH:mm')}">27.08.2026 03:00</span><br>
+                <span class="text-gedaempft" style="font-size: 0.85rem;"
+                      th:text="#{${'ui.runscope.' + nextRun.scope()}}">Schnell-Check</span>
+            </p>
+        </section>
+    </div>
+
+    <section class="card-box detail-bereich">
+        <div class="abschnitt-ueberschrift-zeile" style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); margin-bottom: 1rem; padding-bottom: 0.5rem;">
+            <h2 style="margin: 0; border: none; padding: 0;" th:text="#{ui.websites.detail.status.wichtigste}">Neueste Feststellungen</h2>
+        </div>
+        <ul th:if="${not #lists.isEmpty(topFindings)}" class="muster-liste" style="list-style: none; padding-left: 0; display: flex; flex-direction: column; gap: 0.5rem;">
+            <li th:each="fv : ${topFindings}" class="top-befund-zeile" style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.75rem 1rem; background: var(--surface-subtle); border: 1px solid var(--border-subtle); border-radius: 6px;">
+                <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                    <span class="status-badge"
+                          th:classappend="${fv.severity().name() == 'ERROR' ? 'badge-failing severity-CRITICAL' : (fv.severity().name() == 'WARN' ? 'badge-warning' : 'status-inaktiv')}"
+                          th:text="#{${'ui.severity.' + fv.severity().name()}}">Fehler</span>
+                    <span style="font-weight: 600;" th:text="${fv.title()}">Tote Links</span>
+                    <span class="text-gedaempft" style="font-size: 0.85rem;" th:text="${fv.locationText()}">/pfad</span>
+                </div>
+                <a th:href="@{/befunde/{id}(id=${fv.id()})}" class="btn-ui btn-ui-secondary btn-ui-sm button sekundär klein"
+                   th:text="#{ui.websites.detail.status.details}">Details &rarr;</a>
+            </li>
+        </ul>
+        <p th:if="${#lists.isEmpty(topFindings)}" class="text-gedaempft" th:text="#{ui.websites.detail.status.keine_festst}">Keine Feststellungen vorhanden.</p>
+    </section>
+</main>
+</body>
+</html>

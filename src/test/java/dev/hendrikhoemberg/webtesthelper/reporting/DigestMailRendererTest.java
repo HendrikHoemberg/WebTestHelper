@@ -73,7 +73,7 @@ class DigestMailRendererTest {
 
         OutboundMail mail = renderer.render("admin@example.com", digest, "https://wth.example", Locale.GERMAN);
 
-        assertThat(mail.subject()).isEqualTo("WebTestHelper – Puls-Prüfung: 2 neue oder wiederkehrende Fehler");
+        assertThat(mail.subject()).isEqualTo("WebTestHelper – Schnell-Check (wichtigste Seiten): 2 neue oder wiederkehrende Fehler");
     }
 
     @Test
@@ -95,7 +95,7 @@ class DigestMailRendererTest {
 
         OutboundMail mail = renderer.render("admin@example.com", digest, "https://wth.example", Locale.GERMAN);
 
-        assertThat(mail.subject()).isEqualTo("WebTestHelper – Puls-Prüfung: 1 neuer oder wiederkehrender Fehler");
+        assertThat(mail.subject()).isEqualTo("WebTestHelper – Schnell-Check (wichtigste Seiten): 1 neuer oder wiederkehrender Fehler");
     }
 
     @Test
@@ -111,7 +111,7 @@ class DigestMailRendererTest {
 
         OutboundMail mail = renderer.render("admin@example.com", digest, "https://wth.example", Locale.GERMAN);
 
-        assertThat(mail.subject()).isEqualTo("WebTestHelper – Tiefenprüfung: alles in Ordnung");
+        assertThat(mail.subject()).isEqualTo("WebTestHelper – Vollständiger Monats-Check: alles in Ordnung");
         assertThat(mail.subject()).endsWith("alles in Ordnung");
     }
 
@@ -132,11 +132,11 @@ class DigestMailRendererTest {
 
         Digest singleFailed = new Digest(RunScope.FULL, Instant.now(), List.of(failedSite1));
         OutboundMail mail1 = renderer.render("admin@example.com", singleFailed, "https://wth.example", Locale.GERMAN);
-        assertThat(mail1.subject()).isEqualTo("WebTestHelper – Vollständige Prüfung: 1 Prüflauf fehlgeschlagen");
+        assertThat(mail1.subject()).isEqualTo("WebTestHelper – Vollständiger Wochen-Check: 1 Prüflauf fehlgeschlagen");
 
         Digest doubleFailed = new Digest(RunScope.FULL, Instant.now(), List.of(failedSite1, failedSite2));
         OutboundMail mail2 = renderer.render("admin@example.com", doubleFailed, "https://wth.example", Locale.GERMAN);
-        assertThat(mail2.subject()).isEqualTo("WebTestHelper – Vollständige Prüfung: 2 Prüfläufe fehlgeschlagen");
+        assertThat(mail2.subject()).isEqualTo("WebTestHelper – Vollständiger Wochen-Check: 2 Prüfläufe fehlgeschlagen");
 
         FindingView finding = new FindingView(
                 1L, "Tote Links", "HTTP 404", "Linkziel prüfen", "/kontakt", false, 1,
@@ -150,7 +150,7 @@ class DigestMailRendererTest {
         );
         Digest combined = new Digest(RunScope.PULSE, Instant.now(), List.of(failedSite1, errorSite));
         OutboundMail mail3 = renderer.render("admin@example.com", combined, "https://wth.example", Locale.GERMAN);
-        assertThat(mail3.subject()).isEqualTo("WebTestHelper – Puls-Prüfung: 1 neuer oder wiederkehrender Fehler, 1 Prüflauf fehlgeschlagen");
+        assertThat(mail3.subject()).isEqualTo("WebTestHelper – Schnell-Check (wichtigste Seiten): 1 neuer oder wiederkehrender Fehler, 1 Prüflauf fehlgeschlagen");
     }
 
     @Test

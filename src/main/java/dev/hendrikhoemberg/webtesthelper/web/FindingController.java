@@ -30,6 +30,12 @@ public class FindingController {
         this.findingViewFactory = findingViewFactory;
     }
 
+    /** A bare /befunde has nothing to render; land on the websites overview instead of a 404. */
+    @GetMapping
+    public String root() {
+        return "redirect:/websites";
+    }
+
     @GetMapping("/{id}")
     public String detail(@PathVariable("id") long id, Model model, Locale locale) {
         Finding finding = findingService.byId(id)

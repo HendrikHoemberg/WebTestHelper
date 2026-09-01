@@ -37,7 +37,7 @@ public class RecipientController {
 
         try {
             recipientService.add(id, email);
-            return "redirect:/websites/" + id;
+            return "redirect:/websites/" + id + "/konfiguration";
         } catch (IllegalArgumentException e) {
             String key = "recipient.email.duplicate".equals(e.getMessage())
                     ? "ui.websites.detail.empfaenger.fehler.duplicate"
@@ -49,13 +49,13 @@ public class RecipientController {
     @PostMapping("/websites/{id}/empfaenger/{rid}/loeschen")
     public String remove(@PathVariable("id") long id, @PathVariable("rid") long rid) {
         recipientService.remove(id, rid);
-        return "redirect:/websites/" + id;
+        return "redirect:/websites/" + id + "/konfiguration";
     }
 
     private String reject(long siteId, String email, String messageKey, Model model, Locale locale) {
-        siteDetailModel.populate(siteId, model);
+        siteDetailModel.populateConfig(siteId, model);
         model.addAttribute("email", email);
         model.addAttribute("recipientError", messageSource.getMessage(messageKey, null, locale));
-        return "websites/detail";
+        return "websites/konfiguration";
     }
 }

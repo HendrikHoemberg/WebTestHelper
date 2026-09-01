@@ -34,7 +34,7 @@ public class CredentialController {
             Locale locale) {
         try {
             credentialService.create(id, name, benutzername, passwort);
-            return "redirect:/websites/" + id;
+            return "redirect:/websites/" + id + "/konfiguration";
         } catch (IllegalArgumentException e) {
             String key;
             if ("credential.name.duplicate".equals(e.getMessage())) {
@@ -55,20 +55,20 @@ public class CredentialController {
             @RequestParam(name = "benutzername", required = false) String benutzername,
             @RequestParam(name = "passwort", defaultValue = "") String passwort) {
         credentialService.update(id, cid, benutzername, passwort);
-        return "redirect:/websites/" + id;
+        return "redirect:/websites/" + id + "/konfiguration";
     }
 
     @PostMapping("/websites/{id}/zugangsdaten/{cid}/loeschen")
     public String delete(@PathVariable("id") long id, @PathVariable("cid") long cid) {
         credentialService.delete(id, cid);
-        return "redirect:/websites/" + id;
+        return "redirect:/websites/" + id + "/konfiguration";
     }
 
     private String reject(long siteId, String name, String benutzername, String messageKey, Model model, Locale locale) {
-        siteDetailModel.populate(siteId, model);
+        siteDetailModel.populateConfig(siteId, model);
         model.addAttribute("name", name);
         model.addAttribute("benutzername", benutzername);
         model.addAttribute("credentialError", messageSource.getMessage(messageKey, null, locale));
-        return "websites/detail";
+        return "websites/konfiguration";
     }
 }

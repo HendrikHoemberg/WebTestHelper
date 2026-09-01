@@ -301,7 +301,7 @@ class DigestAcceptanceTest extends AbstractPostgresTest {
 
         MimeMessage mailDeep = aMessagesAfterDeep.get(1);
         assertThat(mailDeep.getAllRecipients()[0].toString()).contains("betreuer-a@example.test");
-        assertThat(mailDeep.getSubject()).contains("Tiefenprüfung");
+        assertThat(mailDeep.getSubject()).contains("Vollständiger Monats-Check");
         assertThat(mailDeep.getSubject()).endsWith("alles in Ordnung");
 
         StringBuilder textDeep = new StringBuilder();

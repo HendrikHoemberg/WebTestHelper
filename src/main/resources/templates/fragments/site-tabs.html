@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="tabs(site, aktiv)" class="site-tabs" role="tablist">
+    <a th:classappend="${aktiv == 'uebersicht'} ? 'aktiv' : ''" th:href="@{/websites/{id}(id=${site.siteId})}"
+       role="tab" th:text="#{ui.websites.detail.tab.uebersicht}">Übersicht &amp; Feststellungen</a>
+    <a th:classappend="${aktiv == 'laeufe'} ? 'aktiv' : ''" th:href="@{/websites/{id}/laeufe(id=${site.siteId})}"
+       role="tab" th:text="#{ui.websites.detail.tab.laeufe}">Prüfläufe</a>
+    <a th:classappend="${aktiv == 'konfiguration'} ? 'aktiv' : ''" th:href="@{/websites/{id}/konfiguration(id=${site.siteId})}"
+       role="tab" th:text="#{ui.websites.detail.tab.konfiguration}">Konfiguration</a>
+</div>
+</body>
+</html>

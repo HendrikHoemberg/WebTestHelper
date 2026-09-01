@@ -1,13 +1,19 @@
 package dev.hendrikhoemberg.webtesthelper.web;
 
+import dev.hendrikhoemberg.webtesthelper.catalog.AppSettings;
+import dev.hendrikhoemberg.webtesthelper.catalog.CredentialService;
+import dev.hendrikhoemberg.webtesthelper.catalog.RecipientService;
 import dev.hendrikhoemberg.webtesthelper.catalog.SiteService;
+import dev.hendrikhoemberg.webtesthelper.catalog.SiteSummary;
 import dev.hendrikhoemberg.webtesthelper.checks.CheckRegistry;
+import dev.hendrikhoemberg.webtesthelper.findings.FindingService;
 import dev.hendrikhoemberg.webtesthelper.model.CheckSetting;
 import dev.hendrikhoemberg.webtesthelper.model.CheckType;
 import dev.hendrikhoemberg.webtesthelper.model.CrawlBudget;
 import dev.hendrikhoemberg.webtesthelper.model.RunScope;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
 import dev.hendrikhoemberg.webtesthelper.model.UrlNormalizer;
+import dev.hendrikhoemberg.webtesthelper.reporting.FindingViewFactory;
 import dev.hendrikhoemberg.webtesthelper.runner.RunService;
 import dev.hendrikhoemberg.webtesthelper.scheduling.Schedule;
 import dev.hendrikhoemberg.webtesthelper.scheduling.ScheduleService;
@@ -15,6 +21,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -43,6 +50,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @org.junit.jupiter.api.parallel.ResourceLock("spring-context")
 @WebMvcTest(ScheduleController.class)
+@Import(SiteDetailModel.class)
 class ScheduleControllerTest {
 
     @Autowired
@@ -63,11 +71,26 @@ class ScheduleControllerTest {
     @MockitoBean
     AppUserService appUserService;
 
+    @MockitoBean
+    RecipientService recipientService;
+
+    @MockitoBean
+    CredentialService credentialService;
+
+    @MockitoBean
+    AppSettings appSettings;
+
+    @MockitoBean
+    FindingService findingService;
+
+    @MockitoBean
+    FindingViewFactory findingViewFactory;
+
     private final Instant fixedNow = Instant.parse("2026-08-25T10:00:00Z");
 
     @BeforeEach
     void stubDetailPage() {
-        // A site that exists, so the error re-render has everything the detail page needs.
+        // A site that exists, so the error re-render has everything the konfiguration page needs.
         var settings = new EnumMap<CheckType, CheckSetting>(CheckType.class);
         settings.put(CheckType.PAGE_STATUS, new CheckSetting(true, null, Map.of()));
         when(siteService.contextFor(1L)).thenReturn(new SiteContext(
@@ -77,8 +100,14 @@ class ScheduleControllerTest {
                 new CrawlBudget(120, 3, Duration.ofMinutes(15)),
                 List.of(), List.of(), List.of(),
                 true, "AcmeBot/2.0", settings));
+        when(siteService.summary(1L)).thenReturn(new SiteSummary(1L, "Acme Shop", "https://acme.example.com/", true, 0));
         when(runService.recentForSite(1L, 20)).thenReturn(List.of());
+        when(runService.recentForSite(1L, 1)).thenReturn(List.of());
+        when(findingService.openCountsBySite()).thenReturn(Map.of());
         when(checkRegistry.all()).thenReturn(CheckRegistry.standard().all());
+        when(checkRegistry.category(any())).thenAnswer(inv -> CheckRegistry.standard().category(inv.getArgument(0)));
+        when(recipientService.list(1L)).thenReturn(List.of());
+        when(appSettings.fallbackRecipients()).thenReturn(List.of());
     }
 
     private List<Schedule> defaultSchedules() {
@@ -111,7 +140,7 @@ class ScheduleControllerTest {
                         .param("zeitplaene[2].timezone", "Europe/Berlin")
                         .param("zeitplaene[2].enabled", "true"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/websites/1"));
+                .andExpect(redirectedUrl("/websites/1/konfiguration"));
 
         verify(scheduleService, times(3)).update(anyLong(), anyString(), anyString(), anyBoolean(), any());
         verify(scheduleService).update(eq(11L), eq("0 0 3 * * *"), eq("Europe/Berlin"), eq(true), any());
@@ -164,7 +193,7 @@ class ScheduleControllerTest {
                         .param("zeitplaene[2].timezone", "Europe/Berlin")
                         .param("zeitplaene[2].enabled", "true"))
                 .andExpect(status().isOk())
-                .andExpect(view().name("websites/detail"))
+                .andExpect(view().name("websites/konfiguration"))
                 .andExpect(model().attributeHasFieldErrors("zeitplaene", "zeitplaene[1].zeit"));
 
         verify(scheduleService, never()).update(anyLong(), anyString(), anyString(), anyBoolean(), any());
@@ -191,7 +220,7 @@ class ScheduleControllerTest {
                         .param("zeitplaene[2].timezone", "Europe/Berlin")
                         .param("zeitplaene[2].enabled", "true"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/websites/1"));
+                .andExpect(redirectedUrl("/websites/1/konfiguration"));
 
         verify(scheduleService).update(eq(12L), eq("0 0 3 * * SUN"), eq("Europe/Berlin"), eq(true), any());
         verify(scheduleService, times(3)).update(anyLong(), anyString(), anyString(), anyBoolean(), any());
@@ -217,7 +246,7 @@ class ScheduleControllerTest {
                         .param("zeitplaene[2].timezone", "Europe/Berlin")
                         .param("zeitplaene[2].enabled", "true"))
                 .andExpect(status().isOk())
-                .andExpect(view().name("websites/detail"))
+                .andExpect(view().name("websites/konfiguration"))
                 .andExpect(model().attributeHasFieldErrors("zeitplaene", "zeitplaene[1].timezone"));
 
         verify(scheduleService, never()).update(anyLong(), anyString(), anyString(), anyBoolean(), any());
@@ -239,7 +268,7 @@ class ScheduleControllerTest {
                         .param("zeitplaene[1].timezone", "Europe/Berlin")
                         .param("zeitplaene[1].enabled", "true"))
                 .andExpect(status().isOk())
-                .andExpect(view().name("websites/detail"))
+                .andExpect(view().name("websites/konfiguration"))
                 .andExpect(model().attributeHasFieldErrors("zeitplaene", "zeitplaene[1].cron"));
 
         verify(scheduleService, never()).update(anyLong(), anyString(), anyString(), anyBoolean(), any());

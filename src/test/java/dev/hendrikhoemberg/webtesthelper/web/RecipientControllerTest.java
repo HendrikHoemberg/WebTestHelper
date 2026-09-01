@@ -5,10 +5,13 @@ import dev.hendrikhoemberg.webtesthelper.catalog.CredentialService;
 import dev.hendrikhoemberg.webtesthelper.catalog.Recipient;
 import dev.hendrikhoemberg.webtesthelper.catalog.RecipientService;
 import dev.hendrikhoemberg.webtesthelper.catalog.SiteService;
+import dev.hendrikhoemberg.webtesthelper.catalog.SiteSummary;
 import dev.hendrikhoemberg.webtesthelper.checks.CheckRegistry;
+import dev.hendrikhoemberg.webtesthelper.findings.FindingService;
 import dev.hendrikhoemberg.webtesthelper.model.CrawlBudget;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
 import dev.hendrikhoemberg.webtesthelper.model.UrlNormalizer;
+import dev.hendrikhoemberg.webtesthelper.reporting.FindingViewFactory;
 import dev.hendrikhoemberg.webtesthelper.runner.RunService;
 import dev.hendrikhoemberg.webtesthelper.scheduling.ScheduleService;
 import org.junit.jupiter.api.BeforeEach;
@@ -72,6 +75,12 @@ class RecipientControllerTest {
     @MockitoBean
     AppUserService appUserService;
 
+    @MockitoBean
+    FindingService findingService;
+
+    @MockitoBean
+    FindingViewFactory findingViewFactory;
+
     private SiteContext testSite;
 
     @BeforeEach
@@ -85,8 +94,12 @@ class RecipientControllerTest {
                 true, "AcmeBot/2.0", Map.of()
         );
         when(siteService.contextFor(42L)).thenReturn(testSite);
+        when(siteService.summary(42L)).thenReturn(new SiteSummary(42L, "Acme Shop", "https://acme.example.com/", true, 0));
         when(runService.recentForSite(42L, 20)).thenReturn(List.of());
+        when(runService.recentForSite(42L, 1)).thenReturn(List.of());
+        when(findingService.openCountsBySite()).thenReturn(Map.of());
         when(checkRegistry.all()).thenReturn(CheckRegistry.standard().all());
+        when(checkRegistry.category(any())).thenAnswer(inv -> CheckRegistry.standard().category(inv.getArgument(0)));
         when(scheduleService.forSite(42L)).thenReturn(List.of());
     }
 
@@ -99,9 +112,9 @@ class RecipientControllerTest {
         ));
         when(appSettings.fallbackRecipients()).thenReturn(List.of("fallback@example.com"));
 
-        mvc.perform(get("/websites/42"))
+        mvc.perform(get("/websites/42/konfiguration"))
                 .andExpect(status().isOk())
-                .andExpect(view().name("websites/detail"))
+                .andExpect(view().name("websites/konfiguration"))
                 .andExpect(content().string(containsString("alice@example.com")))
                 .andExpect(content().string(containsString("bob@example.com")))
                 .andExpect(content().string(containsString("/websites/42/empfaenger/1/loeschen")))
@@ -117,7 +130,7 @@ class RecipientControllerTest {
         ));
         when(appSettings.fallbackRecipients()).thenReturn(List.of());
 
-        mvc.perform(get("/websites/42"))
+        mvc.perform(get("/websites/42/konfiguration"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("alice@example.com")))
                 .andExpect(content().string(not(containsString("/websites/42/empfaenger/1/loeschen"))))
@@ -130,9 +143,9 @@ class RecipientControllerTest {
         when(recipientService.list(42L)).thenReturn(List.of());
         when(appSettings.fallbackRecipients()).thenReturn(List.of("fallback@example.com"));
 
-        mvc.perform(get("/websites/42"))
+        mvc.perform(get("/websites/42/konfiguration"))
                 .andExpect(status().isOk())
-                .andExpect(view().name("websites/detail"))
+                .andExpect(view().name("websites/konfiguration"))
                 .andExpect(content().string(containsString("fallback@example.com")))
                 .andExpect(content().string(containsString("Ausweichadresse")));
     }
@@ -143,9 +156,9 @@ class RecipientControllerTest {
         when(recipientService.list(42L)).thenReturn(List.of());
         when(appSettings.fallbackRecipients()).thenReturn(List.of());
 
-        mvc.perform(get("/websites/42"))
+        mvc.perform(get("/websites/42/konfiguration"))
                 .andExpect(status().isOk())
-                .andExpect(view().name("websites/detail"))
+                .andExpect(view().name("websites/konfiguration"))
                 .andExpect(content().string(containsString("Keine Empfänger hinterlegt. Zu dieser Website werden keine Benachrichtigungen versendet.")));
     }
 
@@ -158,7 +171,7 @@ class RecipientControllerTest {
                         .with(csrf())
                         .param("email", "neuer-empfaenger@example.com"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/websites/42"));
+                .andExpect(redirectedUrl("/websites/42/konfiguration"));
 
         verify(recipientService).add(42L, "neuer-empfaenger@example.com");
     }
@@ -173,7 +186,7 @@ class RecipientControllerTest {
                         .with(csrf())
                         .param("email", "keine-gueltige-email"))
                 .andExpect(status().isOk())
-                .andExpect(view().name("websites/detail"))
+                .andExpect(view().name("websites/konfiguration"))
                 .andExpect(content().string(containsString("Bitte eine gültige E-Mail-Adresse angeben.")));
 
         verify(recipientService, never()).add(eq(42L), any());
@@ -191,7 +204,7 @@ class RecipientControllerTest {
                         .with(csrf())
                         .param("email", "alice@example.com"))
                 .andExpect(status().isOk())
-                .andExpect(view().name("websites/detail"))
+                .andExpect(view().name("websites/konfiguration"))
                 .andExpect(content().string(containsString("bereits hinterlegt")));
     }
 
@@ -201,7 +214,7 @@ class RecipientControllerTest {
         mvc.perform(post("/websites/42/empfaenger/1/loeschen")
                         .with(csrf()))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/websites/42"));
+                .andExpect(redirectedUrl("/websites/42/konfiguration"));
 
         verify(recipientService).remove(42L, 1L);
     }

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html th:replace="~{layout :: seite(${site.name} + ' – ' + #{ui.websites.detail.tab.laeufe}, ~{::main})}"
+      xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title th:text="${site.name} + ' – ' + #{ui.websites.detail.tab.laeufe}">Prüfläufe</title>
+</head>
+<body>
+<main>
+    <div th:replace="~{fragments/site-kopf :: kopf(${site}, ${trafficLight})}"></div>
+    <div th:replace="~{fragments/site-tabs :: tabs(${site}, 'laeufe')}"></div>
+
+    <section class="card-box detail-bereich" style="padding: 0; overflow: hidden;">
+        <div style="padding: 1.25rem 1.5rem 1rem; border-bottom: 1px solid var(--border-subtle);">
+            <h2 style="margin: 0; border: none; padding: 0;" th:text="#{ui.websites.detail.laeufe.titel}">Verlauf der Prüfläufe</h2>
+        </div>
+        <div th:if="${#lists.isEmpty(recentRuns)}" class="leer-zustand" style="padding: 2.5rem 1.5rem; text-align: center;">
+            <p th:text="#{ui.websites.detail.laeufe.leer}" style="color: var(--text-muted);">Noch keine Prüfläufe vorhanden.</p>
+        </div>
+        <div th:if="${not #lists.isEmpty(recentRuns)}" class="tabelle-container">
+            <table class="daten-tabelle" style="margin-top: 0; border: none; border-radius: 0; box-shadow: none;">
+                <thead>
+                    <tr>
+                        <th class="zell-id" th:text="#{ui.websites.detail.laeufe.tabelle.id}">Lauf-Nr.</th>
+                        <th class="zell-zeit" th:text="#{ui.websites.detail.laeufe.tabelle.zeitpunkt}">Zeitpunkt</th>
+                        <th th:text="#{ui.websites.detail.laeufe.tabelle.ausloeser}">Auslöser</th>
+                        <th class="zell-badge" th:text="#{ui.websites.detail.laeufe.tabelle.umfang}">Umfang</th>
+                        <th class="zell-badge" th:text="#{ui.websites.detail.laeufe.tabelle.status}">Status</th>
+                        <th class="text-rechts" th:text="#{ui.websites.detail.laeufe.tabelle.seiten}">Seiten</th>
+                        <th class="text-rechts" th:text="#{ui.websites.detail.laeufe.tabelle.feststellungen}">Feststellungen</th>
+                        <th class="text-rechts zell-aktion" th:text="#{ui.websites.detail.laeufe.tabelle.aktionen}">Aktionen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="run : ${recentRuns}">
+                        <td class="zell-id">
+                            <a th:href="@{/laeufe/{id}(id=${run.id})}" th:text="${run.id}" style="font-weight: 700;">101</a>
+                        </td>
+                        <td class="zell-zeit" style="font-variant-numeric: tabular-nums;" th:text="${#temporals.format(run.queuedAt, 'dd.MM.yyyy HH:mm')}">25.08.2026 10:00</td>
+                        <td th:text="#{${'ui.runtrigger.' + run.trigger}}">Manuell</td>
+                        <td class="zell-badge">
+                            <span class="type-pill-mono" th:text="#{${'ui.runscope.' + run.scope}}">Vollständig</span>
+                        </td>
+                        <td class="zell-badge">
+                            <span class="status-badge"
+                                  th:classappend="${run.status.name() == 'COMPLETED' ? 'badge-healthy status-aktiv' : (run.status.name() == 'FAILED' ? 'badge-failing severity-CRITICAL' : 'status-inaktiv')}"
+                                  th:text="#{${'ui.runstatus.' + run.status}}">Abgeschlossen</span>
+                        </td>
+                        <td class="text-rechts" style="font-variant-numeric: tabular-nums;" th:text="${run.pagesVisited}">85</td>
+                        <td class="text-rechts">
+                            <span style="font-weight: 700; font-variant-numeric: tabular-nums;"
+                                  th:style="${run.findingsTotal > 0 ? 'color: var(--status-error-dot);' : 'color: var(--status-success-dot);'}"
+                                  th:text="${run.findingsTotal}">3</span>
+                        </td>
+                        <td class="text-rechts zell-aktion">
+                            <a th:href="@{/laeufe/{id}(id=${run.id})}" class="btn-ui btn-ui-secondary btn-ui-sm" th:text="#{ui.websites.detail.laeufe.ansehen}">Ansehen</a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+</body>
+</html>

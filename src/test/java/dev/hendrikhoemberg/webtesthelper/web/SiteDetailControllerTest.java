@@ -4,15 +4,27 @@ import dev.hendrikhoemberg.webtesthelper.catalog.AppSettings;
 import dev.hendrikhoemberg.webtesthelper.catalog.CredentialService;
 import dev.hendrikhoemberg.webtesthelper.catalog.RecipientService;
 import dev.hendrikhoemberg.webtesthelper.catalog.SiteService;
+import dev.hendrikhoemberg.webtesthelper.catalog.SiteSummary;
 import dev.hendrikhoemberg.webtesthelper.checks.CheckRegistry;
+import dev.hendrikhoemberg.webtesthelper.findings.Finding;
+import dev.hendrikhoemberg.webtesthelper.findings.FindingPage;
+import dev.hendrikhoemberg.webtesthelper.findings.FindingQuery;
+import dev.hendrikhoemberg.webtesthelper.findings.FindingService;
+import dev.hendrikhoemberg.webtesthelper.findings.OpenFindingCounts;
 import dev.hendrikhoemberg.webtesthelper.model.CheckSetting;
 import dev.hendrikhoemberg.webtesthelper.model.CheckType;
 import dev.hendrikhoemberg.webtesthelper.model.CrawlBudget;
+import dev.hendrikhoemberg.webtesthelper.model.Evidence;
+import dev.hendrikhoemberg.webtesthelper.model.ObservedStatus;
 import dev.hendrikhoemberg.webtesthelper.model.RunScope;
 import dev.hendrikhoemberg.webtesthelper.model.RunStatus;
 import dev.hendrikhoemberg.webtesthelper.model.RunTrigger;
+import dev.hendrikhoemberg.webtesthelper.model.Severity;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
+import dev.hendrikhoemberg.webtesthelper.model.TriageStatus;
 import dev.hendrikhoemberg.webtesthelper.model.UrlNormalizer;
+import dev.hendrikhoemberg.webtesthelper.reporting.FindingView;
+import dev.hendrikhoemberg.webtesthelper.reporting.FindingViewFactory;
 import dev.hendrikhoemberg.webtesthelper.runner.RunService;
 import dev.hendrikhoemberg.webtesthelper.runner.RunSummary;
 import dev.hendrikhoemberg.webtesthelper.scheduling.Schedule;
@@ -29,11 +41,13 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.EnumMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -78,25 +92,18 @@ class SiteDetailControllerTest {
     @MockitoBean
     AppUserService appUserService;
 
-    private List<Schedule> defaultSchedules() {
-        return List.of(
-                new Schedule(11L, 42L, RunScope.PULSE, "0 0 3 * * *", "Europe/Berlin",
-                        true, null, Instant.parse("2026-08-26T01:00:00Z")),
-                new Schedule(12L, 42L, RunScope.FULL, "0 0 3 * * SUN", "Europe/Berlin",
-                        true, null, Instant.parse("2026-08-30T01:00:00Z")),
-                new Schedule(13L, 42L, RunScope.DEEP, "0 0 3 1 * *", "Europe/Berlin",
-                        true, null, Instant.parse("2026-09-01T01:00:00Z")));
-    }
+    @MockitoBean
+    FindingService findingService;
 
-    @Test
-    @WithMockUser(roles = "USER")
-    void getSiteDetailRendersBudgetPatternsHistoryAndActiveChecks() throws Exception {
+    @MockitoBean
+    FindingViewFactory findingViewFactory;
+
+    private SiteContext sampleContext() {
         Map<CheckType, CheckSetting> settings = new EnumMap<>(CheckType.class);
         settings.put(CheckType.PAGE_STATUS, new CheckSetting(true, null, Map.of()));
         settings.put(CheckType.DEAD_LINK, new CheckSetting(true, null, Map.of()));
         settings.put(CheckType.CONSOLE_ERRORS, new CheckSetting(false, null, Map.of()));
-
-        SiteContext context = new SiteContext(
+        return new SiteContext(
                 42L,
                 "Acme Shop",
                 UrlNormalizer.normalize("https://acme.example.com/").orElseThrow(),
@@ -108,213 +115,137 @@ class SiteDetailControllerTest {
                 "AcmeBot/2.0",
                 settings
         );
+    }
 
-        RunSummary runSummary = new RunSummary(
-                101L,
-                42L,
-                RunStatus.COMPLETED,
-                RunTrigger.MANUAL,
-                RunScope.FULL,
+    private RunSummary sampleRun() {
+        return new RunSummary(
+                101L, 42L, RunStatus.COMPLETED, RunTrigger.MANUAL, RunScope.FULL,
                 Instant.parse("2026-08-25T10:00:00Z"),
                 Instant.parse("2026-08-25T10:00:05Z"),
                 Instant.parse("2026-08-25T10:02:30Z"),
-                85,
-                0,
-                3,
-                1,
-                2,
-                false,
-                null,
-                false,
-                null,
+                85, 0, 3, 1, 2, false, null, false, null,
                 Set.of(CheckType.PAGE_STATUS, CheckType.DEAD_LINK)
         );
+    }
 
-        when(siteService.contextFor(42L)).thenReturn(context);
-        when(runService.recentForSite(42L, 20)).thenReturn(List.of(runSummary));
-        when(checkRegistry.all()).thenReturn(CheckRegistry.standard().all());
+    private List<Schedule> defaultSchedules() {
+        return List.of(
+                new Schedule(11L, 42L, RunScope.PULSE, "0 0 3 * * *", "Europe/Berlin",
+                        true, null, Instant.parse("2026-08-26T01:00:00Z")),
+                new Schedule(12L, 42L, RunScope.FULL, "0 0 3 * * SUN", "Europe/Berlin",
+                        true, null, Instant.parse("2026-08-30T01:00:00Z")),
+                new Schedule(13L, 42L, RunScope.DEEP, "0 0 3 1 * *", "Europe/Berlin",
+                        true, null, Instant.parse("2026-09-01T01:00:00Z")));
+    }
+
+    private Finding sampleFinding() {
+        return new Finding(900L, 42L, "fp", CheckType.DEAD_LINK, "https://acme.example.com/katalog",
+                "https://acme.example.com/katalog", Severity.ERROR, "check.DEAD_LINK.message",
+                List.of("https://acme.example.com/katalog"), Evidence.NONE, ObservedStatus.ACTIVE,
+                TriageStatus.UNTRIAGED, null, 1L, 1L, null, null, 1, 1,
+                Instant.parse("2026-08-25T10:02:30Z"), Instant.parse("2026-08-25T10:02:30Z"));
+    }
+
+    private void stubCommon() {
+        when(siteService.contextFor(42L)).thenReturn(sampleContext());
+        when(siteService.summary(42L)).thenReturn(new SiteSummary(42L, "Acme Shop", "https://acme.example.com/", true, 3));
+        when(runService.recentForSite(42L, 1)).thenReturn(List.of(sampleRun()));
+        when(runService.recentForSite(42L, 20)).thenReturn(List.of(sampleRun()));
         when(scheduleService.forSite(42L)).thenReturn(defaultSchedules());
+        when(findingService.openCountsBySite()).thenReturn(Map.of(42L, new OpenFindingCounts(0, 1, 2, 0)));
+        when(findingService.search(any(FindingQuery.class))).thenReturn(new FindingPage(List.of(), 1, 5, 0));
+        when(checkRegistry.all()).thenReturn(CheckRegistry.standard().all());
+        when(checkRegistry.categories()).thenReturn(CheckRegistry.standard().categories());
+        when(checkRegistry.category(any())).thenAnswer(inv -> CheckRegistry.standard().category(inv.getArgument(0)));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void getUebersichtRendersHealthCardsAndTopFindings() throws Exception {
+        stubCommon();
+        when(findingService.search(any(FindingQuery.class)))
+                .thenReturn(new FindingPage(List.of(sampleFinding()), 1, 5, 1));
+        when(findingViewFactory.of(any(Finding.class), any(Locale.class)))
+                .thenReturn(new FindingView(900L, "Tote Links", "HTTP 404", "Linkziel prüfen",
+                        "https://acme.example.com/katalog", false, 1, Severity.ERROR, TriageStatus.UNTRIAGED));
 
         mvc.perform(get("/websites/42"))
                 .andExpect(status().isOk())
-                .andExpect(view().name("websites/detail"))
-                .andExpect(model().attributeExists("site", "recentRuns", "checkRows"))
+                .andExpect(view().name("websites/uebersicht"))
+                .andExpect(model().attributeExists("site", "trafficLight", "openCounts", "lastRun", "nextRun", "topFindings"))
                 .andExpect(content().string(containsString("Acme Shop")))
                 .andExpect(content().string(containsString("https://acme.example.com/")))
-                .andExpect(content().string(containsString("120")))
-                .andExpect(content().string(containsString("3")))
-                .andExpect(content().string(containsString("/katalog/*")))
-                .andExpect(content().string(containsString("/angebote/*")))
-                .andExpect(content().string(containsString("/intern/*")))
-                .andExpect(content().string(containsString("/warenkorb/*")))
-                .andExpect(content().string(containsString("Seitenstatus")))
+                .andExpect(content().string(containsString("Offene Feststellungen")))
+                .andExpect(content().string(containsString("Zu allen Feststellungen")))
+                .andExpect(content().string(containsString("/websites/42/laeufe")))
+                .andExpect(content().string(containsString("/websites/42/konfiguration")))
                 .andExpect(content().string(containsString("Tote Links")))
+                .andExpect(content().string(containsString("Details")))
+                // monitoring-first: the raw check toggle list stays off the overview
+                .andExpect(content().string(not(containsString("Prüfungen speichern"))));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void getLaeufeRendersRunHistory() throws Exception {
+        stubCommon();
+
+        mvc.perform(get("/websites/42/laeufe"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("websites/laeufe"))
+                .andExpect(content().string(containsString("Verlauf der Prüfläufe")))
                 .andExpect(content().string(containsString("101")))
-                .andExpect(content().string(containsString("Abgeschlossen")))
-                .andExpect(content().string(containsString("25.08.2026 12:00")))
-                .andExpect(content().string(not(containsString("2026-08-25T10:00:00Z"))))
+                .andExpect(content().string(containsString("Abgeschlossen")));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void getKonfigurationRendersGroupedChecksAndPanels() throws Exception {
+        stubCommon();
+
+        mvc.perform(get("/websites/42/konfiguration"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("websites/konfiguration"))
+                .andExpect(content().string(containsString("Prüfumfang & Grenzen")))
                 .andExpect(content().string(containsString("Prüfungen speichern")))
                 .andExpect(content().string(containsString("name=\"aktiv\"")))
                 .andExpect(content().string(containsString("schweregrad[PAGE_STATUS]")))
-                .andExpect(content().string(containsString("/hilfe/hinweis/pruefungen")))
-                .andExpect(content().string(not(containsString("späteren Ausbaustufe"))));
+                .andExpect(content().string(containsString("Inhalt")))
+                .andExpect(content().string(containsString("Technik")))
+                .andExpect(content().string(containsString("Rechtliches")));
     }
 
     @Test
     @WithMockUser(roles = "USER")
-    void getSiteDetailRendersThreeTiersWithoutRawCronInProse() throws Exception {
-        SiteContext context = new SiteContext(
-                42L,
-                "Acme Shop",
-                UrlNormalizer.normalize("https://acme.example.com/").orElseThrow(),
-                new CrawlBudget(120, 3, Duration.ofMinutes(15)),
-                List.of(), List.of(), List.of(),
-                true, "AcmeBot/2.0", Map.of()
-        );
-        when(siteService.contextFor(42L)).thenReturn(context);
-        when(runService.recentForSite(42L, 20)).thenReturn(List.of());
-        when(checkRegistry.all()).thenReturn(CheckRegistry.standard().all());
-        when(scheduleService.forSite(42L)).thenReturn(defaultSchedules());
+    void adminOnlyAffordancesAreHiddenFromAUser() throws Exception {
+        stubCommon();
 
         mvc.perform(get("/websites/42"))
                 .andExpect(status().isOk())
-                .andExpect(view().name("websites/detail"))
-                .andExpect(content().string(containsString("Puls-Prüfung")))
-                .andExpect(content().string(containsString("Vollständige Prüfung")))
-                .andExpect(content().string(containsString("Tiefenprüfung")))
-                .andExpect(content().string(containsString("Schneller täglicher Check der wichtigsten Seiten")))
-                .andExpect(content().string(containsString("Wöchentlicher Check der gesamten Website")))
-                .andExpect(content().string(containsString("Monatlicher Volltest inkl. Kontaktformular-Prüfung")))
-                .andExpect(content().string(containsString("Zeitpläne")))
-                // §13.1: the raw cron is an internal identifier and must not reach the reader's
-                // prose. The common case is a time of day, so no cron literal appears anywhere.
-                .andExpect(content().string(not(containsString("0 0 3 * *"))))
-                .andExpect(content().string(not(containsString("0 0 3 * * SUN"))))
-                .andExpect(content().string(not(containsString("0 0 3 1 * *"))))
-                // A USER may read the schedule but not change it: POST /websites/*/zeitplaene is
-                // ADMIN-only, so offering the controls would be a form that answers 403. The tier
-                // state stays visible as prose instead.
-                .andExpect(content().string(not(containsString("Zeitpläne speichern"))))
-                .andExpect(content().string(not(containsString("Erweitert"))))
-                .andExpect(content().string(containsString("Automatische Prüfung eingeschaltet")));
-    }
-
-    @Test
-    @WithMockUser(roles = "USER")
-    void aDisabledTierReadsAsSwitchedOffForAUser() throws Exception {
-        SiteContext context = new SiteContext(
-                42L,
-                "Acme Shop",
-                UrlNormalizer.normalize("https://acme.example.com/").orElseThrow(),
-                new CrawlBudget(120, 3, Duration.ofMinutes(15)),
-                List.of(), List.of(), List.of(),
-                true, "AcmeBot/2.0", Map.of()
-        );
-        when(siteService.contextFor(42L)).thenReturn(context);
-        when(runService.recentForSite(42L, 20)).thenReturn(List.of());
-        when(checkRegistry.all()).thenReturn(CheckRegistry.standard().all());
-        when(scheduleService.forSite(42L)).thenReturn(List.of(
-                new Schedule(13L, 42L, RunScope.DEEP, "0 0 3 1 * *", "Europe/Berlin",
-                        false, null, Instant.parse("2026-09-01T01:00:00Z"))));
-
-        // Without the controls, this sentence is the only thing telling a USER that the tier is off.
-        mvc.perform(get("/websites/42"))
-                .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Automatische Prüfung ausgeschaltet")))
-                .andExpect(content().string(not(containsString("Automatische Prüfung eingeschaltet"))));
-    }
-
-    /**
-     * Guards the Thymeleaf SpringSecurityDialect itself, not one screen's markup. Thymeleaf only
-     * understands the {@code sec:} namespace when {@code thymeleaf-extras-springsecurity6} is on
-     * the classpath; without that jar it treats {@code sec:authorize} as an unknown attribute and
-     * copies it into the output, so every gated element renders for everybody and nothing fails.
-     * That is exactly how the admin nav links, the Bearbeiten button and the schedule controls were
-     * silently visible to a USER. A literal {@code sec:} in the response body is the tell.
-     */
-    @Test
-    @WithMockUser(roles = "USER")
-    void adminOnlyAffordancesAreHiddenFromAUserAndTheSecNamespaceIsNeverEmitted() throws Exception {
-        SiteContext context = new SiteContext(
-                42L,
-                "Acme Shop",
-                UrlNormalizer.normalize("https://acme.example.com/").orElseThrow(),
-                new CrawlBudget(120, 3, Duration.ofMinutes(15)),
-                List.of(), List.of(), List.of(),
-                true, "AcmeBot/2.0", Map.of()
-        );
-        when(siteService.contextFor(42L)).thenReturn(context);
-        when(runService.recentForSite(42L, 20)).thenReturn(List.of());
-        when(checkRegistry.all()).thenReturn(CheckRegistry.standard().all());
-        when(scheduleService.forSite(42L)).thenReturn(defaultSchedules());
-
-        mvc.perform(get("/websites/42"))
-                .andExpect(status().isOk())
-                // The dialect processed the attributes rather than passing them through.
                 .andExpect(content().string(not(containsString("sec:authorize"))))
-                .andExpect(content().string(not(containsString("sec:authentication"))))
-                // The routes behind these are already ADMIN-only in SecurityConfig; the point here
-                // is that a USER is not offered a door that answers 403.
-                .andExpect(content().string(not(containsString("/einstellungen"))))
-                .andExpect(content().string(not(containsString("/postausgang"))))
                 .andExpect(content().string(not(containsString("/websites/42/bearbeiten"))))
                 .andExpect(content().string(not(containsString("/websites/42/loeschen"))));
     }
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void getSiteDetailOffersTheScheduleControlsToAnAdmin() throws Exception {
-        SiteContext context = new SiteContext(
-                42L,
-                "Acme Shop",
-                UrlNormalizer.normalize("https://acme.example.com/").orElseThrow(),
-                new CrawlBudget(120, 3, Duration.ofMinutes(15)),
-                List.of(), List.of(), List.of(),
-                true, "AcmeBot/2.0", Map.of()
-        );
-        when(siteService.contextFor(42L)).thenReturn(context);
-        when(runService.recentForSite(42L, 20)).thenReturn(List.of());
-        when(checkRegistry.all()).thenReturn(CheckRegistry.standard().all());
-        when(scheduleService.forSite(42L)).thenReturn(defaultSchedules());
+    void konfigurationOffersAdminAffordances() throws Exception {
+        stubCommon();
 
-        mvc.perform(get("/websites/42"))
+        mvc.perform(get("/websites/42/konfiguration"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Zeitpläne speichern")))
-                .andExpect(content().string(containsString("Erweitert")))
-                .andExpect(content().string(containsString("Zeitplan aktiviert")))
-                // Even for the admin the raw cron stays out of the prose: it is pre-filled only in
-                // the Erweitert input, and only when the stored expression does not fit the tier.
-                .andExpect(content().string(not(containsString("0 0 3 * * SUN"))));
-    }
-
-    @Test
-    @WithMockUser(roles = "ADMIN")
-    void getSiteDetailOffersTheDeleteButtonToAnAdmin() throws Exception {
-        SiteContext context = new SiteContext(
-                42L,
-                "Acme Shop",
-                UrlNormalizer.normalize("https://acme.example.com/").orElseThrow(),
-                new CrawlBudget(120, 3, Duration.ofMinutes(15)),
-                List.of(), List.of(), List.of(),
-                true, "AcmeBot/2.0", Map.of()
-        );
-        when(siteService.contextFor(42L)).thenReturn(context);
-        when(runService.recentForSite(42L, 20)).thenReturn(List.of());
-        when(checkRegistry.all()).thenReturn(CheckRegistry.standard().all());
-        when(scheduleService.forSite(42L)).thenReturn(defaultSchedules());
-
-        mvc.perform(get("/websites/42"))
-                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("/websites/42/bearbeiten")))
                 .andExpect(content().string(containsString("/websites/42/loeschen")))
                 .andExpect(content().string(not(containsString("sec:authorize"))));
     }
 
     @Test
     @WithMockUser(roles = "USER")
-    void getSiteDetailWithUnknownIdReturns404() throws Exception {        when(siteService.contextFor(999L)).thenThrow(new IllegalArgumentException("Site existiert nicht: 999"));
-
-        mvc.perform(get("/websites/999"))
-                .andExpect(status().isNotFound());
+    void unknownSiteReturns404OnEveryTab() throws Exception {
+        when(siteService.contextFor(999L)).thenThrow(new IllegalArgumentException("Site existiert nicht: 999"));
+        mvc.perform(get("/websites/999")).andExpect(status().isNotFound());
+        mvc.perform(get("/websites/999/laeufe")).andExpect(status().isNotFound());
+        mvc.perform(get("/websites/999/konfiguration")).andExpect(status().isNotFound());
     }
 
     @Test
@@ -327,22 +258,6 @@ class SiteDetailControllerTest {
                 .andExpect(redirectedUrl("/laeufe/101"));
 
         verify(runService).enqueue(42L, RunTrigger.MANUAL, RunScope.FULL);
-    }
-
-    @Test
-    @WithMockUser(roles = "USER")
-    void postPruefenTwiceCallsEnqueueTwiceAndRedirectsToSameRun() throws Exception {
-        when(runService.enqueue(42L, RunTrigger.MANUAL, RunScope.FULL)).thenReturn(101L);
-
-        mvc.perform(post("/websites/42/pruefen").with(csrf()))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/laeufe/101"));
-
-        mvc.perform(post("/websites/42/pruefen").with(csrf()))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/laeufe/101"));
-
-        verify(runService, times(2)).enqueue(42L, RunTrigger.MANUAL, RunScope.FULL);
     }
 
     @Test

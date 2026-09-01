@@ -1,11 +1,14 @@
 package dev.hendrikhoemberg.webtesthelper.checks;
 
+import dev.hendrikhoemberg.webtesthelper.model.CheckCategory;
 import dev.hendrikhoemberg.webtesthelper.model.CheckType;
 
 import dev.hendrikhoemberg.webtesthelper.model.Mailbox;
 
+import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -82,5 +85,37 @@ public final class CheckRegistry {
         Set<CheckType> types = EnumSet.noneOf(CheckType.class);
         all().forEach(check -> types.add(check.type()));
         return types;
+    }
+
+    /** The display category of a check, with an anonymous fallback so nothing renders blankness. */
+    public CheckCategory category(CheckType type) {
+        CheckCategory category = CATEGORIES.get(type);
+        return category == null ? CheckCategory.TECHNIK : category;
+    }
+
+    /** Categories in the order the configuration screen renders their accordions. */
+    public List<CheckCategory> categories() {
+        return List.of(CheckCategory.INHALT, CheckCategory.TECHNIK, CheckCategory.RECHT);
+    }
+
+    private static final Map<CheckType, CheckCategory> CATEGORIES = categoryMap();
+
+    private static Map<CheckType, CheckCategory> categoryMap() {
+        Map<CheckType, CheckCategory> map = new EnumMap<>(CheckType.class);
+        for (CheckType type : List.of(CheckType.PAGE_STATUS, CheckType.PAGE_UNREACHABLE,
+                CheckType.DEAD_LINK, CheckType.IMAGE_BROKEN, CheckType.MEDIA_PLAYABLE,
+                CheckType.FILE_DOWNLOAD, CheckType.REDIRECT_CHAIN, CheckType.SITEMAP_CONSISTENCY,
+                CheckType.HREFLANG)) {
+            map.put(type, CheckCategory.INHALT);
+        }
+        for (CheckType type : List.of(CheckType.TLS_CERT, CheckType.MIXED_CONTENT,
+                CheckType.CONSOLE_ERRORS, CheckType.IFRAME_EMBED)) {
+            map.put(type, CheckCategory.TECHNIK);
+        }
+        for (CheckType type : List.of(CheckType.COOKIE_BANNER, CheckType.CONTACT_FORM,
+                CheckType.LANGUAGE_SWITCHER, CheckType.BUTTON_REACHABILITY)) {
+            map.put(type, CheckCategory.RECHT);
+        }
+        return map;
     }
 }

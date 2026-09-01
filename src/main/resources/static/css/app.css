@@ -1297,3 +1297,61 @@ body {
     }
 }
 
+
+/* Website detail tabs and kebab-menu (desktop-only, per project boundaries) */
+.site-tabs {
+    display: flex;
+    gap: 0.25rem;
+    margin: 1rem 0 1.5rem;
+    border-bottom: 1px solid var(--border-subtle);
+}
+.site-tabs a {
+    padding: 0.5rem 0.9rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-radius: 8px 8px 0 0;
+    text-decoration: none;
+}
+.site-tabs a:hover {
+    color: var(--text-main);
+    background: var(--surface-subtle);
+}
+.site-tabs a.aktiv {
+    color: var(--text-main);
+    background: var(--surface-card);
+    border-color: var(--border-subtle);
+}
+
+.mehr-menue {
+    position: relative;
+    display: inline-block;
+}
+.mehr-menue > summary {
+    list-style: none;
+    cursor: pointer;
+}
+.mehr-menue > summary::-webkit-details-marker {
+    display: none;
+}
+.mehr-menue-inhalt {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 0.35rem);
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 15rem;
+    padding: 0.5rem;
+    background: var(--surface-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    box-shadow: var(--shadow-elevated);
+}
+.mehr-menue-inhalt .btn-ui {
+    justify-content: flex-start;
+    width: 100%;
+}

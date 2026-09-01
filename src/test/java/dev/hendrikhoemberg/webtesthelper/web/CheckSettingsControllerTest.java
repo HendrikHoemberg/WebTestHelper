@@ -6,11 +6,13 @@ import dev.hendrikhoemberg.webtesthelper.catalog.RecipientService;
 import dev.hendrikhoemberg.webtesthelper.catalog.SiteService;
 import dev.hendrikhoemberg.webtesthelper.catalog.SiteSummary;
 import dev.hendrikhoemberg.webtesthelper.checks.CheckRegistry;
+import dev.hendrikhoemberg.webtesthelper.findings.FindingService;
 import dev.hendrikhoemberg.webtesthelper.model.CheckType;
 import dev.hendrikhoemberg.webtesthelper.model.CrawlBudget;
 import dev.hendrikhoemberg.webtesthelper.model.Severity;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
 import dev.hendrikhoemberg.webtesthelper.model.UrlNormalizer;
+import dev.hendrikhoemberg.webtesthelper.reporting.FindingViewFactory;
 import dev.hendrikhoemberg.webtesthelper.runner.RunService;
 import dev.hendrikhoemberg.webtesthelper.scheduling.ScheduleService;
 import org.junit.jupiter.api.BeforeEach;
@@ -80,6 +82,12 @@ class CheckSettingsControllerTest {
     @MockitoBean
     AppUserService appUserService;
 
+    @MockitoBean
+    FindingService findingService;
+
+    @MockitoBean
+    FindingViewFactory findingViewFactory;
+
     private SiteContext testSite;
 
     @BeforeEach
@@ -107,7 +115,7 @@ class CheckSettingsControllerTest {
                         .param("schweregrad[PAGE_STATUS]", "WARN")
                         .param("schweregrad[DEAD_LINK]", ""))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/websites/42"))
+                .andExpect(redirectedUrl("/websites/42/konfiguration"))
                 .andExpect(flash().attributeExists("flashMessage"));
 
         verify(siteService).updateCheckSetting(SITE_ID, CheckType.PAGE_STATUS, true, Severity.WARN);
@@ -126,7 +134,7 @@ class CheckSettingsControllerTest {
 
         mvc.perform(post("/websites/42/pruefungen").with(csrf()))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/websites/42"));
+                .andExpect(redirectedUrl("/websites/42/konfiguration"));
 
         verify(siteService).updateCheckSetting(eq(SITE_ID), eq(CheckType.PAGE_STATUS), eq(false), isNull());
         verify(siteService).updateCheckSetting(eq(SITE_ID), eq(CheckType.TLS_CERT), eq(false), isNull());
@@ -150,7 +158,7 @@ class CheckSettingsControllerTest {
                         .param("aktiv", "PAGE_STATUS")
                         .param("schweregrad[PAGE_STATUS]", "KATASTROPHAL"))
                 .andExpect(status().isOk())
-                .andExpect(view().name("websites/detail"))
+                .andExpect(view().name("websites/konfiguration"))
                 .andExpect(content().string(containsString("ungültig")))
                 .andExpect(content().string(not(containsString("KATASTROPHAL"))));
 

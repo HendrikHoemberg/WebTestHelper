@@ -213,7 +213,7 @@ class DigestServiceTest extends AbstractPostgresTest {
         List<NotificationEntity> notifications = notificationRepository.findAll();
         assertThat(notifications).hasSize(1);
         assertThat(notifications.get(0).getRecipient()).isEqualTo("a@example.test");
-        assertThat(notifications.get(0).getSubject()).contains("Tiefenprüfung");
+        assertThat(notifications.get(0).getSubject()).contains("Vollständiger Monats-Check");
         assertThat(notifications.get(0).getSubject()).contains("alles in Ordnung");
 
         entityManager.flush();

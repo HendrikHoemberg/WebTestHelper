@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html th:replace="~{layout :: seite(${site.name} + ' – ' + #{ui.websites.detail.tab.konfiguration}, ~{::main})}"
+      xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title th:text="${site.name} + ' – ' + #{ui.websites.detail.tab.konfiguration}">Konfiguration</title>
+</head>
+<body>
+<main>
+    <div th:replace="~{fragments/site-kopf :: kopf(${site}, ${trafficLight})}"></div>
+    <div th:replace="~{fragments/site-tabs :: tabs(${site}, 'konfiguration')}"></div>
+
+    <div class="detail-raster">
+        <!-- Prüfumfang & Grenzen -->
+        <section class="card-box detail-bereich">
+            <h2 th:text="#{ui.websites.detail.budget.titel}">Prüfumfang &amp; Grenzen</h2>
+            <dl class="schluessel-werte">
+                <dt th:text="#{ui.websites.detail.budget.maxPages}">Seitenlimit</dt>
+                <dd><span class="type-pill-mono" th:text="${site.budget.maxPages}">100</span></dd>
+
+                <dt th:text="#{ui.websites.detail.budget.maxDepth}">Wie tief verlinkte Seiten prüfen</dt>
+                <dd><span class="type-pill-mono" th:text="${site.budget.maxDepth}">3</span></dd>
+
+                <dt th:text="#{ui.websites.detail.budget.maxDuration}">Zeitlimit</dt>
+                <dd><strong th:text="${site.budget.maxDuration.toMinutes()}">10</strong> Minuten</dd>
+
+                <dt th:text="#{ui.websites.detail.budget.respectRobots}">robots.txt beachten</dt>
+                <dd>
+                    <span th:if="${site.respectRobots}" class="status-badge badge-healthy" th:text="#{ui.websites.detail.ja}">Ja</span>
+                    <span th:unless="${site.respectRobots}" class="status-badge status-inaktiv" th:text="#{ui.websites.detail.nein}">Nein</span>
+                </dd>
+
+                <dt th:text="#{ui.websites.detail.budget.userAgent}">User-Agent</dt>
+                <dd><code class="code-pill" style="font-size: 0.75rem;" th:text="${site.effectiveUserAgent()}">WebTestHelper/1.0</code></dd>
+            </dl>
+        </section>
+
+        <!-- Pfadmuster -->
+        <section class="card-box detail-bereich">
+            <h2 th:text="#{ui.websites.detail.muster.titel}">Pfadmuster</h2>
+            <div class="muster-block" style="margin-bottom: 1rem;">
+                <h3 style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin-bottom: 0.4rem;" th:text="#{ui.websites.detail.muster.include}">Eingeschlossene Pfade</h3>
+                <ul th:if="${not #lists.isEmpty(site.includePatterns)}" class="muster-liste" style="list-style: none; padding-left: 0; display: flex; flex-direction: column; gap: 0.25rem;">
+                    <li th:each="pattern : ${site.includePatterns}"><code class="code-pill" th:text="${pattern}">/katalog/*</code></li>
+                </ul>
+                <p th:if="${#lists.isEmpty(site.includePatterns)}" class="text-gedaempft" th:text="#{ui.websites.detail.muster.keine}">(keine Einschränkung)</p>
+            </div>
+            <div class="muster-block">
+                <h3 style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin-bottom: 0.4rem;" th:text="#{ui.websites.detail.muster.exclude}">Ausgeschlossene Pfade</h3>
+                <ul th:if="${not #lists.isEmpty(site.excludePatterns)}" class="muster-liste" style="list-style: none; padding-left: 0; display: flex; flex-direction: column; gap: 0.25rem;">
+                    <li th:each="pattern : ${site.excludePatterns}"><code class="code-pill" th:text="${pattern}">/intern/*</code></li>
+                </ul>
+                <p th:if="${#lists.isEmpty(site.excludePatterns)}" class="text-gedaempft" th:text="#{ui.websites.detail.muster.keine}">(keine Einschränkung)</p>
+            </div>
+        </section>
+
+        <!-- Schlüsselseiten der Pulse-Prüfung -->
+        <section class="card-box detail-bereich">
+            <div class="abschnitt-ueberschrift-zeile" style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); margin-bottom: 1rem; padding-bottom: 0.5rem;">
+                <h2 style="margin: 0; border: none; padding: 0;" th:text="#{ui.websites.detail.pins.titel}">Schlüsselseiten (Pulse-Prüfung)</h2>
+                <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
+                        th:data-hx-get="@{/hilfe/hinweis/{id}(id='zeitplaene')}"
+                        data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">?</button>
+                <div class="hinweis" aria-live="polite"></div>
+            </div>
+            <ul th:if="${not #lists.isEmpty(site.pinnedKeyPages)}" class="muster-liste" style="list-style: none; padding-left: 0; display: flex; flex-direction: column; gap: 0.35rem;">
+                <li th:each="page : ${site.pinnedKeyPages}"><code class="code-pill" th:text="${page}">https://example.com/</code></li>
+            </ul>
+            <p th:if="${#lists.isEmpty(site.pinnedKeyPages)}" class="text-gedaempft" th:text="#{ui.websites.detail.pins.leer}">(noch keine festgehalten)</p>
+        </section>
+    </div>
+
+    <!-- Prüfungen (gruppiert) -->
+    <section class="card-box detail-bereich">
+        <div class="abschnitt-ueberschrift-zeile" style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); margin-bottom: 1rem; padding-bottom: 0.5rem;">
+            <h2 style="margin: 0; border: none; padding: 0;" th:text="#{ui.websites.detail.pruefungen.titel}">Prüfungen</h2>
+            <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
+                    th:data-hx-get="@{/hilfe/hinweis/{id}(id='pruefungen')}"
+                    data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">?</button>
+            <div class="hinweis" aria-live="polite"></div>
+        </div>
+        <form th:action="@{/websites/{id}/pruefungen(id=${site.siteId})}" method="post">
+            <p th:if="${checkSettingsError}" class="fehler-text" th:text="${checkSettingsError}">Fehler</p>
+            <details th:each="cat : ${checkCategories}" class="pruefung-gruppe" open>
+                <summary style="font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); cursor: pointer; padding: 0.5rem 0;"
+                         th:text="#{${'ui.checkcat.' + cat.name()}}">Inhalt</summary>
+                <div class="pruefungen-gitter" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin: 0.5rem 0 1rem;">
+                    <div th:each="row : ${checkRows}" th:if="${row.category == cat}" class="pruefung-karte" style="background: var(--surface-subtle); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 1rem;">
+                        <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.35rem; color: var(--text-main);" th:text="#{${row.check.titleKey}}">Prüfungs-Titel</h3>
+                        <p style="font-size: 0.825rem; color: var(--text-muted); margin: 0 0 0.75rem; line-height: 1.4;" th:text="#{${row.check.descriptionKey}}">Prüfungs-Beschreibung</p>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; margin-bottom: 0.5rem;">
+                            <input type="checkbox" name="aktiv" th:value="${row.check.type}" th:checked="${row.enabled}">
+                            <span th:text="#{ui.websites.detail.pruefungen.aktiviert}">Prüfung aktiviert</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem;">
+                            <span th:text="#{ui.websites.detail.pruefungen.schweregrad}">Schweregrad</span>
+                            <select th:attr="name=|schweregrad[${row.check.type}]|" class="form-select" style="flex: 1;">
+                                <option value="" th:selected="${row.severityOverride == null}" th:text="#{ui.websites.detail.pruefungen.schweregrad.standard}">Standard</option>
+                                <option value="ERROR" th:selected="${row.severityOverride?.name() == 'ERROR'}" th:text="#{ui.severity.ERROR}">Fehler</option>
+                                <option value="WARN" th:selected="${row.severityOverride?.name() == 'WARN'}" th:text="#{ui.severity.WARN}">Warnung</option>
+                                <option value="INFO" th:selected="${row.severityOverride?.name() == 'INFO'}" th:text="#{ui.severity.INFO}">Hinweis</option>
+                            </select>
+                        </label>
+                    </div>
+                </div>
+            </details>
+            <div class="form-aktionen">
+                <button type="submit" class="btn-ui btn-ui-primary button primär" th:text="#{ui.websites.detail.pruefungen.speichern}">Prüfungen speichern</button>
+            </div>
+        </form>
+    </section>
+
+    <!-- Zeitpläne -->
+    <div th:replace="~{fragments/zeitplaene :: zeitplaene}"></div>
+
+    <!-- Benachrichtigungsempfänger -->
+    <div th:replace="~{fragments/empfaenger :: empfaenger}"></div>
+
+    <!-- Zugangsdaten -->
+    <div th:replace="~{fragments/zugangsdaten :: zugangsdaten}"></div>
+</main>
+</body>
+</html>

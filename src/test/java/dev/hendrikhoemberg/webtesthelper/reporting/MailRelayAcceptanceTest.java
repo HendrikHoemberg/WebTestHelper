@@ -197,9 +197,9 @@ class MailRelayAcceptanceTest extends AbstractPostgresTest {
                 .andExpect(content().string(containsString(String.valueOf(deadPort))));
 
         // The health banner is now on the run list too (D35)
-        mvc.perform(get("/websites/" + siteId))
+        mvc.perform(get("/websites/" + siteId + "/laeufe"))
                 .andExpect(status().isOk())
-                .andExpect(view().name("websites/detail"))
+                .andExpect(view().name("websites/laeufe"))
                 .andExpect(content().string(containsString("Verlauf der Prüfläufe")))
                 .andExpect(content().string(containsString("gesundheits-banner warnung")))
                 .andExpect(content().string(containsString("1 fehlgeschlagen")))

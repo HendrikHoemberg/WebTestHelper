@@ -48,6 +48,12 @@ public class RunController {
         this.messageSource = messageSource;
     }
 
+    /** A bare /laeufe has nothing to render; land on the websites overview instead of a 404. */
+    @GetMapping
+    public String root() {
+        return "redirect:/websites";
+    }
+
     @GetMapping("/{id}")
     public String detail(@PathVariable("id") long id, Model model, Locale locale) {
         RunSummary run = runService.summary(id);
