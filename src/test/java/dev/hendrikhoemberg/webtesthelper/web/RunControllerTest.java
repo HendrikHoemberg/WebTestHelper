@@ -32,6 +32,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.containsStringIgnoringCase;
 import static org.hamcrest.Matchers.not;
@@ -479,7 +480,21 @@ class RunControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Lauf abbrechen")))
                 .andExpect(content().string(containsString("Jetzt abbrechen")))
-                .andExpect(content().string(containsString("x-data=\"{ offen: false }\"")));
+                .andExpect(content().string(containsString("x-data=\"{ offen: false }\"")))
+                .andExpect(result -> {
+                    String html = result.getResponse().getContentAsString();
+                    assertThat(occurrencesOf(html, "Lauf abbrechen")).isEqualTo(1);
+                });
+    }
+
+    private static long occurrencesOf(String haystack, String needle) {
+        int idx = 0;
+        long count = 0;
+        while ((idx = haystack.indexOf(needle, idx)) != -1) {
+            count++;
+            idx += needle.length();
+        }
+        return count;
     }
 
     @Test

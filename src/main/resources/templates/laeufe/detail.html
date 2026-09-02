@@ -40,12 +40,7 @@
 
     <!-- Abbrechen (nur bei wartenden oder laufenden Läufen) -->
     <section th:if="${run.status.name() == 'QUEUED' or run.status.name() == 'RUNNING'}"
-             class="card-box detail-bereich" x-data="{ offen: false }" @abbrechen-offen.window="offen = true">
-        <h2 th:text="#{ui.lauf.abbrechen.titel}">Lauf abbrechen</h2>
-        <div class="ausgangsbestand-zeile">
-            <button type="button" @click="offen = !offen" class="btn-ui btn-ui-danger button sekundär"
-                    th:text="#{ui.lauf.abbrechen.button}">Lauf abbrechen</button>
-        </div>
+             x-data="{ offen: false }" @abbrechen-offen.window="offen = true">
         <div x-show="offen" class="ausgangsbestand-panel" style="display: none; margin-top: 1rem; padding: 1rem; background: var(--status-warning-bg); border: 1px solid var(--status-warning-border); border-radius: 8px;">
             <p th:text="#{ui.lauf.abbrechen.folge}" style="margin-top: 0; color: var(--status-warning-text); font-size: 0.9rem;">
                 Der Prüflauf wird gestoppt, sobald der laufende Schritt beendet ist...
