@@ -1,13 +1,37 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <body>
 <div th:fragment="kacheln" id="dashboard-kacheln" class="targets-layout-grid dashboard-raster"
      th:with="takt=${'every ' + pollSekunden + 's'}"
      th:attr="hx-get=@{/uebersicht/kacheln},hx-trigger=${takt}"
      hx-swap="outerHTML">
 
-    <div th:if="${#lists.isEmpty(uebersicht.tiles)}" class="leer-zustand dash-leer" style="grid-column: 1 / -1;">
-        <p th:text="#{ui.uebersicht.leer}">Noch keine Websites vorhanden.</p>
+    <div th:if="${#lists.isEmpty(uebersicht.tiles)}" class="card-box willkommen-karte"
+         style="grid-column: 1 / -1; text-align: center; padding: 3rem 1.5rem;">
+        <h2 th:text="#{ui.uebersicht.leer.titel}" style="margin-top: 0;">Willkommen bei WebTestHelper</h2>
+        <p class="hinweis-text" style="color: var(--text-muted); margin: 0 0 1.5rem;"
+           th:text="#{ui.uebersicht.leer.untertitel}">Überwachen Sie Ihre Websites automatisch – in drei Schritten.</p>
+        <ol style="list-style: none; padding: 0; display: flex; gap: 1.5rem; justify-content: center; flex-wrap: wrap; margin: 0 0 1.75rem;">
+            <li style="max-width: 16rem;">
+                <strong th:text="#{ui.uebersicht.leer.schritt1.titel}">Website anlegen</strong>
+                <p class="hinweis-text" style="color: var(--text-muted); margin: 0.25rem 0 0;"
+                   th:text="#{ui.uebersicht.leer.schritt1.text}">Name und Adresse genügen – den Rest erledigt die automatische Erkennung.</p>
+            </li>
+            <li style="max-width: 16rem;">
+                <strong th:text="#{ui.uebersicht.leer.schritt2.titel}">Automatische Erkennung</strong>
+                <p class="hinweis-text" style="color: var(--text-muted); margin: 0.25rem 0 0;"
+                   th:text="#{ui.uebersicht.leer.schritt2.text}">WebTestHelper untersucht die Website und schlägt sinnvolle Prüfungen vor.</p>
+            </li>
+            <li style="max-width: 16rem;">
+                <strong th:text="#{ui.uebersicht.leer.schritt3.titel}">Erster Prüflauf</strong>
+                <p class="hinweis-text" style="color: var(--text-muted); margin: 0.25rem 0 0;"
+                   th:text="#{ui.uebersicht.leer.schritt3.text}">Der erste Lauf legt den Ausgangsbestand fest – danach sehen Sie nur noch Veränderungen.</p>
+            </li>
+        </ol>
+        <a sec:authorize="hasRole('ADMIN')" th:href="@{/websites/neu}" class="btn-ui btn-ui-primary button primär"
+           th:text="#{ui.uebersicht.leer.cta}">Erste Website anlegen</a>
+        <p sec:authorize="not hasRole('ADMIN')" class="hinweis-text" style="color: var(--text-muted);"
+           th:text="#{ui.uebersicht.leer.keine_rechte}">Bitte wenden Sie sich an eine Administratorin oder einen Administrator, um die erste Website anzulegen.</p>
     </div>
 
     <article th:each="tile : ${uebersicht.tiles}" class="target-card-box kachel"

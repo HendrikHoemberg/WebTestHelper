@@ -168,6 +168,33 @@ class DashboardControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
+    void emptyDashboardRendersWelcomeCardAndAdminCta() throws Exception {
+        when(dashboardService.overview()).thenReturn(new DashboardView(
+                List.of(), new OpenFindingCounts(0, 0, 0, 0), 0, null, false,
+                new SystemCapacity(2, 1, 4, 1, Duration.ofSeconds(30), 5)));
+
+        mvc.perform(get("/"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Willkommen bei WebTestHelper")))
+                .andExpect(content().string(containsString("/websites/neu")));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void emptyDashboardHidesTheAdminCtaFromNonAdmins() throws Exception {
+        when(dashboardService.overview()).thenReturn(new DashboardView(
+                List.of(), new OpenFindingCounts(0, 0, 0, 0), 0, null, false,
+                new SystemCapacity(2, 1, 4, 1, Duration.ofSeconds(30), 5)));
+
+        mvc.perform(get("/"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Willkommen bei WebTestHelper")))
+                .andExpect(content().string(not(containsString("/websites/neu"))))
+                .andExpect(content().string(containsString("Administrator")));
+    }
+
+    @Test
     @WithMockUser(roles = "USER")
     void kachelnFragmentIsAFragmentNotAPage() throws Exception {
         when(dashboardService.overview()).thenReturn(sampleView());
