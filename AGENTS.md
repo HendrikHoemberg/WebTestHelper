@@ -2,8 +2,8 @@
 
 ## Commands
 - **Single test**: `./mvnw test -Dtest=FindingListControllerTest`
-- **Verify (default)**: `./mvnw test -Pfast` — everything except the `@Tag("browser")` group; ~30 s
-- **Verify (full)**: `./mvnw test` — complete suite incl. browser acceptance tests; ~6 min
+- **Verify (default)**: `bash -c "set -o pipefail; ./mvnw test -Pfast -B --no-transfer-progress | tail -n 50"` — everything except the `@Tag("browser")` group; ~30 s
+- **Verify (full)**: `bash -c "set -o pipefail; ./mvnw test -B --no-transfer-progress | tail -n 60"` — complete suite incl. browser acceptance tests; ~6 min
 - **When full is required instead of default**: the change can reach browser acceptance tests —
   templates, `messages.properties`, controllers, layout/security, or the runner, crawler,
   recorder, checks, journeys modules. Pure Java-domain changes (services, utils, repositories)
@@ -22,6 +22,7 @@ all German UI copy in `src/main/resources/messages.properties`. Postgres + Flywa
 - Journey recorder steps carry multiple ranked locator candidates; keep 0/2/4 worker pool sizes untouched.
 - Desktop-only UI: mobile/responsive layout is out of scope. Do not add mobile breakpoints or a
   collapsible sidebar; treat small-viewport findings as non-issues.
+- Test-Ausgaben & Kontext-Hygiene: Bei Testläufen immer `-B --no-transfer-progress` nutzen und Output mit `set -o pipefail` und `tail` bündeln (oder temporär in `target/test.log` überschreiben), um den LLM-Kontext nicht mit tausenden Zeilen Testlogs zu überfluten.
 
 ## Boundaries
 - Do not edit: `data/`, `target/`, `.env`, `compose.yaml` runtime volumes.
