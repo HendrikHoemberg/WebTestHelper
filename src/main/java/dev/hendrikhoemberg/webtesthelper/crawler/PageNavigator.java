@@ -153,6 +153,8 @@ public class PageNavigator {
                 // A page with a poll or a live widget never goes idle. Not a failure — extract anyway.
             }
 
+            dismissConsentBanners(page);
+
             NormalizedUrl pageUrl = UrlNormalizer.normalize(page.url()).orElse(requested);
             Extracted extracted = map(page.evaluate(EXTRACT_JS), site);
             List<FrameRef> frames = refetchCrossOriginMapsPaint(extracted.frames(), page);
@@ -394,6 +396,53 @@ public class PageNavigator {
 
     private static double doubleOf(Object value) {
         return value instanceof Number n ? n.doubleValue() : 0;
+    }
+
+    static final String DISMISS_CONSENT_JS = """
+            (() => {
+                const selectors = [
+                    '#onetrust-accept-btn-handler',
+                    '#CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll',
+                    '#CybotCookiebotDialogBodyButtonAccept',
+                    '#usercentrics-root',
+                    'button[id*="cookie" i][id*="accept" i]',
+                    'button[class*="cookie" i][class*="accept" i]',
+                    'button[id*="consent" i][id*="accept" i]',
+                    'button[class*="consent" i][class*="accept" i]',
+                    'a[id*="cookie" i][id*="accept" i]',
+                    'button[aria-label*="akzeptieren" i]',
+                    'button[aria-label*="accept" i]',
+                    '.cmpboxbtnok',
+                    '#tar-agree'
+                ];
+                for (const sel of selectors) {
+                    try {
+                        const el = document.querySelector(sel);
+                        if (el) {
+                            if (sel === '#usercentrics-root' && el.shadowRoot) {
+                                const btn = el.shadowRoot.querySelector('button[data-testid="uc-accept-all-button"]');
+                                if (btn) { btn.click(); break; }
+                            }
+                            el.click();
+                            break;
+                        }
+                    } catch (e) {}
+                }
+                const overlays = ['#onetrust-banner-sdk', '#CybotCookiebotDialog', '.cc-window', '.cookie-banner', '#usercentrics-root'];
+                for (const o of overlays) {
+                    try {
+                        const el = document.querySelector(o);
+                        if (el) el.style.display = 'none';
+                    } catch (e) {}
+                }
+            })()
+            """;
+
+    static void dismissConsentBanners(Page page) {
+        try {
+            page.evaluate(DISMISS_CONSENT_JS);
+        } catch (Exception ignored) {
+        }
     }
 
     private record Extracted(String title, String lang, String text,

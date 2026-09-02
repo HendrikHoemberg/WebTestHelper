@@ -357,4 +357,27 @@ class PageNavigatorTest {
         assertThat(SimHash.hammingDistance(first, second)).isLessThanOrEqualTo(6);
         assertThat(capture("", 0).textSimhash()).isNotEqualTo(first);
     }
+
+    @Test
+    void dismissConsentBannersClicksAcceptButtonAndHidesOverlays() {
+        pool.submit(browser -> {
+            var page = browser.newPage();
+            page.setContent("""
+                <!doctype html>
+                <html>
+                <body>
+                    <div id="onetrust-banner-sdk">
+                        <button id="onetrust-accept-btn-handler" onclick="document.body.dataset.accepted = 'true'">Accept</button>
+                    </div>
+                    <div id="CybotCookiebotDialog" style="display: block;">Cookiebot</div>
+                </body>
+                </html>
+            """);
+            PageNavigator.dismissConsentBanners(page);
+            assertThat(page.evaluate("document.body.dataset.accepted")).isEqualTo("true");
+            assertThat(page.evaluate("document.getElementById('CybotCookiebotDialog').style.display")).isEqualTo("none");
+            page.close();
+            return null;
+        });
+    }
 }
