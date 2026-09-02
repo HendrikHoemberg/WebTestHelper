@@ -13,9 +13,6 @@
                 <span class="status-badge"
                       th:classappend="${befund.severity.name() == 'ERROR' ? 'badge-failing' : (befund.severity.name() == 'WARN' ? 'badge-warning' : 'status-inaktiv')} + ' severity-' + ${befund.severity}"
                       th:text="#{${'ui.severity.' + befund.severity}}">Fehler</span>
-                <span class="status-badge"
-                      th:classappend="${befund.smartPriority.name() == 'DRINGEND' ? 'badge-prioritaet-dringend' : (befund.smartPriority.name() == 'EMPFOHLEN' ? 'badge-prioritaet-empfohlen' : 'badge-prioritaet-niedrig')}"
-                      th:text="#{${'ui.priority.' + befund.smartPriority}}">Dringend</span>
                 <a th:href="@{/befunde/{id}(id=${befund.id})}" class="befund-titel-link" style="color: var(--text-main); text-decoration: none;">
                     <strong th:text="${befund.title}" style="font-size: 0.95rem; font-weight: 700;">Tote Links</strong>
                 </a>

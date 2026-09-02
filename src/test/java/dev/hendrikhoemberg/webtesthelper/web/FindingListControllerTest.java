@@ -317,4 +317,38 @@ class FindingListControllerTest {
         verify(findingService).search(captor.capture());
         assertThat(captor.getValue().q()).isEqualTo("impressum");
     }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void findingRowDoesNotRenderRedundantPriorityBadge() throws Exception {
+        long siteId = 42L;
+        when(siteService.contextFor(siteId)).thenReturn(sampleSite(siteId));
+
+        Finding finding = new Finding(
+                1L, siteId, "fp-1",
+                CheckType.DEAD_LINK,
+                "https://example.com/dead",
+                "https://example.com/source",
+                Severity.ERROR,
+                "finding.DEAD_LINK.dead",
+                List.of("https://example.com/dead", "404 Not Found"),
+                Evidence.NONE,
+                ObservedStatus.ACTIVE,
+                TriageStatus.UNTRIAGED,
+                null,
+                10L, 10L, null, null,
+                1, 1,
+                Instant.parse("2026-08-25T10:00:00Z"),
+                Instant.parse("2026-08-25T10:00:00Z")
+        );
+
+        when(findingService.search(any(FindingQuery.class)))
+                .thenReturn(new FindingPage(List.of(finding), 1, 50, 1));
+
+        mvc.perform(get("/websites/{id}/befunde", siteId))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("badge-failing")))
+                .andExpect(content().string(not(containsString("badge-prioritaet-dringend"))))
+                .andExpect(content().string(not(containsString("badge-prioritaet-empfohlen"))));
+    }
 }
