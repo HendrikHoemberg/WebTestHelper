@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -266,6 +267,7 @@ public class FindingStore {
                AND (?::varchar[] IS NULL OR triage_status = ANY(?))
                AND (?::varchar IS NULL OR observed_status = ?)
                AND (?::varchar[] IS NULL OR check_type = ANY(?))
+               AND (? IS NULL OR lower(subject_key) LIKE ? ESCAPE '\\' OR lower(location_key) LIKE ? ESCAPE '\\')
             """;
 
     private static final String SEARCH_SQL = """
@@ -275,6 +277,7 @@ public class FindingStore {
                AND (?::varchar[] IS NULL OR triage_status = ANY(?))
                AND (?::varchar IS NULL OR observed_status = ?)
                AND (?::varchar[] IS NULL OR check_type = ANY(?))
+               AND (? IS NULL OR lower(subject_key) LIKE ? ESCAPE '\\' OR lower(location_key) LIKE ? ESCAPE '\\')
              ORDER BY CASE severity WHEN 'ERROR' THEN 0 WHEN 'WARN' THEN 1 ELSE 2 END,
                       last_seen_at DESC,
                       id ASC
@@ -395,8 +398,8 @@ public class FindingStore {
             List<Array> arrays = new ArrayList<>();
             try (PreparedStatement ps = conn.prepareStatement(SEARCH_SQL)) {
                 bindFilterParams(ps, conn, query, arrays);
-                ps.setInt(10, query.size());
-                ps.setInt(11, (query.page() - 1) * query.size());
+                ps.setInt(13, query.size());
+                ps.setInt(14, (query.page() - 1) * query.size());
                 try (var rs = ps.executeQuery()) {
                     List<Finding> list = new ArrayList<>();
                     int rowNum = 0;
@@ -463,6 +466,37 @@ public class FindingStore {
             ps.setArray(8, arr);
             ps.setArray(9, arr);
         }
+
+        String q = query.q();
+        if (q == null) {
+            ps.setNull(10, java.sql.Types.VARCHAR);
+            ps.setNull(11, java.sql.Types.VARCHAR);
+            ps.setNull(12, java.sql.Types.VARCHAR);
+        } else {
+            ps.setString(10, q);
+            String pattern = searchPattern(q.toLowerCase(Locale.ROOT));
+            ps.setString(11, pattern);
+            ps.setString(12, pattern);
+        }
+    }
+
+    /**
+     * Turns a free-text search term into a case-insensitive SQL LIKE pattern that matches the
+     * term as a literal substring. {@code %}, {@code _} and {@code \} in the user's input are
+     * escaped so they cannot act as wildcards; the surrounding {@code %} delimiters are the only
+     * wildcards.
+     */
+    private static String searchPattern(String term) {
+        StringBuilder out = new StringBuilder(term.length() + 2);
+        out.append('%');
+        for (char c : term.toCharArray()) {
+            if (c == '%' || c == '_' || c == '\\') {
+                out.append('\\');
+            }
+            out.append(c);
+        }
+        out.append('%');
+        return out.toString();
     }
 
     public List<FindingOccurrence> occurrencesOfLastRun(long findingId, int limit) {

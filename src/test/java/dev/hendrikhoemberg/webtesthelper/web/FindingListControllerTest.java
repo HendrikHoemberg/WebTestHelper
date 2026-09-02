@@ -155,7 +155,8 @@ class FindingListControllerTest {
                         ObservedStatus.ACTIVE,
                         Set.of(CheckType.DEAD_LINK),
                         1,
-                        50
+                        50,
+                        null
                 )));
     }
 
@@ -297,5 +298,23 @@ class FindingListControllerTest {
         mvc.perform(get("/websites/{id}/befunde", siteId)
                         .param("checkTypes", "COMPLETELY_INVALID_CHECK_TYPE"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void freeTextSearchFieldRendersAndTermIsPassedThroughToTheQuery() throws Exception {
+        long siteId = 42L;
+        when(siteService.contextFor(siteId)).thenReturn(sampleSite(siteId));
+        when(findingService.search(any(FindingQuery.class)))
+                .thenReturn(new FindingPage(List.of(), 1, 50, 0));
+
+        mvc.perform(get("/websites/{id}/befunde", siteId).param("q", "impressum"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("name=\"q\"")))
+                .andExpect(content().string(containsString("value=\"impressum\"")));
+
+        ArgumentCaptor<FindingQuery> captor = ArgumentCaptor.forClass(FindingQuery.class);
+        verify(findingService).search(captor.capture());
+        assertThat(captor.getValue().q()).isEqualTo("impressum");
     }
 }

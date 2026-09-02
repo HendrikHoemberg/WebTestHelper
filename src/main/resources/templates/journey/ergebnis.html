@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="ergebnis" style="margin-bottom: 1rem;">
+    <div th:if="${fehler != null}" role="alert"
+         style="padding: 0.75rem 1rem; border-radius: 8px; background: var(--status-warning-bg); border: 1px solid var(--status-warning-border); color: var(--status-warning-text);">
+        <strong th:text="#{ui.journey.test.fehler(${fehler})}">Der Ablauf konnte nicht ausgeführt werden.</strong>
+    </div>
+    <th:block th:if="${fehler == null}">
+        <div th:if="${result.status.name() == 'PASSED'}" role="status"
+             style="padding: 0.75rem 1rem; border-radius: 8px; background: var(--status-success-bg); border: 1px solid var(--status-success-border); color: var(--status-success-text);">
+            <strong th:text="#{ui.journey.test.erfolgreich}">Der Ablauf wurde erfolgreich durchgeführt.</strong>
+        </div>
+        <div th:if="${result.status.name() == 'DRIFTED'}" role="status"
+             style="padding: 0.75rem 1rem; border-radius: 8px; background: var(--status-warning-bg); border: 1px solid var(--status-warning-border); color: var(--status-warning-text);">
+            <strong th:text="#{ui.journey.test.drift}">Der Ablauf wurde durchgeführt, aber mit Selektor-Abweichungen (Drift).</strong>
+        </div>
+        <div th:if="${result.status.name() == 'FAILED'}" role="alert"
+             style="padding: 0.75rem 1rem; border-radius: 8px; background: var(--status-error-bg); border: 1px solid var(--status-error-border); color: var(--status-error-text);">
+            <strong th:text="#{ui.journey.test.fehlgeschlagen}">Der Ablauf ist fehlgeschlagen.</strong>
+            <p th:if="${fehlermeldung != null}" style="margin: 0.25rem 0 0; font-size: 0.9rem;" th:text="${fehlermeldung}">…</p>
+        </div>
+    </th:block>
+</div>
+</body>
+</html>

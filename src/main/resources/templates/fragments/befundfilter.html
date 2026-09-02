@@ -11,6 +11,20 @@
           data-hx-trigger="change"
           class="filter-form">
         
+        <!-- Freitextsuche -->
+        <fieldset class="filter-gruppe" style="border: none; padding: 0; margin-bottom: 1.25rem;">
+            <legend style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 0.5rem;" th:text="#{ui.befunde.filter.suche}">Suche</legend>
+            <input type="text" name="q" class="form-input" th:value="${filter.q}"
+                   th:placeholder="#{ui.befunde.filter.suche.placeholder}"
+                   th:attr="data-hx-get=@{/websites/{id}/befunde(id=${site.siteId})}"
+                   data-hx-trigger="input changed delay:300ms"
+                   data-hx-target="#befunde-liste-container"
+                   data-hx-swap="innerHTML"
+                   data-hx-push-url="true"
+                   data-hx-include="closest form"
+                   style="width: 100%;">
+        </fieldset>
+
         <!-- Schweregrad -->
         <fieldset class="filter-gruppe" style="border: none; padding: 0; margin-bottom: 1.25rem;">
             <legend style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 0.5rem;" th:text="#{ui.befunde.filter.schweregrad}">Schweregrad</legend>

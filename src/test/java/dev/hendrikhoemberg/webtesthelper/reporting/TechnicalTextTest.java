@@ -118,6 +118,28 @@ class TechnicalTextTest {
     }
 
     @Test
+    void navigationTimeoutHumanisesWithoutLeakingTheRawEnglishMessage() {
+        List<String> timeouts = List.of(
+                "Timeout 30000ms exceeded",
+                "Timeout 30000ms exceeded\n  at Frame.goto",
+                "Navigation timeout of 30000 ms exceeded",
+                "Timed out"
+        );
+
+        for (String raw : timeouts) {
+            String humanised = TechnicalText.humanise(raw, messageSource, Locale.GERMAN);
+            assertThat(humanised)
+                    .as("Humanised string for '%s' must not be blank", raw)
+                    .isNotBlank();
+            assertThat(humanised)
+                    .as("Humanised string for '%s' must not leak the raw timeout text", raw)
+                    .doesNotContain("Timeout")
+                    .doesNotContain("timeout")
+                    .doesNotContain("30000ms");
+        }
+    }
+
+    @Test
     void everyTechnicalMessageKeyResolvesInGermanBundle() {
         ResourceBundle bundle = ResourceBundle.getBundle("messages", Locale.GERMAN);
         List<String> keys = List.of(
@@ -130,6 +152,7 @@ class TechnicalTextTest {
                 "ui.technisch.network_changed",
                 "ui.technisch.cert_date_invalid",
                 "ui.technisch.ssl_error",
+                "ui.technisch.navigation_timeout",
                 "ui.technisch.unbekannt"
         );
 

@@ -9,6 +9,21 @@
 <main>
     <div th:if="${flashMessage}" class="hinweis" style="margin-bottom: 1.5rem;" th:text="${flashMessage}">Erfolgsmeldung</div>
 
+    <!-- Abschluss-Banner (Toast) bei beendeten Läufen -->
+    <div th:if="${run.status.name() == 'COMPLETED' or run.status.name() == 'FAILED'}"
+         x-data="{ sichtbar: true }"
+         x-init="setTimeout(() => sichtbar = false, 7000)"
+         x-show="sichtbar"
+         x-cloak
+         role="status" aria-live="polite"
+         style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem; padding: 0.75rem 1rem; border-radius: 8px;"
+         th:styleappend="${run.status.name() == 'COMPLETED'} ? 'background: var(--status-success-bg); border: 1px solid var(--status-success-border); color: var(--status-success-text);' : 'background: var(--status-warning-bg); border: 1px solid var(--status-warning-border); color: var(--status-warning-text);'">
+        <span style="font-weight: 500;"
+              th:text="${run.status.name() == 'COMPLETED'} ? #{ui.lauf.abgeschlossen.banner} : #{ui.lauf.fehlgeschlagen.banner}">Der Prüflauf wurde abgeschlossen.</span>
+        <button type="button" @click="sichtbar = false" th:attr="aria-label=#{ui.lauf.banner.schliessen}"
+                style="background: none; border: none; cursor: pointer; font-size: 1.2rem; line-height: 1; color: inherit;">×</button>
+    </div>
+
     <header class="page-header-bar seiten-kopf">
         <div>
             <div class="breadcrumbs-trail">
@@ -28,6 +43,8 @@
             </div>
         </div>
         <div class="header-actions-cluster seiten-kopf-aktionen">
+            <a th:if="${run.status.name() == 'COMPLETED' or run.status.name() == 'FAILED'}"
+               th:href="@{/laeufe/{id}/bericht(id=${run.id})}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.lauf.bericht.button}">Bericht drucken</a>
             <a th:href="@{/websites/{id}/befunde(id=${site.siteId})}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.lauf.alle_befunde}">Alle Feststellungen</a>
             <a th:href="@{/websites/{id}(id=${site.siteId})}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.lauf.zurueck_zur_website}">Zurück zur Website</a>
         </div>
@@ -143,6 +160,11 @@
             <div class="hinweis" aria-live="polite"></div>
         </div>
     </section>
+
+    <!-- Diff-Zusammenfassung -->
+    <div th:if="${diff != null}" class="card-box detail-bereich" style="padding: 0.75rem 1rem;">
+        <p style="margin: 0; font-size: 0.95rem;" th:text="#{ui.lauf.diff.zusammenfassung(${diffNeu}, ${diffRegressionen}, ${diffBehoben})}">Vergleich zum vorherigen Lauf: 0 neu, 0 wieder aufgetreten, 0 behoben.</p>
+    </div>
 
     <!-- Die fünf Berichtsabschnitte -->
     <div th:if="${sections != null and not #maps.isEmpty(sections)}" class="bericht-abschnitte" style="display: flex; flex-direction: column; gap: 1.5rem;">

@@ -34,6 +34,10 @@ public final class TechnicalText {
         if (trimmed.contains("Exception")) {
             return true;
         }
+        if (trimmed.contains("Timeout") || trimmed.contains("timeout")
+                || trimmed.contains("Timed out") || trimmed.contains("timed out")) {
+            return true;
+        }
         return false;
     }
 
@@ -56,8 +60,11 @@ public final class TechnicalText {
         } else if (raw.contains("ERR_CONNECTION_REFUSED") || raw.contains("ConnectException")) {
             key = "ui.technisch.connection_refused";
         } else if (raw.contains("ERR_CONNECTION_TIMED_OUT") || raw.contains("SocketTimeoutException")
-                || raw.contains("TimeoutException")) {
+                || raw.contains("TimeoutException") || raw.contains("ERR_TIMED_OUT")) {
             key = "ui.technisch.connection_timed_out";
+        } else if (raw.contains("Timeout") || raw.contains("timeout")
+                || raw.contains("Timed out") || raw.contains("timed out")) {
+            key = "ui.technisch.navigation_timeout";
         } else if (raw.contains("ERR_TOO_MANY_REDIRECTS")) {
             key = "ui.technisch.too_many_redirects";
         } else if (raw.contains("ERR_BLOCKED_BY_RESPONSE")) {

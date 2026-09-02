@@ -64,6 +64,9 @@ public class RunController {
             Map<ReportSection, List<FindingView>> sections = findingViewFactory.of(diff, locale);
             model.addAttribute("diff", diff);
             model.addAttribute("sections", sections);
+            model.addAttribute("diffNeu", diff.count(ReportSection.NEW));
+            model.addAttribute("diffRegressionen", diff.count(ReportSection.REGRESSED));
+            model.addAttribute("diffBehoben", diff.count(ReportSection.FIXED));
         } else {
             model.addAttribute("sections", Map.of());
         }
@@ -81,6 +84,28 @@ public class RunController {
             response.setHeader("HX-Refresh", "true");
         }
         return "fragments/fortschritt :: fortschritt";
+    }
+
+    /**
+     * A print-optimised, self-contained report view of a finished run (§13.2). Reuses the same
+     * diff sections as the detail page, but without the sidebar and with print CSS.
+     */
+    @GetMapping("/{id}/bericht")
+    public String bericht(@PathVariable("id") long id, Model model, Locale locale) {
+        RunSummary run = runService.summary(id);
+        SiteContext site = siteService.contextFor(run.siteId());
+
+        if (!run.status().isTerminal()) {
+            return "redirect:/laeufe/" + id;
+        }
+
+        RunDiff diff = findingService.diffForReport(run.siteId(), id);
+        Map<ReportSection, List<FindingView>> sections = findingViewFactory.of(diff, locale);
+        model.addAttribute("diff", diff);
+        model.addAttribute("sections", sections);
+        model.addAttribute("run", run);
+        model.addAttribute("site", site);
+        return "laeufe/druck";
     }
 
     @PostMapping("/{id}/ausgangsbestand")

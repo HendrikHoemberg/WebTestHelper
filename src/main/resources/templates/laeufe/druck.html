@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="#{ui.lauf.bericht.titel(${run.id})}">Bericht Prüflauf</title>
+    <link rel="stylesheet" href="/css/app.css">
+</head>
+<body style="background: #fff; padding: 2rem; max-width: 900px; margin: 0 auto;">
+    <div class="druck-aktionen" style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-bottom: 1.5rem;">
+        <a th:href="@{/laeufe/{id}(id=${run.id})}" class="btn-ui btn-ui-secondary" th:text="#{ui.lauf.bericht.zurueck}">Zurück</a>
+        <button type="button" class="btn-ui btn-ui-primary" onclick="window.print()" th:text="#{ui.lauf.bericht.drucken}">Drucken</button>
+    </div>
+
+    <header style="margin-bottom: 2rem;">
+        <h1 style="margin: 0 0 0.5rem; font-size: 1.6rem;" th:text="#{ui.lauf.bericht.titel(${run.id})}">Bericht Prüflauf #101</h1>
+        <p style="margin: 0; color: #555;">
+            <strong th:text="${site.name}">Website</strong>
+            <span style="margin: 0 0.35rem;">·</span>
+            <span style="font-family: var(--font-mono); font-size: 0.85rem;" th:text="${site.baseUrl.value}">https://example.com/</span>
+        </p>
+        <p th:if="${run.finishedAt != null}" style="margin: 0.25rem 0 0; color: #555; font-variant-numeric: tabular-nums;"
+           th:text="#{ui.lauf.bericht.stand(${#temporals.format(run.finishedAt, 'dd.MM.yyyy HH:mm')})}">Stand: 25.08.2026 12:00</p>
+    </header>
+
+    <p th:if="${#maps.isEmpty(sections)}" style="color: #666;" th:text="#{ui.lauf.keine_befunde}">Keine Feststellungen in diesem Prüflauf.</p>
+
+    <div th:each="entry : ${sections}" th:if="${not #lists.isEmpty(entry.value)}" style="margin-bottom: 2rem;">
+        <h2 style="font-size: 1.15rem; border-bottom: 2px solid #111; padding-bottom: 0.35rem;"
+            th:text="#{${'ui.reportsection.' + entry.key}} + ' (' + ${#lists.size(entry.value)} + ')'">Neu aufgetreten (2)</h2>
+        <div th:each="befundItem : ${entry.value}">
+            <div th:replace="~{fragments/befundzeile :: befundzeile(${befundItem}, false)}"></div>
+        </div>
+    </div>
+</body>
+</html>

@@ -14,7 +14,8 @@ public record FindingFilterForm(
         ObservedStatus observed,
         Set<CheckType> checkTypes,
         Integer page,
-        Integer size
+        Integer size,
+        String q
 ) {
     public FindingFilterForm {
         severities = severities == null ? Set.of() : Set.copyOf(severities);
@@ -31,6 +32,6 @@ public record FindingFilterForm(
      */
     public FindingQuery toQuery(long siteId, int defaultSize) {
         return new FindingQuery(siteId, severities, triageStatuses, observed, checkTypes, page,
-                size == null ? defaultSize : size);
+                size == null ? defaultSize : size, q);
     }
 }

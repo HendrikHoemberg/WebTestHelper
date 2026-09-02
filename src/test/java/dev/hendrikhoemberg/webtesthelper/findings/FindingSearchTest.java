@@ -194,6 +194,51 @@ class FindingSearchTest extends AbstractPostgresTest {
         assertThat(page4.findings()).isEmpty();
     }
 
+    @Test
+    void freeTextSearchMatchesSubjectAndLocationCaseInsensitively() {
+        MaterialisedFinding f1 = finding(site1Id, CheckType.DEAD_LINK, Severity.ERROR,
+                "https://example.com/karriere/stelle", "/karriere/stelle");
+        MaterialisedFinding f2 = finding(site1Id, CheckType.PAGE_STATUS, Severity.WARN,
+                "s2", "/impressum");
+        MaterialisedFinding f3 = finding(site1Id, CheckType.DEAD_LINK, Severity.ERROR,
+                "s3", "/blog/1");
+        store.upsertAll(site1Id, 1, List.of(f1, f2, f3), baseTime);
+
+        // Match on the subject (URL)
+        FindingPage bySubject = findingService.search(new FindingQuery(
+                site1Id, Set.of(), Set.of(), null, Set.of(), 1, 50, "karriere"));
+        assertThat(bySubject.total()).isEqualTo(1);
+        assertThat(bySubject.findings()).extracting(Finding::subjectKey)
+                .containsExactly("https://example.com/karriere/stelle");
+
+        // Match on the location, case-insensitively
+        FindingPage byLocation = findingService.search(new FindingQuery(
+                site1Id, Set.of(), Set.of(), null, Set.of(), 1, 50, "IMPRESSUM"));
+        assertThat(byLocation.total()).isEqualTo(1);
+        assertThat(byLocation.findings()).extracting(Finding::locationKey)
+                .containsExactly("/impressum");
+
+        // No match
+        FindingPage none = findingService.search(new FindingQuery(
+                site1Id, Set.of(), Set.of(), null, Set.of(), 1, 50, "nichtda"));
+        assertThat(none.total()).isZero();
+    }
+
+    @Test
+    void freeTextSearchTreatsLikeWildcardsAsLiteralText() {
+        MaterialisedFinding fPercent = finding(site1Id, CheckType.DEAD_LINK, Severity.ERROR,
+                "rabatt100%", "/p1");
+        MaterialisedFinding fOther = finding(site1Id, CheckType.DEAD_LINK, Severity.ERROR,
+                "rabatt100x", "/p2");
+        store.upsertAll(site1Id, 1, List.of(fPercent, fOther), baseTime);
+
+        FindingPage page = findingService.search(new FindingQuery(
+                site1Id, Set.of(), Set.of(), null, Set.of(), 1, 50, "100%"));
+
+        assertThat(page.total()).isEqualTo(1);
+        assertThat(page.findings()).extracting(Finding::subjectKey).containsExactly("rabatt100%");
+    }
+
     private MaterialisedFinding finding(long siteId, CheckType type, Severity severity, String subject, String location) {
         String fp = Fingerprint.of(siteId, type, subject, location);
         FindingOccurrence occ = new FindingOccurrence(location, severity, "finding." + type.name() + ".test", List.of(), Evidence.NONE);

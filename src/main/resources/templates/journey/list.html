@@ -47,6 +47,8 @@
         </p>
     </div>
 
+    <div id="journey-ergebnis" style="margin-bottom: 1.5rem;"></div>
+
     <div th:if="${#lists.isEmpty(journeys)}" class="card-box leer-zustand" style="text-align: center; padding: 3rem 1.5rem;">
         <p th:text="#{ui.journey.liste.leer}" style="color: var(--text-muted); font-size: 0.95rem;">Für diese Website sind noch keine Abläufe hinterlegt.</p>
     </div>
@@ -94,8 +96,17 @@
                                   th:style="${health != null and health.consecutiveFailures > 0 ? 'color: var(--status-error-dot);' : 'color: var(--text-muted);'}"
                                   th:text="${health != null ? health.consecutiveFailures : 0}">0</span>
                         </td>
-                        <td class="text-rechts zell-aktion">
+                        <td class="text-rechts zell-aktion" style="white-space: nowrap;">
                             <a th:href="@{/websites/{siteId}/journeys/{journeyId}(siteId=${site.siteId}, journeyId=${journey.id})}" class="btn-ui btn-ui-secondary btn-ui-sm" th:text="#{ui.journey.liste.ansehen}">Ansehen</a>
+                            <button type="button"
+                                    th:attr="data-hx-post=@{/websites/{siteId}/journeys/{journeyId}/jetzt-ausfuehren(siteId=${site.siteId}, journeyId=${journey.id})}"
+                                    data-hx-target="#journey-ergebnis"
+                                    data-hx-swap="innerHTML"
+                                    data-hx-indicator="closest button"
+                                    class="btn-ui btn-ui-primary btn-ui-sm" style="margin-left: 0.4rem;">
+                                <span class="htmx-indicator-hide" th:text="#{ui.journey.test.ausfuehren}">Jetzt testen</span>
+                                <span class="htmx-indicator" th:text="#{ui.journey.test.laeuft}">Läuft …</span>
+                            </button>
                         </td>
                     </tr>
                 </tbody>

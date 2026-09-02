@@ -316,6 +316,9 @@ class RunControllerTest {
 
         when(runService.summary(runId)).thenReturn(summary);
         when(siteService.contextFor(siteId)).thenReturn(site);
+        RunDiff diff = new RunDiff(runId, Map.of());
+        when(findingService.diffForReport(siteId, runId)).thenReturn(diff);
+        when(findingViewFactory.of(eq(diff), any(Locale.class))).thenReturn(Map.of());
 
         mvc.perform(get("/laeufe/" + runId))
                 .andExpect(status().isOk())
@@ -533,5 +536,65 @@ class RunControllerTest {
 
         mvc.perform(get("/laeufe/999"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void berichtForCompletedRunRendersPrintViewWithSections() throws Exception {
+        long runId = 101L;
+        long siteId = 42L;
+        RunSummary summary = sampleSummary(runId, siteId, RunStatus.COMPLETED, false, false, null);
+        SiteContext site = sampleSite(siteId);
+        RunDiff diff = new RunDiff(runId, Map.of());
+
+        FindingView viewNew = new FindingView(1L, "Tote Links", "Link tot", "Korrigieren",
+                "https://acme.example.com/a", false, 1, Severity.ERROR, TriageStatus.UNTRIAGED);
+        Map<ReportSection, List<FindingView>> sections = new LinkedHashMap<>();
+        sections.put(ReportSection.NEW, List.of(viewNew));
+
+        when(runService.summary(runId)).thenReturn(summary);
+        when(siteService.contextFor(siteId)).thenReturn(site);
+        when(findingService.diffForReport(siteId, runId)).thenReturn(diff);
+        when(findingViewFactory.of(eq(diff), any(Locale.class))).thenReturn(sections);
+
+        mvc.perform(get("/laeufe/" + runId + "/bericht"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("laeufe/druck"))
+                .andExpect(model().attributeExists("run", "site", "sections"))
+                .andExpect(content().string(containsString("Bericht Prüflauf")))
+                .andExpect(content().string(containsString("Tote Links")));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void berichtForRunningRunRedirectsBackToDetail() throws Exception {
+        long runId = 105L;
+        long siteId = 42L;
+        when(runService.summary(runId)).thenReturn(sampleSummary(runId, siteId, RunStatus.RUNNING, false, false, null));
+        when(siteService.contextFor(siteId)).thenReturn(sampleSite(siteId));
+
+        mvc.perform(get("/laeufe/" + runId + "/bericht"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/laeufe/" + runId));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void completedRunRendersDiffSummaryLine() throws Exception {
+        long runId = 101L;
+        long siteId = 42L;
+        RunSummary summary = sampleSummary(runId, siteId, RunStatus.COMPLETED, false, false, null);
+        SiteContext site = sampleSite(siteId);
+        RunDiff diff = new RunDiff(runId, Map.of());
+
+        when(runService.summary(runId)).thenReturn(summary);
+        when(siteService.contextFor(siteId)).thenReturn(site);
+        when(findingService.diffForReport(siteId, runId)).thenReturn(diff);
+        when(findingViewFactory.of(eq(diff), any(Locale.class))).thenReturn(Map.of());
+
+        mvc.perform(get("/laeufe/" + runId))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Vergleich zum vorherigen Lauf")))
+                .andExpect(content().string(containsString("0 neu")));
     }
 }

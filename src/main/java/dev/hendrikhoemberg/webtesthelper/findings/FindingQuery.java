@@ -18,7 +18,8 @@ public record FindingQuery(
         ObservedStatus observed,
         Set<CheckType> checkTypes,
         int page,
-        int size
+        int size,
+        String q
 ) {
     /** Hard ceiling on a page, whatever the query string asks for. */
     public static final int MAX_SIZE = 200;
@@ -41,6 +42,13 @@ public record FindingQuery(
         if (size > MAX_SIZE) {
             size = MAX_SIZE;
         }
+        q = (q == null || q.isBlank()) ? null : q.trim();
+    }
+
+    /** Backwards-compatible constructor: no free-text search term. */
+    public FindingQuery(long siteId, Set<Severity> severities, Set<TriageStatus> triageStatuses,
+                        ObservedStatus observed, Set<CheckType> checkTypes, int page, int size) {
+        this(siteId, severities, triageStatuses, observed, checkTypes, page, size, null);
     }
 
     public static FindingQuery forSite(long siteId) {

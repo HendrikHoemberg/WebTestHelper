@@ -7,13 +7,18 @@ import dev.hendrikhoemberg.webtesthelper.catalog.SiteService;
 import dev.hendrikhoemberg.webtesthelper.model.AssertionType;
 import dev.hendrikhoemberg.webtesthelper.model.CrawlBudget;
 import dev.hendrikhoemberg.webtesthelper.model.JourneyDefinition;
+import dev.hendrikhoemberg.webtesthelper.model.JourneyReplayResult;
 import dev.hendrikhoemberg.webtesthelper.model.JourneyStep;
 import dev.hendrikhoemberg.webtesthelper.model.LocatorCandidate;
 import dev.hendrikhoemberg.webtesthelper.model.LocatorStrategy;
+import dev.hendrikhoemberg.webtesthelper.model.ReplayStatus;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
 import dev.hendrikhoemberg.webtesthelper.model.StepAction;
 import dev.hendrikhoemberg.webtesthelper.model.StepAssertion;
+import dev.hendrikhoemberg.webtesthelper.model.StepOutcome;
+import dev.hendrikhoemberg.webtesthelper.model.StepStatus;
 import dev.hendrikhoemberg.webtesthelper.model.UrlNormalizer;
+import dev.hendrikhoemberg.webtesthelper.runner.JourneyReplayer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,8 +37,12 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
@@ -55,6 +64,9 @@ class JourneyControllerTest {
 
     @MockitoBean
     JourneyHealthService journeyHealthService;
+
+    @MockitoBean
+    JourneyReplayer journeyReplayer;
 
     @MockitoBean
     AppUserService appUserService;
@@ -320,6 +332,55 @@ class JourneyControllerTest {
 
         mvc.perform(get("/websites/1/journeys/10"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void runNow_replaysTheJourneyAndRendersThePassedResult() throws Exception {
+        JourneyStep step1 = new JourneyStep(UUID.randomUUID(), 0, StepAction.GOTO, List.of(), "https://acme.example.com/login", null, false, 5000);
+        JourneyDefinition journey = new JourneyDefinition(10L, 1L, "Anmeldung", true, List.of(step1));
+        when(journeyService.findDefinition(10L)).thenReturn(Optional.of(journey));
+
+        JourneyReplayResult result = new JourneyReplayResult(10L, "Anmeldung", ReplayStatus.PASSED, List.of(), 0, Optional.empty(), Optional.empty());
+        when(journeyReplayer.replay(eq(journey), eq(testSite), isNull())).thenReturn(result);
+        when(journeyHealthService.record(10L, result)).thenReturn(new JourneyHealth(Instant.now(), 0, 0));
+
+        mvc.perform(post("/websites/1/journeys/10/jetzt-ausfuehren").with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(view().name("journey/ergebnis :: ergebnis"))
+                .andExpect(content().string(containsString("erfolgreich durchgeführt")));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void runNow_rendersFailedResultWithResolvedStepMessage() throws Exception {
+        JourneyStep step1 = new JourneyStep(UUID.randomUUID(), 0, StepAction.GOTO, List.of(), "https://acme.example.com/login", null, false, 5000);
+        JourneyDefinition journey = new JourneyDefinition(10L, 1L, "Anmeldung", true, List.of(step1));
+        when(journeyService.findDefinition(10L)).thenReturn(Optional.of(journey));
+
+        StepOutcome failed = StepOutcome.failed(step1.id(), "journey.step.failed.not_found", List.of());
+        JourneyReplayResult result = new JourneyReplayResult(10L, "Anmeldung", ReplayStatus.FAILED, List.of(failed), 0, Optional.empty(), Optional.empty());
+        when(journeyReplayer.replay(eq(journey), eq(testSite), isNull())).thenReturn(result);
+        when(journeyHealthService.record(10L, result)).thenReturn(new JourneyHealth(null, 1, 0));
+
+        mvc.perform(post("/websites/1/journeys/10/jetzt-ausfuehren").with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("fehlgeschlagen")))
+                .andExpect(content().string(containsString("Das Element konnte auf der Seite nicht gefunden werden.")));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void runNow_whenReplayThrows_rendersErrorResultWithoutRecordingHealth() throws Exception {
+        JourneyDefinition journey = new JourneyDefinition(10L, 1L, "Anmeldung", true, List.of());
+        when(journeyService.findDefinition(10L)).thenReturn(Optional.of(journey));
+        when(journeyReplayer.replay(eq(journey), eq(testSite), isNull()))
+                .thenThrow(new IllegalStateException("Kein Browser verfügbar"));
+
+        mvc.perform(post("/websites/1/journeys/10/jetzt-ausfuehren").with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(view().name("journey/ergebnis :: ergebnis"))
+                .andExpect(content().string(containsString("Der Ablauf konnte nicht ausgeführt werden")));
     }
 
     @Test

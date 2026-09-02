@@ -103,6 +103,24 @@
                         <button type="button" class="code-pill" data-muster="*/admin/*"
                                 onclick="var f=document.getElementById('locationPattern');f.value=this.dataset.muster;f.dispatchEvent(new Event('change',{bubbles:true}));return false;">*/admin/*</button>
                     </div>
+
+                    <div x-data="{ modus: 'enthaelt', anwenden(el) { if (!el) return; const roh = el.value; const m = this.modus === 'beginnt' ? roh + '*' : this.modus === 'endet' ? '*' + roh : this.modus === 'gleich' ? roh : '*' + roh + '*'; const ziel = document.getElementById('locationPattern'); if (ziel) { ziel.value = m; ziel.dispatchEvent(new Event('change', { bubbles: true })); } } }"
+                         style="margin-top: 0.6rem; padding: 0.6rem; border: 1px dashed var(--border-subtle); border-radius: 8px;">
+                        <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                            <select x-model="modus" @change="anwenden($refs.rohwert)"
+                                    class="form-select form-eingabe" style="max-width: 180px;"
+                                    th:attr="aria-label=#{ui.stummschaltungen.modus.label}">
+                                <option value="enthaelt" th:text="#{ui.stummschaltungen.modus.enthaelt}">URL enthält</option>
+                                <option value="beginnt" th:text="#{ui.stummschaltungen.modus.beginnt}">URL beginnt mit</option>
+                                <option value="endet" th:text="#{ui.stummschaltungen.modus.endet}">URL endet mit</option>
+                                <option value="gleich" th:text="#{ui.stummschaltungen.modus.gleich}">URL ist genau</option>
+                            </select>
+                            <input type="text" x-ref="rohwert" @input="anwenden($el)" class="form-input form-eingabe" style="flex: 1; min-width: 160px;"
+                                   th:placeholder="#{ui.stummschaltungen.modus.placeholder}">
+                        </div>
+                        <p class="hinweis-text" style="font-size: 0.8rem; color: var(--text-muted); margin: 0.35rem 0 0;"
+                           th:text="#{ui.stummschaltungen.modus.hinweis}">Dieser Baustein erzeugt das Fundort-Muster oben automatisch.</p>
+                    </div>
                 </div>
             </div>
 

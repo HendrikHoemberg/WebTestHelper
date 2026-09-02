@@ -1157,6 +1157,40 @@ body {
     display: none !important;
 }
 
+/* HTMX request indicator: shown while an hx-request is in flight, hidden otherwise */
+.htmx-indicator {
+    display: none;
+}
+
+.htmx-request .htmx-indicator {
+    display: inline;
+}
+
+.htmx-request .htmx-indicator-hide {
+    display: none;
+}
+
+/* Druckansicht: interaktive Elemente ausblenden, Berichtseiten sauber brechen */
+@media print {
+    .druck-aktionen,
+    .btn-ui,
+    .kopie-button,
+    .kopie-rueckmeldung {
+        display: none !important;
+    }
+    body {
+        background: #fff !important;
+    }
+    .card-box,
+    .befund-karte {
+        box-shadow: none !important;
+        break-inside: avoid;
+    }
+    a {
+        color: inherit !important;
+    }
+}
+
 .hinweis:empty {
     display: none;
 }
