@@ -76,12 +76,14 @@
                 Passen Sie hier die Reihenfolge, Eingabewerte, Prüfungen und Optionen der einzelnen Schritte an.
             </p>
 
-            <div id="schritte-liste" class="schritte-editor-liste" style="display: flex; flex-direction: column; gap: 1rem;">
+            <div id="schritte-liste" class="schritte-editor-liste journey-timeline-rail">
                 <div th:each="step, stat : ${form.steps}"
-                     class="schritt-editor-karte card-box mb-3"
-                     style="background: var(--surface-subtle); border: 1px solid var(--border-subtle); margin-bottom: 0; padding: 1rem 1.25rem;"
+                     class="schritt-editor-karte journey-step-node mb-3"
+                     style="margin-bottom: 0; padding: 1.15rem 1.35rem;"
                      th:id="'step-card-' + ${stat.index}"
                      th:data-index="${stat.index}">
+
+                    <div class="journey-node-bullet" th:text="${stat.index + 1}">1</div>
 
                     <input type="hidden" th:name="'steps[' + ${stat.index} + '].id'" th:value="${step.id}">
                     <input type="hidden" th:name="'steps[' + ${stat.index} + '].ordinal'" th:value="${stat.index}" class="step-ordinal-input">
@@ -169,6 +171,8 @@
             card.dataset.index = newIndex;
             const badge = card.querySelector('.schritt-nummer-badge');
             if (badge) badge.textContent = '#' + (newIndex + 1);
+            const bullet = card.querySelector('.journey-node-bullet');
+            if (bullet) bullet.textContent = newIndex + 1;
 
             const ordinalInput = card.querySelector('.step-ordinal-input');
             if (ordinalInput) ordinalInput.value = newIndex;

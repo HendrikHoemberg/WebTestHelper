@@ -34,7 +34,7 @@
         <div class="kpi-card kennzahl">
             <div class="kpi-eyebrow">
                 <span th:text="#{ui.severity.ERROR}">Fehler</span>
-                <span class="status-dot-pulse" style="background: var(--status-error-dot);"></span>
+                <span class="status-dot-pulse dot-error" style="background: var(--status-error-dot);"></span>
             </div>
             <div class="kpi-number-row">
                 <span class="kpi-value" style="color: var(--status-error-dot);" th:text="${uebersicht.totals.errors()}">0</span>
@@ -45,7 +45,7 @@
         <div class="kpi-card kennzahl">
             <div class="kpi-eyebrow">
                 <span th:text="#{ui.severity.WARN}">Warnungen</span>
-                <span class="status-dot-pulse" style="background: var(--status-warning-dot);"></span>
+                <span class="status-dot-pulse dot-warn" style="background: var(--status-warning-dot);"></span>
             </div>
             <div class="kpi-number-row">
                 <span class="kpi-value" style="color: var(--status-warning-dot);" th:text="${uebersicht.totals.warnings()}">0</span>
@@ -56,7 +56,7 @@
         <div class="kpi-card kennzahl">
             <div class="kpi-eyebrow">
                 <span th:text="#{ui.severity.INFO}">Hinweise</span>
-                <span class="status-dot-pulse" style="background: var(--status-info-dot);"></span>
+                <span class="status-dot-pulse dot-info" style="background: var(--status-info-dot);"></span>
             </div>
             <div class="kpi-number-row">
                 <span class="kpi-value" style="color: var(--status-info-dot);" th:text="${uebersicht.totals.infos()}">0</span>
@@ -67,7 +67,7 @@
         <div class="kpi-card kennzahl">
             <div class="kpi-eyebrow">
                 <span th:text="#{ui.uebersicht.kpi.aktive_laeufe}">Aktive Läufe</span>
-                <span class="status-dot-pulse" style="background: var(--status-success-dot);" th:if="${uebersicht.runsInFlight() > 0}"></span>
+                <span class="status-dot-pulse dot-success" style="background: var(--status-success-dot);" th:if="${uebersicht.runsInFlight() > 0}"></span>
             </div>
             <div class="kpi-number-row">
                 <span class="kpi-value" th:text="${uebersicht.runsInFlight()}">0</span>

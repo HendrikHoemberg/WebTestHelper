@@ -306,8 +306,14 @@ class JourneyControllerTest {
                 .andExpect(content().string(not(containsString("schritt-drift"))));
     }
 
-    /** The step table's {@code <tr>} fragments, in document order. */
+    /** The step items, in document order. */
     private static List<String> stepRows(String html) {
+        if (html.contains("journey-step-node")) {
+            return java.util.Arrays.stream(html.split("journey-step-node"))
+                    .skip(1)
+                    .map(String::trim)
+                    .toList();
+        }
         String tbody = html.substring(html.indexOf("<tbody>"), html.indexOf("</tbody>"));
         return java.util.Arrays.stream(tbody.split("<tr"))
                 .skip(1)
