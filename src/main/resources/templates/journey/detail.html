@@ -32,6 +32,8 @@
         </div>
     </header>
 
+    <div th:replace="~{fragments/site-tabs :: tabs(${site}, 'journeys')}"></div>
+
     <div class="card-box detail-bereich" style="margin-bottom: 1.5rem;">
         <div class="abschnitt-ueberschrift-zeile" style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); margin-bottom: 1rem; padding-bottom: 0.5rem;">
             <h2 style="margin: 0; border: none; padding: 0;" th:text="#{ui.journey.detail.uebersicht}">Übersicht</h2>

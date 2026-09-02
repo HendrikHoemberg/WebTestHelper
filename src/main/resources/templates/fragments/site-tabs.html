@@ -6,6 +6,8 @@
        role="tab" th:text="#{ui.websites.detail.tab.uebersicht}">Übersicht &amp; Feststellungen</a>
     <a th:classappend="${aktiv == 'laeufe'} ? 'aktiv' : ''" th:href="@{/websites/{id}/laeufe(id=${site.siteId})}"
        role="tab" th:text="#{ui.websites.detail.tab.laeufe}">Prüfläufe</a>
+    <a th:classappend="${aktiv == 'journeys'} ? 'aktiv' : ''" th:href="@{/websites/{id}/journeys(id=${site.siteId})}"
+       role="tab" th:text="#{ui.websites.detail.tab.journeys}">Abläufe</a>
     <a th:classappend="${aktiv == 'konfiguration'} ? 'aktiv' : ''" th:href="@{/websites/{id}/konfiguration(id=${site.siteId})}"
        role="tab" th:text="#{ui.websites.detail.tab.konfiguration}">Konfiguration</a>
 </div>

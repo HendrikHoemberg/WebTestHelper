@@ -33,6 +33,8 @@
         </div>
     </header>
 
+    <div th:replace="~{fragments/site-tabs :: tabs(${site}, 'journeys')}"></div>
+
     <div th:if="${errorMessage}" class="detail-bereich warnung-kasten" style="background: var(--status-error-bg); border: 1px solid var(--status-error-border); border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1.5rem;">
         <strong th:text="#{ui.journey.edit.fehler}" style="color: var(--status-error-text);">Fehler beim Speichern</strong>
         <p class="hinweis-text" style="color: var(--status-error-text); margin: 0.25rem 0 0 0;" th:text="${errorMessage}">Fehlermeldung</p>

@@ -39,6 +39,8 @@
         </div>
     </header>
 
+    <div th:replace="~{fragments/site-tabs :: tabs(${site}, 'journeys')}"></div>
+
     <!-- Kapazitätsgrenze erreicht (§13.4) -->
     <div th:if="${capacityExceeded}" class="card-box detail-bereich warnung-kasten" style="background: var(--status-warning-bg); border: 1px solid var(--status-warning-border); padding: 1.5rem;">
         <h2 th:text="#{ui.recorder.kapazitaet.titel}" style="color: var(--status-warning-text); margin-top: 0;">Maximale Anzahl gleichzeitiger Aufzeichnungen erreicht</h2>

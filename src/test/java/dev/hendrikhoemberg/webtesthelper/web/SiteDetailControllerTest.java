@@ -45,6 +45,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
@@ -178,6 +179,7 @@ class SiteDetailControllerTest {
                 .andExpect(content().string(containsString("Offene Feststellungen")))
                 .andExpect(content().string(containsString("Zu allen Feststellungen")))
                 .andExpect(content().string(containsString("/websites/42/laeufe")))
+                .andExpect(content().string(containsString("/websites/42/journeys")))
                 .andExpect(content().string(containsString("/websites/42/konfiguration")))
                 .andExpect(content().string(containsString("Tote Links")))
                 .andExpect(content().string(containsString("Details")))
@@ -213,6 +215,21 @@ class SiteDetailControllerTest {
                 .andExpect(content().string(containsString("Inhalt")))
                 .andExpect(content().string(containsString("Technik")))
                 .andExpect(content().string(containsString("Rechtliches")));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void getUebersichtRendersJourneysTabAndDropsTheSitesRoute() throws Exception {
+        stubCommon();
+
+        String html = mvc.perform(get("/websites/42"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("/sites/42/journeys"))))
+                .andReturn().getResponse().getContentAsString();
+
+        int tabBarStart = html.indexOf("class=\"site-tabs\"");
+        String tabBar = html.substring(tabBarStart, html.indexOf("</div>", tabBarStart));
+        assertThat(tabBar).contains("/websites/42/journeys").contains("Abläufe");
     }
 
     @Test

@@ -34,8 +34,6 @@
         <details class="mehr-menue">
             <summary class="btn-ui btn-ui-secondary button sekundär" th:title="#{ui.websites.detail.mehr}">⋯</summary>
             <div class="mehr-menue-inhalt">
-                <a th:href="@{/websites/{id}/journeys(id=${site.siteId})}" class="btn-ui btn-ui-secondary button sekundär"
-                   th:text="#{ui.websites.detail.journeys}">Benutzerabläufe</a>
                 <form th:action="@{/websites/{id}/einrichtung/neu(id=${site.siteId})}" method="post" class="inline-form">
                     <button type="submit" class="btn-ui btn-ui-secondary button sekundär"
                             th:text="#{ui.websites.detail.einrichtung_erneut}">Automatische Erkennung wiederholen</button>
