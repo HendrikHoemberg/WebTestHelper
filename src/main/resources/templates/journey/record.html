@@ -6,7 +6,7 @@
     <title th:text="${site.name} + ' – ' + #{ui.recorder.titel}">Ablauf aufzeichnen</title>
 </head>
 <body>
-<main>
+<main x-data="{ beendenOffen: false, speichernOffen: false }">
     <header class="page-header-bar seiten-kopf">
         <div>
             <div class="breadcrumbs-trail">
@@ -30,9 +30,9 @@
         </div>
         <div class="header-actions-cluster seiten-kopf-aktionen">
             <div th:unless="${capacityExceeded or startFailed}">
-                <form th:action="@{/recorder/{id}/beenden(id=${sessionId})}" method="post" class="inline-form">
-                    <button type="submit" class="btn-ui btn-ui-danger button sekundär" th:text="#{ui.recorder.beenden}">Aufzeichnung beenden</button>
-                </form>
+                <button type="button" class="btn-ui btn-ui-secondary btn-danger-hover button sekundär"
+                        @click="beendenOffen = true"
+                        th:text="#{ui.recorder.beenden}">Aufzeichnung beenden</button>
             </div>
             <a th:if="${capacityExceeded or startFailed}" th:href="@{/websites/{id}/journeys(id=${site.siteId})}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.recorder.zurueck_reisen}">Zurück zu den Abläufen</a>
             <a th:href="@{/websites/{id}(id=${site.siteId})}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.recorder.zurueck}">Zurück zur Website</a>
@@ -76,13 +76,12 @@
                 <span class="text-gedaempft ml-3" style="font-size: 0.825rem;" th:text="#{ui.recorder.hinweis.timeout}">Inaktive Sitzungen werden nach 15 Minuten automatisch beendet.</span>
             </div>
             <div class="recorder-actions" style="display: flex; align-items: center; gap: 0.5rem;">
-                <form th:action="@{/recorder/{id}/speichern(id=${sessionId})}" method="post" class="inline-form mr-2" style="display: flex; align-items: center; gap: 0.5rem;">
-                    <input type="text" name="name" th:placeholder="#{ui.recorder.speichern.name_platzhalter}" th:value="#{ui.recorder.speichern.standard_name}" required class="form-input eingabe-feld-schmal" style="padding: 0.4rem 0.75rem; font-size: 0.85rem; width: 200px;">
-                    <button type="submit" class="btn-ui btn-ui-primary button primär" th:text="#{ui.recorder.speichern}">Ablauf speichern</button>
-                </form>
-                <form th:action="@{/recorder/{id}/beenden(id=${sessionId})}" method="post" class="inline-form">
-                    <button type="submit" class="btn-ui btn-ui-danger button sekundär" th:text="#{ui.recorder.beenden}">Aufzeichnung beenden</button>
-                </form>
+                <button type="button" class="btn-ui btn-ui-primary button primär"
+                        @click="speichernOffen = true"
+                        th:text="#{ui.recorder.speichern}">Ablauf speichern</button>
+                <button type="button" class="btn-ui btn-ui-secondary btn-danger-hover button sekundär"
+                        @click="beendenOffen = true"
+                        th:text="#{ui.recorder.beenden}">Aufzeichnung beenden</button>
             </div>
         </div>
 
@@ -268,6 +267,57 @@
         window.addEventListener('beforeunload', closeSession);
     });
     </script>
+
+    <!-- Beenden-Modal -->
+    <div th:unless="${capacityExceeded or startFailed}" x-cloak x-show="beendenOffen" @keydown.escape.window="beendenOffen = false" class="wth-modal text-links" style="text-align: left;">
+        <div class="wth-modal-backdrop" @click.self="beendenOffen = false"></div>
+        <div class="wth-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="modal-beenden-titel">
+            <div class="wth-modal-kopf">
+                <h2 id="modal-beenden-titel" class="wth-modal-titel" th:text="#{ui.recorder.beenden.dialog.titel}">Aufzeichnung beenden</h2>
+                <button type="button" class="wth-modal-schliessen" @click="beendenOffen = false"
+                        th:attr="aria-label=#{ui.dialog.schliessen}, title=#{ui.dialog.schliessen}">×</button>
+            </div>
+            <div class="wth-modal-inhalt">
+                <p th:text="#{ui.recorder.beenden.bestaetigung}" style="margin-top: 0; margin-bottom: 1.25rem;">
+                    Möchten Sie die Aufzeichnung wirklich beenden? Nicht gespeicherte Schritte gehen verloren.
+                </p>
+                <form th:action="@{/recorder/{id}/beenden(id=${sessionId})}" method="post" class="inline-form" style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                    <button type="button" @click="beendenOffen = false" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.dialog.abbrechen}">Abbrechen</button>
+                    <button type="submit" class="btn-ui btn-ui-danger button gefahr" th:text="#{ui.recorder.beenden.bestaetigen}">Aufzeichnung verwerfen und beenden</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Speichern-Modal -->
+    <div th:unless="${capacityExceeded or startFailed}" x-cloak x-show="speichernOffen" @keydown.escape.window="speichernOffen = false" class="wth-modal text-links" style="text-align: left;">
+        <div class="wth-modal-backdrop" @click.self="speichernOffen = false"></div>
+        <div class="wth-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="modal-speichern-titel">
+            <div class="wth-modal-kopf">
+                <h2 id="modal-speichern-titel" class="wth-modal-titel" th:text="#{ui.recorder.speichern.dialog.titel}">Ablauf speichern</h2>
+                <button type="button" class="wth-modal-schliessen" @click="speichernOffen = false"
+                        th:attr="aria-label=#{ui.dialog.schliessen}, title=#{ui.dialog.schliessen}">×</button>
+            </div>
+            <div class="wth-modal-inhalt">
+                <p th:text="#{ui.recorder.speichern.dialog.hinweis}" style="margin-top: 0; margin-bottom: 1rem;">
+                    Geben Sie einen Namen für diesen aufgezeichneten Ablauf ein.
+                </p>
+                <form th:action="@{/recorder/{id}/speichern(id=${sessionId})}" method="post">
+                    <div class="form-gruppe" style="margin-bottom: 1.25rem;">
+                        <label for="recorder-journey-name" th:text="#{ui.recorder.speichern.name_label}">Name des Ablaufs</label>
+                        <input type="text" id="recorder-journey-name" name="name"
+                               th:placeholder="#{ui.recorder.speichern.name_platzhalter}"
+                               th:value="#{ui.recorder.speichern.standard_name}" required
+                               class="form-input" style="width: 100%;">
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                        <button type="button" @click="speichernOffen = false" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.dialog.abbrechen}">Abbrechen</button>
+                        <button type="submit" class="btn-ui btn-ui-primary button primär" th:text="#{ui.recorder.speichern.bestaetigen}">Ablauf sichern</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </main>
 </body>
 </html>

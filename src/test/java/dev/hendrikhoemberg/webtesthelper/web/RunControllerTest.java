@@ -493,7 +493,7 @@ class RunControllerTest {
 
     @Test
     @WithMockUser(roles = "USER")
-    void queuedRunDetailRendersTheCancelPanel() throws Exception {
+    void queuedRunDetailRendersTheCancelModal() throws Exception {
         long runId = 110L;
         long siteId = 42L;
         when(runService.summary(runId)).thenReturn(sampleSummary(runId, siteId, RunStatus.QUEUED, false, false, null));
@@ -503,6 +503,11 @@ class RunControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Lauf abbrechen")))
                 .andExpect(content().string(containsString("Jetzt abbrechen")))
+                .andExpect(content().string(containsString("Prüflauf abbrechen")))
+                .andExpect(content().string(containsString("wth-modal")))
+                .andExpect(content().string(containsString("wth-modal-dialog")))
+                .andExpect(content().string(containsString("role=\"dialog\"")))
+                .andExpect(content().string(containsString("aria-labelledby=\"lauf-abbrechen-modal-titel\"")))
                 .andExpect(content().string(containsString("x-data=\"{ offen: false }\"")))
                 .andExpect(result -> {
                     String html = result.getResponse().getContentAsString();

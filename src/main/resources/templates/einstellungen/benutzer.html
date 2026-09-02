@@ -79,7 +79,7 @@
                         </span>
                         <span th:unless="${b.enabled()}" class="status-badge status-inaktiv inaktiv" th:text="#{ui.einstellungen.benutzer.status.inaktiv}">Deaktiviert</span>
                     </td>
-                    <td class="benutzer-aktionen text-rechts">
+                    <td class="benutzer-aktionen text-rechts" x-data="{ passwortOffen: false, loeschenOffen: false, loeschText: '' }">
                         <div style="display: flex; align-items: center; justify-content: flex-end; gap: 0.5rem; flex-wrap: wrap;">
                             <div th:if="${!geschuetzt}">
                                 <form th:if="${b.role().name() == 'ADMIN'}"
@@ -109,33 +109,70 @@
                                 </form>
                             </div>
 
-                            <form th:action="@{/einstellungen/benutzer/{id}(id=${b.id()})}" method="post" class="inline-form" style="display: flex; gap: 0.35rem; align-items: center;">
-                                <input type="hidden" name="aktion" value="passwort">
-                                <input type="password" name="passwort" th:placeholder="#{ui.einstellungen.benutzer.passwort.platzhalter}"
-                                       th:attr="aria-label=#{ui.einstellungen.benutzer.passwort.aria}"
-                                       autocomplete="new-password" class="form-input passwort-eingabe" style="padding: 0.35rem 0.5rem; font-size: 0.8rem; width: 140px;">
-                                <button type="submit" class="btn-ui btn-ui-secondary btn-ui-sm button sekundär klein" th:text="#{ui.einstellungen.benutzer.passwort.setzen}">Passwort setzen</button>
-                            </form>
+                            <button type="button" class="btn-ui btn-ui-secondary btn-ui-sm button sekundär klein"
+                                    @click="passwortOffen = true"
+                                    th:text="#{ui.einstellungen.benutzer.passwort.setzen}">Passwort setzen</button>
 
-                            <div th:if="${!geschuetzt}">
-                                <div x-data="{ offen: false, text: '' }" class="benutzer-loeschen">
-                                    <button type="button" class="btn-ui btn-ui-danger btn-ui-sm button sekundär klein" @click="offen = true"
-                                            th:text="#{ui.einstellungen.benutzer.loeschen}">Löschen</button>
-                                    <form th:action="@{/einstellungen/benutzer/{id}/loeschen(id=${b.id()})}" method="post"
-                                          x-show="offen" style="display: none; margin-top: 0.5rem; padding: 0.5rem; background: var(--status-error-bg); border-radius: 6px;" class="loeschen-bestaetigung">
-                                        <p class="hinweis-text" style="font-size: 0.75rem; color: var(--status-error-text); margin: 0 0 0.35rem 0;" th:text="#{ui.einstellungen.benutzer.loeschen.hinweis}">
-                                            Geben Sie zur Bestätigung „LÖSCHEN" ein.
+                            <button th:if="${!geschuetzt}" type="button" class="btn-ui btn-ui-secondary btn-danger-hover btn-ui-sm button sekundär klein"
+                                    @click="loeschenOffen = true; loeschText = ''"
+                                    th:text="#{ui.einstellungen.benutzer.loeschen}">Löschen</button>
+
+                            <!-- Passwort-Modal -->
+                            <div x-cloak x-show="passwortOffen" @keydown.escape.window="passwortOffen = false" class="wth-modal" style="text-align: left;">
+                                <div class="wth-modal-backdrop" @click.self="passwortOffen = false"></div>
+                                <div class="wth-modal-dialog" role="dialog" aria-modal="true" th:attr="aria-labelledby=${'modal-passwort-titel-' + b.id()}">
+                                    <div class="wth-modal-kopf">
+                                        <h2 th:id="${'modal-passwort-titel-' + b.id()}" class="wth-modal-titel" th:text="#{ui.einstellungen.benutzer.passwort.dialog.titel(${b.username()})}">Neues Passwort setzen</h2>
+                                        <button type="button" class="wth-modal-schliessen" @click="passwortOffen = false"
+                                                th:attr="aria-label=#{ui.dialog.schliessen}, title=#{ui.dialog.schliessen}">×</button>
+                                    </div>
+                                    <div class="wth-modal-inhalt">
+                                        <form th:action="@{/einstellungen/benutzer/{id}(id=${b.id()})}" method="post">
+                                            <input type="hidden" name="aktion" value="passwort">
+                                            <div class="form-gruppe" style="margin-bottom: 1.25rem;">
+                                                <label th:for="${'passwort-' + b.id()}" th:text="#{ui.einstellungen.benutzer.passwort.platzhalter}">Neues Passwort</label>
+                                                <input type="password" th:id="${'passwort-' + b.id()}" name="passwort"
+                                                       th:placeholder="#{ui.einstellungen.benutzer.passwort.platzhalter}"
+                                                       th:attr="aria-label=#{ui.einstellungen.benutzer.passwort.aria}"
+                                                       required autocomplete="new-password" class="form-input" style="width: 100%;">
+                                            </div>
+                                            <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                                                <button type="button" @click="passwortOffen = false" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.dialog.abbrechen}">Abbrechen</button>
+                                                <button type="submit" class="btn-ui btn-ui-primary button primär" th:text="#{ui.einstellungen.benutzer.passwort.speichern}">Passwort speichern</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Dialog Benutzer entfernen -->
+                            <div th:if="${!geschuetzt}" x-cloak x-show="loeschenOffen" @keydown.escape.window="loeschenOffen = false" class="wth-modal" style="text-align: left;">
+                                <div class="wth-modal-backdrop" @click.self="loeschenOffen = false"></div>
+                                <div class="wth-modal-dialog" role="dialog" aria-modal="true" th:attr="aria-labelledby=${'modal-loeschen-benutzer-titel-' + b.id()}">
+                                    <div class="wth-modal-kopf">
+                                        <h2 th:id="${'modal-loeschen-benutzer-titel-' + b.id()}" class="wth-modal-titel" th:text="#{ui.einstellungen.benutzer.loeschen.dialog.titel(${b.username()})}">Benutzer löschen</h2>
+                                        <button type="button" class="wth-modal-schliessen" @click="loeschenOffen = false"
+                                                th:attr="aria-label=#{ui.dialog.schliessen}, title=#{ui.dialog.schliessen}">×</button>
+                                    </div>
+                                    <div class="wth-modal-inhalt">
+                                        <p th:text="#{ui.einstellungen.benutzer.loeschen.hinweis}" style="margin-top: 0; margin-bottom: 1.25rem;">
+                                            Wenn Sie diesen Benutzer jetzt löschen, kann sich diese Person danach nicht mehr anmelden. Geben Sie zur Bestätigung „LÖSCHEN" ein.
                                         </p>
-                                        <div style="display: flex; gap: 0.35rem;">
-                                            <input type="text" x-model="text" name="bestaetigung" class="form-input" style="padding: 0.3rem 0.5rem; font-size: 0.75rem; width: 100px;"
-                                                   th:attr="aria-label=#{ui.einstellungen.benutzer.loeschen.aria}"
-                                                   th:placeholder="#{ui.einstellungen.benutzer.loeschen.bestaetigung}" autocomplete="off">
-                                            <button type="submit" class="btn-ui btn-ui-danger btn-ui-sm button gefährlich"
-                                                    :disabled="text !== $el.dataset.bestaetigung"
-                                                    th:data-bestaetigung="#{ui.einstellungen.benutzer.loeschen.bestaetigung}"
-                                                    th:text="#{ui.einstellungen.benutzer.loeschen.bestaetigen}">Endgültig löschen</button>
-                                        </div>
-                                    </form>
+                                        <form th:action="@{/einstellungen/benutzer/{id}/loeschen(id=${b.id()})}" method="post">
+                                            <div class="form-gruppe" style="margin-bottom: 1.25rem;">
+                                                <input type="text" x-model="loeschText" name="bestaetigung" class="form-input" style="width: 100%;"
+                                                       th:attr="aria-label=#{ui.einstellungen.benutzer.loeschen.aria}"
+                                                       th:placeholder="#{ui.einstellungen.benutzer.loeschen.bestaetigung}" autocomplete="off">
+                                            </div>
+                                            <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                                                <button type="button" @click="loeschenOffen = false" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.dialog.abbrechen}">Abbrechen</button>
+                                                <button type="submit" class="btn-ui btn-ui-danger button gefährlich"
+                                                        :disabled="loeschText !== $el.dataset.bestaetigung"
+                                                        th:data-bestaetigung="#{ui.einstellungen.benutzer.loeschen.bestaetigung}"
+                                                        th:text="#{ui.einstellungen.benutzer.loeschen.bestaetigen}">Endgültig löschen</button>
+                                            </div>
+                                        </form>
+                                    </div>
                                 </div>
                             </div>
                         </div>

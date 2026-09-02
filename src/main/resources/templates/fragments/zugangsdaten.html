@@ -21,7 +21,7 @@
 
     <!-- Case 2: Site has credentials -->
     <ul th:if="${not #lists.isEmpty(credentials)}" class="muster-liste zugangsdaten-liste" style="list-style: none; padding-left: 0; display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1rem;">
-        <li th:each="c : ${credentials}" class="zugangsdaten-zeile" style="padding: 0.85rem 1rem; background: var(--surface-subtle); border: 1px solid var(--border-subtle); border-radius: 8px;">
+        <li th:each="c : ${credentials}" class="zugangsdaten-zeile" x-data="{ loeschenOffen: false }" style="padding: 0.85rem 1rem; background: var(--surface-subtle); border: 1px solid var(--border-subtle); border-radius: 8px;">
             <div class="zugangsdaten-kopf" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem;">
                 <div>
                     <strong class="zugangsdaten-name" style="font-size: 0.95rem; color: var(--text-main);" th:text="${c.name}">login</strong>
@@ -60,9 +60,32 @@
             </form>
 
             <!-- Delete form (ADMIN only) -->
-            <form sec:authorize="hasRole('ADMIN')" th:action="@{/websites/{id}/zugangsdaten/{cid}/loeschen(id=${site.siteId}, cid=${c.id})}" method="post" class="inline-form" style="margin-top: 0.4rem; display: block; text-align: right;">
-                <button type="submit" class="btn-ui btn-ui-danger btn-ui-sm button sekundär klein" th:text="#{ui.websites.detail.zugangsdaten.loeschen}">Löschen</button>
-            </form>
+            <div sec:authorize="hasRole('ADMIN')" style="margin-top: 0.4rem; text-align: right;">
+                <button type="button" class="btn-ui btn-ui-secondary btn-danger-hover btn-ui-sm button sekundär klein"
+                        @click="loeschenOffen = true"
+                        th:text="#{ui.websites.detail.zugangsdaten.loeschen}">Löschen</button>
+
+                <!-- Dialog Zugangsdaten entfernen -->
+                <div x-cloak x-show="loeschenOffen" @keydown.escape.window="loeschenOffen = false" class="wth-modal text-links" style="text-align: left;">
+                    <div class="wth-modal-backdrop" @click.self="loeschenOffen = false"></div>
+                    <div class="wth-modal-dialog" role="dialog" aria-modal="true" th:attr="aria-labelledby=${'modal-loeschen-cred-' + c.id}">
+                        <div class="wth-modal-kopf">
+                            <h2 th:id="${'modal-loeschen-cred-' + c.id}" class="wth-modal-titel" th:text="#{ui.websites.detail.zugangsdaten.loeschen.dialog.titel(${c.name})}">Zugangsdaten löschen</h2>
+                            <button type="button" class="wth-modal-schliessen" @click="loeschenOffen = false"
+                                    th:attr="aria-label=#{ui.dialog.schliessen}, title=#{ui.dialog.schliessen}">×</button>
+                        </div>
+                        <div class="wth-modal-inhalt">
+                            <p th:text="#{ui.websites.detail.zugangsdaten.loeschen.bestaetigung(${c.name})}" style="margin-top: 0; margin-bottom: 1.25rem;">
+                                Möchten Sie die Zugangsdaten wirklich löschen? Abläufe, die diese Zugangsdaten nutzen, schlagen danach möglicherweise fehl.
+                            </p>
+                            <form th:action="@{/websites/{id}/zugangsdaten/{cid}/loeschen(id=${site.siteId}, cid=${c.id})}" method="post" class="inline-form" style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                                <button type="button" @click="loeschenOffen = false" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.dialog.abbrechen}">Abbrechen</button>
+                                <button type="submit" class="btn-ui btn-ui-danger button gefahr" th:text="#{ui.websites.detail.zugangsdaten.loeschen.bestaetigen}">Jetzt löschen</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </li>
     </ul>
 

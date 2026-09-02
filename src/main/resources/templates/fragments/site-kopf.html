@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <body>
-<div th:fragment="kopf(site, trafficLight)" class="page-header-bar seiten-kopf">
+<div th:fragment="kopf(site, trafficLight)" class="page-header-bar seiten-kopf" x-data="{ loeschenOffen: false }">
     <div>
         <div class="breadcrumbs-trail">
             <a th:href="@{/}">WebTestHelper</a>
@@ -40,13 +40,32 @@
                 </form>
                 <a sec:authorize="hasRole('ADMIN')" th:href="@{/websites/{id}/bearbeiten(id=${site.siteId})}"
                    class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.websites.detail.bearbeiten}">Bearbeiten</a>
-                <form sec:authorize="hasRole('ADMIN')" th:action="@{/websites/{id}/loeschen(id=${site.siteId})}" method="post" class="inline-form">
-                    <button type="submit" class="btn-ui btn-ui-danger button link-loeschen"
-                            th:attr="onclick='return confirm(\'' + #{ui.websites.loeschen.bestaetigung} + '\')'"
-                            th:text="#{ui.websites.loeschen}">Löschen</button>
-                </form>
+                <button sec:authorize="hasRole('ADMIN')" type="button" class="btn-ui btn-ui-secondary btn-danger-hover button link-loeschen"
+                        @click="loeschenOffen = true; $el.closest('details').removeAttribute('open')"
+                        th:text="#{ui.websites.loeschen}">Löschen</button>
             </div>
         </details>
+    </div>
+
+    <!-- Löschen-Modal -->
+    <div sec:authorize="hasRole('ADMIN')" x-cloak x-show="loeschenOffen" @keydown.escape.window="loeschenOffen = false" class="wth-modal" style="text-align: left;">
+        <div class="wth-modal-backdrop" @click.self="loeschenOffen = false"></div>
+        <div class="wth-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="modal-kopf-loeschen-titel">
+            <div class="wth-modal-kopf">
+                <h2 id="modal-kopf-loeschen-titel" class="wth-modal-titel" th:text="#{ui.websites.loeschen.dialog.titel(${site.name})}">Website löschen</h2>
+                <button type="button" class="wth-modal-schliessen" @click="loeschenOffen = false"
+                        th:attr="aria-label=#{ui.dialog.schliessen}, title=#{ui.dialog.schliessen}">×</button>
+            </div>
+            <div class="wth-modal-inhalt">
+                <p th:text="#{ui.websites.loeschen.bestaetigung}" style="margin-top: 0; margin-bottom: 1.25rem;">
+                    Möchten Sie diese Website wirklich löschen? Abläufe, Zeitpläne, Zugangsdaten, Empfänger und der gesamte Prüfverlauf werden ebenfalls entfernt.
+                </p>
+                <form th:action="@{/websites/{id}/loeschen(id=${site.siteId})}" method="post" class="inline-form" style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                    <button type="button" @click="loeschenOffen = false" class="btn-ui btn-ui-secondary" th:text="#{ui.dialog.abbrechen}">Abbrechen</button>
+                    <button type="submit" class="btn-ui btn-ui-danger" th:text="#{ui.websites.loeschen.bestaetigen}">Jetzt löschen</button>
+                </form>
+            </div>
+        </div>
     </div>
 </div>
 </body>

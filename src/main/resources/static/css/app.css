@@ -6,30 +6,30 @@
     --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     --font-mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Monaco, Consolas, monospace;
 
-    /* Canvas & Surface Colors (Neutral Zinc / Slate) */
-    --bg-canvas: #f8fafc;
-    --bg-color: #f8fafc;
+    /* Canvas & Surface Colors (Neutral Zinc) */
+    --bg-canvas: #f4f4f5;
+    --bg-color: #f4f4f5;
     --card-bg: #ffffff;
     --surface-card: #ffffff;
     --surface-elevated: #ffffff;
-    --surface-subtle: #f8fafc;
-    --surface-hover: #f1f5f9;
+    --surface-subtle: #fafafa;
+    --surface-hover: #f4f4f5;
 
     /* High-Contrast Monochrome Chrome & Brand */
     --text-main: #09090b;
     --text-color: #09090b;
-    --text-body: #334155;
-    --text-muted: #64748b;
-    --text-faint: #94a3b8;
+    --text-body: #27272a;
+    --text-muted: #71717a;
+    --text-faint: #a1a1aa;
 
-    --border-subtle: #e2e8f0;
-    --border-color: #e2e8f0;
-    --border-strong: #cbd5e1;
-    --border-dark: #1e293b;
+    --border-subtle: #e4e4e7;
+    --border-color: #e4e4e7;
+    --border-strong: #d4d4d8;
+    --border-dark: #27272a;
 
-    --shadow-subtle: 0 1px 2px rgba(15, 23, 42, 0.04);
-    --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.9) inset, 0 1px 3px rgba(15, 23, 42, 0.05), 0 4px 12px -2px rgba(15, 23, 42, 0.03);
-    --shadow-elevated: 0 1px 0 rgba(255, 255, 255, 0.9) inset, 0 6px 16px -2px rgba(15, 23, 42, 0.08), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
+    --shadow-subtle: 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.9) inset, 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 12px -2px rgba(0, 0, 0, 0.03);
+    --shadow-elevated: 0 1px 0 rgba(255, 255, 255, 0.9) inset, 0 6px 16px -2px rgba(0, 0, 0, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
 
     /* Primary Carbon Actions (Pure Black) */
     --primary-color: #09090b;
@@ -38,47 +38,49 @@
     /* Left Sidebar Shell */
     --sidebar-width: 250px;
     --sidebar-bg: #09090b;
-    --sidebar-border: #1e293b;
-    --sidebar-text: #94a3b8;
+    --sidebar-border: #27272a;
+    --sidebar-text: #a1a1aa;
     --sidebar-hover-text: #ffffff;
     --sidebar-active-bg: rgba(255, 255, 255, 0.08);
     --sidebar-active-text: #ffffff;
 
-    /* Option 1: Slate Capsule + Luminous Signal Dots */
-    --status-badge-bg: #f1f5f9;
-    --status-badge-border: #cbd5e1;
-    --status-badge-text: #0f172a;
+    /* Status Capsule + Luminous Signal Dots */
+    --status-badge-bg: #f4f4f5;
+    --status-badge-border: #d4d4d8;
+    --status-badge-text: #18181b;
 
-    --success-color: #0f172a;
-    --success-bg: #f1f5f9;
-    --success-border: #cbd5e1;
+    --success-color: #18181b;
+    --success-bg: #f4f4f5;
+    --success-border: #d4d4d8;
     --status-success-dot: #10b981;
-    --status-success-bg: #f1f5f9;
-    --status-success-border: #cbd5e1;
-    --status-success-text: #0f172a;
+    --status-success-bg: #f4f4f5;
+    --status-success-border: #d4d4d8;
+    --status-success-text: #18181b;
 
-    --danger-color: #0f172a;
-    --danger-bg: #f1f5f9;
-    --danger-border: #cbd5e1;
+    --danger-color: #18181b;
+    --danger-bg: #f4f4f5;
+    --danger-border: #d4d4d8;
+    --danger-solid: #dc2626;
+    --danger-solid-hover: #b91c1c;
     --status-error-dot: #f43f5e;
-    --status-error-bg: #f1f5f9;
-    --status-error-border: #cbd5e1;
-    --status-error-text: #0f172a;
+    --status-error-bg: #f4f4f5;
+    --status-error-border: #d4d4d8;
+    --status-error-text: #18181b;
 
-    --warning-color: #0f172a;
-    --warning-bg: #f1f5f9;
-    --warning-border: #cbd5e1;
+    --warning-color: #18181b;
+    --warning-bg: #f4f4f5;
+    --warning-border: #d4d4d8;
     --status-warning-dot: #f59e0b;
-    --status-warning-bg: #f1f5f9;
-    --status-warning-border: #cbd5e1;
-    --status-warning-text: #0f172a;
+    --status-warning-bg: #f4f4f5;
+    --status-warning-border: #d4d4d8;
+    --status-warning-text: #18181b;
 
-    --info-color: #0f172a;
+    --info-color: #18181b;
     --status-info-dot: #0284c7;
-    --status-info-bg: #f1f5f9;
-    --status-info-border: #cbd5e1;
-    --status-info-text: #0f172a;
-    --status-inactive-dot: #94a3b8;
+    --status-info-bg: #f4f4f5;
+    --status-info-border: #d4d4d8;
+    --status-info-text: #18181b;
+    --status-inactive-dot: #a1a1aa;
 }
 
 *, *::before, *::after {
@@ -451,16 +453,38 @@ body {
 }
 
 .btn-ui-danger,
-.button.gefahr {
-    background-color: var(--status-error-bg);
-    color: var(--status-error-text);
-    border-color: var(--status-error-border);
+.button.gefahr,
+.button.gefährlich {
+    background-color: var(--danger-solid);
+    color: #ffffff;
+    border-color: var(--danger-solid);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .btn-ui-danger:hover,
-.button.gefahr:hover {
-    background-color: #ffe4e6;
-    border-color: #fda4af;
+.button.gefahr:hover,
+.button.gefährlich:hover {
+    background-color: var(--danger-solid-hover);
+    border-color: var(--danger-solid-hover);
+    color: #ffffff;
+}
+
+/* Subtle trigger for delete in table rows / actions: calm neutral by default, red hover */
+.btn-ui-danger-subtle,
+.btn-ui-secondary.btn-danger-hover,
+.link-loeschen {
+    background-color: var(--surface-card);
+    color: var(--text-main);
+    border-color: var(--border-strong);
+}
+
+.btn-ui-danger-subtle:hover,
+.btn-ui-secondary.btn-danger-hover:hover,
+.link-loeschen:hover {
+    background-color: var(--surface-card);
+    border-color: var(--danger-solid);
+    color: var(--danger-solid);
+    box-shadow: 0 0 0 1px var(--danger-solid);
 }
 
 .btn-ui-sm {
@@ -476,16 +500,16 @@ body {
     display: inline-flex;
     align-items: center;
     gap: 0.45rem;
-    padding: 0.225rem 0.65rem;
-    border-radius: 9999px;
-    font-size: 0.75rem;
+    padding: 0;
+    border-radius: 0;
+    font-size: 0.8rem;
     font-weight: 600;
     letter-spacing: 0.01em;
-    line-height: 1;
-    background: var(--status-badge-bg);
-    border: 1px solid var(--status-badge-border);
-    color: var(--status-badge-text);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    line-height: 1.2;
+    background: transparent;
+    border: none;
+    color: var(--text-main);
+    box-shadow: none;
 }
 
 .status-dot-pulse {
@@ -519,9 +543,9 @@ body {
 .badge-healthy,
 .status-aktiv,
 .ampel-gruen {
-    background: var(--status-badge-bg);
-    border: 1px solid var(--status-badge-border);
-    color: var(--status-badge-text);
+    background: transparent;
+    border: none;
+    color: var(--text-main);
 }
 .badge-healthy .status-dot-pulse,
 .status-aktiv .status-dot-pulse,
@@ -529,25 +553,48 @@ body {
     background: var(--status-success-dot);
     box-shadow: 0 0 6px rgba(16, 185, 129, 0.7);
 }
+.status-badge:not(:has(.status-dot-pulse)).badge-healthy::before,
+.status-badge:not(:has(.status-dot-pulse)).status-aktiv::before,
+.status-badge:not(:has(.status-dot-pulse)).ampel-gruen::before {
+    content: '';
+    width: 6.5px;
+    height: 6.5px;
+    border-radius: 50%;
+    background: var(--status-success-dot);
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.7);
+    flex-shrink: 0;
+    display: inline-block;
+}
 
 .badge-failing,
 .ampel-rot {
-    background: var(--status-badge-bg);
-    border: 1px solid var(--status-badge-border);
-    color: var(--status-badge-text);
+    background: transparent;
+    border: none;
+    color: var(--text-main);
 }
 .badge-failing .status-dot-pulse,
 .ampel-rot .status-dot-pulse {
     background: var(--status-error-dot);
     box-shadow: 0 0 6px rgba(244, 63, 94, 0.7);
 }
+.status-badge:not(:has(.status-dot-pulse)).badge-failing::before,
+.status-badge:not(:has(.status-dot-pulse)).ampel-rot::before {
+    content: '';
+    width: 6.5px;
+    height: 6.5px;
+    border-radius: 50%;
+    background: var(--status-error-dot);
+    box-shadow: 0 0 6px rgba(244, 63, 94, 0.7);
+    flex-shrink: 0;
+    display: inline-block;
+}
 
 .badge-warning,
 .ampel-gelb,
 .schritt-drift {
-    background: var(--status-badge-bg);
-    border: 1px solid var(--status-badge-border);
-    color: var(--status-badge-text);
+    background: transparent;
+    border: none;
+    color: var(--text-main);
 }
 .badge-warning .status-dot-pulse,
 .ampel-gelb .status-dot-pulse,
@@ -555,38 +602,148 @@ body {
     background: var(--status-warning-dot);
     box-shadow: 0 0 6px rgba(245, 158, 11, 0.7);
 }
+.status-badge:not(:has(.status-dot-pulse)).badge-warning::before,
+.status-badge:not(:has(.status-dot-pulse)).ampel-gelb::before,
+.status-badge:not(:has(.status-dot-pulse)).schritt-drift::before {
+    content: '';
+    width: 6.5px;
+    height: 6.5px;
+    border-radius: 50%;
+    background: var(--status-warning-dot);
+    box-shadow: 0 0 6px rgba(245, 158, 11, 0.7);
+    flex-shrink: 0;
+    display: inline-block;
+}
 
 .status-inaktiv,
 .ampel-grau,
 .ampel-neu {
-    background: var(--status-badge-bg);
+    background: transparent;
     color: var(--text-muted);
-    border: 1px solid var(--status-badge-border);
+    border: none;
 }
 .status-inaktiv .status-dot-pulse,
 .ampel-grau .status-dot-pulse,
 .ampel-neu .status-dot-pulse {
     background: var(--status-inactive-dot);
 }
+.status-badge:not(:has(.status-dot-pulse)).ampel-grau::before,
+.status-badge:not(:has(.status-dot-pulse)).ampel-neu::before {
+    content: '';
+    width: 6.5px;
+    height: 6.5px;
+    border-radius: 50%;
+    background: var(--status-inactive-dot);
+    flex-shrink: 0;
+    display: inline-block;
+}
+
+/* Option 1B: Ghost Carbon tags for finding / metric counters (e.g. on dashboard cards) */
+.kennzahl-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.22rem 0.55rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.2;
+    background: #ffffff !important;
+    border: 1px solid var(--border-strong) !important;
+    color: var(--text-main) !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    text-decoration: none;
+    transition: all 0.15s ease;
+}
+
+.kennzahl-link:hover {
+    background: var(--surface-hover) !important;
+    border-color: var(--border-dark) !important;
+    color: var(--text-main) !important;
+}
+
+.kennzahl-link.kennzahl-fehler::before {
+    content: '';
+    width: 6.5px;
+    height: 6.5px;
+    border-radius: 50%;
+    background: var(--status-error-dot);
+    box-shadow: 0 0 5px rgba(244, 63, 94, 0.6);
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.kennzahl-link.kennzahl-warnung::before {
+    content: '';
+    width: 6.5px;
+    height: 6.5px;
+    border-radius: 50%;
+    background: var(--status-warning-dot);
+    box-shadow: 0 0 5px rgba(245, 158, 11, 0.6);
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.kennzahl-link.kennzahl-altlast::before,
+.kennzahl-link.kennzahl-hinweis::before {
+    content: '';
+    width: 6.5px;
+    height: 6.5px;
+    border-radius: 50%;
+    background: var(--status-inactive-dot);
+    display: inline-block;
+    flex-shrink: 0;
+}
 
 .badge-prioritaet-dringend {
-    background: #fee2e2;
-    color: #991b1b;
-    border: 1px solid #fca5a5;
-    font-weight: 700;
+    background: var(--surface-subtle);
+    color: var(--text-main);
+    border: 1px solid var(--border-strong);
+    border-radius: 4px;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+.badge-prioritaet-dringend::before {
+    content: "";
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: var(--danger-solid);
 }
 
 .badge-prioritaet-empfohlen {
-    background: #fef3c7;
-    color: #92400e;
-    border: 1px solid #fcd34d;
+    background: var(--surface-subtle);
+    color: var(--text-main);
+    border: 1px solid var(--border-strong);
+    border-radius: 4px;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.75rem;
     font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+.badge-prioritaet-empfohlen::before {
+    content: "";
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #f59e0b;
 }
 
 .badge-prioritaet-niedrig {
-    background: #f1f5f9;
-    color: #475569;
-    border: 1px solid #cbd5e1;
+    background: var(--surface-subtle);
+    color: var(--text-muted);
+    border: 1px solid var(--border-subtle);
+    border-radius: 4px;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.75rem;
     font-weight: 500;
 }
 
@@ -750,7 +907,7 @@ body {
 .capacity-bar-track {
     width: 100%;
     height: 6px;
-    background: #e2e8f0;
+    background: var(--border-subtle);
     border-radius: 9999px;
     overflow: hidden;
     margin-top: 0.6rem;
@@ -870,7 +1027,7 @@ body {
     width: 7px;
     height: 18px;
     border-radius: 3px;
-    background: #e2e8f0;
+    background: var(--border-subtle);
     transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
 }
@@ -1018,7 +1175,17 @@ body {
     text-align: right;
 }
 
-.daten-tabelle .type-pill-mono,
+.daten-tabelle .type-pill-mono {
+    white-space: nowrap;
+    font-family: var(--font-sans);
+    font-size: 0.825rem;
+    font-weight: 500;
+    color: var(--text-body);
+    background: transparent;
+    border: none;
+    padding: 0;
+}
+
 .daten-tabelle .status-badge {
     white-space: nowrap;
 }
@@ -1053,7 +1220,7 @@ body {
     display: inline-flex;
     align-items: center;
     padding: 0.25rem 0.65rem;
-    border-radius: 9999px;
+    border-radius: 6px;
     font-size: 0.8rem;
     font-weight: 500;
     background-color: #f4f4f5;
@@ -1256,7 +1423,7 @@ body {
     align-items: center;
     justify-content: center;
     padding: 2.5rem 1.5rem;
-    background: radial-gradient(ellipse at 50% 30%, #ffffff 0%, #e2e8f0 100%);
+    background: radial-gradient(ellipse at 50% 30%, #ffffff 0%, #e4e4e7 100%);
 }
 
 .anmelde-karte {
@@ -1391,7 +1558,8 @@ body {
     color: var(--text-main);
 }
 
-/* Hilfe-Modal */
+/* Modals (Hilfe-Modal & Allgemeine Dialoge) */
+.wth-modal,
 .wth-hilfe-modal {
     position: fixed;
     inset: 0;
@@ -1400,8 +1568,11 @@ body {
     align-items: center;
     justify-content: center;
     padding: 1.25rem;
+    white-space: normal;
+    text-align: left;
 }
 
+.wth-modal-backdrop,
 .wth-hilfe-modal-backdrop {
     position: absolute;
     inset: 0;
@@ -1410,17 +1581,22 @@ body {
     backdrop-filter: blur(3px);
 }
 
+.wth-modal-dialog,
 .wth-hilfe-modal-dialog {
     position: relative;
     width: min(100%, 34rem);
     max-height: calc(100vh - 2.5rem);
     overflow-y: auto;
+    overflow-x: hidden;
     background: var(--surface-card);
     border: 1px solid var(--border-subtle);
     border-radius: 10px;
     box-shadow: var(--shadow-elevated);
+    white-space: normal;
+    text-align: left;
 }
 
+.wth-modal-kopf,
 .wth-hilfe-modal-kopf {
     display: flex;
     align-items: flex-start;
@@ -1428,16 +1604,25 @@ body {
     gap: 1rem;
     padding: 1rem 1.25rem 0.75rem;
     border-bottom: 1px solid var(--border-subtle);
+    white-space: normal;
+    text-align: left;
 }
 
-.wth-hilfe-modal-titel {
+.wth-modal-titel,
+.wth-hilfe-modal-titel,
+.wth-modal-dialog h2,
+.wth-hilfe-modal-dialog h2 {
     margin: 0;
     font-size: 1.05rem;
     font-weight: 700;
     color: var(--text-main);
     line-height: 1.3;
+    white-space: normal;
+    border-bottom: none;
+    padding-bottom: 0;
 }
 
+.wth-modal-schliessen,
 .wth-hilfe-modal-schliessen {
     flex-shrink: 0;
     width: 1.75rem;
@@ -1452,18 +1637,31 @@ body {
     font-size: 1.15rem;
     line-height: 1;
     cursor: pointer;
+    transition: all 0.15s ease;
 }
 
+.wth-modal-schliessen:hover,
 .wth-hilfe-modal-schliessen:hover {
     border-color: var(--border-strong);
     color: var(--text-main);
+    background: var(--surface-hover);
 }
 
+.wth-modal-inhalt,
 .wth-hilfe-modal-inhalt {
     padding: 1rem 1.25rem 1.25rem;
     color: var(--text-body);
     font-size: 0.9rem;
     line-height: 1.5;
+    white-space: normal;
+    text-align: left;
+    overflow-wrap: break-word;
+}
+
+.wth-modal-inhalt p,
+.wth-hilfe-modal-inhalt p {
+    white-space: normal;
+    text-align: left;
 }
 
 .wth-hilfe-modal-inhalt > :first-child {

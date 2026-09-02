@@ -60,16 +60,34 @@
                         <td class="zell-badge">
                             <span class="type-pill-mono" th:text="${site.settingCount} + ' aktiv'">10</span>
                         </td>
-                        <td class="text-rechts zell-aktion">
+                        <td class="text-rechts zell-aktion" x-data="{ loeschenOffen: false }">
                             <div style="display: flex; align-items: center; justify-content: flex-end; gap: 0.5rem;">
                                 <a th:href="@{/websites/{id}(id=${site.id})}" class="btn-ui btn-ui-secondary btn-ui-sm button-oeffnen" th:text="#{ui.websites.aktionen.oeffnen}">Öffnen →</a>
                                 <a sec:authorize="hasRole('ADMIN')" th:href="@{/websites/{id}/bearbeiten(id=${site.id})}" class="btn-ui btn-ui-secondary btn-ui-sm" th:text="#{ui.websites.aktionen.bearbeiten}">Bearbeiten</a>
-                                <form sec:authorize="hasRole('ADMIN')" th:action="@{/websites/{id}/loeschen(id=${site.id})}" method="post" class="inline-form">
-                                    <button type="submit" class="btn-ui btn-ui-danger btn-ui-sm"
-                                            th:data-confirm="#{ui.websites.loeschen.bestaetigung}"
-                                            onclick="return confirm(this.getAttribute('data-confirm'))"
-                                            th:text="#{ui.websites.loeschen}">Löschen</button>
-                                </form>
+                                <button sec:authorize="hasRole('ADMIN')" type="button" class="btn-ui btn-ui-secondary btn-danger-hover btn-ui-sm"
+                                        @click="loeschenOffen = true"
+                                        th:text="#{ui.websites.loeschen}">Löschen</button>
+                            </div>
+
+                            <!-- Löschen-Modal -->
+                            <div sec:authorize="hasRole('ADMIN')" x-cloak x-show="loeschenOffen" @keydown.escape.window="loeschenOffen = false" class="wth-modal" style="text-align: left;">
+                                <div class="wth-modal-backdrop" @click.self="loeschenOffen = false"></div>
+                                <div class="wth-modal-dialog" role="dialog" aria-modal="true" th:attr="aria-labelledby=${'modal-loeschen-titel-' + site.id}">
+                                    <div class="wth-modal-kopf">
+                                        <h2 th:id="${'modal-loeschen-titel-' + site.id}" class="wth-modal-titel" th:text="#{ui.websites.loeschen.dialog.titel(${site.name})}">Website löschen</h2>
+                                        <button type="button" class="wth-modal-schliessen" @click="loeschenOffen = false"
+                                                th:attr="aria-label=#{ui.dialog.schliessen}, title=#{ui.dialog.schliessen}">×</button>
+                                    </div>
+                                    <div class="wth-modal-inhalt">
+                                        <p th:text="#{ui.websites.loeschen.bestaetigung}" style="margin-top: 0; margin-bottom: 1.25rem;">
+                                            Möchten Sie diese Website wirklich löschen? Abläufe, Zeitpläne, Zugangsdaten, Empfänger und der gesamte Prüfverlauf werden ebenfalls entfernt.
+                                        </p>
+                                        <form th:action="@{/websites/{id}/loeschen(id=${site.id})}" method="post" class="inline-form" style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                                            <button type="button" @click="loeschenOffen = false" class="btn-ui btn-ui-secondary" th:text="#{ui.dialog.abbrechen}">Abbrechen</button>
+                                            <button type="submit" class="btn-ui btn-ui-danger" th:text="#{ui.websites.loeschen.bestaetigen}">Jetzt löschen</button>
+                                        </form>
+                                    </div>
+                                </div>
                             </div>
                         </td>
                     </tr>

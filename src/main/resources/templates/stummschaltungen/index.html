@@ -198,12 +198,31 @@
                             <span th:if="${rule.isExpired(now)}" class="status-badge status-inaktiv abgelaufen" th:text="#{ui.stummschaltungen.status.abgelaufen}">Abgelaufen</span>
                             <span th:if="${!rule.isExpired(now)}" class="status-badge badge-warning aktiv" th:text="#{ui.stummschaltungen.status.aktiv}">Aktiv</span>
                         </td>
-                        <td>
-                            <form th:action="@{/stummschaltungen/{id}/loeschen(id=${rule.id})}" method="post" class="inline-form">
-                                <button type="submit" class="btn-ui btn-ui-danger btn-ui-sm button link-loeschen"
-                                        th:attr="onclick='return confirm(\'' + #{ui.stummschaltungen.loeschen.bestaetigung} + '\')'"
-                                        th:text="#{ui.stummschaltungen.loeschen}">Löschen</button>
-                            </form>
+                        <td x-data="{ loeschenOffen: false }">
+                            <button type="button" class="btn-ui btn-ui-secondary btn-danger-hover btn-ui-sm button link-loeschen"
+                                    @click="loeschenOffen = true"
+                                    th:text="#{ui.stummschaltungen.loeschen}">Löschen</button>
+
+                            <!-- Dialog Stummschaltungsregel entfernen -->
+                            <div x-cloak x-show="loeschenOffen" @keydown.escape.window="loeschenOffen = false" class="wth-modal text-links" style="text-align: left;">
+                                <div class="wth-modal-backdrop" @click.self="loeschenOffen = false"></div>
+                                <div class="wth-modal-dialog" role="dialog" aria-modal="true" th:attr="aria-labelledby=${'modal-loeschen-regel-' + rule.id}">
+                                    <div class="wth-modal-kopf">
+                                        <h2 th:id="${'modal-loeschen-regel-' + rule.id}" class="wth-modal-titel" th:text="#{ui.stummschaltungen.loeschen.dialog.titel}">Stummschaltungsregel löschen</h2>
+                                        <button type="button" class="wth-modal-schliessen" @click="loeschenOffen = false"
+                                                th:attr="aria-label=#{ui.dialog.schliessen}, title=#{ui.dialog.schliessen}">×</button>
+                                    </div>
+                                    <div class="wth-modal-inhalt">
+                                        <p th:text="#{ui.stummschaltungen.loeschen.bestaetigung}" style="margin-top: 0; margin-bottom: 1.25rem;">
+                                            Möchten Sie diese Stummschaltungsregel wirklich löschen? Befunde werden beim nächsten Prüflauf wieder gemeldet.
+                                        </p>
+                                        <form th:action="@{/stummschaltungen/{id}/loeschen(id=${rule.id})}" method="post" class="inline-form" style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                                            <button type="button" @click="loeschenOffen = false" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.dialog.abbrechen}">Abbrechen</button>
+                                            <button type="submit" class="btn-ui btn-ui-danger button gefahr" th:text="#{ui.stummschaltungen.loeschen.bestaetigen}">Jetzt löschen</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
                         </td>
                     </tr>
                 </tbody>

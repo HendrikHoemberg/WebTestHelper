@@ -56,19 +56,32 @@
     </th:block>
 
     <!-- Abbrechen (nur bei wartenden oder laufenden Läufen) -->
-    <section th:if="${run.status.name() == 'QUEUED' or run.status.name() == 'RUNNING'}"
-             x-data="{ offen: false }" @abbrechen-offen.window="offen = true">
-        <div x-show="offen" class="ausgangsbestand-panel" style="display: none; margin-top: 1rem; padding: 1rem; background: var(--status-warning-bg); border: 1px solid var(--status-warning-border); border-radius: 8px;">
-            <p th:text="#{ui.lauf.abbrechen.folge}" style="margin-top: 0; color: var(--status-warning-text); font-size: 0.9rem;">
-                Der Prüflauf wird gestoppt, sobald der laufende Schritt beendet ist...
-            </p>
-            <form th:action="@{/laeufe/{id}/abbrechen(id=${run.id})}" method="post" class="inline-form" style="display: flex; gap: 0.5rem;">
-                <button type="submit" class="btn-ui btn-ui-danger button primär" th:text="#{ui.lauf.abbrechen.bestaetigen}">Jetzt abbrechen</button>
-                <button type="button" @click="offen = false" class="btn-ui btn-ui-secondary button sekundär"
-                        th:text="#{ui.lauf.ausgangsbestand.abbrechen}">Abbrechen</button>
-            </form>
+    <div th:if="${run.status.name() == 'QUEUED' or run.status.name() == 'RUNNING'}"
+         x-data="{ offen: false }"
+         @abbrechen-offen.window="offen = true"
+         @keydown.escape.window="offen = false"
+         x-cloak
+         x-show="offen"
+         class="wth-modal">
+        <div class="wth-modal-backdrop" @click.self="offen = false"></div>
+        <div class="wth-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="lauf-abbrechen-modal-titel">
+            <div class="wth-modal-kopf">
+                <h2 id="lauf-abbrechen-modal-titel" class="wth-modal-titel" th:text="#{ui.lauf.abbrechen.dialog.titel}">Prüflauf abbrechen</h2>
+                <button type="button" class="wth-modal-schliessen" @click="offen = false"
+                        th:attr="aria-label=#{ui.lauf.abbrechen.schliessen}, title=#{ui.lauf.abbrechen.schliessen}">×</button>
+            </div>
+            <div class="wth-modal-inhalt">
+                <p th:text="#{ui.lauf.abbrechen.folge}" style="margin-top: 0; margin-bottom: 1.25rem;">
+                    Der Prüflauf wird gestoppt, sobald der laufende Schritt beendet ist. Bereits geprüfte Seiten bleiben erhalten, Feststellungen dieses Laufs werden nicht gespeichert.
+                </p>
+                <form th:action="@{/laeufe/{id}/abbrechen(id=${run.id})}" method="post" class="inline-form" style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                    <button type="button" @click="offen = false" class="btn-ui btn-ui-secondary button sekundär"
+                            th:text="#{ui.lauf.ausgangsbestand.abbrechen}">Abbrechen</button>
+                    <button type="submit" class="btn-ui btn-ui-danger button primär" th:text="#{ui.lauf.abbrechen.bestaetigen}">Jetzt abbrechen</button>
+                </form>
+            </div>
         </div>
-    </section>
+    </div>
 
     <!-- Übersicht / Metadaten -->
     <section class="card-box detail-bereich">
@@ -137,20 +150,32 @@
         <h2 th:text="#{ui.lauf.ausgangsbestand.titel}">Ausgangsbestand</h2>
         <div th:if="${!run.baselineAccepted}" x-data="{ offen: false }" class="ausgangsbestand-block">
             <div class="ausgangsbestand-zeile" style="display: flex; align-items: center; gap: 0.5rem;">
-                <button type="button" @click="offen = !offen" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.lauf.ausgangsbestand.button}">Als Ausgangsbestand übernehmen</button>
+                <button type="button" @click="offen = true" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.lauf.ausgangsbestand.button}">Als Ausgangsbestand übernehmen</button>
                 <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
                         th:data-hx-get="@{/hilfe/hinweis/{id}(id='ausgangsbestand')}"
                         data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">?</button>
                 <div class="hinweis" aria-live="polite"></div>
             </div>
-            <div x-show="offen" class="ausgangsbestand-panel" style="display: none; margin-top: 1rem; padding: 1rem; background: var(--surface-subtle); border: 1px solid var(--border-subtle); border-radius: 8px;">
-                <p style="margin-top: 0; font-size: 0.9rem;" th:text="#{ui.lauf.ausgangsbestand.folge(${diff != null ? diff.observedTotal() : run.findingsTotal})}">
-                    Hiermit werden alle noch ungeprüften Feststellungen...
-                </p>
-                <form th:action="@{/laeufe/{id}/ausgangsbestand(id=${run.id})}" method="post" class="inline-form" style="display: flex; gap: 0.5rem;">
-                    <button type="submit" class="btn-ui btn-ui-primary button primär" th:text="#{ui.lauf.ausgangsbestand.bestaetigen}">Ausgangsbestand jetzt festlegen</button>
-                    <button type="button" @click="offen = false" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.lauf.ausgangsbestand.abbrechen}">Abbrechen</button>
-                </form>
+
+            <!-- Ausgangsbestand-Modal -->
+            <div x-cloak x-show="offen" @keydown.escape.window="offen = false" class="wth-modal text-links" style="text-align: left;">
+                <div class="wth-modal-backdrop" @click.self="offen = false"></div>
+                <div class="wth-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="modal-ausgangsbestand-titel">
+                    <div class="wth-modal-kopf">
+                        <h2 id="modal-ausgangsbestand-titel" class="wth-modal-titel" th:text="#{ui.lauf.ausgangsbestand.dialog.titel}">Ausgangsbestand festlegen</h2>
+                        <button type="button" class="wth-modal-schliessen" @click="offen = false"
+                                th:attr="aria-label=#{ui.dialog.schliessen}, title=#{ui.dialog.schliessen}">×</button>
+                    </div>
+                    <div class="wth-modal-inhalt">
+                        <p style="margin-top: 0; margin-bottom: 1.25rem;" th:text="#{ui.lauf.ausgangsbestand.folge(${diff != null ? diff.observedTotal() : run.findingsTotal})}">
+                            Hiermit werden alle noch ungeprüften Feststellungen...
+                        </p>
+                        <form th:action="@{/laeufe/{id}/ausgangsbestand(id=${run.id})}" method="post" class="inline-form" style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                            <button type="button" @click="offen = false" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.lauf.ausgangsbestand.abbrechen}">Abbrechen</button>
+                            <button type="submit" class="btn-ui btn-ui-primary button primär" th:text="#{ui.lauf.ausgangsbestand.bestaetigen}">Ausgangsbestand jetzt festlegen</button>
+                        </form>
+                    </div>
+                </div>
             </div>
         </div>
         <div th:if="${run.baselineAccepted}" class="ausgangsbestand-uebernommen" style="display: flex; align-items: center; gap: 0.5rem;">
