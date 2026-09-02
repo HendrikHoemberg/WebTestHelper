@@ -99,7 +99,8 @@ class SiteControllerTest {
         mvc.perform(get("/websites"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("websites/liste"))
-                .andExpect(model().attributeExists("sites"));
+                .andExpect(model().attributeExists("sites"))
+                .andExpect(content().string(containsString("Öffnen →")));
     }
 
     @Test

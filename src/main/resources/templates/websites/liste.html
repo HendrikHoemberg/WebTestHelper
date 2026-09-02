@@ -62,6 +62,7 @@
                         </td>
                         <td class="text-rechts zell-aktion">
                             <div style="display: flex; align-items: center; justify-content: flex-end; gap: 0.5rem;">
+                                <a th:href="@{/websites/{id}(id=${site.id})}" class="btn-ui btn-ui-secondary btn-ui-sm button-oeffnen" th:text="#{ui.websites.aktionen.oeffnen}">Öffnen →</a>
                                 <a sec:authorize="hasRole('ADMIN')" th:href="@{/websites/{id}/bearbeiten(id=${site.id})}" class="btn-ui btn-ui-secondary btn-ui-sm" th:text="#{ui.websites.aktionen.bearbeiten}">Bearbeiten</a>
                                 <form sec:authorize="hasRole('ADMIN')" th:action="@{/websites/{id}/loeschen(id=${site.id})}" method="post" class="inline-form">
                                     <button type="submit" class="btn-ui btn-ui-danger btn-ui-sm"
