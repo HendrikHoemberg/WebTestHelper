@@ -400,41 +400,30 @@ public class PageNavigator {
 
     static final String DISMISS_CONSENT_JS = """
             (() => {
-                const selectors = [
-                    '#onetrust-accept-btn-handler',
-                    '#CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll',
-                    '#CybotCookiebotDialogBodyButtonAccept',
+                const overlays = [
+                    '#onetrust-banner-sdk',
+                    '#CybotCookiebotDialog',
+                    '.cc-window',
+                    '.cookie-banner',
                     '#usercentrics-root',
-                    'button[id*="cookie" i][id*="accept" i]',
-                    'button[class*="cookie" i][class*="accept" i]',
-                    'button[id*="consent" i][id*="accept" i]',
-                    'button[class*="consent" i][class*="accept" i]',
-                    'a[id*="cookie" i][id*="accept" i]',
-                    'button[aria-label*="akzeptieren" i]',
-                    'button[aria-label*="accept" i]',
-                    '.cmpboxbtnok',
-                    '#tar-agree'
+                    '.cmpbox',
+                    '.qc-cmp2-container',
+                    'div[id*="cookie-law" i]',
+                    'div[id*="consent-banner" i]'
                 ];
-                for (const sel of selectors) {
-                    try {
-                        const el = document.querySelector(sel);
-                        if (el) {
-                            if (sel === '#usercentrics-root' && el.shadowRoot) {
-                                const btn = el.shadowRoot.querySelector('button[data-testid="uc-accept-all-button"]');
-                                if (btn) { btn.click(); break; }
-                            }
-                            el.click();
-                            break;
-                        }
-                    } catch (e) {}
-                }
-                const overlays = ['#onetrust-banner-sdk', '#CybotCookiebotDialog', '.cc-window', '.cookie-banner', '#usercentrics-root'];
                 for (const o of overlays) {
                     try {
-                        const el = document.querySelector(o);
-                        if (el) el.style.display = 'none';
+                        const els = document.querySelectorAll(o);
+                        els.forEach(el => el.style.setProperty('display', 'none', 'important'));
                     } catch (e) {}
                 }
+                try {
+                    const uc = document.querySelector('#usercentrics-root');
+                    if (uc && uc.shadowRoot) {
+                        const ucOverlay = uc.shadowRoot.querySelector('#uc-main-dialog, .uc-overlay');
+                        if (ucOverlay) ucOverlay.style.setProperty('display', 'none', 'important');
+                    }
+                } catch (e) {}
             })()
             """;
 

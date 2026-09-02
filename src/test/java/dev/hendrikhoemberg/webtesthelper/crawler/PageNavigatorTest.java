@@ -359,23 +359,26 @@ class PageNavigatorTest {
     }
 
     @Test
-    void dismissConsentBannersClicksAcceptButtonAndHidesOverlays() {
+    void dismissConsentBannersHidesOverlaysWithoutTriggeringButtonClicks() {
         pool.submit(browser -> {
             var page = browser.newPage();
             page.setContent("""
                 <!doctype html>
                 <html>
                 <body>
-                    <div id="onetrust-banner-sdk">
+                    <div id="onetrust-banner-sdk" style="display: block;">
                         <button id="onetrust-accept-btn-handler" onclick="document.body.dataset.accepted = 'true'">Accept</button>
                     </div>
                     <div id="CybotCookiebotDialog" style="display: block;">Cookiebot</div>
+                    <div class="cc-window" style="display: block;">Cookie Consent</div>
                 </body>
                 </html>
             """);
             PageNavigator.dismissConsentBanners(page);
-            assertThat(page.evaluate("document.body.dataset.accepted")).isEqualTo("true");
+            assertThat(page.evaluate("document.getElementById('onetrust-banner-sdk').style.display")).isEqualTo("none");
             assertThat(page.evaluate("document.getElementById('CybotCookiebotDialog').style.display")).isEqualTo("none");
+            assertThat(page.evaluate("document.querySelector('.cc-window').style.display")).isEqualTo("none");
+            assertThat(page.evaluate("document.body.dataset.accepted")).isNull();
             page.close();
             return null;
         });
