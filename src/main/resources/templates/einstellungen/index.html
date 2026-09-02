@@ -121,6 +121,11 @@
                 <input type="text" id="fromAddress" th:field="*{fromAddress}" class="form-input" placeholder="webtesthelper@example.com">
                 <span th:if="${#fields.hasErrors('fromAddress')}" th:errors="*{fromAddress}" class="feld-fehler">Fehler</span>
             </div>
+
+            <div th:if="${smtpConfigured}" class="smtp-test-zeile" style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                <span class="text-gedaempft" style="font-size: 0.85rem;" th:text="#{ui.einstellungen.smtp.test_hinweis}">SMTP-Konfiguration sofort überprüfen:</span>
+                <button type="submit" formaction="/einstellungen/testmail" formmethod="post" class="btn-ui btn-ui-secondary btn-ui-sm button sekundär klein btn-smtp-test" th:text="#{ui.einstellungen.testmail.senden}">Test-E-Mail senden</button>
+            </div>
         </section>
 
         <section class="card-box form-bereich" style="margin-bottom: 1.5rem;">

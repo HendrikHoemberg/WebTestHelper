@@ -324,6 +324,21 @@ class SettingsControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
+    void getSettingsRendersSmtpTestButtonInsideSmtpCard() throws Exception {
+        when(appSettings.smtp()).thenReturn(new SmtpSettings(
+                "smtp.example.com", 587, TlsMode.STARTTLS, "admin", "secret", "alerts@example.com"
+        ));
+        when(appSettings.baseUrl()).thenReturn("https://example.com");
+        when(appSettings.redirectAllMailTo()).thenReturn(Optional.empty());
+
+        mvc.perform(get("/einstellungen"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("btn-smtp-test")))
+                .andExpect(content().string(containsString("Test-E-Mail senden")));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
     void postSettingsWithSchedulingPausedCheckedPersistsTrue() throws Exception {
         mvc.perform(post("/einstellungen")
                         .with(csrf())
