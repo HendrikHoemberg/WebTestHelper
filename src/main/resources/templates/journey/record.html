@@ -16,7 +16,7 @@
                 <span>/</span>
                 <a th:href="@{/websites/{id}(id=${site.siteId})}" th:text="${site.name}">Website</a>
                 <span>/</span>
-                <a th:href="@{/sites/{siteId}/journeys(siteId=${site.siteId})}">Abläufe</a>
+                <a th:href="@{/websites/{siteId}/journeys(siteId=${site.siteId})}">Abläufe</a>
                 <span>/</span>
                 <span th:text="#{ui.recorder.titel}">Aufzeichnen</span>
             </div>
@@ -34,7 +34,7 @@
                     <button type="submit" class="btn-ui btn-ui-danger button sekundär" th:text="#{ui.recorder.beenden}">Aufzeichnung beenden</button>
                 </form>
             </div>
-            <a th:if="${capacityExceeded or startFailed}" th:href="@{/sites/{id}/journeys(id=${site.siteId})}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.recorder.zurueck_reisen}">Zurück zu den Abläufen</a>
+            <a th:if="${capacityExceeded or startFailed}" th:href="@{/websites/{id}/journeys(id=${site.siteId})}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.recorder.zurueck_reisen}">Zurück zu den Abläufen</a>
             <a th:href="@{/websites/{id}(id=${site.siteId})}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.recorder.zurueck}">Zurück zur Website</a>
         </div>
     </header>
@@ -46,7 +46,7 @@
             Maximale Anzahl gleichzeitiger Aufzeichnungssitzungen (2) erreicht. Bitte beenden Sie eine laufende Sitzung oder versuchen Sie es später erneut.
         </p>
         <div class="mt-4" style="margin-top: 1rem; display: flex; gap: 0.5rem;">
-            <a th:href="@{/sites/{id}/journeys(id=${site.siteId})}" class="btn-ui btn-ui-primary button primär" th:text="#{ui.recorder.zurueck_reisen}">Zurück zu den Abläufen</a>
+            <a th:href="@{/websites/{id}/journeys(id=${site.siteId})}" class="btn-ui btn-ui-primary button primär" th:text="#{ui.recorder.zurueck_reisen}">Zurück zu den Abläufen</a>
             <a th:href="@{/websites/{id}(id=${site.siteId})}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.recorder.zurueck}">Zurück zur Website</a>
         </div>
     </div>

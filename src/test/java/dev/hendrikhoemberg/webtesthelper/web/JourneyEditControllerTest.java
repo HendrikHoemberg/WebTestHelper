@@ -100,7 +100,7 @@ class JourneyEditControllerTest {
 
         when(journeyService.findDefinition(10L)).thenReturn(Optional.of(journey));
 
-        mvc.perform(get("/sites/1/journeys/10/bearbeiten"))
+        mvc.perform(get("/websites/1/journeys/10/bearbeiten"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("journey/edit"))
                 .andExpect(model().attributeExists("site", "journey", "form"))
@@ -136,7 +136,7 @@ class JourneyEditControllerTest {
         when(journeyService.findDefinition(10L)).thenReturn(Optional.of(journey));
 
         // Submit form containing s0, s1, s3, s4 (s2 omitted / deleted)
-        mvc.perform(post("/sites/1/journeys/10/bearbeiten")
+        mvc.perform(post("/websites/1/journeys/10/bearbeiten")
                         .with(csrf())
                         .param("name", "5-Schritt-Ablauf")
                         .param("enabled", "true")
@@ -154,7 +154,7 @@ class JourneyEditControllerTest {
                         .param("steps[3].ordinal", "3")
                         .param("steps[3].action", "CLICK"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/sites/1/journeys/10"));
+                .andExpect(redirectedUrl("/websites/1/journeys/10"));
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<JourneyStep>> captor = ArgumentCaptor.forClass(List.class);
@@ -181,7 +181,7 @@ class JourneyEditControllerTest {
         when(journeyService.findDefinition(10L)).thenReturn(Optional.of(journey));
 
         // Submit form swapping order: s1 first (ordinal 0), s0 second (ordinal 1)
-        mvc.perform(post("/sites/1/journeys/10/bearbeiten")
+        mvc.perform(post("/websites/1/journeys/10/bearbeiten")
                         .with(csrf())
                         .param("name", "Reihenfolge-Test")
                         .param("enabled", "true")
@@ -193,7 +193,7 @@ class JourneyEditControllerTest {
                         .param("steps[1].action", "GOTO")
                         .param("steps[1].value", "https://acme.example.com/"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/sites/1/journeys/10"));
+                .andExpect(redirectedUrl("/websites/1/journeys/10"));
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<JourneyStep>> captor = ArgumentCaptor.forClass(List.class);
@@ -217,7 +217,7 @@ class JourneyEditControllerTest {
         JourneyDefinition journey = new JourneyDefinition(10L, 1L, "Passwort-Test", true, List.of(s0, s1));
         when(journeyService.findDefinition(10L)).thenReturn(Optional.of(journey));
 
-        mvc.perform(post("/sites/1/journeys/10/bearbeiten")
+        mvc.perform(post("/websites/1/journeys/10/bearbeiten")
                         .with(csrf())
                         .param("name", "Passwort-Test")
                         .param("enabled", "true")
@@ -230,7 +230,7 @@ class JourneyEditControllerTest {
                         .param("steps[1].action", "FILL")
                         .param("steps[1].value", "{{cred.login.password}}"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/sites/1/journeys/10"));
+                .andExpect(redirectedUrl("/websites/1/journeys/10"));
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<JourneyStep>> captor = ArgumentCaptor.forClass(List.class);
@@ -248,7 +248,7 @@ class JourneyEditControllerTest {
         JourneyDefinition journey = new JourneyDefinition(10L, 1L, "Optional-Test", true, List.of(s0));
         when(journeyService.findDefinition(10L)).thenReturn(Optional.of(journey));
 
-        mvc.perform(post("/sites/1/journeys/10/bearbeiten")
+        mvc.perform(post("/websites/1/journeys/10/bearbeiten")
                         .with(csrf())
                         .param("name", "Optional-Test")
                         .param("enabled", "true")
@@ -258,7 +258,7 @@ class JourneyEditControllerTest {
                         .param("steps[0].value", "https://acme.example.com/")
                         .param("steps[0].optional", "true"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/sites/1/journeys/10"));
+                .andExpect(redirectedUrl("/websites/1/journeys/10"));
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<JourneyStep>> captor = ArgumentCaptor.forClass(List.class);
@@ -284,7 +284,7 @@ class JourneyEditControllerTest {
         JourneyDefinition journey = new JourneyDefinition(10L, 1L, "Assertion-Test", true, List.of(s0, s1, s2, s3));
         when(journeyService.findDefinition(10L)).thenReturn(Optional.of(journey));
 
-        mvc.perform(post("/sites/1/journeys/10/bearbeiten")
+        mvc.perform(post("/websites/1/journeys/10/bearbeiten")
                         .with(csrf())
                         .param("name", "Assertion-Test")
                         .param("enabled", "true")
@@ -313,7 +313,7 @@ class JourneyEditControllerTest {
                         .param("steps[3].assertionType", "COUNT")
                         .param("steps[3].assertionExpected", "3"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/sites/1/journeys/10"));
+                .andExpect(redirectedUrl("/websites/1/journeys/10"));
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<JourneyStep>> captor = ArgumentCaptor.forClass(List.class);
@@ -336,7 +336,7 @@ class JourneyEditControllerTest {
         when(journeyService.findDefinition(10L)).thenReturn(Optional.of(journey));
 
         // Submit with empty assertionType
-        mvc.perform(post("/sites/1/journeys/10/bearbeiten")
+        mvc.perform(post("/websites/1/journeys/10/bearbeiten")
                         .with(csrf())
                         .param("name", "Remove-Assertion")
                         .param("enabled", "true")
@@ -346,7 +346,7 @@ class JourneyEditControllerTest {
                         .param("steps[0].value", "https://acme.example.com/")
                         .param("steps[0].assertionType", ""))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/sites/1/journeys/10"));
+                .andExpect(redirectedUrl("/websites/1/journeys/10"));
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<JourneyStep>> captor = ArgumentCaptor.forClass(List.class);
@@ -366,7 +366,7 @@ class JourneyEditControllerTest {
         doThrow(new IllegalArgumentException("journey.name.duplicate"))
                 .when(journeyService).update(eq(10L), eq("Duplikat"), anyBoolean(), any());
 
-        mvc.perform(post("/sites/1/journeys/10/bearbeiten")
+        mvc.perform(post("/websites/1/journeys/10/bearbeiten")
                         .with(csrf())
                         .param("name", "Duplikat")
                         .param("enabled", "true")
@@ -384,23 +384,23 @@ class JourneyEditControllerTest {
     void editJourney_whenNotFound_orSiteMismatch_returns404() throws Exception {
         when(journeyService.findDefinition(999L)).thenReturn(Optional.empty());
 
-        mvc.perform(get("/sites/1/journeys/999/bearbeiten"))
+        mvc.perform(get("/websites/1/journeys/999/bearbeiten"))
                 .andExpect(status().isNotFound());
 
         JourneyDefinition otherSiteJourney = new JourneyDefinition(10L, 2L, "Fremde Site", true, List.of());
         when(journeyService.findDefinition(10L)).thenReturn(Optional.of(otherSiteJourney));
 
-        mvc.perform(get("/sites/1/journeys/10/bearbeiten"))
+        mvc.perform(get("/websites/1/journeys/10/bearbeiten"))
                 .andExpect(status().isNotFound());
     }
 
     @Test
     void editJourney_unauthenticatedAccess_redirectsToLogin() throws Exception {
-        mvc.perform(get("/sites/1/journeys/10/bearbeiten"))
+        mvc.perform(get("/websites/1/journeys/10/bearbeiten"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/anmelden"));
 
-        mvc.perform(post("/sites/1/journeys/10/bearbeiten").with(csrf()))
+        mvc.perform(post("/websites/1/journeys/10/bearbeiten").with(csrf()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/anmelden"));
     }

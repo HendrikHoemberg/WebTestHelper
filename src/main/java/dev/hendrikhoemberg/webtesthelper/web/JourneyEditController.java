@@ -51,7 +51,7 @@ public class JourneyEditController {
         this.siteService = Objects.requireNonNull(siteService, "siteService must not be null");
     }
 
-    @GetMapping("/sites/{siteId}/journeys/{journeyId}/bearbeiten")
+    @GetMapping("/websites/{siteId}/journeys/{journeyId}/bearbeiten")
     public String editForm(@PathVariable("siteId") long siteId,
                            @PathVariable("journeyId") long journeyId,
                            Model model) {
@@ -67,7 +67,7 @@ public class JourneyEditController {
         return "journey/edit";
     }
 
-    @PostMapping("/sites/{siteId}/journeys/{journeyId}/bearbeiten")
+    @PostMapping("/websites/{siteId}/journeys/{journeyId}/bearbeiten")
     public String updateJourney(@PathVariable("siteId") long siteId,
                                 @PathVariable("journeyId") long journeyId,
                                 @ModelAttribute("form") JourneyEditForm form,
@@ -123,7 +123,7 @@ public class JourneyEditController {
 
         try {
             journeyService.update(journeyId, form.getName(), form.isEnabled(), updatedSteps);
-            return "redirect:/sites/" + siteId + "/journeys/" + journeyId;
+            return "redirect:/websites/" + siteId + "/journeys/" + journeyId;
         } catch (IllegalArgumentException e) {
             model.addAttribute("site", site);
             model.addAttribute("journey", existingJourney);

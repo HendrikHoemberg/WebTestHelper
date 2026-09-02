@@ -149,7 +149,7 @@ class RecorderControllerTest {
                         .with(csrf())
                         .param("siteId", "1"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/sites/1/journeys"));
+                .andExpect(redirectedUrl("/websites/1/journeys"));
 
         verify(sessionRegistry).close(sessionId);
     }
@@ -231,7 +231,7 @@ class RecorderControllerTest {
                         .with(csrf())
                         .param("name", "Mein Ablauf"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/sites/1/journeys/42/bearbeiten"));
+                .andExpect(redirectedUrl("/websites/1/journeys/42/bearbeiten"));
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<JourneyStep>> captor = ArgumentCaptor.forClass(List.class);

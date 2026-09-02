@@ -95,7 +95,7 @@ public class RecorderController {
 
         long siteId = session.siteId();
         sessionRegistry.close(sessionId);
-        return "redirect:/sites/" + siteId + "/journeys";
+        return "redirect:/websites/" + siteId + "/journeys";
     }
 
     @PostMapping("/recorder/{sessionId}/speichern")
@@ -116,6 +116,6 @@ public class RecorderController {
         String effectiveName = (name != null && !name.isBlank()) ? name.trim() : "Neuer Ablauf";
         long journeyId = journeyService.create(siteId, effectiveName, steps);
         sessionRegistry.close(sessionId);
-        return "redirect:/sites/" + siteId + "/journeys/" + journeyId + "/bearbeiten";
+        return "redirect:/websites/" + siteId + "/journeys/" + journeyId + "/bearbeiten";
     }
 }

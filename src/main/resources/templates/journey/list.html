@@ -65,7 +65,7 @@
                 <tbody>
                     <tr th:each="journey : ${journeys}" th:with="health=${healthByJourneyId != null ? healthByJourneyId.get(journey.id) : null}">
                         <td>
-                            <a th:href="@{/sites/{siteId}/journeys/{journeyId}(siteId=${site.siteId}, journeyId=${journey.id})}" th:text="${journey.name}" style="font-weight: 700; font-size: 0.95rem;">Ablauf Name</a>
+                            <a th:href="@{/websites/{siteId}/journeys/{journeyId}(siteId=${site.siteId}, journeyId=${journey.id})}" th:text="${journey.name}" style="font-weight: 700; font-size: 0.95rem;">Ablauf Name</a>
                             <div th:if="${health != null and health.needsRerecording}" class="feld-warnung runder-kasten mt-2" style="background: var(--status-warning-bg); border: 1px solid var(--status-warning-border); border-radius: 6px; padding: 0.5rem 0.75rem; margin-top: 0.5rem;">
                                 <strong th:text="#{ui.journey.health.neuaufzeichnung_erforderlich}" style="color: var(--status-warning-text); font-size: 0.85rem;">Neuaufzeichnung erforderlich</strong>
                                 <p class="hinweis-text" style="font-size: 0.8rem; color: var(--status-warning-text); margin: 0.25rem 0 0 0;" th:text="#{ui.journey.health.neuaufzeichnung_hinweis}">
@@ -93,7 +93,7 @@
                                   th:text="${health != null ? health.consecutiveFailures : 0}">0</span>
                         </td>
                         <td class="text-rechts zell-aktion">
-                            <a th:href="@{/sites/{siteId}/journeys/{journeyId}(siteId=${site.siteId}, journeyId=${journey.id})}" class="btn-ui btn-ui-secondary btn-ui-sm" th:text="#{ui.journey.liste.ansehen}">Ansehen</a>
+                            <a th:href="@{/websites/{siteId}/journeys/{journeyId}(siteId=${site.siteId}, journeyId=${journey.id})}" class="btn-ui btn-ui-secondary btn-ui-sm" th:text="#{ui.journey.liste.ansehen}">Ansehen</a>
                         </td>
                     </tr>
                 </tbody>

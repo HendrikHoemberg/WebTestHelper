@@ -16,7 +16,7 @@
                 <span>/</span>
                 <a th:href="@{/websites/{id}(id=${site.siteId})}" th:text="${site.name}">Website</a>
                 <span>/</span>
-                <a th:href="@{/sites/{siteId}/journeys(siteId=${site.siteId})}">Abläufe</a>
+                <a th:href="@{/websites/{siteId}/journeys(siteId=${site.siteId})}">Abläufe</a>
                 <span>/</span>
                 <span th:text="${journey.name}">Ablauf Name</span>
             </div>
@@ -26,8 +26,8 @@
             </div>
         </div>
         <div class="header-actions-cluster seiten-kopf-aktionen">
-            <a th:href="@{/sites/{siteId}/journeys/{journeyId}/bearbeiten(siteId=${site.siteId},journeyId=${journey.id})}" class="btn-ui btn-ui-primary button primär" th:text="#{ui.journey.detail.bearbeiten}">Ablauf bearbeiten</a>
-            <a th:href="@{/sites/{siteId}/journeys(siteId=${site.siteId})}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.journey.detail.zurueck_liste}">Zurück zur Übersicht</a>
+            <a th:href="@{/websites/{siteId}/journeys/{journeyId}/bearbeiten(siteId=${site.siteId},journeyId=${journey.id})}" class="btn-ui btn-ui-primary button primär" th:text="#{ui.journey.detail.bearbeiten}">Ablauf bearbeiten</a>
+            <a th:href="@{/websites/{siteId}/journeys(siteId=${site.siteId})}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.journey.detail.zurueck_liste}">Zurück zur Übersicht</a>
             <a th:href="@{/websites/{id}(id=${site.siteId})}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.journey.detail.zurueck_website}">Zurück zur Website</a>
         </div>
     </header>

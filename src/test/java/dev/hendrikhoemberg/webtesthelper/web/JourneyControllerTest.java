@@ -89,7 +89,7 @@ class JourneyControllerTest {
                 20L, new JourneyHealth(null, 2, 0)
         ));
 
-        mvc.perform(get("/sites/1/journeys"))
+        mvc.perform(get("/websites/1/journeys"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("journey/list"))
                 .andExpect(model().attributeExists("site", "journeys", "healthByJourneyId"))
@@ -99,8 +99,8 @@ class JourneyControllerTest {
                 .andExpect(content().string(containsString("1")))
                 .andExpect(content().string(containsString("Aktiv")))
                 .andExpect(content().string(containsString("Inaktiv")))
-                .andExpect(content().string(containsString("/sites/1/journeys/10")))
-                .andExpect(content().string(containsString("/sites/1/journeys/20")))
+                .andExpect(content().string(containsString("/websites/1/journeys/10")))
+                .andExpect(content().string(containsString("/websites/1/journeys/20")))
                 // Health info: last success and failure streak
                 .andExpect(content().string(containsString("28.08.2026")))
                 .andExpect(content().string(containsString("Noch nie")))
@@ -122,7 +122,7 @@ class JourneyControllerTest {
                 20L, new JourneyHealth(Instant.parse("2026-08-28T10:00:00Z"), 3, 0)
         ));
 
-        mvc.perform(get("/sites/1/journeys"))
+        mvc.perform(get("/websites/1/journeys"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("journey/list"))
                 .andExpect(model().attributeExists("site", "journeys", "healthByJourneyId"))
@@ -137,7 +137,7 @@ class JourneyControllerTest {
         when(journeyService.findBySite(1L)).thenReturn(List.of());
         when(journeyHealthService.healthBySite(1L)).thenReturn(Map.of());
 
-        mvc.perform(get("/sites/1/journeys"))
+        mvc.perform(get("/websites/1/journeys"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("journey/list"))
                 .andExpect(model().attributeExists("site", "journeys", "healthByJourneyId"))
@@ -180,7 +180,7 @@ class JourneyControllerTest {
         when(journeyService.findDefinition(10L)).thenReturn(Optional.of(journey));
         when(journeyHealthService.health(10L)).thenReturn(Optional.of(new JourneyHealth(Instant.parse("2026-08-28T10:00:00Z"), 3, 2)));
 
-        mvc.perform(get("/sites/1/journeys/10"))
+        mvc.perform(get("/websites/1/journeys/10"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("journey/detail"))
                 .andExpect(model().attributeExists("site", "journey", "health"))
@@ -231,7 +231,7 @@ class JourneyControllerTest {
         when(journeyService.findDefinition(10L)).thenReturn(Optional.of(journey));
         when(journeyHealthService.health(10L)).thenReturn(Optional.of(new JourneyHealth(Instant.parse("2026-08-28T10:00:00Z"), 0, 0)));
 
-        mvc.perform(get("/sites/1/journeys/10"))
+        mvc.perform(get("/websites/1/journeys/10"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("journey/detail"))
                 .andExpect(model().attributeExists("site", "journey", "health"))
@@ -261,7 +261,7 @@ class JourneyControllerTest {
         when(journeyHealthService.health(10L)).thenReturn(Optional.of(new JourneyHealth(
                 Instant.parse("2026-08-28T10:00:00Z"), 1, 4, List.of(driftedStepId))));
 
-        String html = mvc.perform(get("/sites/1/journeys/10"))
+        String html = mvc.perform(get("/websites/1/journeys/10"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Abweichung")))
                 .andReturn().getResponse().getContentAsString();
@@ -289,7 +289,7 @@ class JourneyControllerTest {
         when(journeyHealthService.health(10L)).thenReturn(Optional.of(
                 new JourneyHealth(Instant.parse("2026-08-28T10:00:00Z"), 0, 0, List.of())));
 
-        mvc.perform(get("/sites/1/journeys/10"))
+        mvc.perform(get("/websites/1/journeys/10"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(not(containsString("schritt-drift"))));
     }
@@ -308,7 +308,7 @@ class JourneyControllerTest {
     void detailJourney_whenNotFound_returns404() throws Exception {
         when(journeyService.findDefinition(999L)).thenReturn(Optional.empty());
 
-        mvc.perform(get("/sites/1/journeys/999"))
+        mvc.perform(get("/websites/1/journeys/999"))
                 .andExpect(status().isNotFound());
     }
 
@@ -318,17 +318,17 @@ class JourneyControllerTest {
         JourneyDefinition journey = new JourneyDefinition(10L, 2L, "Fremder Ablauf", true, List.of());
         when(journeyService.findDefinition(10L)).thenReturn(Optional.of(journey));
 
-        mvc.perform(get("/sites/1/journeys/10"))
+        mvc.perform(get("/websites/1/journeys/10"))
                 .andExpect(status().isNotFound());
     }
 
     @Test
     void unauthenticatedAccess_redirectsToLogin() throws Exception {
-        mvc.perform(get("/sites/1/journeys"))
+        mvc.perform(get("/websites/1/journeys"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/anmelden"));
 
-        mvc.perform(get("/sites/1/journeys/10"))
+        mvc.perform(get("/websites/1/journeys/10"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/anmelden"));
     }

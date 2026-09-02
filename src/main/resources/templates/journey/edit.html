@@ -16,9 +16,9 @@
                 <span>/</span>
                 <a th:href="@{/websites/{id}(id=${site.siteId})}" th:text="${site.name}">Website</a>
                 <span>/</span>
-                <a th:href="@{/sites/{siteId}/journeys(siteId=${site.siteId})}">Abläufe</a>
+                <a th:href="@{/websites/{siteId}/journeys(siteId=${site.siteId})}">Abläufe</a>
                 <span>/</span>
-                <a th:href="@{/sites/{siteId}/journeys/{journeyId}(siteId=${site.siteId},journeyId=${journey.id})}" th:text="${journey.name}">Ablauf</a>
+                <a th:href="@{/websites/{siteId}/journeys/{journeyId}(siteId=${site.siteId},journeyId=${journey.id})}" th:text="${journey.name}">Ablauf</a>
                 <span>/</span>
                 <span>Bearbeiten</span>
             </div>
@@ -28,8 +28,8 @@
             </div>
         </div>
         <div class="header-actions-cluster seiten-kopf-aktionen">
-            <a th:href="@{/sites/{siteId}/journeys/{journeyId}(siteId=${site.siteId},journeyId=${journey.id})}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.journey.edit.zurueck_detail}">Zurück zu den Details</a>
-            <a th:href="@{/sites/{siteId}/journeys(siteId=${site.siteId})}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.journey.edit.zurueck_liste}">Zurück zur Übersicht</a>
+            <a th:href="@{/websites/{siteId}/journeys/{journeyId}(siteId=${site.siteId},journeyId=${journey.id})}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.journey.edit.zurueck_detail}">Zurück zu den Details</a>
+            <a th:href="@{/websites/{siteId}/journeys(siteId=${site.siteId})}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.journey.edit.zurueck_liste}">Zurück zur Übersicht</a>
         </div>
     </header>
 
@@ -38,7 +38,7 @@
         <p class="hinweis-text" style="color: var(--status-error-text); margin: 0.25rem 0 0 0;" th:text="${errorMessage}">Fehlermeldung</p>
     </div>
 
-    <form th:action="@{/sites/{siteId}/journeys/{journeyId}/bearbeiten(siteId=${site.siteId},journeyId=${journey.id})}"
+    <form th:action="@{/websites/{siteId}/journeys/{journeyId}/bearbeiten(siteId=${site.siteId},journeyId=${journey.id})}"
           method="post"
           class="formular" style="background: transparent; border: none; padding: 0; max-width: 100%; box-shadow: none;">
 
@@ -155,7 +155,7 @@
 
         <div class="form-aktionen" style="margin-top: 1.5rem;">
             <button type="submit" class="btn-ui btn-ui-primary button primär" th:text="#{ui.journey.edit.speichern}">Änderungen speichern</button>
-            <a th:href="@{/sites/{siteId}/journeys/{journeyId}(siteId=${site.siteId},journeyId=${journey.id})}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.journey.edit.abbrechen}">Abbrechen</a>
+            <a th:href="@{/websites/{siteId}/journeys/{journeyId}(siteId=${site.siteId},journeyId=${journey.id})}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.journey.edit.abbrechen}">Abbrechen</a>
         </div>
     </form>
 
