@@ -567,6 +567,27 @@ class RunControllerTest {
 
     @Test
     @WithMockUser(roles = "USER")
+    void reportViewRendersFullWidthAgencyExportLayout() throws Exception {
+        long runId = 101L;
+        long siteId = 42L;
+        RunSummary summary = sampleSummary(runId, siteId, RunStatus.COMPLETED, false, false, null);
+        SiteContext site = sampleSite(siteId);
+        RunDiff diff = new RunDiff(runId, Map.of());
+
+        when(runService.summary(runId)).thenReturn(summary);
+        when(siteService.contextFor(siteId)).thenReturn(site);
+        when(findingService.diffForReport(siteId, runId)).thenReturn(diff);
+        when(findingViewFactory.of(any(RunDiff.class), any(Locale.class))).thenReturn(Map.of());
+
+        mvc.perform(get("/laeufe/" + runId + "/bericht"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("class=\"druck-ansicht\"")))
+                .andExpect(content().string(containsString("display: block")))
+                .andExpect(content().string(containsString("Mängelliste für den Webmaster")));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
     void berichtForRunningRunRedirectsBackToDetail() throws Exception {
         long runId = 105L;
         long siteId = 42L;

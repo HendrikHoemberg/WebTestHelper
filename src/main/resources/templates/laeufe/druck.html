@@ -6,29 +6,46 @@
     <title th:text="#{ui.lauf.bericht.titel(${run.id})}">Bericht Prüflauf</title>
     <link rel="stylesheet" href="/css/app.css">
 </head>
-<body style="background: #fff; padding: 2rem; max-width: 900px; margin: 0 auto;">
-    <div class="druck-aktionen" style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-bottom: 1.5rem;">
-        <a th:href="@{/laeufe/{id}(id=${run.id})}" class="btn-ui btn-ui-secondary" th:text="#{ui.lauf.bericht.zurueck}">Zurück</a>
-        <button type="button" class="btn-ui btn-ui-primary" onclick="window.print()" th:text="#{ui.lauf.bericht.drucken}">Drucken</button>
+<body class="druck-ansicht" style="display: block; background: #fff; padding: 2rem; max-width: 960px; margin: 0 auto; color: #111;">
+    <style>
+        body.druck-ansicht { display: block !important; }
+        @media print {
+            .druck-aktionen { display: none !important; }
+            body.druck-ansicht { padding: 0 !important; max-width: 100% !important; }
+            .befund-karte-druck { page-break-inside: avoid; border-bottom: 1px solid #ddd; padding: 1rem 0; }
+        }
+    </style>
+    <div class="druck-aktionen" style="display: flex; gap: 0.5rem; justify-content: space-between; align-items: center; margin-bottom: 2rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 1rem;">
+        <a th:href="@{/laeufe/{id}(id=${run.id})}" class="btn-ui btn-ui-secondary" th:text="#{ui.lauf.bericht.zurueck}">Zurück zum Prüflauf</a>
+        <button type="button" class="btn-ui btn-ui-primary" onclick="window.print()" th:text="#{ui.lauf.bericht.drucken}">Bericht drucken / Als PDF speichern</button>
     </div>
 
     <header style="margin-bottom: 2rem;">
-        <h1 style="margin: 0 0 0.5rem; font-size: 1.6rem;" th:text="#{ui.lauf.bericht.titel(${run.id})}">Bericht Prüflauf #101</h1>
-        <p style="margin: 0; color: #555;">
+        <div style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; font-weight: 700; margin-bottom: 0.25rem;" th:text="#{ui.lauf.bericht.agentur_untertitel}">Mängelliste für den Webmaster / die betreuende Agentur</div>
+        <h1 style="margin: 0 0 0.5rem; font-size: 1.75rem; color: #111827;" th:text="#{ui.lauf.bericht.agentur_titel(${site.name})}">Prüfbericht für Website</h1>
+        <p style="margin: 0; color: #4b5563;">
             <strong th:text="${site.name}">Website</strong>
             <span style="margin: 0 0.35rem;">·</span>
-            <span style="font-family: var(--font-mono); font-size: 0.85rem;" th:text="${site.baseUrl.value}">https://example.com/</span>
+            <span style="font-family: var(--font-mono); font-size: 0.9rem;" th:text="${site.baseUrl.value}">https://example.com/</span>
+            <span style="margin: 0 0.35rem;">·</span>
+            <span th:text="#{ui.lauf.bericht.lauf_nummer(${run.id})}">Lauf #101</span>
         </p>
-        <p th:if="${run.finishedAt != null}" style="margin: 0.25rem 0 0; color: #555; font-variant-numeric: tabular-nums;"
+        <p th:if="${run.finishedAt != null}" style="margin: 0.35rem 0 0; color: #6b7280; font-size: 0.85rem; font-variant-numeric: tabular-nums;"
            th:text="#{ui.lauf.bericht.stand(${#temporals.format(run.finishedAt, 'dd.MM.yyyy HH:mm')})}">Stand: 25.08.2026 12:00</p>
     </header>
 
-    <p th:if="${#maps.isEmpty(sections)}" style="color: #666;" th:text="#{ui.lauf.keine_befunde}">Keine Feststellungen in diesem Prüflauf.</p>
+    <div class="card-box" style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 2rem;">
+        <p style="margin: 0; font-size: 0.9rem; color: #374151;" th:text="#{ui.lauf.bericht.hinweis_agentur}">
+            Dieses Dokument enthält alle festgestellten technischen Mängel mit konkreter Fundstelle und Behebungshinweisen für das Entwicklungs- oder Redaktionsteam.
+        </p>
+    </div>
 
-    <div th:each="entry : ${sections}" th:if="${not #lists.isEmpty(entry.value)}" style="margin-bottom: 2rem;">
-        <h2 style="font-size: 1.15rem; border-bottom: 2px solid #111; padding-bottom: 0.35rem;"
+    <p th:if="${#maps.isEmpty(sections)}" style="color: #4b5563;" th:text="#{ui.lauf.keine_befunde}">Keine Feststellungen in diesem Prüflauf.</p>
+
+    <div th:each="entry : ${sections}" th:if="${not #lists.isEmpty(entry.value)}" style="margin-bottom: 2.5rem;">
+        <h2 style="font-size: 1.2rem; border-bottom: 2px solid #111827; padding-bottom: 0.4rem; margin-bottom: 1rem;"
             th:text="#{${'ui.reportsection.' + entry.key}} + ' (' + ${#lists.size(entry.value)} + ')'">Neu aufgetreten (2)</h2>
-        <div th:each="befundItem : ${entry.value}">
+        <div th:each="befundItem : ${entry.value}" class="befund-karte-druck" style="margin-bottom: 1rem;">
             <div th:replace="~{fragments/befundzeile :: befundzeile(${befundItem}, false)}"></div>
         </div>
     </div>
