@@ -150,12 +150,12 @@ class DashboardAcceptanceTest extends AbstractPostgresTest {
         }
         assertThat(context.enabled(CheckType.SITEMAP_CONSISTENCY)).isTrue();
 
-        // 4. GET / — the new site's tile is GELB (nothing has finished yet), with no finding counts.
+        // 4. GET / — the new site's tile is NEU (nothing has finished yet), with no finding counts.
         String dashboard = mvc.perform(get("/"))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         assertThat(dashboard).contains(SITE_NAME);
-        assertThat(dashboard).contains("ampel-gelb");
+        assertThat(dashboard).contains("ampel-neu");
         assertThat(dashboard).doesNotContain("kennzahl-link");
 
         // 5. Seed a COMPLETED run and one UNTRIAGED ERROR finding; the polled tile grid shows ROT
