@@ -29,6 +29,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -320,6 +322,35 @@ class SettingsControllerTest {
 
         verify(outboxService).enqueue(mail);
         verify(outboxService).sendNow(100L);
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void postTestMailWithFormInputsPersistsSettingsBeforeSending() throws Exception {
+        when(appSettings.smtp()).thenReturn(new SmtpSettings(
+                "old.example.com", 25, TlsMode.NONE, "olduser", "oldpass", "old@example.com"
+        ));
+        when(appSettings.baseUrl()).thenReturn("https://example.com");
+        OutboundMail mail = new OutboundMail("new@example.com", "Test Subject", "<p>HTML</p>", "Text");
+        when(mailRenderer.testMail(eq("new@example.com"), any())).thenReturn(mail);
+        when(outboxService.enqueue(mail)).thenReturn(101L);
+        when(outboxService.sendNow(101L)).thenReturn(DeliveryResult.successful());
+
+        mvc.perform(post("/einstellungen/testmail")
+                        .with(csrf())
+                        .param("host", "smtp.newhost.com")
+                        .param("port", "587")
+                        .param("tls", "STARTTLS")
+                        .param("username", "newuser")
+                        .param("password", "newsecret")
+                        .param("fromAddress", "new@example.com")
+                        .param("baseUrl", "https://example.com"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/einstellungen"))
+                .andExpect(flash().attribute("testmailErfolg", true));
+
+        verify(appSettings).saveSmtp(argThat(s ->
+                "smtp.newhost.com".equals(s.host()) && "new@example.com".equals(s.fromAddress())));
     }
 
     @Test

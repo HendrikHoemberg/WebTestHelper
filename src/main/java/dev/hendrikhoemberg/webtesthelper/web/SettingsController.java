@@ -139,8 +139,32 @@ public class SettingsController {
     }
 
     @PostMapping("/testmail")
-    public String sendTestMail(RedirectAttributes redirectAttributes) {
-        SmtpSettings smtp = appSettings.smtp();
+    public String sendTestMail(@ModelAttribute("form") SettingsForm form,
+                               RedirectAttributes redirectAttributes) {
+        SmtpSettings smtp = null;
+        if (form != null && form.getHost() != null && !form.getHost().isBlank()) {
+            String password = form.getPassword();
+            if (password == null || password.isBlank()) {
+                SmtpSettings currentSmtp = appSettings.smtp();
+                password = (currentSmtp != null) ? currentSmtp.password() : null;
+            }
+            smtp = new SmtpSettings(
+                    form.getHost().strip(),
+                    form.getPort(),
+                    form.getTls() != null ? form.getTls() : TlsMode.STARTTLS,
+                    form.getUsername() != null ? form.getUsername().strip() : null,
+                    password,
+                    form.getFromAddress() != null ? form.getFromAddress().strip() : null
+            );
+            appSettings.saveSmtp(smtp);
+            if (form.getBaseUrl() != null && !form.getBaseUrl().isBlank()) {
+                appSettings.saveBaseUrl(form.getBaseUrl());
+            }
+        }
+
+        if (smtp == null) {
+            smtp = appSettings.smtp();
+        }
         if (smtp == null || !smtp.configured()) {
             redirectAttributes.addFlashAttribute("testmailFehler", "Der SMTP-Server ist nicht konfiguriert.");
             return "redirect:/einstellungen";
@@ -152,10 +176,10 @@ public class SettingsController {
         long id = outboxService.enqueue(mail);
         DeliveryResult result = outboxService.sendNow(id);
 
-        if (result.success()) {
+        if (result != null && result.success()) {
             redirectAttributes.addFlashAttribute("testmailErfolg", true);
         } else {
-            redirectAttributes.addFlashAttribute("testmailFehler", result.error());
+            redirectAttributes.addFlashAttribute("testmailFehler", result != null ? result.error() : "Versand fehlgeschlagen");
         }
 
         return "redirect:/einstellungen";
