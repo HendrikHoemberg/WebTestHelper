@@ -9,14 +9,31 @@
     <div th:replace="~{fragments/site-kopf :: kopf(${site}, ${trafficLight})}"></div>
     <div th:replace="~{fragments/site-tabs :: tabs(${site}, 'uebersicht')}"></div>
 
+    <div th:if="${lastRun == null}" class="card-box erste-pruefung-karte"
+         style="text-align: center; padding: 2.5rem 1.5rem; margin-bottom: 1.5rem; background: var(--surface-subtle); border: 2px dashed var(--border-subtle); border-radius: 12px;">
+        <h2 style="margin-top: 0; font-size: 1.35rem;" th:text="#{ui.websites.detail.leer.titel}">Website bereit für den ersten Prüflauf</h2>
+        <p class="hinweis-text" style="color: var(--text-muted); max-width: 540px; margin: 0 auto 1.5rem; font-size: 0.95rem;"
+           th:text="#{ui.websites.detail.leer.text}">
+            Starten Sie die erste Untersuchung. WebTestHelper prüft alle erreichbaren Seiten, Formulare und Medien und legt Ihren Ausgangsbestand fest.
+        </p>
+        <form th:action="@{/websites/{id}/pruefen(id=${site.siteId})}" method="post" class="inline-form">
+            <button type="submit" class="btn-ui btn-ui-primary button primär" style="font-size: 1rem; padding: 0.65rem 1.5rem;">
+                <span th:replace="~{fragments/icons :: play}"></span>
+                <span th:text="#{ui.websites.detail.leer.cta}">Erste Prüfung starten</span>
+            </button>
+        </form>
+    </div>
+
     <div class="uebersicht-kacheln" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
         <section class="card-box detail-bereich">
             <h2 style="margin-top: 0;" th:text="#{ui.websites.detail.status.offene}">Offene Feststellungen</h2>
             <p style="font-size: 1.4rem; font-weight: 700; margin: 0 0 0.5rem;">
-                <span th:text="${openCounts.errors()}">0</span> <span th:text="#{ui.websites.detail.status.fehler}">Fehler</span>
+                <span th:text="${openCounts.untriagedErrors()}">0</span> <span th:text="#{ui.websites.detail.status.fehler}">Fehler</span>
                 &middot;
-                <span th:text="${openCounts.warnings()}">0</span> <span th:text="#{ui.websites.detail.status.hinweise}">Hinweise</span>
+                <span th:text="${openCounts.untriagedWarnings()}">0</span> <span th:text="#{ui.websites.detail.status.hinweise}">Hinweise</span>
             </p>
+            <p th:if="${openCounts.acknowledged() > 0}" class="text-gedaempft" style="font-size: 0.85rem; margin: 0 0 0.5rem;"
+               th:text="#{ui.uebersicht.altlasten(${openCounts.acknowledged()})}">40 im Ausgangsbestand</p>
             <a th:href="@{/websites/{id}/befunde(id=${site.siteId})}" class="btn-ui btn-ui-secondary btn-ui-sm button sekundär klein"
                th:text="#{ui.websites.detail.status.alle}">Zu allen Feststellungen &rarr;</a>
         </section>

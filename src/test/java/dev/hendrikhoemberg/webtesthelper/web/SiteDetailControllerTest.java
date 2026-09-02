@@ -286,4 +286,17 @@ class SiteDetailControllerTest {
         mvc.perform(post("/websites/999/pruefen").with(csrf()))
                 .andExpect(status().isNotFound());
     }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void uninspectedSiteRendersProminentFirstRunCallToAction() throws Exception {
+        stubCommon();
+        when(runService.recentForSite(42L, 1)).thenReturn(List.of());
+
+        mvc.perform(get("/websites/42"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("erste-pruefung-karte")))
+                .andExpect(content().string(containsString("Erste Prüfung starten")))
+                .andExpect(content().string(containsString("/websites/42/pruefen")));
+    }
 }
