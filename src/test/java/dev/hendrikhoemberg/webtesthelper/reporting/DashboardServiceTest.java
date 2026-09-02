@@ -87,7 +87,7 @@ class DashboardServiceTest {
                 schedule(1, 10L, "0 0 3 * * *", Instant.parse("2026-08-26T10:00:00Z")));
 
         SiteTile beta = tileById(view, 2);
-        assertThat(beta.light()).isEqualTo(TrafficLight.GELB);
+        assertThat(beta.light()).isEqualTo(TrafficLight.NEU);
         assertThat(beta.lastRun()).isNull();
         assertThat(beta.counts()).isEqualTo(OpenFindingCounts.none());
         assertThat(beta.nextRun()).isNull();

@@ -557,13 +557,15 @@ body {
 }
 
 .status-inaktiv,
-.ampel-grau {
+.ampel-grau,
+.ampel-neu {
     background: var(--status-badge-bg);
     color: var(--text-muted);
     border: 1px solid var(--status-badge-border);
 }
 .status-inaktiv .status-dot-pulse,
-.ampel-grau .status-dot-pulse {
+.ampel-grau .status-dot-pulse,
+.ampel-neu .status-dot-pulse {
     background: var(--status-inactive-dot);
 }
 

@@ -13,13 +13,16 @@ import dev.hendrikhoemberg.webtesthelper.runner.LastRun;
  * red about (D62).
  */
 public enum TrafficLight {
-    GRUEN, GELB, ROT, GRAU;
+    GRUEN, GELB, ROT, GRAU, NEU;
 
     public static TrafficLight of(boolean siteEnabled, LastRun lastRun, OpenFindingCounts counts) {
         if (!siteEnabled) {
             return GRAU;
         }
-        if (lastRun != null && lastRun.status() == RunStatus.FAILED) {
+        if (lastRun == null) {
+            return NEU;
+        }
+        if (lastRun.status() == RunStatus.FAILED) {
             return ROT;
         }
         if (counts.errors() > 0) {
@@ -28,10 +31,7 @@ public enum TrafficLight {
         if (counts.warnings() > 0) {
             return GELB;
         }
-        if (lastRun != null && lastRun.partialCoverage()) {
-            return GELB;
-        }
-        if (lastRun == null) {
+        if (lastRun.partialCoverage()) {
             return GELB;
         }
         return GRUEN;
