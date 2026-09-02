@@ -229,7 +229,27 @@ class DashboardControllerTest {
                 .andExpect(content().string(containsString("in 2 Minuten")));
     }
 
+    @Test
+    @WithMockUser(roles = "USER")
+    void dashboardTileRendersTriageFilterParametersAndUntriagedWarnings() throws Exception {
+        OpenFindingCounts counts = new OpenFindingCounts(5, 3, 0, 2, 2, 0, 6);
+        // untriagedErrors: 2, untriagedWarnings: 0, acknowledged: 6
+        SiteTile tile = new SiteTile(1L, "Alpha", "https://alpha.example.com/", true, TrafficLight.GRUEN,
+                new LastRun(1L, 11L, RunStatus.COMPLETED, Instant.parse("2026-08-26T09:00:00Z"), false),
+                counts, null);
+        DashboardView view = new DashboardView(List.of(tile), counts, 1, null, false,
+                new SystemCapacity(2, 0, 4, 0, Duration.ofSeconds(30), 0));
+        when(dashboardService.overview()).thenReturn(view);
+
+        mvc.perform(get("/"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("triageStatuses=UNTRIAGED")))
+                .andExpect(content().string(containsString("triageStatuses=ACKNOWLEDGED")))
+                .andExpect(content().string(not(containsString("kennzahl-warnung"))));
+    }
+
     // One enabled tile whose next occurrence lands `sekundenBisNaechsterLauf` seconds after the
+
     // test runs — mid-bucket values (90 s -> 1 minute, 150 s -> 2 minutes) so the displayed unit
     // can't shift across a boundary during the sub-second request.
     private DashboardView einzelView(long sekundenBisNaechsterLauf) {

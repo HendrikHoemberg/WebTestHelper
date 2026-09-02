@@ -54,17 +54,17 @@
 
         <div th:if="${tile.enabled}" class="kachel-kennzahlen" style="padding: 0 1.25rem 0.75rem;">
             <a th:if="${tile.counts.untriagedErrors() > 0}" class="kennzahl-link kennzahl-fehler status-badge badge-failing"
-               th:href="@{/websites/{id}/befunde(id=${tile.siteId}, severities='ERROR')}"
+               th:href="@{/websites/{id}/befunde(id=${tile.siteId}, severities='ERROR', triageStatuses='UNTRIAGED')}"
                th:text="#{ui.uebersicht.fehler(${tile.counts.untriagedErrors()})}">3 Fehler</a>
             <a th:if="${tile.counts.acknowledged() > 0}" class="kennzahl-link kennzahl-altlast status-badge status-inaktiv"
-               th:href="@{/websites/{id}/befunde(id=${tile.siteId})}"
+               th:href="@{/websites/{id}/befunde(id=${tile.siteId}, triageStatuses='ACKNOWLEDGED')}"
                th:text="#{ui.uebersicht.altlasten(${tile.counts.acknowledged()})}">40 im Ausgangsbestand</a>
-            <a th:if="${tile.counts.warnings() > 0}" class="kennzahl-link kennzahl-warnung status-badge badge-warning"
-               th:href="@{/websites/{id}/befunde(id=${tile.siteId}, severities='WARN')}">
-                <span th:if="${tile.counts.warnings() == 1}"
+            <a th:if="${tile.counts.untriagedWarnings() > 0}" class="kennzahl-link kennzahl-warnung status-badge badge-warning"
+               th:href="@{/websites/{id}/befunde(id=${tile.siteId}, severities='WARN', triageStatuses='UNTRIAGED')}">
+                <span th:if="${tile.counts.untriagedWarnings() == 1}"
                       th:text="#{ui.uebersicht.warnung.einzahl}">1 Warnung</span>
-                <span th:if="${tile.counts.warnings() != 1}"
-                      th:text="#{ui.uebersicht.warnung.mehrzahl(${tile.counts.warnings()})}">2 Warnungen</span>
+                <span th:if="${tile.counts.untriagedWarnings() != 1}"
+                      th:text="#{ui.uebersicht.warnung.mehrzahl(${tile.counts.untriagedWarnings()})}">2 Warnungen</span>
             </a>
             <a th:if="${tile.counts.infos() > 0}" class="kennzahl-link kennzahl-hinweis status-badge status-inaktiv"
                th:href="@{/websites/{id}/befunde(id=${tile.siteId}, severities='INFO')}">
