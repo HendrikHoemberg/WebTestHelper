@@ -72,6 +72,19 @@ class FindingViewFactoryTest {
     }
 
     @Test
+    void smartPriorityClassifiesErrorsAndSitewideAsDringendWarningsAsEmpfohlenInfosAsNiedrig() {
+        FindingView errorView = new FindingView(1L, "Titel", "Meldung", "Abhilfe", "/a", false, 1, Severity.ERROR, TriageStatus.UNTRIAGED);
+        FindingView siteWideWarnView = new FindingView(2L, "Titel", "Meldung", "Abhilfe", "alle", true, 5, Severity.WARN, TriageStatus.UNTRIAGED);
+        FindingView warnView = new FindingView(3L, "Titel", "Meldung", "Abhilfe", "/b", false, 1, Severity.WARN, TriageStatus.UNTRIAGED);
+        FindingView infoView = new FindingView(4L, "Titel", "Meldung", "Abhilfe", "/c", false, 1, Severity.INFO, TriageStatus.UNTRIAGED);
+
+        assertThat(errorView.smartPriority()).isEqualTo(SmartPriority.DRINGEND);
+        assertThat(siteWideWarnView.smartPriority()).isEqualTo(SmartPriority.DRINGEND);
+        assertThat(warnView.smartPriority()).isEqualTo(SmartPriority.EMPFOHLEN);
+        assertThat(infoView.smartPriority()).isEqualTo(SmartPriority.NIEDRIG);
+    }
+
+    @Test
     void siteWideFindingGetsFormattedLocationTextAndSiteWideTrue() {
         Finding finding = new Finding(
                 2L, 42L, "fp-2",

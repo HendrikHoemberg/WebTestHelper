@@ -37,4 +37,14 @@ public record FindingView(
     ) {
         this(id, title, message, remediation, locationText, siteWide, pageCount, severity, triage, null, null, null, null);
     }
+
+    public SmartPriority smartPriority() {
+        if (severity == Severity.ERROR || siteWide) {
+            return SmartPriority.DRINGEND;
+        }
+        if (severity == Severity.WARN) {
+            return SmartPriority.EMPFOHLEN;
+        }
+        return SmartPriority.NIEDRIG;
+    }
 }
