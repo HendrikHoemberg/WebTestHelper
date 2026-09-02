@@ -113,6 +113,8 @@ class SetupControllerTest {
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("hx-get=\"/websites/" + SITE_ID + "/einrichtung/stand\"")))
                 .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("@{/websites"))))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("Wir untersuchen die Website")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("loading-spinner")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("status-dot-pulse"))))
                 .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("<!DOCTYPE"))))
                 .andReturn();
 

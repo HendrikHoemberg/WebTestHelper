@@ -1499,6 +1499,22 @@ body {
     }
 }
 
+.loading-spinner {
+    width: 2rem;
+    height: 2rem;
+    margin: 0 auto 1rem;
+    border: 2.5px solid var(--border-subtle);
+    border-top-color: var(--text-main);
+    border-radius: 9999px;
+    animation: wth-spin 0.75s linear infinite;
+}
+
+@keyframes wth-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 
 /* Website detail tabs and kebab-menu (desktop-only, per project boundaries) */
 .site-tabs {
