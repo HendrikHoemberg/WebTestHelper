@@ -55,6 +55,7 @@
 
                 <div class="form-gruppe" style="margin-bottom: 0;">
                     <label for="subjectPattern" th:text="#{ui.stummschaltungen.neu.subject_pattern}">Betreff-Muster</label>
+                    <span class="text-gedaempft" style="font-size: 0.8rem; display: block; margin-bottom: 0.25rem;" th:text="#{ui.stummschaltungen.neu.subject_pattern.hinweis}">z. B. fehlerhaftes Linkziel oder Bildname</span>
                     <input type="text" id="subjectPattern" name="subjectPattern" class="form-input form-eingabe" list="betreff-muster-vorschlaege"
                            th:placeholder="#{ui.stummschaltungen.neu.subject_pattern.placeholder}"
                            th:attr="data-hx-get=@{/stummschaltungen/vorschau}"
@@ -81,6 +82,7 @@
 
                 <div class="form-gruppe" style="margin-bottom: 0;">
                     <label for="locationPattern" th:text="#{ui.stummschaltungen.neu.location_pattern}">Fundort-Muster</label>
+                    <span class="text-gedaempft" style="font-size: 0.8rem; display: block; margin-bottom: 0.25rem;" th:text="#{ui.stummschaltungen.neu.location_pattern.hinweis}">z. B. betroffener Seitenbereich oder Blog</span>
                     <input type="text" id="locationPattern" name="locationPattern" class="form-input form-eingabe" list="fundort-muster-vorschlaege"
                            th:placeholder="#{ui.stummschaltungen.neu.location_pattern.placeholder}"
                            th:attr="data-hx-get=@{/stummschaltungen/vorschau}"

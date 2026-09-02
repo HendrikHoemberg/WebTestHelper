@@ -171,6 +171,15 @@ class MuteRuleControllerTest extends AbstractPostgresTest {
     }
 
     @Test
+    @WithMockUser(username = "alice", roles = "USER")
+    void indexPageRendersExplanatoryHelpForSubjectAndLocationPatterns() throws Exception {
+        mvc.perform(get("/stummschaltungen"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Betreff-Muster (Was ist der Fehler?)")))
+                .andExpect(content().string(containsString("Fundort-Muster (Wo tritt der Fehler auf?)")));
+    }
+
+    @Test
     @WithMockUser(username = "bob", roles = "USER")
     void userCreatingGlobalRule_is403_andWritesNothing() throws Exception {
         LocalDate expiryDate = LocalDate.now().plusDays(90);

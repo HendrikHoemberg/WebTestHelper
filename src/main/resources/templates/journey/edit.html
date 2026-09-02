@@ -92,10 +92,10 @@
                     <div class="schritt-editor-kopf" style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.75rem; margin-bottom: 0.75rem;">
                         <div class="schritt-editor-titel" style="display: flex; align-items: center; gap: 0.5rem;">
                             <span class="type-pill-mono schritt-nummer-badge" th:text="'#' + (${stat.index} + 1)">#1</span>
-                            <strong th:text="${step.action}" class="schritt-aktion-badge" style="font-size: 0.95rem;">GOTO</strong>
+                            <strong th:text="#{${'ui.journey.action.' + step.action}}" class="schritt-aktion-badge" style="font-size: 0.95rem;">Seite aufrufen</strong>
                             <span th:if="${#lists.isEmpty(step.locatorCandidates)}" class="text-gedaempft ml-2">-</span>
                             <span th:if="${not #lists.isEmpty(step.locatorCandidates)}" class="schritt-lokator-vorschau ml-2" style="display: inline-flex; align-items: center; gap: 0.35rem;">
-                                <span class="status-badge status-inaktiv" style="font-size: 0.7rem;" th:text="${step.locatorCandidates[0].strategy}">TEST_ID</span>
+                                <span class="status-badge status-inaktiv" style="font-size: 0.7rem;" th:text="#{${'ui.journey.strategy.' + step.locatorCandidates[0].strategy}}">Test-ID</span>
                                 <code class="code-pill" th:text="${step.locatorCandidates[0].value}">element</code>
                             </span>
                         </div>
@@ -120,10 +120,10 @@
                                 <label style="font-size: 0.8rem;" th:text="#{ui.journey.edit.schritte.pruefung_typ}">Prüfung (Assertion)</label>
                                 <select th:name="'steps[' + ${stat.index} + '].assertionType'" class="form-select eingabe-feld">
                                     <option value="" th:selected="${step.assertionType == null}" th:text="#{ui.journey.edit.schritte.keine_pruefung}">-- Keine Prüfung --</option>
-                                    <option value="TEXT_CONTAINS" th:selected="${step.assertionType != null and step.assertionType.name() == 'TEXT_CONTAINS'}">TEXT_CONTAINS (Text enthält)</option>
-                                    <option value="VISIBLE" th:selected="${step.assertionType != null and step.assertionType.name() == 'VISIBLE'}">VISIBLE (Sichtbar)</option>
-                                    <option value="URL_MATCHES" th:selected="${step.assertionType != null and step.assertionType.name() == 'URL_MATCHES'}">URL_MATCHES (URL entspricht)</option>
-                                    <option value="COUNT" th:selected="${step.assertionType != null and step.assertionType.name() == 'COUNT'}">COUNT (Element-Anzahl)</option>
+                                    <option value="TEXT_CONTAINS" th:selected="${step.assertionType != null and step.assertionType.name() == 'TEXT_CONTAINS'}" th:text="#{ui.journey.assertion.TEXT_CONTAINS}">Text enthält</option>
+                                    <option value="VISIBLE" th:selected="${step.assertionType != null and step.assertionType.name() == 'VISIBLE'}" th:text="#{ui.journey.assertion.VISIBLE}">Element sichtbar</option>
+                                    <option value="URL_MATCHES" th:selected="${step.assertionType != null and step.assertionType.name() == 'URL_MATCHES'}" th:text="#{ui.journey.assertion.URL_MATCHES}">URL entspricht</option>
+                                    <option value="COUNT" th:selected="${step.assertionType != null and step.assertionType.name() == 'COUNT'}" th:text="#{ui.journey.assertion.COUNT}">Element-Anzahl</option>
                                 </select>
                             </div>
 

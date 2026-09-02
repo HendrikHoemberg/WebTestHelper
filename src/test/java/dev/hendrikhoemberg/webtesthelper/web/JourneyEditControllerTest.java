@@ -119,6 +119,23 @@ class JourneyEditControllerTest {
 
     @Test
     @WithMockUser(roles = "USER")
+    void editJourney_rendersGermanActionAndStrategyLabels() throws Exception {
+        UUID step0Id = UUID.randomUUID();
+        JourneyStep step0 = new JourneyStep(
+                step0Id, 0, StepAction.GOTO,
+                List.of(new LocatorCandidate(LocatorStrategy.TEST_ID, "main-nav", 0)),
+                "https://acme.example.com/login", null, false, 5000);
+        JourneyDefinition journey = new JourneyDefinition(10L, 1L, "Anmeldung", true, List.of(step0));
+        when(journeyService.findDefinition(10L)).thenReturn(Optional.of(journey));
+
+        mvc.perform(get("/websites/1/journeys/10/bearbeiten"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Seite aufrufen")))
+                .andExpect(content().string(containsString("Test-ID")));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
     void editJourney_post_deletingStepLeavesDenseOrdinalsAndPreservesAllOtherStepUuids() throws Exception {
         UUID id0 = UUID.randomUUID();
         UUID id1 = UUID.randomUUID();
