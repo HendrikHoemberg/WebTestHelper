@@ -763,6 +763,23 @@ body {
     border-radius: 9999px;
 }
 
+.capacity-bar-indeterminate {
+    width: 35%;
+    height: 100%;
+    background: linear-gradient(90deg, #18181b 0%, #3f3f46 100%);
+    border-radius: 9999px;
+    animation: indeterminate-slide 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes indeterminate-slide {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(300%);
+    }
+}
+
 /* ==========================================================================
    8. TARGET STATUS CARDS & RUN SPARKLINES
    ========================================================================== */

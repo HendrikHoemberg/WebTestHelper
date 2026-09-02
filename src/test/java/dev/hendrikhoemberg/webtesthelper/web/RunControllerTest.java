@@ -551,6 +551,20 @@ class RunControllerTest {
 
     @Test
     @WithMockUser(roles = "USER")
+    void fortschrittCarriesIndeterminateProgressBarAndNoPulseRing() throws Exception {
+        long runId = 113L;
+        RunSummary summary = sampleSummary(runId, 42L, RunStatus.RUNNING, false, false, null);
+
+        when(runService.summary(runId)).thenReturn(summary);
+
+        mvc.perform(get("/laeufe/" + runId + "/fortschritt"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("capacity-bar-indeterminate")))
+                .andExpect(content().string(not(containsString("pulse-ring"))));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
     void getRunDetailWithUnknownIdReturns404() throws Exception {
         when(runService.summary(999L)).thenThrow(new IllegalArgumentException("Lauf 999 existiert nicht"));
 

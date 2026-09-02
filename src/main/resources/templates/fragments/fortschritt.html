@@ -16,7 +16,7 @@
               th:text="#{ui.lauf.fortschritt.seiten(${run.pagesVisited})}">0 Seiten geprüft</span>
     </div>
     <div class="capacity-bar-track" style="margin-bottom: 0.75rem;">
-        <div class="capacity-bar-fill" style="width: 60%; animation: pulse-ring 2s infinite;"></div>
+        <div class="capacity-bar-fill capacity-bar-indeterminate"></div>
     </div>
     <p th:if="${run.status.name() == 'QUEUED'}" style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.75rem;" th:text="#{ui.lauf.fortschritt.wartet}">Wartet auf Ausführung...</p>
     <p th:if="${run.status.name() == 'RUNNING'}" style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.75rem;" th:text="#{ui.lauf.fortschritt.laeuft}">Prüflauf wird ausgeführt...</p>
