@@ -28,7 +28,7 @@
 - Consumes: Run model `run.status` in `fortschritt.html`
 - Produces: Smooth indeterminate sliding animation across `.capacity-bar-track`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
   In `src/test/java/dev/hendrikhoemberg/webtesthelper/web/RunControllerTest.java`, add:
   ```java
   @Test
@@ -44,12 +44,12 @@
   }
   ```
 
-- [ ] **Step 2: Run the single test — verify it FAILS**
+- [x] **Step 2: Run the single test — verify it FAILS**
   Command:
   `./mvnw test -Dtest=RunControllerTest#fortschrittCarriesIndeterminateProgressBarAndNoPulseRing`
   Expected: FAIL (assertion error: `capacity-bar-indeterminate` not found and `pulse-ring` found)
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
   In `src/main/resources/static/css/app.css`, add:
   ```css
   .capacity-bar-indeterminate {
@@ -82,12 +82,12 @@
   </div>
   ```
 
-- [ ] **Step 4: Run the single test — verify it PASSES**
+- [x] **Step 4: Run the single test — verify it PASSES**
   Command:
   `./mvnw test -Dtest=RunControllerTest#fortschrittCarriesIndeterminateProgressBarAndNoPulseRing`
   Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   `git commit -m "fix(ui): use smooth indeterminate progress bar animation for active runs"`
 
 ---
@@ -103,7 +103,7 @@
 - Consumes: `laeuft` boolean in `fragments/einrichtungsstand.html`
 - Produces: Centered circular loading spinner indicating active site scan
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
   In `src/test/java/dev/hendrikhoemberg/webtesthelper/web/SetupControllerTest.java`, update `standWhileRunningCarriesTheTriggerAndTheWaitingSentence()`:
   ```java
   @Test
@@ -129,12 +129,12 @@
   }
   ```
 
-- [ ] **Step 2: Run the single test — verify it FAILS**
+- [x] **Step 2: Run the single test — verify it FAILS**
   Command:
   `./mvnw test -Dtest=SetupControllerTest#standWhileRunningCarriesTheTriggerAndTheWaitingSentence`
   Expected: FAIL (assertion error: `loading-spinner` not found and `status-dot-pulse` found)
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
   In `src/main/resources/static/css/app.css`, add:
   ```css
   .loading-spinner {
@@ -161,17 +161,17 @@
   </div>
   ```
 
-- [ ] **Step 4: Run the single test — verify it PASSES**
+- [x] **Step 4: Run the single test — verify it PASSES**
   Command:
   `./mvnw test -Dtest=SetupControllerTest#standWhileRunningCarriesTheTriggerAndTheWaitingSentence`
   Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   `git commit -m "feat(ui): replace confusing pulsing dot with loading spinner on einrichtung page"`
 
 ---
 
 ### Task 3: Full Verification Suite
-- [ ] Run full test suite:
+- [x] Run full test suite:
   `bash -c "set -o pipefail; ./mvnw test -B --no-transfer-progress | tail -n 60"`
   Expected: All tests pass.
