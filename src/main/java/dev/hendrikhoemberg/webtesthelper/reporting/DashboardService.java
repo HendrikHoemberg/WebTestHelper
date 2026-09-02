@@ -89,6 +89,9 @@ public class DashboardService {
         int warnings = 0;
         int infos = 0;
         int untriaged = 0;
+        int untriagedErrors = 0;
+        int untriagedWarnings = 0;
+        int acknowledged = 0;
         for (SiteSummary site : siteList) {
             if (!site.enabled()) {
                 continue;
@@ -101,8 +104,11 @@ public class DashboardService {
             warnings += counts.warnings();
             infos += counts.infos();
             untriaged += counts.untriaged();
+            untriagedErrors += counts.untriagedErrors();
+            untriagedWarnings += counts.untriagedWarnings();
+            acknowledged += counts.acknowledged();
         }
-        return new OpenFindingCounts(errors, warnings, infos, untriaged);
+        return new OpenFindingCounts(errors, warnings, infos, untriaged, untriagedErrors, untriagedWarnings, acknowledged);
     }
 
     private Instant earliest(Map<Long, Schedule> nextFires) {

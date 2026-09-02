@@ -6,10 +6,21 @@ package dev.hendrikhoemberg.webtesthelper.findings;
  * without a second round-trip. A site with no open findings is absent from the caller's map,
  * not present with zeros — the dashboard must still render a tile for a site that never ran.
  */
-public record OpenFindingCounts(int errors, int warnings, int infos, int untriaged) {
+public record OpenFindingCounts(
+        int errors,
+        int warnings,
+        int infos,
+        int untriaged,
+        int untriagedErrors,
+        int untriagedWarnings,
+        int acknowledged) {
+
+    public OpenFindingCounts(int errors, int warnings, int infos, int untriaged) {
+        this(errors, warnings, infos, untriaged, errors, warnings, 0);
+    }
 
     public static OpenFindingCounts none() {
-        return new OpenFindingCounts(0, 0, 0, 0);
+        return new OpenFindingCounts(0, 0, 0, 0, 0, 0, 0);
     }
 
     public int total() {

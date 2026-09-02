@@ -53,9 +53,12 @@
         </div>
 
         <div th:if="${tile.enabled}" class="kachel-kennzahlen" style="padding: 0 1.25rem 0.75rem;">
-            <a th:if="${tile.counts.errors() > 0}" class="kennzahl-link kennzahl-fehler status-badge badge-failing"
+            <a th:if="${tile.counts.untriagedErrors() > 0}" class="kennzahl-link kennzahl-fehler status-badge badge-failing"
                th:href="@{/websites/{id}/befunde(id=${tile.siteId}, severities='ERROR')}"
-               th:text="#{ui.uebersicht.fehler(${tile.counts.errors()})}">3 Fehler</a>
+               th:text="#{ui.uebersicht.fehler(${tile.counts.untriagedErrors()})}">3 Fehler</a>
+            <a th:if="${tile.counts.acknowledged() > 0}" class="kennzahl-link kennzahl-altlast status-badge status-inaktiv"
+               th:href="@{/websites/{id}/befunde(id=${tile.siteId})}"
+               th:text="#{ui.uebersicht.altlasten(${tile.counts.acknowledged()})}">40 im Ausgangsbestand</a>
             <a th:if="${tile.counts.warnings() > 0}" class="kennzahl-link kennzahl-warnung status-badge badge-warning"
                th:href="@{/websites/{id}/befunde(id=${tile.siteId}, severities='WARN')}">
                 <span th:if="${tile.counts.warnings() == 1}"

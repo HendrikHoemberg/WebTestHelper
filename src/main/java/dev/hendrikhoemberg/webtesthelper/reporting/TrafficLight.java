@@ -25,10 +25,10 @@ public enum TrafficLight {
         if (lastRun.status() == RunStatus.FAILED) {
             return ROT;
         }
-        if (counts.errors() > 0) {
+        if (counts.untriagedErrors() > 0) {
             return ROT;
         }
-        if (counts.warnings() > 0) {
+        if (counts.untriagedWarnings() > 0) {
             return GELB;
         }
         if (lastRun.partialCoverage()) {

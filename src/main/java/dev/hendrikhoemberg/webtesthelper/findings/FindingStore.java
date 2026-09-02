@@ -198,8 +198,9 @@ public class FindingStore {
 
     private static final String OPEN_COUNTS_SQL = String.format("""
             SELECT site_id, severity,
-                   count(*)                                               AS open_count,
-                   count(*) FILTER (WHERE triage_status = 'UNTRIAGED')     AS untriaged_count
+                   count(*)                                                    AS open_count,
+                   count(*) FILTER (WHERE triage_status = 'UNTRIAGED')          AS untriaged_count,
+                   count(*) FILTER (WHERE triage_status = 'ACKNOWLEDGED')       AS acknowledged_count
               FROM finding
              WHERE observed_status = 'ACTIVE'
                AND triage_status NOT IN (%s)
@@ -838,14 +839,24 @@ public class FindingStore {
                 long siteId = rs.getLong("site_id");
                 int openCount = rs.getInt("open_count");
                 int untriaged = rs.getInt("untriaged_count");
+                int acknowledged = rs.getInt("acknowledged_count");
                 OpenFindingCounts current = bySite.getOrDefault(siteId, OpenFindingCounts.none());
                 bySite.put(siteId, switch (Severity.valueOf(rs.getString("severity"))) {
                     case ERROR -> new OpenFindingCounts(
-                            openCount, current.warnings(), current.infos(), current.untriaged() + untriaged);
+                            openCount, current.warnings(), current.infos(),
+                            current.untriaged() + untriaged,
+                            untriaged, current.untriagedWarnings(),
+                            current.acknowledged() + acknowledged);
                     case WARN -> new OpenFindingCounts(
-                            current.errors(), openCount, current.infos(), current.untriaged() + untriaged);
+                            current.errors(), openCount, current.infos(),
+                            current.untriaged() + untriaged,
+                            current.untriagedErrors(), untriaged,
+                            current.acknowledged() + acknowledged);
                     case INFO -> new OpenFindingCounts(
-                            current.errors(), current.warnings(), openCount, current.untriaged() + untriaged);
+                            current.errors(), current.warnings(), openCount,
+                            current.untriaged() + untriaged,
+                            current.untriagedErrors(), current.untriagedWarnings(),
+                            current.acknowledged() + acknowledged);
                 });
             }
             return bySite;

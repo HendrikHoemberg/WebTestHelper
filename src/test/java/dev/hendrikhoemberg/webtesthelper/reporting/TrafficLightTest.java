@@ -57,6 +57,20 @@ class TrafficLightTest {
                 .isEqualTo(TrafficLight.GRUEN);
     }
 
+    @Test
+    void siteWithOnlyAcknowledgedBaselineErrorsIsGreen() {
+        OpenFindingCounts counts = new OpenFindingCounts(5, 0, 0, 0, 0, 0, 5);
+        assertThat(TrafficLight.of(true, run(RunStatus.COMPLETED, false), counts))
+                .isEqualTo(TrafficLight.GRUEN);
+    }
+
+    @Test
+    void siteWithUntriagedErrorIsRed() {
+        OpenFindingCounts counts = new OpenFindingCounts(5, 0, 0, 1, 1, 0, 4);
+        assertThat(TrafficLight.of(true, run(RunStatus.COMPLETED, false), counts))
+                .isEqualTo(TrafficLight.ROT);
+    }
+
     private static LastRun run(RunStatus status, boolean partialCoverage) {
         return new LastRun(1L, 1L, status, Instant.parse("2026-08-26T10:00:00Z"), partialCoverage);
     }

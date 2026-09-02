@@ -63,7 +63,7 @@ class OpenFindingCountsTest extends AbstractPostgresTest {
         Map<Long, OpenFindingCounts> counts = service.openCountsBySite();
 
         assertThat(counts).containsOnlyKeys(siteA);
-        assertThat(counts.get(siteA)).isEqualTo(new OpenFindingCounts(1, 1, 1, 2));
+        assertThat(counts.get(siteA)).isEqualTo(new OpenFindingCounts(1, 1, 1, 2, 1, 0, 1));
 
         OpenFindingCounts a = counts.get(siteA);
         assertThat(a.untriaged()).isLessThanOrEqualTo(a.errors() + a.warnings() + a.infos());
