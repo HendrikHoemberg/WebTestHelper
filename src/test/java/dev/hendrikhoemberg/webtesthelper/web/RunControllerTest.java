@@ -206,6 +206,26 @@ class RunControllerTest {
 
     @Test
     @WithMockUser(roles = "USER")
+    void manualRunRendersManualCheckNomenclatureAndCrawlBudgetBounds() throws Exception {
+        long runId = 101L;
+        long siteId = 42L;
+        RunSummary summary = sampleSummary(runId, siteId, RunStatus.COMPLETED, false, false, null);
+        SiteContext site = sampleSite(siteId);
+        RunDiff diff = new RunDiff(runId, Map.of());
+
+        when(runService.summary(runId)).thenReturn(summary);
+        when(siteService.contextFor(siteId)).thenReturn(site);
+        when(findingService.diffForReport(siteId, runId)).thenReturn(diff);
+        when(findingViewFactory.of(eq(diff), any(Locale.class))).thenReturn(Map.of());
+
+        mvc.perform(get("/laeufe/" + runId))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Manueller Voll-Check")))
+                .andExpect(content().string(containsString("(von max. 120)")));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
     void coverageLineDoesNotRenderPartialCoverageSentenceWhenComplete() throws Exception {
         long runId = 103L;
         long siteId = 42L;

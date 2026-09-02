@@ -38,7 +38,7 @@
                         <td class="zell-zeit" style="font-variant-numeric: tabular-nums;" th:text="${#temporals.format(run.queuedAt, 'dd.MM.yyyy HH:mm')}">25.08.2026 10:00</td>
                         <td th:text="#{${'ui.runtrigger.' + run.trigger}}">Manuell</td>
                         <td class="zell-badge">
-                            <span class="type-pill-mono" th:text="#{${'ui.runscope.' + run.scope}}">Vollständig</span>
+                            <span class="type-pill-mono" th:text="#{${run.trigger.name() == 'MANUAL' ? ('ui.runscope.manual.' + run.scope) : ('ui.runscope.' + run.scope)}}">Vollständig</span>
                         </td>
                         <td class="zell-badge">
                             <span class="status-badge"

@@ -88,7 +88,7 @@
             </div>
             <div>
                 <dt th:text="#{ui.lauf.tabelle.umfang}">Umfang</dt>
-                <dd><span class="type-pill-mono" th:text="#{${'ui.runscope.' + run.scope}}">Vollständig</span></dd>
+                <dd><span class="type-pill-mono" th:text="#{${run.trigger.name() == 'MANUAL' ? ('ui.runscope.manual.' + run.scope) : ('ui.runscope.' + run.scope)}}">Vollständig</span></dd>
             </div>
             <div th:if="${run.startedAt != null}">
                 <dt th:text="#{ui.lauf.tabelle.gestartet}">Gestartet</dt>
@@ -111,7 +111,8 @@
             <div class="hinweis" aria-live="polite"></div>
         </div>
         <p class="abdeckung-zeile" style="font-size: 0.95rem; margin-bottom: 0.5rem;">
-            <strong style="font-variant-numeric: tabular-nums;" th:text="#{ui.lauf.abdeckung.seiten_besucht(${run.pagesVisited})}">85 Seiten besucht</strong>,
+            <strong style="font-variant-numeric: tabular-nums;" th:text="#{ui.lauf.abdeckung.seiten_besucht(${run.pagesVisited})}">85 Seiten besucht</strong>
+            <span th:if="${site.budget != null and site.budget.maxPages != null}" style="color: var(--text-muted); font-size: 0.85rem;" th:text="#{ui.lauf.abdeckung.seiten_limit(${site.budget.maxPages})}">(von max. 120)</span>,
             <span style="font-variant-numeric: tabular-nums; color: var(--text-muted);" th:text="#{ui.lauf.abdeckung.seiten_fehlgeschlagen(${run.pagesFailed})}">2 fehlgeschlagen</span>.
         </p>
         <p class="abdeckung-zeile" style="font-size: 0.85rem; color: var(--text-muted);">
