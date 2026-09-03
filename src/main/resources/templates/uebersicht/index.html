@@ -41,7 +41,7 @@
             <div class="kpi-number-row">
                 <span class="kpi-value" style="color: var(--status-error-dot);" th:text="${uebersicht.totals.errors()}">0</span>
             </div>
-            <div class="kpi-subtext" th:text="#{ui.uebersicht.kpi.fehler}">Fehler</div>
+            <div class="kpi-subtext" th:text="#{ui.uebersicht.kpi.ueber_alle_websites}">über alle Websites</div>
         </div>
 
         <div class="kpi-card kennzahl">
@@ -52,7 +52,7 @@
             <div class="kpi-number-row">
                 <span class="kpi-value" style="color: var(--status-warning-dot);" th:text="${uebersicht.totals.warnings()}">0</span>
             </div>
-            <div class="kpi-subtext" th:text="${uebersicht.totals.warnings() == 1} ? #{ui.uebersicht.kpi.warnung.einzahl} : #{ui.uebersicht.kpi.warnung.mehrzahl}">Warnungen</div>
+            <div class="kpi-subtext" th:text="#{ui.uebersicht.kpi.ueber_alle_websites}">über alle Websites</div>
         </div>
 
         <div class="kpi-card kennzahl">
@@ -63,7 +63,7 @@
             <div class="kpi-number-row">
                 <span class="kpi-value" style="color: var(--status-info-dot);" th:text="${uebersicht.totals.infos()}">0</span>
             </div>
-            <div class="kpi-subtext" th:text="${uebersicht.totals.infos() == 1} ? #{ui.uebersicht.kpi.hinweis.einzahl} : #{ui.uebersicht.kpi.hinweis.mehrzahl}">Hinweise</div>
+            <div class="kpi-subtext" th:text="#{ui.uebersicht.kpi.ueber_alle_websites}">über alle Websites</div>
         </div>
 
         <div class="kpi-card kennzahl">
@@ -74,7 +74,7 @@
             <div class="kpi-number-row">
                 <span class="kpi-value" th:text="${uebersicht.runsInFlight()}">0</span>
             </div>
-            <div class="kpi-subtext" th:text="${uebersicht.runsInFlight() == 1} ? #{ui.uebersicht.kpi.laeufe.einzahl} : #{ui.uebersicht.kpi.laeufe.mehrzahl}">läuft gerade</div>
+            <div class="kpi-subtext" th:text="${uebersicht.runsInFlight() == 0} ? #{ui.uebersicht.kpi.laeufe.keine} : (${uebersicht.runsInFlight() == 1} ? #{ui.uebersicht.kpi.laeufe.einzahl} : #{ui.uebersicht.kpi.laeufe.mehrzahl})">keine aktiven Läufe</div>
         </div>
     </section>
 

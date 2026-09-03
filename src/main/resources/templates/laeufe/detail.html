@@ -219,25 +219,60 @@
         <p style="margin: 0; font-size: 0.95rem;" th:text="#{ui.lauf.diff.zusammenfassung(${diffNeu}, ${diffRegressionen}, ${diffBehoben})}">Vergleich zum vorherigen Lauf: 0 neu, 0 wieder aufgetreten, 0 behoben.</p>
     </div>
 
-    <!-- Die fünf Berichtsabschnitte -->
-    <div th:if="${sections != null and not #maps.isEmpty(sections)}" class="bericht-abschnitte" style="display: flex; flex-direction: column; gap: 1.5rem;">
-        <section th:each="entry : ${sections}" th:if="${not #lists.isEmpty(entry.value)}"
-                 class="card-box detail-bereich" th:classappend="${'abschnitt-' + entry.key}">
-            <div class="abschnitt-ueberschrift-zeile" style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); margin-bottom: 1rem; padding-bottom: 0.5rem;">
-                <h2 style="margin: 0; border: none; padding: 0;" th:text="#{${'ui.reportsection.' + entry.key}} + ' (' + ${#lists.size(entry.value)} + ')'">Neu aufgetreten (2)</h2>
-                <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
-                        th:data-hx-get="@{/hilfe/hinweis/{id}(id='bericht-lesen')}"
-                        data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">
-                    <span th:replace="~{fragments/icons :: help}"></span>
-                </button>
-                <div class="hinweis" aria-live="polite"></div>
-            </div>
-            <div class="befunde-liste inspector-card-shell" style="margin-bottom: 0;">
-                <div th:each="befundItem : ${entry.value}">
-                    <div th:replace="~{fragments/befundzeile :: befundzeile(${befundItem}, false)}"></div>
+    <!-- Filter-Leiste für Befunde nach Schweregrad -->
+    <div th:if="${sections != null and not #maps.isEmpty(sections)}"
+         x-data="{
+             filterSeverity: 'ALL',
+             sectionHasItems(secEl) {
+                 if (this.filterSeverity === 'ALL') return true;
+                 return secEl.querySelector('[data-severity=\'' + this.filterSeverity + '\']') !== null;
+             }
+         }"
+         class="bericht-filter-container">
+        
+        <div class="filter-pill-bar">
+            <span class="filter-label" th:text="#{ui.lauf.filter.label}">Filter:</span>
+            <button type="button" class="btn-ui btn-ui-sm"
+                    :class="filterSeverity === 'ALL' ? 'btn-ui-primary' : 'btn-ui-secondary'"
+                    @click="filterSeverity = 'ALL'"
+                    th:text="#{ui.lauf.filter.alle}">Alle Feststellungen</button>
+            <button type="button" class="btn-ui btn-ui-sm"
+                    :class="filterSeverity === 'ERROR' ? 'btn-ui-primary' : 'btn-ui-secondary'"
+                    @click="filterSeverity = 'ERROR'"
+                    th:text="#{ui.lauf.filter.fehler}">Nur Fehler</button>
+            <button type="button" class="btn-ui btn-ui-sm"
+                    :class="filterSeverity === 'WARN' ? 'btn-ui-primary' : 'btn-ui-secondary'"
+                    @click="filterSeverity = 'WARN'"
+                    th:text="#{ui.lauf.filter.warnungen}">Nur Warnungen</button>
+            <button type="button" class="btn-ui btn-ui-sm"
+                    :class="filterSeverity === 'INFO' ? 'btn-ui-primary' : 'btn-ui-secondary'"
+                    @click="filterSeverity = 'INFO'"
+                    th:text="#{ui.lauf.filter.hinweise}">Nur Hinweise</button>
+        </div>
+
+        <!-- Die fünf Berichtsabschnitte -->
+        <div class="bericht-abschnitte" style="display: flex; flex-direction: column; gap: 1.5rem;">
+            <section th:each="entry : ${sections}" th:if="${not #lists.isEmpty(entry.value)}"
+                     class="card-box detail-bereich" th:classappend="${'abschnitt-' + entry.key}"
+                     x-show="sectionHasItems($el)">
+                <div class="abschnitt-ueberschrift-zeile" style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); margin-bottom: 1rem; padding-bottom: 0.5rem;">
+                    <h2 style="margin: 0; border: none; padding: 0;" th:text="#{${'ui.reportsection.' + entry.key}} + ' (' + ${#lists.size(entry.value)} + ')'">Neu aufgetreten (2)</h2>
+                    <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
+                            th:data-hx-get="@{/hilfe/hinweis/{id}(id='bericht-lesen')}"
+                            data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">
+                        <span th:replace="~{fragments/icons :: help}"></span>
+                    </button>
+                    <div class="hinweis" aria-live="polite"></div>
                 </div>
-            </div>
-        </section>
+                <div class="befunde-liste inspector-card-shell" style="margin-bottom: 0;">
+                    <div th:each="befundItem : ${entry.value}"
+                         th:data-severity="${befundItem.severity.name()}"
+                         x-show="filterSeverity === 'ALL' || filterSeverity === $el.dataset.severity">
+                        <div th:replace="~{fragments/befundzeile :: befundzeile(${befundItem}, false)}"></div>
+                    </div>
+                </div>
+            </section>
+        </div>
     </div>
 </main>
 </body>

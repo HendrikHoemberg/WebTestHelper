@@ -37,7 +37,12 @@
     </div>
 
     <article th:each="tile : ${uebersicht.tiles}" class="target-card-box kachel"
-             th:classappend="${'kachel-' + #strings.toLowerCase(tile.light.name())}">
+             th:classappend="${'kachel-' + #strings.toLowerCase(tile.light.name())}"
+             tabindex="0"
+             role="link"
+             th:attr="data-href=@{/websites/{id}(id=${tile.siteId})},aria-label=${tile.name}"
+             onclick="if(!event.target.closest('a, button')) { if(event.metaKey || event.ctrlKey) { window.open(this.dataset.href, '_blank'); } else { window.location.href=this.dataset.href; } }"
+             onkeydown="if((event.key === 'Enter' || event.key === ' ') && !event.target.closest('a, button')) { event.preventDefault(); window.location.href=this.dataset.href; }">
         
         <div class="card-top-section">
             <div class="target-title-line kachel-kopf">

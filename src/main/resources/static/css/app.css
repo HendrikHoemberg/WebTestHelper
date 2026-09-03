@@ -986,6 +986,7 @@ body {
     display: flex;
     flex-direction: column;
     padding: 0;
+    cursor: pointer;
 }
 
 .target-card-box:hover,
@@ -993,6 +994,12 @@ body {
     border-color: var(--border-strong);
     box-shadow: var(--shadow-elevated);
     transform: translateY(-2px);
+}
+
+.target-card-box:focus-visible,
+.kachel:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
 }
 
 .card-top-section {
@@ -1206,8 +1213,15 @@ body {
     display: inline-flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 0.4rem;
-    white-space: nowrap;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+}
+
+.benutzer-aktionen-gruppe .btn-ui-sm {
+    font-size: 0.775rem;
+    padding: 0.25rem 0.6rem;
+    height: 1.85rem;
+    line-height: 1.2;
 }
 
 .daten-tabelle .type-pill-mono {
@@ -1964,4 +1978,176 @@ body {
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--text-muted);
+}
+
+/* 2-Spaltiges Formular-Layout */
+.form-layout-2col {
+    display: grid;
+    grid-template-columns: minmax(260px, 320px) minmax(480px, 780px);
+    gap: 2.5rem;
+    align-items: start;
+}
+
+.form-intro-col {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-intro-col h2 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+    color: var(--text-main);
+}
+
+.form-intro-desc {
+    color: var(--text-body);
+    font-size: 0.9rem;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+}
+
+.form-intro-card {
+    padding: 1.25rem;
+    background: var(--surface-subtle);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.form-intro-card:last-child {
+    margin-bottom: 0;
+}
+
+.form-intro-card h3 {
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin: 0 0 0.35rem;
+    color: var(--text-main);
+}
+
+.form-intro-card p {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin: 0;
+}
+
+.form-main-card {
+    max-width: 100%;
+    margin: 0;
+}
+
+/* Befund-Erklärung einheitliche Karte */
+.befund-erklaerung-sektion {
+    margin-bottom: 1.25rem;
+}
+
+.befund-erklaerung-sektion.mit-trennlinie {
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border-subtle);
+}
+
+.befund-abschnitt-titel {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin: 0 0 0.4rem;
+    border: none;
+    padding: 0;
+}
+
+.befund-meldung-text {
+    font-size: 1rem;
+    line-height: 1.6;
+    margin: 0;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.befund-handlungs-box {
+    padding: 1rem 1.25rem;
+    background: var(--surface-subtle);
+    border-left: 4px solid var(--primary-color);
+    border-radius: 0 8px 8px 0;
+}
+
+.befund-handlungs-titel {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-main);
+    margin: 0 0 0.4rem;
+    border: none;
+    padding: 0;
+}
+
+/* Browser Mockup Frame für Screenshots */
+.browser-mockup-frame {
+    background: var(--surface-subtle);
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border-strong);
+    box-shadow: var(--shadow-subtle);
+}
+
+.browser-mockup-bar {
+    background: var(--border-subtle);
+    padding: 0.45rem 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.browser-mockup-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    opacity: 0.6;
+    display: inline-block;
+}
+
+.browser-mockup-viewport {
+    display: flex;
+    justify-content: center;
+    background: var(--surface-card);
+    padding: 0.75rem;
+}
+
+.browser-mockup-viewport .befund-screenshot {
+    max-width: 100%;
+    height: auto;
+    max-height: 550px;
+    object-fit: contain;
+    border-radius: 4px;
+    border: 1px solid var(--border-subtle);
+    cursor: pointer;
+}
+
+/* Filterleiste Prüflauf-Detail */
+.bericht-filter-container {
+    margin-bottom: 1.5rem;
+}
+
+.filter-pill-bar {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--surface-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+}
+
+.filter-pill-bar .filter-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-right: 0.35rem;
 }

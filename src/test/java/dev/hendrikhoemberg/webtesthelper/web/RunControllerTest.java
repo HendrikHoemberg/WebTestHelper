@@ -663,6 +663,31 @@ class RunControllerTest {
 
     @Test
     @WithMockUser(roles = "USER")
+    void runDetailRendersFilterPillBarAndSectionFilterLogic() throws Exception {
+        long runId = 101L;
+        long siteId = 42L;
+        RunSummary summary = sampleSummary(runId, siteId, RunStatus.COMPLETED, false, false, null);
+        SiteContext site = sampleSite(siteId);
+        RunDiff diff = new RunDiff(runId, Map.of());
+        FindingView finding = new FindingView(
+                1L, "Titel", "Nachricht", "Behebung", "/pfad", false, 1, Severity.ERROR, TriageStatus.UNTRIAGED
+        );
+        Map<ReportSection, List<FindingView>> sections = Map.of(ReportSection.NEW, List.of(finding));
+
+        when(runService.summary(runId)).thenReturn(summary);
+        when(siteService.contextFor(siteId)).thenReturn(site);
+        when(findingService.diffForReport(siteId, runId)).thenReturn(diff);
+        when(findingViewFactory.of(eq(diff), any(Locale.class))).thenReturn(sections);
+
+        mvc.perform(get("/laeufe/" + runId))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("filter-pill-bar")))
+                .andExpect(content().string(containsString("sectionHasItems($el)")))
+                .andExpect(content().string(containsString("data-severity=\"ERROR\"")));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
     void berichtPdf_returnsPdfAttachmentWhenTerminal() throws Exception {
         long runId = 101L;
         long siteId = 42L;

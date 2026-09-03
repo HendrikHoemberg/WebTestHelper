@@ -248,6 +248,28 @@ class DashboardControllerTest {
                 .andExpect(content().string(not(containsString("kennzahl-warnung"))));
     }
 
+    @Test
+    @WithMockUser(roles = "USER")
+    void dashboardKpiCardsRenderUeberAlleWebsitesSubtext() throws Exception {
+        when(dashboardService.overview()).thenReturn(sampleView());
+
+        mvc.perform(get("/"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("über alle Websites")))
+                .andExpect(content().string(containsString("laufen gerade")));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void dashboardKachelnRenderKeyboardAccessibleLinkAffordance() throws Exception {
+        when(dashboardService.overview()).thenReturn(sampleView());
+
+        mvc.perform(get("/uebersicht/kacheln"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("tabindex=\"0\"")))
+                .andExpect(content().string(containsString("role=\"link\"")));
+    }
+
     // One enabled tile whose next occurrence lands `sekundenBisNaechsterLauf` seconds after the
 
     // test runs — mid-bucket values (90 s -> 1 minute, 150 s -> 2 minutes) so the displayed unit

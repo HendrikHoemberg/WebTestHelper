@@ -18,7 +18,50 @@
         </div>
     </header>
 
-    <div class="card-box" style="max-width: 760px; margin: 0 auto;">
+    <div class="form-layout-2col">
+        <div th:if="${siteId == null}" class="form-intro-col">
+            <h2 th:text="#{ui.websites.formular.info.titel}">Automatische Erstprüfung</h2>
+            <p class="form-intro-desc" th:text="#{ui.websites.formular.info.text}">
+                Geben Sie Name und Startadresse Ihrer Website an. WebTestHelper untersucht die Website direkt im Anschluss und schlägt passende Prüfungen vor.
+            </p>
+
+            <div class="card-box form-intro-card">
+                <h3 th:text="#{ui.websites.formular.info.schritt1.titel}">Vorschlag statt Konfigurationsaufwand</h3>
+                <p th:text="#{ui.websites.formular.info.schritt1.text}">
+                    Formulare, Videos, Karten und Sprachvarianten werden automatisch erkannt.
+                </p>
+            </div>
+
+            <div class="card-box form-intro-card">
+                <h3 th:text="#{ui.websites.formular.info.schritt2.titel}">Ausgangsbestand festlegen</h3>
+                <p th:text="#{ui.websites.formular.info.schritt2.text}">
+                    Der erste Prüflauf dient als Referenz, sodass künftige Berichte nur noch Neuerungen und echte Regressionen melden.
+                </p>
+            </div>
+        </div>
+
+        <div th:if="${siteId != null}" class="form-intro-col">
+            <h2 th:text="#{ui.websites.formular.edit.info.titel}">Einstellungen anpassen</h2>
+            <p class="form-intro-desc" th:text="#{ui.websites.formular.edit.info.text}">
+                Passen Sie Name, Basis-URL oder Crawling-Grenzwerte an. Bestehende Befunde und die Prüfungs-Historie bleiben erhalten.
+            </p>
+
+            <div class="card-box form-intro-card">
+                <h3 th:text="#{ui.websites.formular.edit.info.schritt1.titel}">Auswirkungen von Änderungen</h3>
+                <p th:text="#{ui.websites.formular.edit.info.schritt1.text}">
+                    Eine geänderte Basis-URL oder angepasste Pfadregeln greifen ab dem nächsten Prüflauf.
+                </p>
+            </div>
+
+            <div class="card-box form-intro-card">
+                <h3 th:text="#{ui.websites.formular.edit.info.schritt2.titel}">Prüfungshistorie</h3>
+                <p th:text="#{ui.websites.formular.edit.info.schritt2.text}">
+                    Bereits stummgeschaltete oder anerkannte Befunde werden bei identischem URL-Muster weiterhin korrekt zugeordnet.
+                </p>
+            </div>
+        </div>
+
+        <div class="card-box form-main-card">
         <form th:action="${siteId != null} ? @{/websites/{id}(id=${siteId})} : @{/websites}"
               th:object="${form}"
               method="post"
@@ -133,6 +176,7 @@
                 <a th:href="@{/websites}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.websites.formular.abbrechen}">Abbrechen</a>
             </div>
         </form>
+    </div>
     </div>
 </main>
 </body>

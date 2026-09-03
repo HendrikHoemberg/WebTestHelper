@@ -182,6 +182,40 @@ class SiteControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
+    void getWebsitesNeuShowsInitialCrawlInfo() throws Exception {
+        mvc.perform(get("/websites/neu"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("websites/formular"))
+                .andExpect(content().string(containsString("Automatische Erstprüfung")))
+                .andExpect(content().string(containsString("Vorschlag statt Konfigurationsaufwand")));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void getWebsitesEditHidesInitialCrawlInfoAndShowsEditGuidance() throws Exception {
+        SiteContext context = new SiteContext(
+                42L,
+                "Bestehender Kunde",
+                UrlNormalizer.normalize("https://example.com/").orElseThrow(),
+                new CrawlBudget(150, 2, Duration.ofMinutes(20)),
+                List.of(), List.of(), List.of(),
+                false,
+                "MyBot",
+                Map.of(),
+                FormTestMode.SUBMIT
+        );
+        when(siteService.contextFor(42L)).thenReturn(context);
+        when(siteService.summary(42L)).thenReturn(new SiteSummary(42L, "Bestehender Kunde", "https://example.com/", true, 2));
+
+        mvc.perform(get("/websites/42/bearbeiten"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("websites/formular"))
+                .andExpect(content().string(not(containsString("Automatische Erstprüfung"))))
+                .andExpect(content().string(containsString("Einstellungen anpassen")));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
     void postWebsitesWithoutCsrfIsForbidden() throws Exception {
         mvc.perform(post("/websites")
                         .param("name", "Test")

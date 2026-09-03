@@ -61,23 +61,22 @@
         <div th:replace="~{fragments/bewertung :: bewertung(@{/befunde/{id}/bewerten(id=${finding.id})}, false, ${finding.id})}"></div>
     </section>
 
-    <!-- Die drei Absätze der Befunderklärung -->
-    <!-- 1. Was wir geprüft haben -->
+    <!-- Die drei Absätze der Befunderklärung in einer einheitlichen Karte -->
     <section class="card-box detail-bereich">
-        <h2 th:text="#{ui.befund.detail.was_geprueft}">Was wir geprüft haben</h2>
-        <p class="befund-beschreibung" style="font-size: 0.95rem; line-height: 1.6; margin: 0;" th:text="${detail.description}">Beschreibung der Prüfung...</p>
-    </section>
+        <div class="befund-erklaerung-sektion">
+            <h2 class="befund-abschnitt-titel" th:text="#{ui.befund.detail.was_geprueft}">Was wir geprüft haben</h2>
+            <p class="befund-beschreibung" style="font-size: 0.95rem; line-height: 1.6; margin: 0; color: var(--text-body);" th:text="${detail.description}">Beschreibung der Prüfung...</p>
+        </div>
 
-    <!-- 2. Was wir gefunden haben -->
-    <section class="card-box detail-bereich">
-        <h2 th:text="#{ui.befund.detail.was_gefunden}">Was wir gefunden haben</h2>
-        <p class="befund-meldung" style="font-size: 0.95rem; line-height: 1.6; margin: 0; font-weight: 500;" th:text="${detail.summary.message}">Gefundener Fehler...</p>
-    </section>
+        <div class="befund-erklaerung-sektion mit-trennlinie">
+            <h2 class="befund-abschnitt-titel" th:text="#{ui.befund.detail.was_gefunden}">Was wir gefunden haben</h2>
+            <p class="befund-meldung befund-meldung-text" th:text="${detail.summary.message}">Gefundener Fehler...</p>
+        </div>
 
-    <!-- 3. Was zu tun ist -->
-    <section class="card-box detail-bereich" style="background: var(--surface-subtle); border-left: 4px solid #18181b;">
-        <h2 th:text="#{ui.befund.detail.was_zu_tun}">Was zu tun ist</h2>
-        <p class="befund-behebung" style="font-size: 0.95rem; line-height: 1.6; margin: 0; color: var(--text-main); font-weight: 500;" th:text="${detail.summary.remediation}">Handlungsempfehlung...</p>
+        <div class="befund-handlungs-box">
+            <h2 class="befund-handlungs-titel" th:text="#{ui.befund.detail.was_zu_tun}">Was zu tun ist</h2>
+            <p class="befund-behebung" style="font-size: 0.95rem; line-height: 1.6; margin: 0; color: var(--text-main); font-weight: 500;" th:text="${detail.summary.remediation}">Handlungsempfehlung...</p>
+        </div>
     </section>
 
     <!-- Übersicht / Metadaten -->
@@ -151,8 +150,15 @@
                 <a th:href="${detail.screenshotUrl}" target="_blank" class="btn-ui btn-ui-secondary btn-ui-sm button button-klein sekundär" th:text="#{ui.befund.detail.screenshot_vollbild}">Vollbild öffnen ↗</a>
             </div>
             <p class="text-gedaempft" style="font-size: 0.85rem; margin-top: 0; margin-bottom: 0.75rem;" th:text="#{ui.befund.detail.screenshot_hinweis}">Dieser Screenshot dokumentiert den genauen sichtbaren Zustand der Seite zum Zeitpunkt des Fehlers (z. B. blockierende Overlays, Cookie-Banner oder veränderte Bedienelemente).</p>
-            <div style="background: #000; border-radius: 8px; overflow: hidden; display: flex; justify-content: center; border: 1px solid var(--border-subtle);">
-                <img th:src="${detail.screenshotUrl}" alt="Screenshot des Fehlers" class="befund-screenshot" style="max-width: 100%; height: auto; max-height: 550px; object-fit: contain; cursor: pointer;" onclick="window.open(this.src, '_blank')" />
+            <div class="browser-mockup-frame">
+                <div class="browser-mockup-bar">
+                    <span class="browser-mockup-dot"></span>
+                    <span class="browser-mockup-dot"></span>
+                    <span class="browser-mockup-dot"></span>
+                </div>
+                <div class="browser-mockup-viewport">
+                    <img th:src="${detail.screenshotUrl}" alt="Screenshot des Fehlers" class="befund-screenshot" onclick="window.open(this.src, '_blank')" />
+                </div>
             </div>
         </div>
     </section>
