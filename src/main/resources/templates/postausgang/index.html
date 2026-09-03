@@ -16,13 +16,15 @@
         </div>
         <div class="seiten-aktionen" style="display: flex; gap: 0.5rem; align-items: center;" th:if="${mailFailures != null and mailFailures > 0}">
             <form th:action="@{/postausgang/alle-wiederholen}" method="post" style="margin: 0;">
-                <button type="submit" class="btn-ui btn-ui-secondary button button-klein sekundär" th:text="#{ui.postausgang.aktion.alle_wiederholen}">
-                    Alle fehlgeschlagenen erneut senden
+                <button type="submit" class="btn-ui btn-ui-secondary button button-klein sekundär">
+                    <span th:replace="~{fragments/icons :: refresh}"></span>
+                    <span th:text="#{ui.postausgang.aktion.alle_wiederholen}">Alle fehlgeschlagenen erneut senden</span>
                 </button>
             </form>
             <form th:action="@{/postausgang/alle-loeschen}" method="post" style="margin: 0;">
-                <button type="submit" class="btn-ui btn-ui-danger button button-klein gefahr" th:text="#{ui.postausgang.aktion.alle_loeschen}">
-                    Fehler quittieren (alle löschen)
+                <button type="submit" class="btn-ui btn-ui-danger button button-klein gefahr">
+                    <span th:replace="~{fragments/icons :: trash}"></span>
+                    <span th:text="#{ui.postausgang.aktion.alle_loeschen}">Fehler quittieren (alle löschen)</span>
                 </button>
             </form>
         </div>
@@ -77,13 +79,19 @@
                                     th:text="#{ui.postausgang.aktion.details}">Details</button>
 
                             <form th:if="${eintrag.state.name() == 'FAILED'}" th:action="@{/postausgang/{id}/wiederholen(id=${eintrag.id})}" method="post" style="margin: 0;">
-                                <button type="submit" class="btn-ui btn-ui-secondary btn-ui-sm button button-klein sekundär"
-                                        th:title="#{ui.postausgang.aktion.wiederholen}">↻</button>
+                                <button type="submit" class="btn-ui btn-ui-secondary btn-ui-sm btn-icon-only button button-klein sekundär"
+                                        th:title="#{ui.postausgang.aktion.wiederholen}"
+                                        th:attr="aria-label=#{ui.postausgang.aktion.wiederholen}">
+                                    <span th:replace="~{fragments/icons :: refresh}"></span>
+                                </button>
                             </form>
 
                             <form th:action="@{/postausgang/{id}/loeschen(id=${eintrag.id})}" method="post" style="margin: 0;">
-                                <button type="submit" class="btn-ui btn-ui-danger btn-ui-sm button button-klein gefahr"
-                                        th:title="#{ui.postausgang.aktion.loeschen}">✕</button>
+                                <button type="submit" class="btn-ui btn-ui-danger btn-ui-sm btn-icon-only button button-klein gefahr"
+                                        th:title="#{ui.postausgang.aktion.loeschen}"
+                                        th:attr="aria-label=#{ui.postausgang.aktion.loeschen}">
+                                    <span th:replace="~{fragments/icons :: trash}"></span>
+                                </button>
                             </form>
                         </div>
                     </td>
@@ -98,7 +106,10 @@
         <div class="wth-hilfe-modal-dialog" role="dialog" aria-modal="true" style="max-width: 780px; width: 90%;">
             <div class="wth-hilfe-modal-kopf">
                 <h2 class="wth-hilfe-modal-titel" th:text="#{ui.postausgang.modal.titel}">E-Mail-Details & Vorschau</h2>
-                <button type="button" class="wth-hilfe-modal-schliessen" @click="modalOffen = false">×</button>
+                <button type="button" class="wth-hilfe-modal-schliessen" @click="modalOffen = false"
+                        th:attr="aria-label=#{ui.dialog.schliessen}, title=#{ui.dialog.schliessen}">
+                    <span th:replace="~{fragments/icons :: x}"></span>
+                </button>
             </div>
             <div class="wth-hilfe-modal-inhalt" style="padding: 1.25rem;">
                 <div x-show="ladeDetail" class="text-gedaempft" style="text-align: center; padding: 2rem 0;">

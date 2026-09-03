@@ -493,6 +493,33 @@ body {
     border-radius: 6px;
 }
 
+.btn-icon-only {
+    padding: 0.4rem;
+    min-width: 2rem;
+    min-height: 2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-ui-sm.btn-icon-only {
+    padding: 0.3rem;
+    min-width: 1.75rem;
+    min-height: 1.75rem;
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
 /* ==========================================================================
    5. STATUS BADGES & LIVE PULSE SIGNALS
    ========================================================================== */
@@ -1342,6 +1369,21 @@ body {
     cursor: pointer;
     white-space: nowrap;
     transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+}
+
+.kopie-button.btn-icon-only {
+    padding: 0.3rem;
+    min-width: 1.75rem;
+    min-height: 1.75rem;
+}
+
+.kopie-button .svg-icon {
+    width: 13px;
+    height: 13px;
 }
 
 .kopie-button:hover {
@@ -1566,6 +1608,11 @@ body {
     color: var(--text-main);
 }
 
+.hinweis-schalter .svg-icon {
+    width: 14px;
+    height: 14px;
+}
+
 /* Modals (Hilfe-Modal & Allgemeine Dialoge) */
 .wth-modal,
 .wth-hilfe-modal {
@@ -1653,6 +1700,12 @@ body {
     border-color: var(--border-strong);
     color: var(--text-main);
     background: var(--surface-hover);
+}
+
+.wth-modal-schliessen .svg-icon,
+.wth-hilfe-modal-schliessen .svg-icon {
+    width: 14px;
+    height: 14px;
 }
 
 .wth-modal-inhalt,

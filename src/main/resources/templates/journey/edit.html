@@ -38,7 +38,9 @@
                     <div class="wth-modal-kopf">
                         <h2 id="modal-loeschen-titel" class="wth-modal-titel" th:text="#{ui.journey.loeschen.dialog.titel(${journey.name})}">Ablauf löschen</h2>
                         <button type="button" class="wth-modal-schliessen" @click="loeschenOffen = false"
-                                th:attr="aria-label=#{ui.dialog.schliessen}, title=#{ui.dialog.schliessen}">×</button>
+                                th:attr="aria-label=#{ui.dialog.schliessen}, title=#{ui.dialog.schliessen}">
+                            <span th:replace="~{fragments/icons :: x}"></span>
+                        </button>
                     </div>
                     <div class="wth-modal-inhalt">
                         <p th:text="#{ui.journey.loeschen.bestaetigung}" style="margin-top: 0; margin-bottom: 1.25rem;">
@@ -89,7 +91,9 @@
                 <h2 style="margin: 0; border: none; padding: 0;" th:text="#{ui.journey.edit.schritte.titel}">Schritte</h2>
                 <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
                         th:data-hx-get="@{/hilfe/hinweis/{id}(id='reisen')}"
-                        data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">?</button>
+                        data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">
+                    <span th:replace="~{fragments/icons :: help}"></span>
+                </button>
                 <div class="hinweis" aria-live="polite"></div>
             </div>
 
@@ -121,9 +125,15 @@
                             </span>
                         </div>
                         <div class="schritt-editor-aktionen" style="display: flex; align-items: center; gap: 0.35rem;">
-                            <button type="button" class="btn-ui btn-ui-secondary btn-ui-sm button button-klein sekundär btn-move-up" th:text="#{ui.journey.edit.schritte.nach_oben}" onclick="moveStepUp(this)">▲</button>
-                            <button type="button" class="btn-ui btn-ui-secondary btn-ui-sm button button-klein sekundär btn-move-down" th:text="#{ui.journey.edit.schritte.nach_unten}" onclick="moveStepDown(this)">▼</button>
-                            <button type="button" class="btn-ui btn-ui-danger btn-ui-sm button button-klein gefahr btn-delete-step" th:text="#{ui.journey.edit.schritte.loeschen}" onclick="deleteStep(this)">✕</button>
+                            <button type="button" class="btn-ui btn-ui-secondary btn-ui-sm btn-icon-only btn-move-up" th:title="#{ui.journey.edit.schritte.nach_oben}" th:attr="aria-label=#{ui.journey.edit.schritte.nach_oben}" onclick="moveStepUp(this)">
+                                <span th:replace="~{fragments/icons :: chevron_up}"></span>
+                            </button>
+                            <button type="button" class="btn-ui btn-ui-secondary btn-ui-sm btn-icon-only btn-move-down" th:title="#{ui.journey.edit.schritte.nach_unten}" th:attr="aria-label=#{ui.journey.edit.schritte.nach_unten}" onclick="moveStepDown(this)">
+                                <span th:replace="~{fragments/icons :: chevron_down}"></span>
+                            </button>
+                            <button type="button" class="btn-ui btn-ui-danger btn-ui-sm btn-icon-only btn-delete-step" th:title="#{ui.journey.edit.schritte.loeschen}" th:attr="aria-label=#{ui.journey.edit.schritte.loeschen}" onclick="deleteStep(this)">
+                                <span th:replace="~{fragments/icons :: trash}"></span>
+                            </button>
                         </div>
                     </div>
 
@@ -179,13 +189,17 @@
 
             <div style="margin-top: 1.25rem; padding-top: 0.75rem; border-top: 1px dashed var(--border-subtle); display: flex; justify-content: flex-start;">
                 <button type="button" class="btn-ui btn-ui-secondary button sekundär" id="btn-add-step" onclick="addNewStep()">
-                    + <span th:text="#{ui.journey.edit.schritte.hinzufuegen}">Weiteren Schritt hinzufügen</span>
+                    <span th:replace="~{fragments/icons :: plus}"></span>
+                    <span th:text="#{ui.journey.edit.schritte.hinzufuegen}">Weiteren Schritt hinzufügen</span>
                 </button>
             </div>
         </section>
 
         <div class="form-aktionen" style="margin-top: 1.5rem;">
-            <button type="submit" class="btn-ui btn-ui-primary button primär" th:text="#{ui.journey.edit.speichern}">Änderungen speichern</button>
+            <button type="submit" class="btn-ui btn-ui-primary button primär">
+                <span th:replace="~{fragments/icons :: check}"></span>
+                <span th:text="#{ui.journey.edit.speichern}">Änderungen speichern</span>
+            </button>
             <a th:href="@{/websites/{siteId}/journeys/{journeyId}(siteId=${site.siteId},journeyId=${journey.id})}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.journey.edit.abbrechen}">Abbrechen</a>
         </div>
     </form>
@@ -263,9 +277,15 @@
                     </select>
                 </div>
                 <div class="schritt-editor-aktionen" style="display: flex; align-items: center; gap: 0.35rem;">
-                    <button type="button" class="btn-ui btn-ui-secondary btn-ui-sm button button-klein sekundär btn-move-up" onclick="moveStepUp(this)">▲</button>
-                    <button type="button" class="btn-ui btn-ui-secondary btn-ui-sm button button-klein sekundär btn-move-down" onclick="moveStepDown(this)">▼</button>
-                    <button type="button" class="btn-ui btn-ui-danger btn-ui-sm button button-klein gefahr btn-delete-step" onclick="deleteStep(this)">✕</button>
+                    <button type="button" class="btn-ui btn-ui-secondary btn-ui-sm btn-icon-only btn-move-up" title="Nach oben" aria-label="Nach oben" onclick="moveStepUp(this)">
+                        <svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                    </button>
+                    <button type="button" class="btn-ui btn-ui-secondary btn-ui-sm btn-icon-only btn-move-down" title="Nach unten" aria-label="Nach unten" onclick="moveStepDown(this)">
+                        <svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </button>
+                    <button type="button" class="btn-ui btn-ui-danger btn-ui-sm btn-icon-only btn-delete-step" title="Schritt entfernen" aria-label="Schritt entfernen" onclick="deleteStep(this)">
+                        <svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" x2="10" y1="11" y2="17"></line><line x1="14" x2="14" y1="11" y2="17"></line></svg>
+                    </button>
                 </div>
             </div>
             <div class="schritt-editor-felder mt-2">

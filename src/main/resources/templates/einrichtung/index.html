@@ -22,7 +22,9 @@
                 <h1 class="page-main-title" th:text="#{ui.einrichtung.titel}">Website einrichten</h1>
                 <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
                         th:data-hx-get="@{/hilfe/hinweis/{id}(id='einrichtung')}"
-                        data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">?</button>
+                        data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">
+                    <span th:replace="~{fragments/icons :: help}"></span>
+                </button>
                 <div class="hinweis" aria-live="polite"></div>
             </div>
         </div>

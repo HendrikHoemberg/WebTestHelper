@@ -121,7 +121,9 @@
                 <div class="wth-hilfe-modal-kopf">
                     <h2 id="hilfe-modal-titel" class="wth-hilfe-modal-titel"></h2>
                     <button type="button" class="wth-hilfe-modal-schliessen" @click="hilfeModalOffen = false"
-                            th:attr="aria-label=#{ui.hilfe.schliessen}, title=#{ui.hilfe.schliessen}">×</button>
+                            th:attr="aria-label=#{ui.hilfe.schliessen}, title=#{ui.hilfe.schliessen}">
+                        <span th:replace="~{fragments/icons :: x}"></span>
+                    </button>
                 </div>
                 <div id="hilfe-modal-inhalt" class="wth-hilfe-modal-inhalt"></div>
             </div>

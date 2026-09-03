@@ -43,7 +43,9 @@
             <h2 style="margin: 0; border: none; padding: 0;" th:text="#{ui.journey.liste.titel}">Abläufe</h2>
             <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
                     th:data-hx-get="@{/hilfe/hinweis/{id}(id='reisen')}"
-                    data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">?</button>
+                    data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">
+                <span th:replace="~{fragments/icons :: help}"></span>
+            </button>
             <div class="hinweis" aria-live="polite"></div>
         </div>
         <p class="hinweis-text" style="font-size: 0.875rem; color: var(--text-muted); margin: 0;" th:text="#{ui.journey.liste.hinweis}">
@@ -54,12 +56,16 @@
     <div id="journey-ergebnis" style="margin-bottom: 1.5rem;"></div>
 
     <div th:if="${#lists.isEmpty(journeys)}" class="card-box leer-zustand" style="text-align: center; padding: 3rem 1.5rem;">
-        <p th:text="#{ui.journey.liste.leer}" style="color: var(--text-muted); font-size: 0.95rem;">Für diese Website sind noch keine Abläufe hinterlegt.</p>
+        <p th:text="#{ui.journey.liste.leer}" style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1.25rem;">Noch keine Abläufe aufgezeichnet.</p>
+        <a sec:authorize="hasRole('ADMIN')" th:href="@{/websites/{siteId}/recorder(siteId=${site.siteId})}" class="btn-ui btn-ui-primary button primär">
+            <span th:replace="~{fragments/icons :: record}"></span>
+            <span th:text="#{ui.journey.liste.aufzeichnen}">Ablauf aufzeichnen</span>
+        </a>
     </div>
 
     <div th:if="${not #lists.isEmpty(journeys)}" class="card-box" style="padding: 0; overflow: hidden;">
         <div class="tabelle-container">
-            <table class="daten-tabelle" style="margin-top: 0; border: none; border-radius: 0; box-shadow: none;">
+            <table class="daten-tabelle tabelle" style="margin-top: 0; border: none; border-radius: 0; box-shadow: none;">
                 <thead>
                     <tr>
                         <th th:text="#{ui.journey.liste.tabelle.name}">Name</th>
@@ -108,7 +114,10 @@
                                     data-hx-swap="innerHTML"
                                     data-hx-indicator="closest button"
                                     class="btn-ui btn-ui-primary btn-ui-sm" style="margin-left: 0.4rem;">
-                                <span class="htmx-indicator-hide" th:text="#{ui.journey.test.ausfuehren}">Jetzt testen</span>
+                                <span class="htmx-indicator-hide" style="display: inline-flex; align-items: center; gap: 0.35rem;">
+                                    <span th:replace="~{fragments/icons :: play}"></span>
+                                    <span th:text="#{ui.journey.test.ausfuehren}">Jetzt testen</span>
+                                </span>
                                 <span class="htmx-indicator" th:text="#{ui.journey.test.laeuft}">Läuft …</span>
                             </button>
                             <button type="button" class="btn-ui btn-ui-secondary btn-danger-hover btn-ui-sm"
@@ -123,7 +132,9 @@
                                     <div class="wth-modal-kopf">
                                         <h2 th:id="${'modal-loeschen-journey-' + journey.id}" class="wth-modal-titel" th:text="#{ui.journey.loeschen.dialog.titel(${journey.name})}">Ablauf löschen</h2>
                                         <button type="button" class="wth-modal-schliessen" @click="loeschenOffen = false"
-                                                th:attr="aria-label=#{ui.dialog.schliessen}, title=#{ui.dialog.schliessen}">×</button>
+                                                th:attr="aria-label=#{ui.dialog.schliessen}, title=#{ui.dialog.schliessen}">
+                                            <span th:replace="~{fragments/icons :: x}"></span>
+                                        </button>
                                     </div>
                                     <div class="wth-modal-inhalt">
                                         <p th:text="#{ui.journey.loeschen.bestaetigung}" style="margin-top: 0; margin-bottom: 1.25rem;">

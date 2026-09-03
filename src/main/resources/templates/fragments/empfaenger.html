@@ -6,7 +6,9 @@
         <h2 style="margin: 0; border: none; padding: 0;" th:text="#{ui.websites.detail.empfaenger.titel}">Benachrichtigungsempfänger</h2>
         <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
                 th:data-hx-get="@{/hilfe/hinweis/{id}(id='benachrichtigungen')}"
-                data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">?</button>
+                data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">
+            <span th:replace="~{fragments/icons :: help}"></span>
+        </button>
         <div class="hinweis" aria-live="polite"></div>
     </div>
 
@@ -15,9 +17,12 @@
         <li th:each="r : ${recipients}" class="empfaenger-zeile" x-data="{ loeschenOffen: false }" style="display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.75rem; background: var(--surface-subtle); border: 1px solid var(--border-subtle); border-radius: 6px;">
             <span th:text="${r.email}" style="font-weight: 500;">empfaenger@example.com</span>
             <div>
-                <button sec:authorize="hasRole('ADMIN')" type="button" class="btn-ui btn-ui-secondary btn-danger-hover btn-ui-sm button sekundär klein"
+                <button sec:authorize="hasRole('ADMIN')" type="button" class="btn-ui btn-ui-secondary btn-danger-hover btn-ui-sm btn-icon-only button sekundär klein"
                         @click="loeschenOffen = true"
-                        th:text="#{ui.websites.detail.empfaenger.loeschen}">Löschen</button>
+                        th:title="#{ui.websites.detail.empfaenger.loeschen}"
+                        th:attr="aria-label=#{ui.websites.detail.empfaenger.loeschen}">
+                    <span th:replace="~{fragments/icons :: trash}"></span>
+                </button>
 
                 <!-- Dialog Empfaenger entfernen -->
                 <div sec:authorize="hasRole('ADMIN')" x-cloak x-show="loeschenOffen" @keydown.escape.window="loeschenOffen = false" class="wth-modal text-links" style="text-align: left;">
@@ -26,7 +31,9 @@
                         <div class="wth-modal-kopf">
                             <h2 th:id="${'modal-loeschen-empfaenger-' + r.id}" class="wth-modal-titel" th:text="#{ui.websites.detail.empfaenger.loeschen.dialog.titel}">Empfänger entfernen</h2>
                             <button type="button" class="wth-modal-schliessen" @click="loeschenOffen = false"
-                                    th:attr="aria-label=#{ui.dialog.schliessen}, title=#{ui.dialog.schliessen}">×</button>
+                                    th:attr="aria-label=#{ui.dialog.schliessen}, title=#{ui.dialog.schliessen}">
+                                <span th:replace="~{fragments/icons :: x}"></span>
+                            </button>
                         </div>
                         <div class="wth-modal-inhalt">
                             <p th:text="#{ui.websites.detail.empfaenger.loeschen.bestaetigung(${r.email})}" style="margin-top: 0; margin-bottom: 1.25rem;">
@@ -63,7 +70,10 @@
             <span th:if="${recipientError != null}" th:text="${recipientError}" class="feld-fehler">Fehler</span>
         </div>
         <div class="form-aktionen">
-            <button type="submit" class="btn-ui btn-ui-secondary button primär" th:text="#{ui.websites.detail.empfaenger.neu.button}">Empfänger hinzufügen</button>
+            <button type="submit" class="btn-ui btn-ui-secondary button primär">
+                <span th:replace="~{fragments/icons :: plus}"></span>
+                <span th:text="#{ui.websites.detail.empfaenger.neu.button}">Empfänger hinzufügen</span>
+            </button>
         </div>
     </form>
 </section>

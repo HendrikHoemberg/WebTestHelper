@@ -6,7 +6,9 @@
         <h2 style="margin: 0; border: none; padding: 0;" th:text="#{ui.websites.detail.zeitplaene.titel}">Zeitpläne</h2>
         <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
                 th:data-hx-get="@{/hilfe/hinweis/{id}(id='zeitplaene')}"
-                data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">?</button>
+                data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">
+            <span th:replace="~{fragments/icons :: help}"></span>
+        </button>
         <div class="hinweis" aria-live="polite"></div>
     </div>
 
@@ -83,7 +85,10 @@
         </div>
 
         <div sec:authorize="hasRole('ADMIN')" class="form-aktionen">
-            <button type="submit" class="btn-ui btn-ui-primary button primär" th:text="#{ui.zeitplan.speichern}">Zeitpläne speichern</button>
+            <button type="submit" class="btn-ui btn-ui-primary button primär">
+                <span th:replace="~{fragments/icons :: check}"></span>
+                <span th:text="#{ui.zeitplan.speichern}">Zeitpläne speichern</span>
+            </button>
         </div>
     </form>
 </section>

@@ -28,8 +28,10 @@
                    th:text="#{ui.uebersicht.leer.schritt3.text}">Der erste Lauf legt den Ausgangsbestand fest – danach sehen Sie nur noch Veränderungen.</p>
             </li>
         </ol>
-        <a sec:authorize="hasRole('ADMIN')" th:href="@{/websites/neu}" class="btn-ui btn-ui-primary button primär"
-           th:text="#{ui.uebersicht.leer.cta}">Erste Website anlegen</a>
+        <a sec:authorize="hasRole('ADMIN')" th:href="@{/websites/neu}" class="btn-ui btn-ui-primary button primär">
+            <span th:replace="~{fragments/icons :: plus}"></span>
+            <span th:text="#{ui.uebersicht.leer.cta}">Erste Website anlegen</span>
+        </a>
         <p sec:authorize="not hasRole('ADMIN')" class="hinweis-text" style="color: var(--text-muted);"
            th:text="#{ui.uebersicht.leer.keine_rechte}">Bitte wenden Sie sich an eine Administratorin oder einen Administrator, um die erste Website anzulegen.</p>
     </div>

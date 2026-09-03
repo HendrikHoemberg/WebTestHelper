@@ -330,7 +330,9 @@
             <div class="wth-modal-kopf">
                 <h2 id="modal-beenden-titel" class="wth-modal-titel" th:text="#{ui.recorder.beenden.dialog.titel}">Aufzeichnung abbrechen</h2>
                 <button type="button" class="wth-modal-schliessen" @click="beendenOffen = false"
-                        th:attr="aria-label=#{ui.dialog.schliessen}, title=#{ui.dialog.schliessen}">×</button>
+                        th:attr="aria-label=#{ui.dialog.schliessen}, title=#{ui.dialog.schliessen}">
+                    <span th:replace="~{fragments/icons :: x}"></span>
+                </button>
             </div>
             <div class="wth-modal-inhalt">
                 <p th:text="#{ui.recorder.beenden.bestaetigung}" style="margin-top: 0; margin-bottom: 1.25rem;">
@@ -351,7 +353,9 @@
             <div class="wth-modal-kopf">
                 <h2 id="modal-speichern-titel" class="wth-modal-titel" th:text="#{ui.recorder.speichern.dialog.titel}">Ablauf speichern</h2>
                 <button type="button" class="wth-modal-schliessen" @click="speichernOffen = false"
-                        th:attr="aria-label=#{ui.dialog.schliessen}, title=#{ui.dialog.schliessen}">×</button>
+                        th:attr="aria-label=#{ui.dialog.schliessen}, title=#{ui.dialog.schliessen}">
+                    <span th:replace="~{fragments/icons :: x}"></span>
+                </button>
             </div>
             <div class="wth-modal-inhalt">
                 <p th:text="#{ui.recorder.speichern.dialog.hinweis}" style="margin-top: 0; margin-bottom: 1rem;">

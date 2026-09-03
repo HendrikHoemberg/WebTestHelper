@@ -56,7 +56,9 @@
                     <label for="fallbackRecipients" th:text="#{ui.einstellungen.fallbackRecipients}">Ausweich-Empfänger (Fallback)</label>
                     <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
                             th:data-hx-get="@{/hilfe/hinweis/{id}(id='benachrichtigungen')}"
-                            data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">?</button>
+                            data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">
+                        <span th:replace="~{fragments/icons :: help}"></span>
+                    </button>
                     <div class="hinweis" aria-live="polite"></div>
                 </div>
                 <textarea id="fallbackRecipients" th:field="*{fallbackRecipients}" rows="3" class="form-input" placeholder="empfaenger@example.com"></textarea>
@@ -80,7 +82,9 @@
                 <h2 style="margin: 0; border: none; padding: 0;" th:text="#{ui.einstellungen.webhook.titel}">Slack &amp; Microsoft Teams Webhook</h2>
                 <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
                         th:data-hx-get="@{/hilfe/hinweis/{id}(id='webhooks')}"
-                        data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">?</button>
+                        data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">
+                    <span th:replace="~{fragments/icons :: help}"></span>
+                </button>
                 <div class="hinweis" aria-live="polite"></div>
             </div>
             <p class="hinweis-text" style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;" th:text="#{ui.einstellungen.webhook.hinweis}">
@@ -115,7 +119,9 @@
                 <h2 style="margin: 0; border: none; padding: 0;" th:text="#{ui.einstellungen.smtp.titel}">E-Mail-Versand (SMTP)</h2>
                 <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
                         th:data-hx-get="@{/hilfe/hinweis/{id}(id='smtp-einrichten')}"
-                        data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">?</button>
+                        data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">
+                    <span th:replace="~{fragments/icons :: help}"></span>
+                </button>
                 <div class="hinweis" aria-live="polite"></div>
             </div>
 
@@ -162,7 +168,10 @@
 
             <div th:if="${smtpConfigured}" class="smtp-test-zeile" style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
                 <span class="text-gedaempft" style="font-size: 0.85rem;" th:text="#{ui.einstellungen.smtp.test_hinweis}">SMTP-Konfiguration sofort überprüfen:</span>
-                <button type="submit" formaction="/einstellungen/testmail" formmethod="post" class="btn-ui btn-ui-secondary btn-ui-sm button sekundär klein btn-smtp-test" th:text="#{ui.einstellungen.testmail.senden}">Test-E-Mail senden</button>
+                <button type="submit" formaction="/einstellungen/testmail" formmethod="post" class="btn-ui btn-ui-secondary btn-ui-sm button sekundär klein btn-smtp-test">
+                    <span th:replace="~{fragments/icons :: play}"></span>
+                    <span th:text="#{ui.einstellungen.testmail.senden}">Test-E-Mail senden</span>
+                </button>
             </div>
         </section>
 
@@ -171,7 +180,9 @@
                 <h2 style="margin: 0; border: none; padding: 0;" th:text="#{ui.einstellungen.imap.titel}">Prüfpostfach</h2>
                 <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
                         th:data-hx-get="@{/hilfe/hinweis/{id}(id='pruefpostfach')}"
-                        data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">?</button>
+                        data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">
+                    <span th:replace="~{fragments/icons :: help}"></span>
+                </button>
                 <div class="hinweis" aria-live="polite"></div>
             </div>
             <p class="hinweis-text" style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;" th:text="#{ui.einstellungen.imap.hinweis}">In dieses Postfach muss eine Kopie der Formularnachricht gelangen.</p>
@@ -225,7 +236,10 @@
         </section>
 
         <div class="form-aktionen" style="margin-bottom: 1.5rem;">
-            <button type="submit" class="btn-ui btn-ui-primary button primär" th:text="#{ui.einstellungen.speichern}">Einstellungen speichern</button>
+            <button type="submit" class="btn-ui btn-ui-primary button primär">
+                <span th:replace="~{fragments/icons :: check}"></span>
+                <span th:text="#{ui.einstellungen.speichern}">Einstellungen speichern</span>
+            </button>
             <a th:href="@{/websites}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.einstellungen.abbrechen}">Abbrechen</a>
         </div>
     </form>
@@ -233,19 +247,28 @@
     <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
         <div th:if="${smtpConfigured}" class="testmail-bereich">
             <form th:action="@{/einstellungen/testmail}" method="post" class="inline-form">
-                <button type="submit" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.einstellungen.testmail.senden}">Test-E-Mail senden</button>
+                <button type="submit" class="btn-ui btn-ui-secondary button sekundär">
+                    <span th:replace="~{fragments/icons :: play}"></span>
+                    <span th:text="#{ui.einstellungen.testmail.senden}">Test-E-Mail senden</span>
+                </button>
             </form>
         </div>
 
         <div th:if="${imapConfigured}" class="testmail-bereich">
             <form th:action="@{/einstellungen/postfach-test}" method="post" class="inline-form">
-                <button type="submit" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.einstellungen.imap.test}">Postfach prüfen</button>
+                <button type="submit" class="btn-ui btn-ui-secondary button sekundär">
+                    <span th:replace="~{fragments/icons :: play}"></span>
+                    <span th:text="#{ui.einstellungen.imap.test}">Postfach prüfen</span>
+                </button>
             </form>
         </div>
 
         <div class="testmail-bereich">
             <form th:action="@{/einstellungen/webhook-test}" method="post" class="inline-form">
-                <button type="submit" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.einstellungen.webhook.test}">Webhook testen</button>
+                <button type="submit" class="btn-ui btn-ui-secondary button sekundär">
+                    <span th:replace="~{fragments/icons :: play}"></span>
+                    <span th:text="#{ui.einstellungen.webhook.test}">Webhook testen</span>
+                </button>
             </form>
         </div>
 

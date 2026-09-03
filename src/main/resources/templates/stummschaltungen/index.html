@@ -16,7 +16,9 @@
                 <h1 class="page-main-title" th:text="#{ui.stummschaltungen.titel}">Stummschaltungen</h1>
                 <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
                         th:data-hx-get="@{/hilfe/hinweis/{id}(id='stummschaltungen')}"
-                        data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">?</button>
+                        data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">
+                    <span th:replace="~{fragments/icons :: help}"></span>
+                </button>
                 <div class="hinweis" aria-live="polite"></div>
             </div>
         </div>
@@ -200,8 +202,10 @@
                         </td>
                         <td x-data="{ loeschenOffen: false }">
                             <button type="button" class="btn-ui btn-ui-secondary btn-danger-hover btn-ui-sm button link-loeschen"
-                                    @click="loeschenOffen = true"
-                                    th:text="#{ui.stummschaltungen.loeschen}">Löschen</button>
+                                    @click="loeschenOffen = true">
+                                <span th:replace="~{fragments/icons :: trash}"></span>
+                                <span th:text="#{ui.stummschaltungen.loeschen}">Löschen</span>
+                            </button>
 
                             <!-- Dialog Stummschaltungsregel entfernen -->
                             <div x-cloak x-show="loeschenOffen" @keydown.escape.window="loeschenOffen = false" class="wth-modal text-links" style="text-align: left;">
@@ -210,7 +214,9 @@
                                     <div class="wth-modal-kopf">
                                         <h2 th:id="${'modal-loeschen-regel-' + rule.id}" class="wth-modal-titel" th:text="#{ui.stummschaltungen.loeschen.dialog.titel}">Stummschaltungsregel löschen</h2>
                                         <button type="button" class="wth-modal-schliessen" @click="loeschenOffen = false"
-                                                th:attr="aria-label=#{ui.dialog.schliessen}, title=#{ui.dialog.schliessen}">×</button>
+                                                th:attr="aria-label=#{ui.dialog.schliessen}, title=#{ui.dialog.schliessen}">
+                                            <span th:replace="~{fragments/icons :: x}"></span>
+                                        </button>
                                     </div>
                                     <div class="wth-modal-inhalt">
                                         <p th:text="#{ui.stummschaltungen.loeschen.bestaetigung}" style="margin-top: 0; margin-bottom: 1.25rem;">

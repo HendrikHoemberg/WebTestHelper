@@ -28,18 +28,22 @@
                 <a th:href="${detail.summary.subjectUrl}" target="_blank" rel="noopener noreferrer"
                    class="befund-subjekt-link" th:attr="aria-label=#{ui.befund.subject.aufrufen}"
                    th:text="${detail.summary.subjectUrl}">https://example.com/tot</a>
-                <button type="button" class="kopie-button"
+                <button type="button" class="kopie-button btn-icon-only"
                         th:data-url="${detail.summary.subjectUrl}"
                         th:attr="aria-label=#{ui.befund.subject.kopieren},title=#{ui.befund.subject.kopieren}"
                         @click="kopiere($event)">
-                    <span th:text="#{ui.befund.subject.kopieren_kurz}">Kopieren</span>
+                    <span th:replace="~{fragments/icons :: copy}"></span>
+                    <span class="sr-only" th:text="#{ui.befund.subject.kopieren_kurz}">Kopieren</span>
                 </button>
                 <span class="kopie-rueckmeldung" x-cloak x-show="kopiert" aria-live="polite"
                       th:text="#{ui.befund.subject.kopiert}">Kopiert!</span>
             </div>
         </div>
         <div class="header-actions-cluster seiten-kopf-aktionen">
-            <a th:href="@{/laeufe/{id}(id=${finding.lastSeenRun})}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.befund.detail.zurueck_zum_lauf(${finding.lastSeenRun})}">Zurück zum Prüflauf</a>
+            <a th:href="@{/laeufe/{id}(id=${finding.lastSeenRun})}" class="btn-ui btn-ui-secondary button sekundär">
+                <span th:replace="~{fragments/icons :: arrow_left}"></span>
+                <span th:text="#{ui.befund.detail.zurueck_zum_lauf(${finding.lastSeenRun})}">Zurück zum Prüflauf</span>
+            </a>
         </div>
     </header>
 
@@ -49,7 +53,9 @@
             <h2 style="margin: 0; border: none; padding: 0;" th:text="#{ui.befunde.triage.titel}">Feststellung bewerten</h2>
             <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
                     th:data-hx-get="@{/hilfe/hinweis/{id}(id='stummschaltungen')}"
-                    data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">?</button>
+                    data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">
+                <span th:replace="~{fragments/icons :: help}"></span>
+            </button>
             <div class="hinweis" aria-live="polite"></div>
         </div>
         <div th:replace="~{fragments/bewertung :: bewertung(@{/befunde/{id}/bewerten(id=${finding.id})}, false, ${finding.id})}"></div>

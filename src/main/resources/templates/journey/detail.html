@@ -23,12 +23,23 @@
             <h1 class="page-main-title" th:text="${journey.name}">Ablauf Name</h1>
         </div>
         <div class="header-actions-cluster seiten-kopf-aktionen" x-data="{ loeschenOffen: false }">
-            <a th:href="@{/websites/{siteId}/journeys/{journeyId}/bearbeiten(siteId=${site.siteId},journeyId=${journey.id})}" class="btn-ui btn-ui-primary button primär" th:text="#{ui.journey.detail.bearbeiten}">Ablauf bearbeiten</a>
+            <a th:href="@{/websites/{siteId}/journeys/{journeyId}/bearbeiten(siteId=${site.siteId},journeyId=${journey.id})}" class="btn-ui btn-ui-primary button primär">
+                <span th:replace="~{fragments/icons :: pencil}"></span>
+                <span th:text="#{ui.journey.detail.bearbeiten}">Ablauf bearbeiten</span>
+            </a>
             <button type="button" class="btn-ui btn-ui-secondary btn-danger-hover button sekundär"
-                    @click="loeschenOffen = true"
-                    th:text="#{ui.journey.detail.loeschen}">Ablauf löschen</button>
-            <a th:href="@{/websites/{siteId}/journeys(siteId=${site.siteId})}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.journey.detail.zurueck_liste}">Zurück zur Übersicht</a>
-            <a th:href="@{/websites/{id}(id=${site.siteId})}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.journey.detail.zurueck_website}">Zurück zur Website</a>
+                    @click="loeschenOffen = true">
+                <span th:replace="~{fragments/icons :: trash}"></span>
+                <span th:text="#{ui.journey.detail.loeschen}">Ablauf löschen</span>
+            </button>
+            <a th:href="@{/websites/{siteId}/journeys(siteId=${site.siteId})}" class="btn-ui btn-ui-secondary button sekundär">
+                <span th:replace="~{fragments/icons :: arrow_left}"></span>
+                <span th:text="#{ui.journey.detail.zurueck_liste}">Zurück zur Übersicht</span>
+            </a>
+            <a th:href="@{/websites/{id}(id=${site.siteId})}" class="btn-ui btn-ui-secondary button sekundär">
+                <span th:replace="~{fragments/icons :: arrow_left}"></span>
+                <span th:text="#{ui.journey.detail.zurueck_website}">Zurück zur Website</span>
+            </a>
 
             <!-- Löschen-Modal -->
             <div x-cloak x-show="loeschenOffen" @keydown.escape.window="loeschenOffen = false" class="wth-modal text-links" style="text-align: left;">
@@ -37,7 +48,9 @@
                     <div class="wth-modal-kopf">
                         <h2 id="modal-loeschen-titel" class="wth-modal-titel" th:text="#{ui.journey.loeschen.dialog.titel(${journey.name})}">Ablauf löschen</h2>
                         <button type="button" class="wth-modal-schliessen" @click="loeschenOffen = false"
-                                th:attr="aria-label=#{ui.dialog.schliessen}, title=#{ui.dialog.schliessen}">×</button>
+                                th:attr="aria-label=#{ui.dialog.schliessen}, title=#{ui.dialog.schliessen}">
+                            <span th:replace="~{fragments/icons :: x}"></span>
+                        </button>
                     </div>
                     <div class="wth-modal-inhalt">
                         <p th:text="#{ui.journey.loeschen.bestaetigung}" style="margin-top: 0; margin-bottom: 1.25rem;">
@@ -60,7 +73,9 @@
             <h2 style="margin: 0; border: none; padding: 0;" th:text="#{ui.journey.detail.uebersicht}">Übersicht</h2>
             <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
                     th:data-hx-get="@{/hilfe/hinweis/{id}(id='reisen')}"
-                    data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">?</button>
+                    data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">
+                <span th:replace="~{fragments/icons :: help}"></span>
+            </button>
             <div class="hinweis" aria-live="polite"></div>
         </div>
         <dl class="schluessel-werte">

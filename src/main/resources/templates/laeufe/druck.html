@@ -16,10 +16,19 @@
         }
     </style>
     <div class="druck-aktionen" style="display: flex; gap: 0.5rem; justify-content: space-between; align-items: center; margin-bottom: 2rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 1rem;">
-        <a th:href="@{/laeufe/{id}(id=${run.id})}" class="btn-ui btn-ui-secondary" th:text="#{ui.lauf.bericht.zurueck}">Zurück zum Prüflauf</a>
+        <a th:href="@{/laeufe/{id}(id=${run.id})}" class="btn-ui btn-ui-secondary">
+            <span th:replace="~{fragments/icons :: arrow_left}"></span>
+            <span th:text="#{ui.lauf.bericht.zurueck}">Zurück zum Prüflauf</span>
+        </a>
         <div style="display: flex; gap: 0.5rem;">
-            <a th:href="@{/laeufe/{id}/bericht/pdf(id=${run.id})}" class="btn-ui btn-ui-secondary" th:text="#{ui.lauf.aktion.pdf_download}">PDF herunterladen</a>
-            <button type="button" class="btn-ui btn-ui-primary" onclick="window.print()" th:text="#{ui.lauf.bericht.drucken}">Bericht drucken / Als PDF speichern</button>
+            <a th:href="@{/laeufe/{id}/bericht/pdf(id=${run.id})}" class="btn-ui btn-ui-secondary">
+                <span th:replace="~{fragments/icons :: download}"></span>
+                <span th:text="#{ui.lauf.aktion.pdf_download}">PDF herunterladen</span>
+            </a>
+            <button type="button" class="btn-ui btn-ui-primary" onclick="window.print()">
+                <span th:replace="~{fragments/icons :: printer}"></span>
+                <span th:text="#{ui.lauf.bericht.drucken}">Bericht drucken / Als PDF speichern</span>
+            </button>
         </div>
     </div>
 

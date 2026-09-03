@@ -21,7 +21,10 @@
         <span style="font-weight: 500;"
               th:text="${run.status.name() == 'COMPLETED'} ? #{ui.lauf.abgeschlossen.banner} : #{ui.lauf.fehlgeschlagen.banner}">Der Prüflauf wurde abgeschlossen.</span>
         <button type="button" @click="sichtbar = false" th:attr="aria-label=#{ui.lauf.banner.schliessen}"
-                style="background: none; border: none; cursor: pointer; font-size: 1.2rem; line-height: 1; color: inherit;">×</button>
+                class="wth-modal-schliessen"
+                style="width: 1.5rem; height: 1.5rem; background: none; border: none; cursor: pointer; color: inherit;">
+            <span th:replace="~{fragments/icons :: x}"></span>
+        </button>
     </div>
 
     <header class="page-header-bar seiten-kopf">
@@ -44,11 +47,20 @@
         </div>
         <div class="header-actions-cluster seiten-kopf-aktionen">
             <a th:if="${run.status.name() == 'COMPLETED' or run.status.name() == 'FAILED'}"
-               th:href="@{/laeufe/{id}/bericht/pdf(id=${run.id})}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.lauf.aktion.pdf_download}">PDF herunterladen</a>
+               th:href="@{/laeufe/{id}/bericht/pdf(id=${run.id})}" class="btn-ui btn-ui-secondary button sekundär">
+                <span th:replace="~{fragments/icons :: download}"></span>
+                <span th:text="#{ui.lauf.aktion.pdf_download}">PDF herunterladen</span>
+            </a>
             <a th:if="${run.status.name() == 'COMPLETED' or run.status.name() == 'FAILED'}"
-               th:href="@{/laeufe/{id}/bericht(id=${run.id})}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.lauf.bericht.button}">Bericht drucken</a>
+               th:href="@{/laeufe/{id}/bericht(id=${run.id})}" class="btn-ui btn-ui-secondary button sekundär">
+                <span th:replace="~{fragments/icons :: printer}"></span>
+                <span th:text="#{ui.lauf.bericht.button}">Bericht drucken</span>
+            </a>
             <a th:href="@{/websites/{id}/befunde(id=${site.siteId})}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.lauf.alle_befunde}">Alle Feststellungen</a>
-            <a th:href="@{/websites/{id}(id=${site.siteId})}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.lauf.zurueck_zur_website}">Zurück zur Website</a>
+            <a th:href="@{/websites/{id}(id=${site.siteId})}" class="btn-ui btn-ui-secondary button sekundär">
+                <span th:replace="~{fragments/icons :: arrow_left}"></span>
+                <span th:text="#{ui.lauf.zurueck_zur_website}">Zurück zur Website</span>
+            </a>
         </div>
     </header>
 
@@ -70,7 +82,9 @@
             <div class="wth-modal-kopf">
                 <h2 id="lauf-abbrechen-modal-titel" class="wth-modal-titel" th:text="#{ui.lauf.abbrechen.dialog.titel}">Prüflauf abbrechen</h2>
                 <button type="button" class="wth-modal-schliessen" @click="offen = false"
-                        th:attr="aria-label=#{ui.lauf.abbrechen.schliessen}, title=#{ui.lauf.abbrechen.schliessen}">×</button>
+                        th:attr="aria-label=#{ui.lauf.abbrechen.schliessen}, title=#{ui.lauf.abbrechen.schliessen}">
+                    <span th:replace="~{fragments/icons :: x}"></span>
+                </button>
             </div>
             <div class="wth-modal-inhalt">
                 <p th:text="#{ui.lauf.abbrechen.folge}" style="margin-top: 0; margin-bottom: 1.25rem;">
@@ -122,7 +136,9 @@
             <h2 style="margin: 0; border: none; padding: 0;" th:text="#{ui.lauf.abdeckung.titel}">Abdeckung</h2>
             <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
                     th:data-hx-get="@{/hilfe/hinweis/{id}(id='bericht-lesen')}"
-                    data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">?</button>
+                    data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">
+                <span th:replace="~{fragments/icons :: help}"></span>
+            </button>
             <div class="hinweis" aria-live="polite"></div>
         </div>
         <p class="abdeckung-zeile" style="font-size: 0.95rem; margin-bottom: 0.5rem;">
@@ -152,10 +168,15 @@
         <h2 th:text="#{ui.lauf.ausgangsbestand.titel}">Ausgangsbestand</h2>
         <div th:if="${!run.baselineAccepted}" x-data="{ offen: false }" class="ausgangsbestand-block">
             <div class="ausgangsbestand-zeile" style="display: flex; align-items: center; gap: 0.5rem;">
-                <button type="button" @click="offen = true" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.lauf.ausgangsbestand.button}">Als Ausgangsbestand übernehmen</button>
+                <button type="button" @click="offen = true" class="btn-ui btn-ui-secondary button sekundär">
+                    <span th:replace="~{fragments/icons :: check}"></span>
+                    <span th:text="#{ui.lauf.ausgangsbestand.button}">Als Ausgangsbestand übernehmen</span>
+                </button>
                 <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
                         th:data-hx-get="@{/hilfe/hinweis/{id}(id='ausgangsbestand')}"
-                        data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">?</button>
+                        data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">
+                    <span th:replace="~{fragments/icons :: help}"></span>
+                </button>
                 <div class="hinweis" aria-live="polite"></div>
             </div>
 
@@ -166,7 +187,9 @@
                     <div class="wth-modal-kopf">
                         <h2 id="modal-ausgangsbestand-titel" class="wth-modal-titel" th:text="#{ui.lauf.ausgangsbestand.dialog.titel}">Ausgangsbestand festlegen</h2>
                         <button type="button" class="wth-modal-schliessen" @click="offen = false"
-                                th:attr="aria-label=#{ui.dialog.schliessen}, title=#{ui.dialog.schliessen}">×</button>
+                                th:attr="aria-label=#{ui.dialog.schliessen}, title=#{ui.dialog.schliessen}">
+                            <span th:replace="~{fragments/icons :: x}"></span>
+                        </button>
                     </div>
                     <div class="wth-modal-inhalt">
                         <p style="margin-top: 0; margin-bottom: 1.25rem;" th:text="#{ui.lauf.ausgangsbestand.folge(${diff != null ? diff.observedTotal() : run.findingsTotal})}">
@@ -184,7 +207,9 @@
             <span class="status-badge status-inaktiv" th:text="#{ui.lauf.ausgangsbestand.bereits_uebernommen}">Ausgangsbestand wurde übernommen</span>
             <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
                     th:data-hx-get="@{/hilfe/hinweis/{id}(id='ausgangsbestand')}"
-                    data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">?</button>
+                    data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">
+                <span th:replace="~{fragments/icons :: help}"></span>
+            </button>
             <div class="hinweis" aria-live="polite"></div>
         </div>
     </section>
@@ -202,7 +227,9 @@
                 <h2 style="margin: 0; border: none; padding: 0;" th:text="#{${'ui.reportsection.' + entry.key}} + ' (' + ${#lists.size(entry.value)} + ')'">Neu aufgetreten (2)</h2>
                 <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
                         th:data-hx-get="@{/hilfe/hinweis/{id}(id='bericht-lesen')}"
-                        data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">?</button>
+                        data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">
+                    <span th:replace="~{fragments/icons :: help}"></span>
+                </button>
                 <div class="hinweis" aria-live="polite"></div>
             </div>
             <div class="befunde-liste inspector-card-shell" style="margin-bottom: 0;">

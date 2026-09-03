@@ -40,7 +40,10 @@
                 </div>
             </div>
             <div class="form-aktionen">
-                <button type="submit" class="btn-ui btn-ui-primary button primär" th:text="#{ui.einstellungen.benutzer.neu.anlegen}">Benutzer anlegen</button>
+                <button type="submit" class="btn-ui btn-ui-primary button primär">
+                    <span th:replace="~{fragments/icons :: plus}"></span>
+                    <span th:text="#{ui.einstellungen.benutzer.neu.anlegen}">Benutzer anlegen</span>
+                </button>
             </div>
         </form>
     </section>
@@ -114,8 +117,10 @@
                                     th:text="#{ui.einstellungen.benutzer.passwort.setzen}">Passwort setzen</button>
 
                             <button th:if="${!geschuetzt}" type="button" class="btn-ui btn-ui-secondary btn-danger-hover btn-ui-sm button sekundär klein"
-                                    @click="loeschenOffen = true; loeschText = ''"
-                                    th:text="#{ui.einstellungen.benutzer.loeschen}">Löschen</button>
+                                    @click="loeschenOffen = true; loeschText = ''">
+                                <span th:replace="~{fragments/icons :: trash}"></span>
+                                <span th:text="#{ui.einstellungen.benutzer.loeschen}">Löschen</span>
+                            </button>
 
                             <!-- Passwort-Modal -->
                             <div x-cloak x-show="passwortOffen" @keydown.escape.window="passwortOffen = false" class="wth-modal" style="text-align: left;">
@@ -124,7 +129,9 @@
                                     <div class="wth-modal-kopf">
                                         <h2 th:id="${'modal-passwort-titel-' + b.id()}" class="wth-modal-titel" th:text="#{ui.einstellungen.benutzer.passwort.dialog.titel(${b.username()})}">Neues Passwort setzen</h2>
                                         <button type="button" class="wth-modal-schliessen" @click="passwortOffen = false"
-                                                th:attr="aria-label=#{ui.dialog.schliessen}, title=#{ui.dialog.schliessen}">×</button>
+                                                th:attr="aria-label=#{ui.dialog.schliessen}, title=#{ui.dialog.schliessen}">
+                                            <span th:replace="~{fragments/icons :: x}"></span>
+                                        </button>
                                     </div>
                                     <div class="wth-modal-inhalt">
                                         <form th:action="@{/einstellungen/benutzer/{id}(id=${b.id()})}" method="post">
@@ -152,7 +159,9 @@
                                     <div class="wth-modal-kopf">
                                         <h2 th:id="${'modal-loeschen-benutzer-titel-' + b.id()}" class="wth-modal-titel" th:text="#{ui.einstellungen.benutzer.loeschen.dialog.titel(${b.username()})}">Benutzer löschen</h2>
                                         <button type="button" class="wth-modal-schliessen" @click="loeschenOffen = false"
-                                                th:attr="aria-label=#{ui.dialog.schliessen}, title=#{ui.dialog.schliessen}">×</button>
+                                                th:attr="aria-label=#{ui.dialog.schliessen}, title=#{ui.dialog.schliessen}">
+                                            <span th:replace="~{fragments/icons :: x}"></span>
+                                        </button>
                                     </div>
                                     <div class="wth-modal-inhalt">
                                         <p th:text="#{ui.einstellungen.benutzer.loeschen.hinweis}" style="margin-top: 0; margin-bottom: 1.25rem;">

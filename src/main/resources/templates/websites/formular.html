@@ -126,7 +126,10 @@
             </div>
 
             <div class="form-aktionen" style="margin-top: 2rem;">
-                <button type="submit" class="btn-ui btn-ui-primary button primär" th:text="#{ui.websites.formular.speichern}">Speichern</button>
+                <button type="submit" class="btn-ui btn-ui-primary button primär">
+                    <span th:replace="~{fragments/icons :: check}"></span>
+                    <span th:text="#{ui.websites.formular.speichern}">Speichern</span>
+                </button>
                 <a th:href="@{/websites}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.websites.formular.abbrechen}">Abbrechen</a>
             </div>
         </form>

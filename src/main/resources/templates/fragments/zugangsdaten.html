@@ -6,7 +6,9 @@
         <h2 style="margin: 0; border: none; padding: 0;" th:text="#{ui.websites.detail.zugangsdaten.titel}">Zugangsdaten</h2>
         <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
                 th:data-hx-get="@{/hilfe/hinweis/{id}(id='zugangsdaten')}"
-                data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">?</button>
+                data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">
+            <span th:replace="~{fragments/icons :: help}"></span>
+        </button>
         <div class="hinweis" aria-live="polite"></div>
     </div>
 
@@ -61,9 +63,12 @@
 
             <!-- Delete form (ADMIN only) -->
             <div sec:authorize="hasRole('ADMIN')" style="margin-top: 0.4rem; text-align: right;">
-                <button type="button" class="btn-ui btn-ui-secondary btn-danger-hover btn-ui-sm button sekundär klein"
+                <button type="button" class="btn-ui btn-ui-secondary btn-danger-hover btn-ui-sm btn-icon-only button sekundär klein"
                         @click="loeschenOffen = true"
-                        th:text="#{ui.websites.detail.zugangsdaten.loeschen}">Löschen</button>
+                        th:title="#{ui.websites.detail.zugangsdaten.loeschen}"
+                        th:attr="aria-label=#{ui.websites.detail.zugangsdaten.loeschen}">
+                    <span th:replace="~{fragments/icons :: trash}"></span>
+                </button>
 
                 <!-- Dialog Zugangsdaten entfernen -->
                 <div x-cloak x-show="loeschenOffen" @keydown.escape.window="loeschenOffen = false" class="wth-modal text-links" style="text-align: left;">
@@ -72,7 +77,9 @@
                         <div class="wth-modal-kopf">
                             <h2 th:id="${'modal-loeschen-cred-' + c.id}" class="wth-modal-titel" th:text="#{ui.websites.detail.zugangsdaten.loeschen.dialog.titel(${c.name})}">Zugangsdaten löschen</h2>
                             <button type="button" class="wth-modal-schliessen" @click="loeschenOffen = false"
-                                    th:attr="aria-label=#{ui.dialog.schliessen}, title=#{ui.dialog.schliessen}">×</button>
+                                    th:attr="aria-label=#{ui.dialog.schliessen}, title=#{ui.dialog.schliessen}">
+                                <span th:replace="~{fragments/icons :: x}"></span>
+                            </button>
                         </div>
                         <div class="wth-modal-inhalt">
                             <p th:text="#{ui.websites.detail.zugangsdaten.loeschen.bestaetigung(${c.name})}" style="margin-top: 0; margin-bottom: 1.25rem;">
@@ -106,7 +113,10 @@
             <input type="password" id="credential-passwort" name="passwort" class="form-input">
         </div>
         <div class="form-aktionen">
-            <button type="submit" class="btn-ui btn-ui-secondary button primär" th:text="#{ui.websites.detail.zugangsdaten.neu.button}">Zugangsdaten hinzufügen</button>
+            <button type="submit" class="btn-ui btn-ui-secondary button primär">
+                <span th:replace="~{fragments/icons :: plus}"></span>
+                <span th:text="#{ui.websites.detail.zugangsdaten.neu.button}">Zugangsdaten hinzufügen</span>
+            </button>
         </div>
     </form>
 </section>

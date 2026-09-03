@@ -63,10 +63,15 @@
                         <td class="text-rechts zell-aktion" x-data="{ loeschenOffen: false }">
                             <div style="display: flex; align-items: center; justify-content: flex-end; gap: 0.5rem;">
                                 <a th:href="@{/websites/{id}(id=${site.id})}" class="btn-ui btn-ui-secondary btn-ui-sm button-oeffnen" th:text="#{ui.websites.aktionen.oeffnen}">Öffnen →</a>
-                                <a sec:authorize="hasRole('ADMIN')" th:href="@{/websites/{id}/bearbeiten(id=${site.id})}" class="btn-ui btn-ui-secondary btn-ui-sm" th:text="#{ui.websites.aktionen.bearbeiten}">Bearbeiten</a>
+                                <a sec:authorize="hasRole('ADMIN')" th:href="@{/websites/{id}/bearbeiten(id=${site.id})}" class="btn-ui btn-ui-secondary btn-ui-sm">
+                                    <span th:replace="~{fragments/icons :: pencil}"></span>
+                                    <span th:text="#{ui.websites.aktionen.bearbeiten}">Bearbeiten</span>
+                                </a>
                                 <button sec:authorize="hasRole('ADMIN')" type="button" class="btn-ui btn-ui-secondary btn-danger-hover btn-ui-sm"
-                                        @click="loeschenOffen = true"
-                                        th:text="#{ui.websites.loeschen}">Löschen</button>
+                                        @click="loeschenOffen = true">
+                                    <span th:replace="~{fragments/icons :: trash}"></span>
+                                    <span th:text="#{ui.websites.loeschen}">Löschen</span>
+                                </button>
                             </div>
 
                             <!-- Löschen-Modal -->
@@ -76,7 +81,9 @@
                                     <div class="wth-modal-kopf">
                                         <h2 th:id="${'modal-loeschen-titel-' + site.id}" class="wth-modal-titel" th:text="#{ui.websites.loeschen.dialog.titel(${site.name})}">Website löschen</h2>
                                         <button type="button" class="wth-modal-schliessen" @click="loeschenOffen = false"
-                                                th:attr="aria-label=#{ui.dialog.schliessen}, title=#{ui.dialog.schliessen}">×</button>
+                                                th:attr="aria-label=#{ui.dialog.schliessen}, title=#{ui.dialog.schliessen}">
+                                            <span th:replace="~{fragments/icons :: x}"></span>
+                                        </button>
                                     </div>
                                     <div class="wth-modal-inhalt">
                                         <p th:text="#{ui.websites.loeschen.bestaetigung}" style="margin-top: 0; margin-bottom: 1.25rem;">
