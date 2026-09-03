@@ -1,12 +1,10 @@
 package dev.hendrikhoemberg.webtesthelper.reporting;
 
-import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
-import com.microsoft.playwright.BrowserType;
 import com.microsoft.playwright.Page;
-import com.microsoft.playwright.Playwright;
 import com.microsoft.playwright.options.Margin;
 import com.microsoft.playwright.options.WaitUntilState;
+import dev.hendrikhoemberg.webtesthelper.crawler.BrowserPool;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
@@ -19,9 +17,11 @@ import java.util.Objects;
 public class PdfReportService {
 
     private final TemplateEngine templateEngine;
+    private final BrowserPool browserPool;
 
-    public PdfReportService(TemplateEngine templateEngine) {
+    public PdfReportService(TemplateEngine templateEngine, BrowserPool browserPool) {
         this.templateEngine = Objects.requireNonNull(templateEngine, "templateEngine must not be null");
+        this.browserPool = Objects.requireNonNull(browserPool, "browserPool must not be null");
     }
 
     public byte[] generatePdf(String templateName, Map<String, Object> variables) {
@@ -38,8 +38,7 @@ public class PdfReportService {
     }
 
     public byte[] renderHtmlToPdf(String html) {
-        try (Playwright playwright = Playwright.create()) {
-            Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true));
+        return browserPool.submit(browser -> {
             try (BrowserContext browserContext = browser.newContext();
                  Page page = browserContext.newPage()) {
                 page.setContent(html, new Page.SetContentOptions().setWaitUntil(WaitUntilState.LOAD));
@@ -51,9 +50,7 @@ public class PdfReportService {
                                 .setBottom("15mm")
                                 .setLeft("15mm")
                                 .setRight("15mm")));
-            } finally {
-                browser.close();
             }
-        }
+        });
     }
 }
