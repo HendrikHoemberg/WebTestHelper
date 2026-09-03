@@ -427,4 +427,25 @@ class JourneyControllerTest {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/anmelden"));
     }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void runNow_withoutCsrf_returnsForbidden() throws Exception {
+        mvc.perform(post("/websites/1/journeys/10/jetzt-ausfuehren"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void listJourneys_rendersCsrfMetaTagsAndHtmxConfiguration() throws Exception {
+        when(journeyService.findBySite(1L)).thenReturn(List.of());
+        when(journeyHealthService.healthBySite(1L)).thenReturn(Map.of());
+
+        mvc.perform(get("/websites/1/journeys").with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("<meta name=\"_csrf\"")))
+                .andExpect(content().string(containsString("<meta name=\"_csrf_header\"")))
+                .andExpect(content().string(containsString("htmx:configRequest")));
+    }
 }
+

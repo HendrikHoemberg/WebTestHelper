@@ -3,12 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta th:if="${_csrf != null}" name="_csrf" th:content="${_csrf.token}">
+    <meta th:if="${_csrf != null}" name="_csrf_header" th:content="${_csrf.headerName}">
     <title th:text="${titel}">WebTestHelper</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
     <script defer th:src="@{/vendor/alpine.min.js}"></script>
     <script th:src="@{/vendor/htmx.min.js}"></script>
     <script th:src="@{/js/kopieren.js}"></script>
+    <script>
+        document.addEventListener('htmx:configRequest', function (evt) {
+            const token = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
+            const header = document.querySelector('meta[name="_csrf_header"]')?.getAttribute('content');
+            if (token && header) {
+                evt.detail.headers[header] = token;
+            }
+        });
+    </script>
 </head>
+
 <body>
     <!-- Left Sidebar Navigation -->
     <aside class="app-sidebar">
