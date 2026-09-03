@@ -18,6 +18,9 @@
                 </a>
                 <span th:if="${befund.siteWide}" class="siteweit-badge" th:text="#{ui.befund.siteweit}">Website-weit</span>
                 <span class="status-badge status-inaktiv" th:text="#{${'ui.triagestatus.' + befund.triage}}">Ungeprüft</span>
+                <span th:if="${befund.screenshotUrl != null}" class="status-badge status-inaktiv" style="font-size: 0.72rem; display: inline-flex; align-items: center; gap: 0.25rem;">
+                    📷 <span th:text="#{ui.befund.screenshot_vorhanden}">Screenshot</span>
+                </span>
             </div>
             <div class="befund-ort" style="margin-left: ${auswaehlbar ? '1.5rem' : '0'};">
                 <a th:if="${!befund.siteWide and #strings.startsWith(befund.locationText, '/')}"

@@ -59,6 +59,12 @@ public class FindingViewFactory {
             locationText = finding.locationKey();
         }
 
+        Evidence evidence = finding.evidence();
+        String screenshotUrl = null;
+        if (evidence != null && evidence.screenshotPath() != null && !evidence.screenshotPath().isBlank()) {
+            screenshotUrl = "/artefakte/" + finding.lastSeenRun() + "/" + evidence.screenshotPath();
+        }
+
         return new FindingView(
                 finding.id(),
                 title,
@@ -72,7 +78,8 @@ public class FindingViewFactory {
                 finding.mutedUntil(),
                 finding.muteExpiredAt(),
                 finding.triageReason(),
-                subjectUrlOf(finding.subjectKey())
+                subjectUrlOf(finding.subjectKey()),
+                screenshotUrl
         );
     }
 

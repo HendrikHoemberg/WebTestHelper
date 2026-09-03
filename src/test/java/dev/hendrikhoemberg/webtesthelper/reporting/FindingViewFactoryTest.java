@@ -347,6 +347,30 @@ class FindingViewFactoryTest {
         assertThat(viewDrift.message()).isEqualTo("Selektor-Drift");
         assertThat(viewDrift.remediation()).contains("neu aufzeichnen");
     }
+
+    @Test
+    void of_populatesScreenshotUrl_whenEvidenceHasScreenshotPath() {
+        Finding failedFinding = new Finding(
+                205L, 42L, "fp-journey-screenshot",
+                CheckType.JOURNEY_STEP_FAILED,
+                "step-uuid-5",
+                "10",
+                Severity.ERROR,
+                JourneyFindingMapper.MSG_JOURNEY_STEP_FAILED,
+                List.of(),
+                new Evidence("screenshot-step-2.png", null, null, null, List.of()),
+                ObservedStatus.ACTIVE,
+                TriageStatus.UNTRIAGED,
+                null,
+                10L, 10L, null, null,
+                1, 1,
+                Instant.parse("2026-08-25T10:00:00Z"),
+                Instant.parse("2026-08-25T10:00:00Z")
+        );
+
+        FindingView view = factory.of(failedFinding, Locale.GERMAN);
+        assertThat(view.screenshotUrl()).isEqualTo("/artefakte/10/screenshot-step-2.png");
+    }
 }
 
 

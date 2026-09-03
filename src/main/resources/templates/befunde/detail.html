@@ -139,9 +139,15 @@
             <h3 style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 0.35rem;" th:text="#{ui.befund.detail.konsole}">Browser-Konsole</h3>
             <pre class="technischer-block" style="background: #09090b; color: #f4f4f5; padding: 1rem; border-radius: 8px; font-family: var(--font-mono); font-size: 0.8rem; overflow-x: auto;" th:each="line : ${detail.consoleExcerpt}" th:text="${line}">Konsole-Zeile</pre>
         </div>
-        <div th:if="${detail.screenshotUrl != null and not #strings.isEmpty(detail.screenshotUrl)}" class="screenshot-block" style="margin-top: 1rem;">
-            <h3 style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 0.35rem;" th:text="#{ui.befund.detail.screenshot}">Screenshot</h3>
-            <img th:src="${detail.screenshotUrl}" alt="Screenshot" class="befund-screenshot" style="max-width: 100%; border: 1px solid var(--border-subtle); border-radius: 8px; box-shadow: var(--shadow-card);" />
+        <div th:if="${detail.screenshotUrl != null and not #strings.isEmpty(detail.screenshotUrl)}" class="screenshot-block" style="margin-top: 1.25rem; border-top: 1px solid var(--border-subtle); padding-top: 1rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--text-main); margin: 0;" th:text="#{ui.befund.detail.screenshot_titel}">Zustand der Website beim Fehler</h3>
+                <a th:href="${detail.screenshotUrl}" target="_blank" class="btn-ui btn-ui-secondary btn-ui-sm button button-klein sekundär" th:text="#{ui.befund.detail.screenshot_vollbild}">Vollbild öffnen ↗</a>
+            </div>
+            <p class="text-gedaempft" style="font-size: 0.85rem; margin-top: 0; margin-bottom: 0.75rem;" th:text="#{ui.befund.detail.screenshot_hinweis}">Dieser Screenshot dokumentiert den genauen sichtbaren Zustand der Seite zum Zeitpunkt des Fehlers (z. B. blockierende Overlays, Cookie-Banner oder veränderte Bedienelemente).</p>
+            <div style="background: #000; border-radius: 8px; overflow: hidden; display: flex; justify-content: center; border: 1px solid var(--border-subtle);">
+                <img th:src="${detail.screenshotUrl}" alt="Screenshot des Fehlers" class="befund-screenshot" style="max-width: 100%; height: auto; max-height: 550px; object-fit: contain; cursor: pointer;" onclick="window.open(this.src, '_blank')" />
+            </div>
         </div>
     </section>
 
