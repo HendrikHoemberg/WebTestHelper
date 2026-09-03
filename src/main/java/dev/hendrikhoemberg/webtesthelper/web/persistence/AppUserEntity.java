@@ -35,6 +35,8 @@ public class AppUserEntity {
 
     private boolean enabled = true;
 
+    private boolean tutorialAbgeschlossen = false;
+
     private Instant createdAt = Instant.now();
 
     @Version

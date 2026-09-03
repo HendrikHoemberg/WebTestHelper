@@ -104,4 +104,17 @@ class AppUserServiceTest extends AbstractPostgresTest {
                 .extracting(AppUserSummary::username)
                 .containsExactly("alice", "bob", "charlie");
     }
+
+    @Test
+    void tutorialAbgeschlossenFlagDefaultAndToggle() {
+        long id = appUserService.create("tutorialUser", "password123", AppRole.USER);
+        assertThat(appUserService.isTutorialAbgeschlossen("tutorialUser")).isFalse();
+
+        appUserService.setTutorialAbgeschlossen("tutorialUser", true);
+        assertThat(appUserService.isTutorialAbgeschlossen("tutorialUser")).isTrue();
+
+        appUserService.setTutorialAbgeschlossen("tutorialUser", false);
+        assertThat(appUserService.isTutorialAbgeschlossen("tutorialUser")).isFalse();
+    }
 }
+

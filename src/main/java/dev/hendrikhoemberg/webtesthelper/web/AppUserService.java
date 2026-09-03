@@ -155,8 +155,28 @@ public class AppUserService implements UserDetailsService {
         return false;
     }
 
+    @Transactional(readOnly = true)
+    public boolean isTutorialAbgeschlossen(String username) {
+        if (username == null || username.isBlank()) {
+            return false;
+        }
+        return userRepository.findByUsernameIgnoreCase(username)
+                .map(AppUserEntity::isTutorialAbgeschlossen)
+                .orElse(false);
+    }
+
+    @Transactional
+    public void setTutorialAbgeschlossen(String username, boolean abgeschlossen) {
+        if (username == null || username.isBlank()) {
+            return;
+        }
+        userRepository.findByUsernameIgnoreCase(username)
+                .ifPresent(user -> user.setTutorialAbgeschlossen(abgeschlossen));
+    }
+
     private AppUserSummary toSummary(AppUserEntity entity) {
         return new AppUserSummary(entity.getId(), entity.getUsername(), entity.getRole(),
                 entity.isEnabled(), entity.getCreatedAt());
     }
 }
+
