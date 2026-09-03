@@ -97,7 +97,7 @@
     <!-- Main Workspace Container -->
     <div class="app-main-wrapper" x-data="{ hilfeModalOffen: false }">
         <!-- Global Health Banners -->
-        <div th:if="${mailFailures != null && mailFailures > 0}" class="gesundheits-banner warnung system-banner" role="alert">
+        <div sec:authorize="hasRole('ADMIN')" th:if="${mailFailures != null && mailFailures > 0}" class="gesundheits-banner warnung system-banner" role="alert">
             <div class="banner-msg">
                 <span th:replace="~{fragments/icons :: alert}"></span>
                 <span th:text="#{ui.banner.mail_fehler(${mailFailures})}">Beim E-Mail-Versand sind Fehler aufgetreten.</span>

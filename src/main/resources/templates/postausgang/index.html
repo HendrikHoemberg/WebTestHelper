@@ -4,7 +4,7 @@
     <title th:text="#{ui.titel.postausgang}">Postausgang</title>
 </head>
 <body>
-<main>
+<main x-data="{ modalOffen: false, ladeDetail: false, detail: null, aktiverTab: 'html', oeffneDetail(id) { this.ladeDetail = true; this.modalOffen = true; fetch('/postausgang/' + id + '/details').then(r => r.json()).then(d => { this.detail = d; this.ladeDetail = false; }).catch(() => { this.ladeDetail = false; }); } }">
     <header class="page-header-bar seiten-kopf">
         <div>
             <div class="breadcrumbs-trail">
@@ -14,7 +14,25 @@
             </div>
             <h1 class="page-main-title" th:text="#{ui.postausgang.titel}">Postausgang</h1>
         </div>
+        <div class="seiten-aktionen" style="display: flex; gap: 0.5rem; align-items: center;" th:if="${mailFailures != null and mailFailures > 0}">
+            <form th:action="@{/postausgang/alle-wiederholen}" method="post" style="margin: 0;">
+                <button type="submit" class="btn-ui btn-ui-secondary button button-klein sekundär" th:text="#{ui.postausgang.aktion.alle_wiederholen}">
+                    Alle fehlgeschlagenen erneut senden
+                </button>
+            </form>
+            <form th:action="@{/postausgang/alle-loeschen}" method="post" style="margin: 0;">
+                <button type="submit" class="btn-ui btn-ui-danger button button-klein gefahr" th:text="#{ui.postausgang.aktion.alle_loeschen}">
+                    Fehler quittieren (alle löschen)
+                </button>
+            </form>
+        </div>
     </header>
+
+    <div th:if="${erfolg}" class="gesundheits-banner erfolg mb-3" role="status" style="margin-bottom: 1rem;">
+        <div class="banner-msg">
+            <span th:text="${erfolg}">Aktion erfolgreich ausgeführt.</span>
+        </div>
+    </div>
 
     <div th:if="${#lists.isEmpty(eintraege)}" class="card-box leer-zustand" style="padding: 3rem 1.5rem; text-align: center;">
         <p th:text="#{ui.postausgang.leer}" style="color: var(--text-muted); font-size: 0.95rem;">Keine Benachrichtigungen vorhanden.</p>
@@ -33,6 +51,7 @@
                     <th th:text="#{ui.postausgang.tabelle.gesendet}">Zugestellt</th>
                     <th th:text="#{ui.postausgang.tabelle.naechster_versuch}">Nächster Versuch</th>
                     <th th:text="#{ui.postausgang.tabelle.fehler}">Fehlermeldung</th>
+                    <th th:text="#{ui.postausgang.tabelle.aktionen}">Aktionen</th>
                 </tr>
             </thead>
             <tbody>
@@ -49,10 +68,79 @@
                     <td style="font-variant-numeric: tabular-nums;" th:text="${#temporals.format(eintrag.createdAt, 'dd.MM.yyyy HH:mm:ss')}">01.01.2026 12:00:00</td>
                     <td style="font-variant-numeric: tabular-nums;" th:text="${eintrag.sentAt != null ? #temporals.format(eintrag.sentAt, 'dd.MM.yyyy HH:mm:ss') : '-'}">-</td>
                     <td style="font-variant-numeric: tabular-nums;" th:text="${eintrag.nextAttemptAt != null ? #temporals.format(eintrag.nextAttemptAt, 'dd.MM.yyyy HH:mm:ss') : '-'}">-</td>
-                    <td class="fehler-text" style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--status-error-dot);" th:text="${eintrag.lastError != null ? eintrag.lastError : '-'}">-</td>
+                    <td class="fehler-text" style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--status-error-dot); max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" th:text="${eintrag.lastError != null ? eintrag.lastError : '-'}">-</td>
+                    <td>
+                        <div style="display: flex; gap: 0.35rem; align-items: center;">
+                            <button type="button" class="btn-ui btn-ui-secondary btn-ui-sm button button-klein sekundär"
+                                    th:data-id="${eintrag.id}"
+                                    @click="oeffneDetail($el.dataset.id)"
+                                    th:text="#{ui.postausgang.aktion.details}">Details</button>
+
+                            <form th:if="${eintrag.state.name() == 'FAILED'}" th:action="@{/postausgang/{id}/wiederholen(id=${eintrag.id})}" method="post" style="margin: 0;">
+                                <button type="submit" class="btn-ui btn-ui-secondary btn-ui-sm button button-klein sekundär"
+                                        th:title="#{ui.postausgang.aktion.wiederholen}">↻</button>
+                            </form>
+
+                            <form th:action="@{/postausgang/{id}/loeschen(id=${eintrag.id})}" method="post" style="margin: 0;">
+                                <button type="submit" class="btn-ui btn-ui-danger btn-ui-sm button button-klein gefahr"
+                                        th:title="#{ui.postausgang.aktion.loeschen}">✕</button>
+                            </form>
+                        </div>
+                    </td>
                 </tr>
             </tbody>
         </table>
+    </div>
+
+    <!-- Detail Modal -->
+    <div x-cloak x-show="modalOffen" @keydown.escape.window="modalOffen = false" class="wth-hilfe-modal">
+        <div class="wth-hilfe-modal-backdrop" @click="modalOffen = false"></div>
+        <div class="wth-hilfe-modal-dialog" role="dialog" aria-modal="true" style="max-width: 780px; width: 90%;">
+            <div class="wth-hilfe-modal-kopf">
+                <h2 class="wth-hilfe-modal-titel" th:text="#{ui.postausgang.modal.titel}">E-Mail-Details & Vorschau</h2>
+                <button type="button" class="wth-hilfe-modal-schliessen" @click="modalOffen = false">×</button>
+            </div>
+            <div class="wth-hilfe-modal-inhalt" style="padding: 1.25rem;">
+                <div x-show="ladeDetail" class="text-gedaempft" style="text-align: center; padding: 2rem 0;">
+                    <span>Lade Details...</span>
+                </div>
+                <div x-show="!ladeDetail && detail">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border-subtle); font-size: 0.85rem;">
+                        <div>
+                            <span class="text-gedaempft" style="display: block; font-size: 0.75rem;">Empfänger:</span>
+                            <strong x-text="detail?.recipient"></strong>
+                        </div>
+                        <div>
+                            <span class="text-gedaempft" style="display: block; font-size: 0.75rem;">Betreff:</span>
+                            <span x-text="detail?.subject"></span>
+                        </div>
+                        <div>
+                            <span class="text-gedaempft" style="display: block; font-size: 0.75rem;">Status:</span>
+                            <span class="status-badge" x-text="detail?.state"></span>
+                        </div>
+                        <div>
+                            <span class="text-gedaempft" style="display: block; font-size: 0.75rem;">Versuche:</span>
+                            <span x-text="detail?.attempts"></span>
+                        </div>
+                    </div>
+
+                    <div x-show="detail?.lastError" style="background: var(--bg-canvas); border-left: 3px solid var(--status-error-dot); padding: 0.75rem; border-radius: 4px; margin-bottom: 1rem; font-family: var(--font-mono); font-size: 0.8rem; color: var(--status-error-dot); word-break: break-all;" x-text="detail?.lastError">
+                    </div>
+
+                    <!-- Tabs -->
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border-subtle);">
+                        <button type="button" class="btn-ui btn-ui-sm" :class="aktiverTab === 'html' ? 'btn-ui-primary button primär' : 'btn-ui-secondary button sekundär'" @click="aktiverTab = 'html'" th:text="#{ui.postausgang.modal.tab.html}">HTML-Vorschau</button>
+                        <button type="button" class="btn-ui btn-ui-sm" :class="aktiverTab === 'text' ? 'btn-ui-primary button primär' : 'btn-ui-secondary button sekundär'" @click="aktiverTab = 'text'" th:text="#{ui.postausgang.modal.tab.text}">Nur-Text</button>
+                    </div>
+
+                    <div x-show="aktiverTab === 'html'" style="border: 1px solid var(--border-subtle); border-radius: 6px; padding: 1rem; max-height: 400px; overflow-y: auto; background: #ffffff; color: #1f2937;" x-html="detail?.bodyHtml">
+                    </div>
+
+                    <div x-show="aktiverTab === 'text'" style="border: 1px solid var(--border-subtle); border-radius: 6px; padding: 1rem; max-height: 400px; overflow-y: auto; background: var(--bg-canvas); font-family: var(--font-mono); font-size: 0.85rem; white-space: pre-wrap;" x-text="detail?.bodyText">
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </main>
 </body>

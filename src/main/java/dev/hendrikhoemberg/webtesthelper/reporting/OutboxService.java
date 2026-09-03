@@ -108,6 +108,59 @@ public class OutboxService {
         return notificationRepository.findFirstLastErrorByState(NotificationState.FAILED);
     }
 
+    public DeliveryResult retry(long id) {
+        NotificationEntity entity = notificationRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Notification not found: " + id));
+        entity.setState(NotificationState.PENDING);
+        entity.setNextAttemptAt(Instant.now());
+        entity.setLastError(null);
+        notificationRepository.save(entity);
+        return sendNow(id);
+    }
+
+    public int retryAllFailed() {
+        List<NotificationEntity> failed = notificationRepository.findByState(NotificationState.FAILED);
+        int count = 0;
+        for (NotificationEntity entity : failed) {
+            entity.setState(NotificationState.PENDING);
+            entity.setNextAttemptAt(Instant.now());
+            entity.setLastError(null);
+            notificationRepository.save(entity);
+            sendNow(entity.getId());
+            count++;
+        }
+        return count;
+    }
+
+    public void delete(long id) {
+        notificationRepository.deleteById(id);
+    }
+
+    public int deleteAllFailed() {
+        List<NotificationEntity> failed = notificationRepository.findByState(NotificationState.FAILED);
+        int count = failed.size();
+        notificationRepository.deleteAll(failed);
+        return count;
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<OutboxDetail> findDetail(long id) {
+        return notificationRepository.findById(id)
+                .map(e -> new OutboxDetail(
+                        e.getId(),
+                        e.getRecipient(),
+                        e.getSubject(),
+                        e.getState(),
+                        e.getAttempts(),
+                        e.getCreatedAt(),
+                        e.getSentAt(),
+                        e.getNextAttemptAt(),
+                        e.getLastError(),
+                        e.getBodyHtml(),
+                        e.getBodyText()
+                ));
+    }
+
     public static Duration calculateBackoff(int attempts) {
         Duration wait = Duration.ofMinutes(1).multipliedBy(1L << Math.min(Math.max(attempts - 1, 0), 6));
         if (wait.compareTo(Duration.ofHours(1)) > 0) {

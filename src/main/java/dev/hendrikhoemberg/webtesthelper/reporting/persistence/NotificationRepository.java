@@ -16,4 +16,8 @@ public interface NotificationRepository extends JpaRepository<NotificationEntity
     Optional<String> findFirstLastErrorByState(NotificationState state);
 
     List<NotificationEntity> findByOrderByCreatedAtDesc(Pageable pageable);
+
+    List<NotificationEntity> findByState(NotificationState state);
+
+    void deleteByState(NotificationState state);
 }

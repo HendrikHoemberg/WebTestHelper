@@ -107,4 +107,78 @@ class OutboxControllerTest {
 
         verify(outboxService, never()).lastError();
     }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void postWiederholen_callsRetryAndRedirects() throws Exception {
+        org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.CsrfRequestPostProcessor csrf =
+                org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf();
+
+        when(outboxService.retry(42L)).thenReturn(dev.hendrikhoemberg.webtesthelper.reporting.DeliveryResult.successful());
+
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/postausgang/42/wiederholen").with(csrf))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl("/postausgang"));
+
+        verify(outboxService).retry(42L);
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void postAlleWiederholen_callsRetryAllFailedAndRedirects() throws Exception {
+        org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.CsrfRequestPostProcessor csrf =
+                org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf();
+
+        when(outboxService.retryAllFailed()).thenReturn(3);
+
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/postausgang/alle-wiederholen").with(csrf))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl("/postausgang"));
+
+        verify(outboxService).retryAllFailed();
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void postLoeschen_callsDeleteAndRedirects() throws Exception {
+        org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.CsrfRequestPostProcessor csrf =
+                org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf();
+
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/postausgang/42/loeschen").with(csrf))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl("/postausgang"));
+
+        verify(outboxService).delete(42L);
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void postAlleLoeschen_callsDeleteAllFailedAndRedirects() throws Exception {
+        org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.CsrfRequestPostProcessor csrf =
+                org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf();
+
+        when(outboxService.deleteAllFailed()).thenReturn(2);
+
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/postausgang/alle-loeschen").with(csrf))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl("/postausgang"));
+
+        verify(outboxService).deleteAllFailed();
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void getDetails_returnsJsonDetails() throws Exception {
+        dev.hendrikhoemberg.webtesthelper.reporting.OutboxDetail detail = new dev.hendrikhoemberg.webtesthelper.reporting.OutboxDetail(
+                42L, "boss@example.com", "Test Betreff", NotificationState.FAILED, 5,
+                Instant.now(), null, null, "SMTP 500", "<b>Hallo</b>", "Hallo"
+        );
+        when(outboxService.findDetail(42L)).thenReturn(Optional.of(detail));
+
+        mvc.perform(get("/postausgang/42/details"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("boss@example.com")))
+                .andExpect(content().string(containsString("SMTP 500")))
+                .andExpect(content().string(containsString("<b>Hallo</b>")));
+    }
 }
