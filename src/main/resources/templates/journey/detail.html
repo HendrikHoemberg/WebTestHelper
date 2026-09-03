@@ -104,7 +104,7 @@
                         </div>
                         <div class="journey-meta-tags">
                             <span th:if="${step.optional}" class="status-badge status-inaktiv" th:text="#{ui.journey.detail.schritte.optional}">Optional</span>
-                            <span th:unless="${step.optional}" class="text-gedaempft" th:text="#{ui.journey.detail.schritte.nein}">Nein</span>
+                            <span th:unless="${step.optional}" class="text-gedaempft" style="font-size: 0.8rem;" th:text="#{ui.journey.detail.schritte.erforderlich}">Erforderlich</span>
                             <span class="type-pill-mono" style="font-variant-numeric: tabular-nums;" th:text="${step.timeoutMs} + ' ms'">5000 ms</span>
                         </div>
                     </div>

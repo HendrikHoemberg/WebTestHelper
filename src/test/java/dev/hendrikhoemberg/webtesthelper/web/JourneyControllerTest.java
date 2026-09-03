@@ -251,6 +251,23 @@ class JourneyControllerTest {
                 .andExpect(content().string(not(containsString("Neuaufzeichnung erforderlich"))));
     }
 
+    @Test
+    @WithMockUser(roles = "USER")
+    void journeyDetailShowsExplicitRequiredLabelInsteadOfNein() throws Exception {
+        JourneyStep step = new JourneyStep(
+                UUID.randomUUID(), 0, StepAction.GOTO,
+                List.of(), "https://acme.example.com/login", null, false, 5000);
+        JourneyDefinition journey = new JourneyDefinition(10L, 1L, "Anmeldung", true, List.of(step));
+
+        when(journeyService.findDefinition(10L)).thenReturn(Optional.of(journey));
+        when(journeyHealthService.health(10L)).thenReturn(Optional.of(new JourneyHealth(null, 0, 0)));
+
+        mvc.perform(get("/websites/1/journeys/10"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Erforderlich")))
+                .andExpect(content().string(not(containsString("schritte.nein"))));
+    }
+
     /**
      * §10.4: the detail screen names the steps that drifted on the last replay, so a reader can act
      * on the re-recording hint instead of re-reading all five steps looking for the moved one.
