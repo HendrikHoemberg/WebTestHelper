@@ -2151,3 +2151,88 @@ body {
     color: var(--text-muted);
     margin-right: 0.35rem;
 }
+
+/* ==========================================================================
+   Driver.js Onboarding Tour Theme Overrides
+   ========================================================================== */
+.driver-popover {
+    background-color: var(--surface-card) !important;
+    color: var(--text-body) !important;
+    border: 1px solid var(--border-strong) !important;
+    border-radius: 8px !important;
+    box-shadow: var(--shadow-elevated), 0 8px 24px rgba(0, 0, 0, 0.15) !important;
+    padding: 1.25rem !important;
+    max-width: 360px !important;
+}
+
+.driver-popover-title {
+    font-family: var(--font-sans) !important;
+    font-size: 1.05rem !important;
+    font-weight: 700 !important;
+    color: var(--text-main) !important;
+    margin-bottom: 0.5rem !important;
+}
+
+.driver-popover-description {
+    font-family: var(--font-sans) !important;
+    font-size: 0.875rem !important;
+    line-height: 1.5 !important;
+    color: var(--text-body) !important;
+}
+
+.driver-popover-close-btn {
+    color: var(--text-muted) !important;
+    top: 0.5rem !important;
+    right: 0.5rem !important;
+}
+
+.driver-popover-close-btn:hover {
+    color: var(--text-main) !important;
+}
+
+.driver-popover-footer {
+    margin-top: 1.25rem !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+}
+
+.driver-popover-progress-text {
+    font-family: var(--font-sans) !important;
+    font-size: 0.75rem !important;
+    color: var(--text-muted) !important;
+}
+
+.driver-popover-footer button {
+    font-family: var(--font-sans) !important;
+    font-size: 0.8rem !important;
+    font-weight: 600 !important;
+    padding: 0.4rem 0.8rem !important;
+    border-radius: 6px !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+}
+
+.driver-popover-next-btn {
+    background-color: var(--text-main) !important;
+    color: #ffffff !important;
+    border: 1px solid var(--text-main) !important;
+    text-shadow: none !important;
+}
+
+.driver-popover-next-btn:hover {
+    background-color: #27272a !important;
+    border-color: #27272a !important;
+}
+
+.driver-popover-prev-btn {
+    background-color: var(--surface-card) !important;
+    color: var(--text-body) !important;
+    border: 1px solid var(--border-strong) !important;
+    text-shadow: none !important;
+}
+
+.driver-popover-prev-btn:hover {
+    background-color: var(--surface-hover) !important;
+}
+
