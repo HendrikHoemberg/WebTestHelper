@@ -18,16 +18,16 @@
                 <span>/</span>
                 <span th:text="#{ui.einrichtung.titel}">Einrichtung</span>
             </div>
-            <h1 class="page-main-title" th:text="#{ui.einrichtung.titel}">Website einrichten</h1>
+            <div class="abschnitt-ueberschrift-zeile" style="border-bottom: none; margin-bottom: 0; padding-bottom: 0;">
+                <h1 class="page-main-title" th:text="#{ui.einrichtung.titel}">Website einrichten</h1>
+                <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
+                        th:data-hx-get="@{/hilfe/hinweis/{id}(id='einrichtung')}"
+                        data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">?</button>
+                <div class="hinweis" aria-live="polite"></div>
+            </div>
             <div style="margin-top: 0.25rem;">
                 <span class="text-gedaempft" style="font-weight: 600;" th:text="${siteName}">Website Name</span>
             </div>
-        </div>
-        <div class="header-actions-cluster seiten-kopf-aktionen">
-            <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
-                    th:data-hx-get="@{/hilfe/hinweis/{id}(id='einrichtung')}"
-                    data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">?</button>
-            <div class="hinweis" aria-live="polite"></div>
         </div>
     </header>
 

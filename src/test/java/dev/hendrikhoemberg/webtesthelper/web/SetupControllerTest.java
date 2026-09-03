@@ -25,6 +25,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -76,6 +77,18 @@ class SetupControllerTest {
                 .andExpect(view().name("einrichtung/index"));
 
         verify(setupProbeService).start(SITE_ID);
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void setupPagePlacesHelpIconAdjacentToTitle() throws Exception {
+        siteExists();
+        when(setupProbeService.stateOf(SITE_ID)).thenReturn(Optional.of(laeuft()));
+
+        mvc.perform(get("/websites/" + SITE_ID + "/einrichtung"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("einrichtung/index"))
+                .andExpect(content().string(containsString("abschnitt-ueberschrift-zeile")));
     }
 
     @Test
