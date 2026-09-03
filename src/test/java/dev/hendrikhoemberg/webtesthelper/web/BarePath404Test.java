@@ -34,6 +34,9 @@ class BarePath404Test {
     @MockitoBean
     SiteService siteService;
 
+    @MockitoBean
+    dev.hendrikhoemberg.webtesthelper.reporting.PdfReportService pdfReportService;
+
     @Test
     void bareBefundeRedirectsToWebsitesOverview() throws Exception {
         mvc.perform(get("/befunde"))

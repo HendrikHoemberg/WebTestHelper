@@ -19,7 +19,7 @@ class HelpServiceTest {
         List<HelpTopic> topics = helpService.all();
 
         assertThat(topics)
-                .hasSize(16)
+                .hasSize(17)
                 .extracting(HelpTopic::title)
                 .isSortedAccordingTo(germanOrder);
 
@@ -29,7 +29,7 @@ class HelpServiceTest {
                         "zeitplaene", "stummschaltungen", "benachrichtigungen", "uebersicht",
                         "einrichtung", "cookie-hinweis", "sprachumschalter", "schaltflaechen",
                         "kontaktformular", "pruefpostfach", "zugangsdaten", "reisen",
-                        "pruefungen");
+                        "pruefungen", "webhooks");
     }
 
     @Test

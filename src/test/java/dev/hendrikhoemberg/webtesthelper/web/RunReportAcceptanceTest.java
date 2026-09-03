@@ -136,7 +136,7 @@ class RunReportAcceptanceTest extends AbstractPostgresTest {
                 .andExpect(view().name("laeufe/detail"))
                 .andExpect(content().string(containsString("Neu aufgetreten (3)")))
                 .andExpect(content().string(not(containsString("Behoben"))))
-                .andExpect(content().string(containsString("Als Ausgangsbestand übernehmen")))
+                .andExpect(content().string(containsString("Bestehende Mängel als bekannt markieren")))
                 // Bulk triage lives on the findings list, not here (plan 7, "deliberately not in
                 // this plan"). befundzeile is shared, so its checkbox must stay switched off — the
                 // run report carries no findingsSelection() scope to make one work.
@@ -151,8 +151,8 @@ class RunReportAcceptanceTest extends AbstractPostgresTest {
 
         mvc.perform(get("/laeufe/" + runId1))
                 .andExpect(status().isOk())
-                .andExpect(content().string(not(containsString("Als Ausgangsbestand übernehmen"))))
-                .andExpect(content().string(containsString("Ausgangsbestand wurde übernommen")));
+                .andExpect(content().string(not(containsString("Bestehende Mängel als bekannt markieren"))))
+                .andExpect(content().string(containsString("Mängel als bekannt markiert")));
 
         // 4. Materialise run 2 with two of the three findings and full coverage. The
         //    unverifiable INFO link disappears quietly rather than appearing under Behoben.
