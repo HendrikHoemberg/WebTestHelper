@@ -116,26 +116,26 @@
                     <div class="journey-node-bullet" th:text="${step.ordinal + 1}">1</div>
                     <div class="journey-step-top-row">
                         <div class="journey-action-tag">
-                            <strong th:text="${step.action}">GOTO</strong>
+                            <strong th:text="#{${'ui.journey.action.' + step.action}}">Seite aufrufen</strong>
                             <span th:if="${health != null and health.lastDriftedStepIds.contains(step.id)}"
                                   class="status-badge badge-warning schritt-drift">
                                 <span class="status-dot-pulse"></span>
-                                <span th:text="#{ui.journey.detail.schritte.drift}">Abweichung</span>
+                                <span th:text="#{ui.journey.detail.schritte.drift}">Element-Änderung erkannt</span>
                             </span>
                         </div>
                         <div class="journey-meta-tags">
                             <span th:if="${step.optional}" class="status-badge status-inaktiv" th:text="#{ui.journey.detail.schritte.optional}">Optional</span>
                             <span th:unless="${step.optional}" class="text-gedaempft" style="font-size: 0.8rem;" th:text="#{ui.journey.detail.schritte.erforderlich}">Erforderlich</span>
-                            <span class="type-pill-mono" style="font-variant-numeric: tabular-nums;" th:text="${step.timeoutMs} + ' ms'">5000 ms</span>
+                            <span class="type-pill-mono" style="font-variant-numeric: tabular-nums;" th:text="${step.timeoutMs >= 1000 ? ((step.timeoutMs / 1000) + ' s') : (step.timeoutMs + ' ms')}">5 s</span>
                         </div>
                     </div>
                     <div class="journey-step-body">
                         <div class="journey-prop-group">
-                            <span class="journey-prop-label" th:text="#{ui.journey.detail.schritte.ziel}">Ziel / Selektoren</span>
+                            <span class="journey-prop-label" th:text="#{ui.journey.detail.schritte.ziel}">Ziel / Erkennungsmerkmal</span>
                             <div th:if="${#lists.isEmpty(step.locatorCandidates)}" class="text-gedaempft">-</div>
                             <ul th:if="${not #lists.isEmpty(step.locatorCandidates)}" class="muster-liste" style="list-style: none; padding-left: 0; margin: 0; display: flex; flex-direction: column; gap: 0.35rem;">
                                 <li th:each="candidate : ${step.locatorCandidates}" style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
-                                    <span class="status-badge status-inaktiv" style="font-size: 0.7rem;" th:text="${candidate.strategy}">TEST_ID</span>
+                                    <span class="status-badge status-inaktiv" style="font-size: 0.7rem;" th:text="#{${'ui.journey.strategy.' + candidate.strategy}}">Test-ID</span>
                                     <code class="code-pill" th:text="${candidate.value}">element-id</code>
                                 </li>
                             </ul>
@@ -149,7 +149,7 @@
                         <div class="journey-prop-group" th:if="${step.assertion != null}">
                             <span class="journey-prop-label" th:text="#{ui.journey.detail.schritte.pruefung}">Prüfung</span>
                             <div>
-                                <span th:text="${step.assertion.type}" style="font-weight: 700;">VISIBLE</span>
+                                <span th:text="#{${'ui.journey.assertion.' + step.assertion.type}}" style="font-weight: 700;">Element sichtbar</span>
                                 <span th:if="${step.assertion.expected != null and !step.assertion.expected.isEmpty()}">
                                     : <code class="code-pill" th:text="${step.assertion.expected}">text</code>
                                 </span>

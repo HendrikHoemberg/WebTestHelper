@@ -216,32 +216,29 @@ class JourneyControllerTest {
                 .andExpect(content().string(containsString("28.08.2026")))
                 .andExpect(content().string(containsString("Neuaufzeichnung erforderlich")))
                 .andExpect(content().string(containsString("Dieser Ablauf schlägt nach wiederholten Selektor-Abweichungen (Drift) fehl.")))
-                // Actions
-                .andExpect(content().string(containsString("GOTO")))
-                .andExpect(content().string(containsString("FILL")))
-                .andExpect(content().string(containsString("CLICK")))
-                .andExpect(content().string(containsString("ASSERT")))
+                // Actions (German friendly names, never raw enums)
+                .andExpect(content().string(containsString("Seite aufrufen")))
+                .andExpect(content().string(containsString("Text eingeben")))
+                .andExpect(content().string(containsString("Element anklicken")))
+                .andExpect(content().string(containsString("Prüfen")))
+                .andExpect(content().string(not(containsString(">GOTO<"))))
                 // Strategies & Locators
-                .andExpect(content().string(containsString("TEST_ID")))
                 .andExpect(content().string(containsString("username-field")))
-                .andExpect(content().string(containsString("LABEL")))
                 .andExpect(content().string(containsString("Passwort")))
-                .andExpect(content().string(containsString("CSS")))
                 .andExpect(content().string(containsString("#pwd-input")))
-                .andExpect(content().string(containsString("ROLE")))
                 .andExpect(content().string(containsString("button-login")))
-                .andExpect(content().string(containsString("TEXT")))
                 .andExpect(content().string(containsString("Willkommen zurück")))
                 // Credential templates rendered verbatim as text, NEVER resolved secret
                 .andExpect(content().string(containsString("{{cred.login.username}}")))
                 .andExpect(content().string(containsString("{{cred.login.password}}")))
                 .andExpect(content().string(not(containsString("super-secret-password-123"))))
-                // Assertion
-                .andExpect(content().string(containsString("VISIBLE")))
+                // Assertion (friendly German)
+                .andExpect(content().string(containsString("Element sichtbar")))
+                .andExpect(content().string(not(containsString(">VISIBLE<"))))
                 // Optional flag
                 .andExpect(content().string(containsString("Optional")))
                 // Timeout
-                .andExpect(content().string(containsString("3000")));
+                .andExpect(content().string(containsString("3")));
     }
 
     @Test

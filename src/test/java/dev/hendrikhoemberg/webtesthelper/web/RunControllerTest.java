@@ -466,8 +466,8 @@ class RunControllerTest {
 
         mvc.perform(get("/laeufe/" + runId))
                 .andExpect(status().isOk())
-                .andExpect(content().string(not(containsString("Als Ausgangsbestand übernehmen"))))
-                .andExpect(content().string(containsString("Ausgangsbestand wurde übernommen")));
+                .andExpect(content().string(not(containsString("Bestehende Mängel als bekannt markieren"))))
+                .andExpect(content().string(containsString("Mängel als bekannt markiert")));
     }
 
     @Test
@@ -486,7 +486,7 @@ class RunControllerTest {
 
         mvc.perform(get("/laeufe/" + runId))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Als Ausgangsbestand übernehmen")))
+                .andExpect(content().string(containsString("Bestehende Mängel als bekannt markieren")))
                 .andExpect(content().string(containsString("x-data=\"{ offen: false }\"")))
                 .andExpect(content().string(containsString("Hiermit werden alle")));
     }
