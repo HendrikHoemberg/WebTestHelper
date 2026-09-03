@@ -16,12 +16,12 @@
         }
     </style>
     <div class="druck-aktionen" style="display: flex; gap: 0.5rem; justify-content: space-between; align-items: center; margin-bottom: 2rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 1rem;">
-        <a th:href="@{/laeufe/{id}(id=${run.id})}" class="btn-ui btn-ui-secondary">
+        <a th:href="|/laeufe/${run.id}|" class="btn-ui btn-ui-secondary">
             <span th:replace="~{fragments/icons :: arrow_left}"></span>
             <span th:text="#{ui.lauf.bericht.zurueck}">Zurück zum Prüflauf</span>
         </a>
         <div style="display: flex; gap: 0.5rem;">
-            <a th:href="@{/laeufe/{id}/bericht/pdf(id=${run.id})}" class="btn-ui btn-ui-secondary">
+            <a th:href="|/laeufe/${run.id}/bericht/pdf|" class="btn-ui btn-ui-secondary">
                 <span th:replace="~{fragments/icons :: download}"></span>
                 <span th:text="#{ui.lauf.aktion.pdf_download}">PDF herunterladen</span>
             </a>

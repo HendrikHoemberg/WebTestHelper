@@ -121,8 +121,12 @@ public final class FixtureSite implements AutoCloseable {
     }
 
     public static FixtureSite start() {
+        return startOn(0);
+    }
+
+    public static FixtureSite startOn(int port) {
         try {
-            HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+            HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", port), 0);
             server.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
             FixtureSite site = new FixtureSite(server);
             server.createContext("/", site::dispatch);
@@ -131,6 +135,13 @@ public final class FixtureSite implements AutoCloseable {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    public static void main(String[] args) throws Exception {
+        int port = args.length > 0 ? Integer.parseInt(args[0]) : 9091;
+        FixtureSite site = startOn(port);
+        System.out.println("FixtureSite started on " + site.baseUrl());
+        Thread.currentThread().join();
     }
 
     public int port() {

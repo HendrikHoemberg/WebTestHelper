@@ -13,7 +13,7 @@
                 <span class="status-badge"
                       th:classappend="${befund.severity.name() == 'ERROR' ? 'badge-failing' : (befund.severity.name() == 'WARN' ? 'badge-warning' : 'status-inaktiv')} + ' severity-' + ${befund.severity}"
                       th:text="#{${'ui.severity.' + befund.severity}}">Fehler</span>
-                <a th:href="@{/befunde/{id}(id=${befund.id})}" class="befund-titel-link" style="color: var(--text-main); text-decoration: none;">
+                <a th:href="|/befunde/${befund.id}|" class="befund-titel-link" style="color: var(--text-main); text-decoration: none;">
                     <strong th:text="${befund.title}" style="font-size: 0.95rem; font-weight: 700;">Tote Links</strong>
                 </a>
                 <span th:if="${befund.siteWide}" class="siteweit-badge" th:text="#{ui.befund.siteweit}">Website-weit</span>
@@ -69,7 +69,7 @@
         </div>
     </div>
     <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem; flex-shrink: 0;">
-        <a th:href="@{/befunde/{id}(id=${befund.id})}" class="btn-ui btn-ui-secondary btn-ui-sm">Details →</a>
+        <a th:href="|/befunde/${befund.id}|" class="btn-ui btn-ui-secondary btn-ui-sm">Details →</a>
     </div>
 </div>
 </body>

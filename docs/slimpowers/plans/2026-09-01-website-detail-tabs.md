@@ -1,4 +1,4 @@
-# Website Detail Tabs Implementation Plan
+a# Website Detail Tabs Implementation Plan
 
 **Goal:** Split the overloaded website detail page into three real tabs (Übersicht & Feststellungen / Prüfläufe / Konfiguration), restore monitoring-first layout, declutter the header, group the check options by category, use layperson terminology, and fix the bare `/befunde` / `/laeufe` 404.
 
