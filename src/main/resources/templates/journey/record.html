@@ -29,11 +29,6 @@
             </div>
         </div>
         <div class="header-actions-cluster seiten-kopf-aktionen">
-            <div th:unless="${capacityExceeded or startFailed}">
-                <button type="button" class="btn-ui btn-ui-secondary btn-danger-hover button sekundär"
-                        @click="beendenOffen = true"
-                        th:text="#{ui.recorder.beenden}">Aufzeichnung beenden</button>
-            </div>
             <a th:if="${capacityExceeded or startFailed}" th:href="@{/websites/{id}/journeys(id=${site.siteId})}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.recorder.zurueck_reisen}">Zurück zu den Abläufen</a>
             <a th:href="@{/websites/{id}(id=${site.siteId})}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.recorder.zurueck}">Zurück zur Website</a>
         </div>

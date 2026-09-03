@@ -103,6 +103,27 @@ class RecorderControllerTest {
 
     @Test
     @WithMockUser(username = "alice", roles = "USER")
+    void activeRecorderHeaderDoesNotContainDuplicateEndButton() throws Exception {
+        UUID sessionId = UUID.randomUUID();
+        RecordingSession session = mock(RecordingSession.class);
+        when(session.sessionId()).thenReturn(sessionId);
+        when(session.siteId()).thenReturn(1L);
+        when(session.startUrl()).thenReturn("https://acme.example.com/");
+        when(session.username()).thenReturn("alice");
+        when(sessionRegistry.open(1L, "https://acme.example.com/", "alice")).thenReturn(session);
+
+        org.springframework.test.web.servlet.MvcResult result = mvc.perform(get("/websites/1/aufzeichnen"))
+                .andExpect(status().isOk())
+                .andReturn();
+        String html = result.getResponse().getContentAsString();
+        int headerStart = html.indexOf("seiten-kopf-aktionen");
+        int headerEnd = html.indexOf("</header>", headerStart);
+        String headerActions = html.substring(headerStart, headerEnd);
+        assertThat(headerActions).doesNotContain("Aufzeichnung beenden");
+    }
+
+    @Test
+    @WithMockUser(username = "alice", roles = "USER")
     void record_whenCapacityExceeded_rendersCapacityExceededStateInGermanWithoutOfferingSession() throws Exception {
         when(sessionRegistry.open(eq(1L), any(), eq("alice")))
                 .thenThrow(new RecorderCapacityException(2));
