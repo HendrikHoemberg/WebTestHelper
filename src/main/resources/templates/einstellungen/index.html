@@ -10,6 +10,8 @@
     <div th:if="${testmailFehler}" class="hinweis fehler" style="margin-bottom: 1.5rem;" th:text="#{ui.einstellungen.testmail.fehler(${testmailFehler})}">E-Mail-Versand fehlgeschlagen: Fehler</div>
     <div th:if="${postfachErfolg != null}" class="hinweis erfolg" style="margin-bottom: 1.5rem;" th:text="#{ui.einstellungen.imap.testErfolg(${postfachErfolg})}">Verbindung erfolgreich. 0 Nachrichten im Ordner.</div>
     <div th:if="${postfachFehler}" class="hinweis fehler" style="margin-bottom: 1.5rem;" th:text="#{ui.einstellungen.imap.testFehler(${postfachFehler})}">Verbindung fehlgeschlagen: Fehler</div>
+    <div th:if="${webhookErfolg}" class="hinweis erfolg" style="margin-bottom: 1.5rem;" th:text="${webhookErfolg}">Webhook-Test erfolgreich.</div>
+    <div th:if="${webhookFehler}" class="hinweis fehler" style="margin-bottom: 1.5rem;" th:text="${webhookFehler}">Webhook-Test fehlgeschlagen.</div>
 
     <header class="page-header-bar seiten-kopf">
         <div>
@@ -69,6 +71,32 @@
                 </label>
                 <p class="hinweis-text" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;" th:text="#{ui.einstellungen.schedulingPaused.hinweis}">Solange die Planung angehalten ist, startet kein Prüflauf von selbst.</p>
                 <span th:if="${#fields.hasErrors('schedulingPaused')}" th:errors="*{schedulingPaused}" class="feld-fehler">Fehler</span>
+            </div>
+        </section>
+
+        <!-- Slack & Microsoft Teams Webhook -->
+        <section class="card-box form-bereich" style="margin-bottom: 1.5rem;">
+            <div class="abschnitt-ueberschrift-zeile" style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); margin-bottom: 1rem; padding-bottom: 0.5rem;">
+                <h2 style="margin: 0; border: none; padding: 0;" th:text="#{ui.einstellungen.webhook.titel}">Slack &amp; Microsoft Teams Webhook</h2>
+                <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
+                        th:data-hx-get="@{/hilfe/hinweis/{id}(id='webhooks')}"
+                        data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">?</button>
+                <div class="hinweis" aria-live="polite"></div>
+            </div>
+            <p class="hinweis-text" style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;" th:text="#{ui.einstellungen.webhook.hinweis}">
+                Echtzeit-Benachrichtigungen über Mängel und Prüfläufe direkt in Ihren Team-Chat senden.
+            </p>
+
+            <div class="form-gruppe form-gruppe-checkbox" style="margin-bottom: 1rem;">
+                <label style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    <input type="checkbox" th:field="*{webhookEnabled}" style="width: 1.1rem; height: 1.1rem;">
+                    <span th:text="#{ui.einstellungen.webhook.aktivieren}" style="font-weight: 600;">Webhook-Benachrichtigungen aktivieren</span>
+                </label>
+            </div>
+
+            <div class="form-gruppe" style="margin-bottom: 0;">
+                <label for="webhookUrl" th:text="#{ui.einstellungen.webhook.url}">Webhook-URL</label>
+                <input type="url" id="webhookUrl" th:field="*{webhookUrl}" class="form-input" th:placeholder="#{ui.einstellungen.webhook.url.platzhalter}">
             </div>
         </section>
 
@@ -202,6 +230,12 @@
         <div th:if="${imapConfigured}" class="testmail-bereich">
             <form th:action="@{/einstellungen/postfach-test}" method="post" class="inline-form">
                 <button type="submit" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.einstellungen.imap.test}">Postfach prüfen</button>
+            </form>
+        </div>
+
+        <div class="testmail-bereich">
+            <form th:action="@{/einstellungen/webhook-test}" method="post" class="inline-form">
+                <button type="submit" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.einstellungen.webhook.test}">Webhook testen</button>
             </form>
         </div>
 

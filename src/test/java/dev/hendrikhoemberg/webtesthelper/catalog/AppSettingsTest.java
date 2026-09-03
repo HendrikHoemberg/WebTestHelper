@@ -143,4 +143,16 @@ class AppSettingsTest extends AbstractPostgresTest {
     void fallbackRecipientsOnEmptyTableReturnsEmptyList() {
         assertThat(appSettings.fallbackRecipients()).isEmpty();
     }
+
+    @Test
+    void saveAndGetWebhookSettings() {
+        assertThat(appSettings.webhookUrl()).isEmpty();
+        assertThat(appSettings.webhookEnabled()).isFalse();
+
+        appSettings.saveWebhookUrl("https://hooks.slack.com/services/test");
+        appSettings.saveWebhookEnabled(true);
+
+        assertThat(appSettings.webhookUrl()).isEqualTo("https://hooks.slack.com/services/test");
+        assertThat(appSettings.webhookEnabled()).isTrue();
+    }
 }

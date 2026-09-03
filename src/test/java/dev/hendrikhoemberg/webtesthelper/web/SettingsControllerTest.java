@@ -66,6 +66,9 @@ class SettingsControllerTest {
     @MockitoBean
     CapacityService capacityService;
 
+    @MockitoBean
+    dev.hendrikhoemberg.webtesthelper.reporting.WebhookNotifier webhookNotifier;
+
     @BeforeEach
     void capacityServiceStub() {
         when(capacityService.current(anyInt())).thenReturn(new SystemCapacity(4, 1, 3, 1, Duration.ofSeconds(30), 2));
@@ -643,6 +646,37 @@ class SettingsControllerTest {
         } finally {
             greenMail.stop();
         }
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void postSettings_savesWebhookSettings() throws Exception {
+        mvc.perform(post("/einstellungen").with(csrf())
+                        .param("baseUrl", "https://example.com")
+                        .param("webhookUrl", "https://hooks.slack.com/services/T00/B00/X00")
+                        .param("webhookEnabled", "true")
+                        .param("fallbackRecipients", "admin@example.com"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/einstellungen"))
+                .andExpect(flash().attribute("gespeichert", true));
+
+        verify(appSettings).saveWebhookUrl("https://hooks.slack.com/services/T00/B00/X00");
+        verify(appSettings).saveWebhookEnabled(true);
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void postWebhookTest_callsWebhookNotifierAndRedirects() throws Exception {
+        when(webhookNotifier.sendTestNotification("https://hooks.slack.com/services/T00/B00/X00"))
+                .thenReturn(new dev.hendrikhoemberg.webtesthelper.reporting.WebhookResult(true, "OK 200"));
+
+        mvc.perform(post("/einstellungen/webhook-test").with(csrf())
+                        .param("webhookUrl", "https://hooks.slack.com/services/T00/B00/X00"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/einstellungen"))
+                .andExpect(flash().attribute("webhookErfolg", "OK 200"));
+
+        verify(webhookNotifier).sendTestNotification("https://hooks.slack.com/services/T00/B00/X00");
     }
 }
 

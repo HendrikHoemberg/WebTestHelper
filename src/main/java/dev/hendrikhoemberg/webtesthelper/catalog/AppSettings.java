@@ -30,6 +30,8 @@ public class AppSettings {
     public static final String KEY_MAIL_REDIRECT_ALL_TO = "mail.redirect-all-to";
     public static final String KEY_MAIL_FALLBACK_RECIPIENTS = "mail.fallback-recipients";
     public static final String KEY_SCHEDULING_PAUSED = "scheduling.paused";
+    public static final String KEY_WEBHOOK_URL = "webhook.url";
+    public static final String KEY_WEBHOOK_ENABLED = "webhook.enabled";
 
     private final AppSettingRepository repository;
     private final SecretBox secretBox;
@@ -199,6 +201,24 @@ public class AppSettings {
 
     public void saveSchedulingPaused(boolean paused) {
         saveSetting(KEY_SCHEDULING_PAUSED, Boolean.toString(paused), false);
+    }
+
+    @Transactional(readOnly = true)
+    public String webhookUrl() {
+        return getSetting(KEY_WEBHOOK_URL).orElse("");
+    }
+
+    public void saveWebhookUrl(String url) {
+        saveSetting(KEY_WEBHOOK_URL, url != null ? url.strip() : "", false);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean webhookEnabled() {
+        return getSetting(KEY_WEBHOOK_ENABLED).map(Boolean::parseBoolean).orElse(false);
+    }
+
+    public void saveWebhookEnabled(boolean enabled) {
+        saveSetting(KEY_WEBHOOK_ENABLED, Boolean.toString(enabled), false);
     }
 
     private Optional<String> getSetting(String key) {

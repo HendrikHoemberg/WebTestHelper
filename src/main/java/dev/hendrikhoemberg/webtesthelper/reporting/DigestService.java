@@ -37,6 +37,7 @@ public class DigestService {
     private final OutboxService outbox;
     private final AppSettings appSettings;
     private final ReportingProperties properties;
+    private final WebhookNotifier webhookNotifier;
 
     public DigestService(
             RunService runService,
@@ -45,7 +46,8 @@ public class DigestService {
             DigestMailRenderer renderer,
             OutboxService outbox,
             AppSettings appSettings,
-            ReportingProperties properties
+            ReportingProperties properties,
+            WebhookNotifier webhookNotifier
     ) {
         this.runService = runService;
         this.assembler = assembler;
@@ -54,6 +56,7 @@ public class DigestService {
         this.outbox = outbox;
         this.appSettings = appSettings;
         this.properties = properties;
+        this.webhookNotifier = webhookNotifier;
     }
 
     public int runCycle(Instant now) {
@@ -103,6 +106,10 @@ public class DigestService {
                         outbox.enqueue(mail);
                         enqueuedCount++;
                     }
+                }
+
+                if (digest.notifiable() && appSettings.webhookEnabled() && !appSettings.webhookUrl().isBlank()) {
+                    webhookNotifier.sendDigestNotification(digest, appSettings.webhookUrl(), appSettings.baseUrl());
                 }
 
                 runService.markDigested(window.runIds(), now);

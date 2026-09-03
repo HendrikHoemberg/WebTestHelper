@@ -32,9 +32,17 @@ public class SettingsForm {
     private String redirectAllMailTo;
     private Boolean schedulingPaused;
     private String fallbackRecipients = "";
+    private String webhookUrl = "";
+    private boolean webhookEnabled = false;
 
     public static SettingsForm from(SmtpSettings smtp, ImapSettings imap, String baseUrl, Optional<String> redirectAllMailTo,
                                     boolean schedulingPaused, List<String> fallbackRecipients) {
+        return from(smtp, imap, baseUrl, redirectAllMailTo, schedulingPaused, fallbackRecipients, "", false);
+    }
+
+    public static SettingsForm from(SmtpSettings smtp, ImapSettings imap, String baseUrl, Optional<String> redirectAllMailTo,
+                                    boolean schedulingPaused, List<String> fallbackRecipients,
+                                    String webhookUrl, boolean webhookEnabled) {
         SettingsForm form = new SettingsForm();
         if (smtp != null) {
             form.setHost(smtp.host());
@@ -59,6 +67,8 @@ public class SettingsForm {
         form.setRedirectAllMailTo(redirectAllMailTo.orElse(""));
         form.setSchedulingPaused(schedulingPaused);
         form.setFallbackRecipients(fallbackRecipients != null ? String.join(", ", fallbackRecipients) : "");
+        form.setWebhookUrl(webhookUrl != null ? webhookUrl : "");
+        form.setWebhookEnabled(webhookEnabled);
         return form;
     }
 }

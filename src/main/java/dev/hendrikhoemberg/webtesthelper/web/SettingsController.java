@@ -23,6 +23,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import dev.hendrikhoemberg.webtesthelper.reporting.WebhookNotifier;
+import dev.hendrikhoemberg.webtesthelper.reporting.WebhookResult;
+import org.springframework.web.bind.annotation.RequestParam;
+
 import java.util.Properties;
 
 
@@ -34,17 +38,20 @@ public class SettingsController {
     private final MailRenderer mailRenderer;
     private final OutboxService outboxService;
     private final CapacityService capacityService;
+    private final WebhookNotifier webhookNotifier;
 
     public SettingsController(
             AppSettings appSettings,
             MailRenderer mailRenderer,
             OutboxService outboxService,
-            CapacityService capacityService
+            CapacityService capacityService,
+            WebhookNotifier webhookNotifier
     ) {
         this.appSettings = appSettings;
         this.mailRenderer = mailRenderer;
         this.outboxService = outboxService;
         this.capacityService = capacityService;
+        this.webhookNotifier = webhookNotifier;
     }
 
     @GetMapping
@@ -57,7 +64,9 @@ public class SettingsController {
                 appSettings.baseUrl(),
                 appSettings.redirectAllMailTo(),
                 appSettings.schedulingPaused(),
-                appSettings.fallbackRecipients()
+                appSettings.fallbackRecipients(),
+                appSettings.webhookUrl(),
+                appSettings.webhookEnabled()
         );
         model.addAttribute("form", form);
         model.addAttribute("tlsModes", TlsMode.values());
@@ -133,6 +142,8 @@ public class SettingsController {
         appSettings.saveRedirectAllMailTo(form.getRedirectAllMailTo());
         appSettings.saveFallbackRecipients(form.getFallbackRecipients());
         appSettings.saveSchedulingPaused(Boolean.TRUE.equals(form.getSchedulingPaused()));
+        appSettings.saveWebhookUrl(form.getWebhookUrl());
+        appSettings.saveWebhookEnabled(form.isWebhookEnabled());
 
         redirectAttributes.addFlashAttribute("gespeichert", true);
         return "redirect:/einstellungen";
@@ -242,6 +253,23 @@ public class SettingsController {
             redirectAttributes.addFlashAttribute("postfachFehler", msg);
         }
 
+        return "redirect:/einstellungen";
+    }
+
+    @PostMapping("/webhook-test")
+    public String testWebhook(@RequestParam(value = "webhookUrl", required = false) String paramUrl,
+                              RedirectAttributes redirectAttributes) {
+        String url = (paramUrl != null && !paramUrl.isBlank()) ? paramUrl.strip() : appSettings.webhookUrl();
+        if (url == null || url.isBlank()) {
+            redirectAttributes.addFlashAttribute("webhookFehler", "Keine Webhook-URL angegeben.");
+            return "redirect:/einstellungen";
+        }
+        WebhookResult result = webhookNotifier.sendTestNotification(url);
+        if (result.success()) {
+            redirectAttributes.addFlashAttribute("webhookErfolg", result.message());
+        } else {
+            redirectAttributes.addFlashAttribute("webhookFehler", result.message());
+        }
         return "redirect:/einstellungen";
     }
 }
