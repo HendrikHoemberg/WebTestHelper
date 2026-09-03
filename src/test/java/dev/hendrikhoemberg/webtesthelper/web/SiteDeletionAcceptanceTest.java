@@ -195,4 +195,20 @@ class SiteDeletionAcceptanceTest extends AbstractPostgresTest {
         assertThat(count("site")).isEqualTo(2);
         assertThat(count("credential")).isEqualTo(1);
     }
+
+    @org.junit.jupiter.api.AfterEach
+    void tearDown() {
+        jdbc.update("DELETE FROM notification");
+        jdbc.update("DELETE FROM notification_recipient");
+        jdbc.update("DELETE FROM crawl_queue_item");
+        jdbc.update("DELETE FROM finding_occurrence");
+        jdbc.update("DELETE FROM finding");
+        jdbc.update("DELETE FROM mute_rule");
+        jdbc.update("DELETE FROM run");
+        jdbc.update("DELETE FROM schedule");
+        jdbc.update("DELETE FROM site_check_setting");
+        jdbc.update("DELETE FROM credential");
+        jdbc.update("DELETE FROM journey");
+        jdbc.update("DELETE FROM site");
+    }
 }

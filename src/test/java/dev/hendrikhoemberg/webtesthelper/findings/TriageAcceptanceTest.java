@@ -45,12 +45,15 @@ class TriageAcceptanceTest extends AbstractPostgresTest {
     MuteExpiryService muteExpiryService;
     @Autowired
     SiteService sites;
+    @Autowired
+    org.springframework.jdbc.core.JdbcTemplate jdbc;
 
     private long siteId;
     private Instant t0;
 
     @BeforeEach
     void setup() {
+        jdbc.update("DELETE FROM mute_rule");
         siteId = sites.create(new SiteForm(
                 "Noisy Customer Site", BASE_URL + "/", 500, 3,
                 Duration.ofMinutes(10), List.of(), List.of(), true, null, true));

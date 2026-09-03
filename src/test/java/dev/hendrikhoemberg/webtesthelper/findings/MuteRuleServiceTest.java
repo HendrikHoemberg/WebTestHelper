@@ -37,6 +37,7 @@ class MuteRuleServiceTest extends AbstractPostgresTest {
 
     @BeforeEach
     void setup() {
+        jdbc.update("DELETE FROM mute_rule");
         siteA = sites.create(new SiteForm(
                 "Site A", "https://www.site-a.com/", 100, 3,
                 Duration.ofMinutes(10), List.of(), List.of(), true, null, true));
