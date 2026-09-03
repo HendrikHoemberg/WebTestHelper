@@ -28,7 +28,7 @@
 - Consumes: `AppUserRepository`, `AppUserEntity`
 - Produces: `boolean isTutorialAbgeschlossen(String username)` and `void setTutorialAbgeschlossen(String username, boolean abgeschlossen)` on `AppUserService`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
   Add `tutorialAbgeschlossenFlagDefaultAndToggle` to `AppUserServiceTest.java`:
   ```java
   @Test
@@ -44,11 +44,11 @@
   }
   ```
 
-- [ ] **Step 2: Run the single test — verify it FAILS**
+- [x] **Step 2: Run the single test — verify it FAILS**
   Command: `./mvnw test -Dtest=AppUserServiceTest#tutorialAbgeschlossenFlagDefaultAndToggle -B --no-transfer-progress`
   Expected: Compilation failure or method not found.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
   1. Create `V29__app_user_tutorial_abgeschlossen.sql`:
      ```sql
      ALTER TABLE app_user ADD COLUMN tutorial_abgeschlossen BOOLEAN NOT NULL DEFAULT FALSE;
@@ -72,11 +72,11 @@
      }
      ```
 
-- [ ] **Step 4: Run the single test — verify it PASSES**
+- [x] **Step 4: Run the single test — verify it PASSES**
   Command: `./mvnw test -Dtest=AppUserServiceTest#tutorialAbgeschlossenFlagDefaultAndToggle -B --no-transfer-progress`
   Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   `git commit -m "feat(tutorial): add tutorial_abgeschlossen persistence to app_user"`
 
 ---
@@ -92,7 +92,7 @@
 - Consumes: `AppUserService`
 - Produces: `POST /tutorial/abschliessen` (HTTP 204), `POST /tutorial/neustarten` (HTTP 302 redirect to `/?tour=start`)
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
   Create `TutorialControllerTest.java`:
   ```java
   package dev.hendrikhoemberg.webtesthelper.web;
@@ -149,11 +149,11 @@
   }
   ```
 
-- [ ] **Step 2: Run the single test — verify it FAILS**
+- [x] **Step 2: Run the single test — verify it FAILS**
   Command: `./mvnw test -Dtest=TutorialControllerTest -B --no-transfer-progress`
   Expected: FAIL (class `TutorialController` does not exist).
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
   1. Create `TutorialController.java`:
      ```java
      package dev.hendrikhoemberg.webtesthelper.web;
@@ -194,11 +194,11 @@
      ```
   2. Update `SecurityConfig.java`: ensure `/tutorial/**` is covered by `.authenticated()`.
 
-- [ ] **Step 4: Run the single test — verify it PASSES**
+- [x] **Step 4: Run the single test — verify it PASSES**
   Command: `./mvnw test -Dtest=TutorialControllerTest -B --no-transfer-progress`
   Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   `git commit -m "feat(tutorial): add TutorialController for tour dismissal and restart"`
 
 ---
@@ -214,7 +214,7 @@
 - Consumes: `AppUserService`, `Principal`, `@RequestParam(name = "tour")`
 - Produces: `tutorialOffen` boolean attribute in Thymeleaf models; localized keys in `messages.properties`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
   Create `TutorialAdviceTest.java`:
   ```java
   package dev.hendrikhoemberg.webtesthelper.web;
@@ -279,11 +279,11 @@
   }
   ```
 
-- [ ] **Step 2: Run the single test — verify it FAILS**
+- [x] **Step 2: Run the single test — verify it FAILS**
   Command: `./mvnw test -Dtest=TutorialAdviceTest -B --no-transfer-progress`
   Expected: FAIL (class `TutorialAdvice` does not exist).
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
   1. Create `TutorialAdvice.java`:
      ```java
      package dev.hendrikhoemberg.webtesthelper.web;
@@ -324,11 +324,11 @@
      ```
   2. Add `ui.tutorial.*` message keys to `src/main/resources/messages.properties`.
 
-- [ ] **Step 4: Run the single test — verify it PASSES**
+- [x] **Step 4: Run the single test — verify it PASSES**
   Command: `./mvnw test -Dtest=TutorialAdviceTest -B --no-transfer-progress`
   Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   `git commit -m "feat(tutorial): add TutorialAdvice and localized messages for onboarding tour"`
 
 ---
@@ -343,17 +343,17 @@
 **Interfaces:**
 - Produces: `window.driver.js.driver` available in browser; `.driver-popover` styled to match WebTestHelper monochrome carbon design system.
 
-- [ ] **Step 1: Download/create vendored assets**
+- [x] **Step 1: Download/create vendored assets**
   Download Driver.js v1.3.1 IIFE build to `src/main/resources/static/vendor/driver.js` and `driver.css` to `src/main/resources/static/vendor/driver.css`.
 
-- [ ] **Step 2: Add theme overrides to `app.css`**
+- [x] **Step 2: Add theme overrides to `app.css`**
   Add styles in `src/main/resources/static/css/app.css` overriding `.driver-popover`, `.driver-popover-title`, `.driver-popover-description`, and navigation buttons using CSS custom properties (`--bg-canvas`, `--surface-card`, `--border-subtle`, `--text-main`, `--text-body`, `--btn-ui-*`).
 
-- [ ] **Step 3: Verify build / assets presence**
+- [x] **Step 3: Verify build / assets presence**
   Command: `test -f src/main/resources/static/vendor/driver.js && test -f src/main/resources/static/vendor/driver.css`
   Expected: Exit code 0.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
   `git commit -m "feat(tutorial): vendor driver.js and add theme overrides to app.css"`
 
 ---
@@ -370,15 +370,15 @@
 - Consumes: `#wth-tutorial-config` data attributes, `driver.js`
 - Produces: Interactive spotlight tour with cross-page navigation between `/` and `/websites`, manual restart button in sidebar and help center.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
   Create `LayoutTutorialRenderingTest.java` testing layout rendering when user is authenticated:
   Asserts that `layout.html` renders `<div id="wth-tutorial-config"` with `data-auto-start`, includes `vendor/driver.js` and `js/tutorial.js`, and renders the "Tour starten" button in the sidebar footer.
 
-- [ ] **Step 2: Run the single test — verify it FAILS**
+- [x] **Step 2: Run the single test — verify it FAILS**
   Command: `./mvnw test -Dtest=LayoutTutorialRenderingTest -B --no-transfer-progress`
   Expected: FAIL (missing tutorial markup/scripts in layout).
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
   1. In `src/main/resources/templates/layout.html`:
      - In `<head>`: include `<link rel="stylesheet" th:href="@{/vendor/driver.css}">`.
      - Before `</body>`: include `<script defer th:src="@{/vendor/driver.js}"></script>` and `<script defer th:src="@{/js/tutorial.js}"></script>`.
@@ -402,20 +402,20 @@
      - Step 5 (`/websites`): Highlight Stummschaltungen & Hilfe in sidebar.
      - Step 6 (`/websites`): Congratulations popover. On finish/close: clear `sessionStorage` and send `POST /tutorial/abschliessen`.
 
-- [ ] **Step 4: Run the single test — verify it PASSES**
+- [x] **Step 4: Run the single test — verify it PASSES**
   Command: `./mvnw test -Dtest=LayoutTutorialRenderingTest -B --no-transfer-progress`
   Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   `git commit -m "feat(tutorial): implement tutorial.js tour orchestration and integrate into layout and help center"`
 
 ---
 
 ### Task 6: Full Verification Suite
 
-- [ ] **Step 1: Run project verification gate**
+- [x] **Step 1: Run project verification gate**
   Command: `bash -c "set -o pipefail; ./mvnw test -Pfast -B --no-transfer-progress | tail -n 50"`
   Expected: All fast suite tests pass, 0 failures, 0 errors.
 
-- [ ] **Step 2: Commit final review**
+- [x] **Step 2: Commit final review**
   `git commit -m "chore(tutorial): complete interactive onboarding tutorial verification"`
