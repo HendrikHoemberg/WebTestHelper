@@ -100,7 +100,7 @@
                                   th:style="${health != null and health.consecutiveFailures > 0 ? 'color: var(--status-error-dot);' : 'color: var(--text-muted);'}"
                                   th:text="${health != null ? health.consecutiveFailures : 0}">0</span>
                         </td>
-                        <td class="text-rechts zell-aktion" style="white-space: nowrap;">
+                        <td class="text-rechts zell-aktion" style="white-space: nowrap;" x-data="{ loeschenOffen: false }">
                             <a th:href="@{/websites/{siteId}/journeys/{journeyId}(siteId=${site.siteId}, journeyId=${journey.id})}" class="btn-ui btn-ui-secondary btn-ui-sm" th:text="#{ui.journey.liste.ansehen}">Ansehen</a>
                             <button type="button"
                                     th:attr="data-hx-post=@{/websites/{siteId}/journeys/{journeyId}/jetzt-ausfuehren(siteId=${site.siteId}, journeyId=${journey.id})}"
@@ -111,6 +111,31 @@
                                 <span class="htmx-indicator-hide" th:text="#{ui.journey.test.ausfuehren}">Jetzt testen</span>
                                 <span class="htmx-indicator" th:text="#{ui.journey.test.laeuft}">Läuft …</span>
                             </button>
+                            <button type="button" class="btn-ui btn-ui-secondary btn-danger-hover btn-ui-sm"
+                                    @click="loeschenOffen = true"
+                                    style="margin-left: 0.4rem;"
+                                    th:text="#{ui.journey.loeschen}">Löschen</button>
+
+                            <!-- Löschen-Modal -->
+                            <div x-cloak x-show="loeschenOffen" @keydown.escape.window="loeschenOffen = false" class="wth-modal text-links" style="text-align: left;">
+                                <div class="wth-modal-backdrop" @click.self="loeschenOffen = false"></div>
+                                <div class="wth-modal-dialog" role="dialog" aria-modal="true" th:attr="aria-labelledby=${'modal-loeschen-journey-' + journey.id}">
+                                    <div class="wth-modal-kopf">
+                                        <h2 th:id="${'modal-loeschen-journey-' + journey.id}" class="wth-modal-titel" th:text="#{ui.journey.loeschen.dialog.titel(${journey.name})}">Ablauf löschen</h2>
+                                        <button type="button" class="wth-modal-schliessen" @click="loeschenOffen = false"
+                                                th:attr="aria-label=#{ui.dialog.schliessen}, title=#{ui.dialog.schliessen}">×</button>
+                                    </div>
+                                    <div class="wth-modal-inhalt">
+                                        <p th:text="#{ui.journey.loeschen.bestaetigung}" style="margin-top: 0; margin-bottom: 1.25rem;">
+                                            Möchten Sie diesen Ablauf wirklich löschen? Alle zugehörigen Schritte und Prüfergebnisse werden unwiderruflich entfernt.
+                                        </p>
+                                        <form th:action="@{/websites/{siteId}/journeys/{journeyId}/loeschen(siteId=${site.siteId},journeyId=${journey.id})}" method="post" class="inline-form" style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                                            <button type="button" @click="loeschenOffen = false" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.dialog.abbrechen}">Abbrechen</button>
+                                            <button type="submit" class="btn-ui btn-ui-danger button gefahr" th:text="#{ui.journey.loeschen.bestaetigen}">Jetzt löschen</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
                         </td>
                     </tr>
                 </tbody>

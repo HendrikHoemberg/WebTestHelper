@@ -44,6 +44,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -446,6 +447,71 @@ class JourneyControllerTest {
                 .andExpect(content().string(containsString("<meta name=\"_csrf\"")))
                 .andExpect(content().string(containsString("<meta name=\"_csrf_header\"")))
                 .andExpect(content().string(containsString("htmx:configRequest")));
+    }
+
+    @Test
+    @WithMockUser
+    void deleteJourney_removesJourneyAndRedirectsWithFlashMessage() throws Exception {
+        long siteId = 1L;
+        long journeyId = 42L;
+        JourneyDefinition journey = new JourneyDefinition(journeyId, siteId, "Checkout Test", true, List.of());
+        when(journeyService.findDefinition(journeyId)).thenReturn(Optional.of(journey));
+
+        mvc.perform(post("/websites/{siteId}/journeys/{journeyId}/loeschen", siteId, journeyId)
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/websites/1/journeys"))
+                .andExpect(flash().attributeExists("flashMessage"));
+
+        org.mockito.Mockito.verify(journeyService).delete(journeyId);
+    }
+
+    @Test
+    @WithMockUser
+    void deleteJourney_whenNotFound_returns404() throws Exception {
+        when(journeyService.findDefinition(999L)).thenReturn(Optional.empty());
+
+        mvc.perform(post("/websites/1/journeys/999/loeschen")
+                        .with(csrf()))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser
+    void deleteJourney_whenSiteMismatch_returns404() throws Exception {
+        long journeyId = 42L;
+        JourneyDefinition journey = new JourneyDefinition(journeyId, 2L, "Different Site", true, List.of());
+        when(journeyService.findDefinition(journeyId)).thenReturn(Optional.of(journey));
+
+        mvc.perform(post("/websites/1/journeys/{journeyId}/loeschen", journeyId)
+                        .with(csrf()))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser
+    void detail_rendersDeleteButtonAndModal() throws Exception {
+        long siteId = 1L;
+        long journeyId = 42L;
+        JourneyDefinition journey = new JourneyDefinition(journeyId, siteId, "Warenkorb", true, List.of());
+        when(journeyService.findDefinition(journeyId)).thenReturn(Optional.of(journey));
+
+        mvc.perform(get("/websites/{siteId}/journeys/{journeyId}", siteId, journeyId))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Ablauf löschen")))
+                .andExpect(content().string(containsString("/websites/1/journeys/42/loeschen")));
+    }
+
+    @Test
+    @WithMockUser
+    void list_rendersDeleteButtonAndModalForEachJourney() throws Exception {
+        long siteId = 1L;
+        JourneyDefinition journey = new JourneyDefinition(42L, siteId, "Warenkorb", true, List.of());
+        when(journeyService.findBySite(siteId)).thenReturn(List.of(journey));
+
+        mvc.perform(get("/websites/{siteId}/journeys", siteId))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("/websites/1/journeys/42/loeschen")));
     }
 }
 

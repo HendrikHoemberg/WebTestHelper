@@ -114,7 +114,9 @@ class JourneyEditControllerTest {
                 .andExpect(content().string(containsString("TEXT_CONTAINS")))
                 .andExpect(content().string(containsString("VISIBLE")))
                 .andExpect(content().string(containsString("URL_MATCHES")))
-                .andExpect(content().string(containsString("COUNT")));
+                .andExpect(content().string(containsString("COUNT")))
+                .andExpect(content().string(containsString("Ablauf löschen")))
+                .andExpect(content().string(containsString("/websites/1/journeys/10/loeschen")));
     }
 
     @Test

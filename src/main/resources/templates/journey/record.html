@@ -84,7 +84,7 @@
                         th:text="#{ui.recorder.speichern}">Ablauf speichern</button>
                 <button type="button" class="btn-ui btn-ui-secondary btn-danger-hover button sekundär"
                         @click="beendenOffen = true"
-                        th:text="#{ui.recorder.beenden}">Aufzeichnung beenden</button>
+                        th:text="#{ui.recorder.beenden}">Aufzeichnung abbrechen</button>
             </div>
         </div>
 
@@ -283,17 +283,17 @@
         <div class="wth-modal-backdrop" @click.self="beendenOffen = false"></div>
         <div class="wth-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="modal-beenden-titel">
             <div class="wth-modal-kopf">
-                <h2 id="modal-beenden-titel" class="wth-modal-titel" th:text="#{ui.recorder.beenden.dialog.titel}">Aufzeichnung beenden</h2>
+                <h2 id="modal-beenden-titel" class="wth-modal-titel" th:text="#{ui.recorder.beenden.dialog.titel}">Aufzeichnung abbrechen</h2>
                 <button type="button" class="wth-modal-schliessen" @click="beendenOffen = false"
                         th:attr="aria-label=#{ui.dialog.schliessen}, title=#{ui.dialog.schliessen}">×</button>
             </div>
             <div class="wth-modal-inhalt">
                 <p th:text="#{ui.recorder.beenden.bestaetigung}" style="margin-top: 0; margin-bottom: 1.25rem;">
-                    Möchten Sie die Aufzeichnung wirklich beenden? Nicht gespeicherte Schritte gehen verloren.
+                    Möchten Sie die Aufzeichnung wirklich abbrechen? Nicht gespeicherte Schritte gehen verloren.
                 </p>
                 <form th:action="@{/recorder/{id}/beenden(id=${sessionId})}" method="post" class="inline-form" style="display: flex; gap: 0.5rem; justify-content: flex-end;">
-                    <button type="button" @click="beendenOffen = false" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.dialog.abbrechen}">Abbrechen</button>
-                    <button type="submit" class="btn-ui btn-ui-danger button gefahr" th:text="#{ui.recorder.beenden.bestaetigen}">Aufzeichnung verwerfen und beenden</button>
+                    <button type="button" @click="beendenOffen = false" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.recorder.beenden.weiter}">Weiter aufzeichnen</button>
+                    <button type="submit" class="btn-ui btn-ui-danger button gefahr" th:text="#{ui.recorder.beenden.bestaetigen}">Aufzeichnung verwerfen</button>
                 </form>
             </div>
         </div>

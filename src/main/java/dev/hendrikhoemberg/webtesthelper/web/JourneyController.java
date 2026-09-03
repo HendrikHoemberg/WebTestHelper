@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
 import java.util.Locale;
@@ -110,5 +111,21 @@ public class JourneyController {
                 .findFirst()
                 .map(o -> messageSource.getMessage(o.failureMessageKey(), o.failureArgs().toArray(), locale))
                 .orElse(null);
+    }
+
+    @PostMapping("/websites/{siteId}/journeys/{journeyId}/loeschen")
+    public String deleteJourney(@PathVariable("siteId") long siteId,
+                                @PathVariable("journeyId") long journeyId,
+                                RedirectAttributes redirectAttributes,
+                                Locale locale) {
+        JourneyDefinition journey = journeyService.findDefinition(journeyId)
+                .filter(j -> Objects.equals(j.siteId(), siteId))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ablauf nicht gefunden: " + journeyId));
+
+        journeyService.delete(journeyId);
+        String successMsg = messageSource.getMessage(
+                "ui.journey.geloescht", new Object[]{journey.name()}, locale);
+        redirectAttributes.addFlashAttribute("flashMessage", successMsg);
+        return "redirect:/websites/" + siteId + "/journeys";
     }
 }

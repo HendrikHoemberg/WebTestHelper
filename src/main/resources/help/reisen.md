@@ -83,7 +83,7 @@ Mit dem interaktiven Live-Recorder können Sie neue Benutzerabläufe direkt in I
 * **Automatisches Timeout:** Jede Aufzeichnungssitzung verfügt über ein Leerlauf-Zeitlimit von **15 Minuten**. Erfolgen innerhalb dieses Zeitfensters keine Eingaben, wird die Sitzung automatisch beendet und der Browser-Worker freigegeben.
 * **Browser lässt sich nicht starten:** Schlägt der Start des Aufnahme-Browsers fehl, ist das keine Kapazitätsfrage — Warten hilft dann nicht. Die Oberfläche weist gesondert darauf hin; bitte wenden Sie sich in diesem Fall an die Administration.
 * **Aufzeichnung speichern:** Über das Eingabefeld und die Schaltfläche „Ablauf speichern“ wird die Aufzeichnung als neuer Ablauf übernommen. Die erfassten Interaktionsereignisse werden automatisch in eine bereinigte Schrittfolge überführt (inkl. Start-URL als erster Navigationsschritt). Anschließend gelangen Sie direkt in den Editor zur Feinabstimmung.
-* **Aufzeichnung beenden:** Über die Schaltfläche „Aufzeichnung beenden“ oder beim Verlassen der Seite wird die Sitzung geschlossen, ohne die Aufzeichnung zu speichern, und der Browser-Worker wird sofort freigegeben.
+* **Aufzeichnung abbrechen:** Über die Schaltfläche „Aufzeichnung abbrechen“ oder beim Verlassen der Seite wird die Sitzung geschlossen, ohne die Aufzeichnung zu speichern, und der Browser-Worker wird sofort freigegeben.
 
 ## Ablauf-Editor (Schritte anpassen und verfeinern)
 

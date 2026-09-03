@@ -97,7 +97,8 @@ class RecorderControllerTest {
                 .andExpect(model().attributeExists("site", "sessionId", "wsUrl"))
                 .andExpect(content().string(containsString("<canvas id=\"recorder-canvas\"")))
                 .andExpect(content().string(containsString("/recorder/ws/" + sessionId)))
-                .andExpect(content().string(containsString("Aufzeichnung beenden")))
+                .andExpect(content().string(containsString("Aufzeichnung abbrechen")))
+                .andExpect(content().string(not(containsString("Aufzeichnung beenden"))))
                 .andExpect(content().string(not(containsString("Maximale Anzahl gleichzeitiger Aufzeichnungssitzungen"))));
 
         verify(sessionRegistry).open(1L, "https://acme.example.com/", "alice");
@@ -121,7 +122,7 @@ class RecorderControllerTest {
         int headerStart = html.indexOf("seiten-kopf-aktionen");
         int headerEnd = html.indexOf("</header>", headerStart);
         String headerActions = html.substring(headerStart, headerEnd);
-        assertThat(headerActions).doesNotContain("Aufzeichnung beenden");
+        assertThat(headerActions).doesNotContain("Aufzeichnung abbrechen");
     }
 
     @Test
