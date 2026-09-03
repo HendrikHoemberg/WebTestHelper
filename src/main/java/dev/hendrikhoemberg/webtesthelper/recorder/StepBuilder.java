@@ -59,6 +59,9 @@ public final class StepBuilder {
         List<CapturedEvent> editorialEvents = collapseEvents(events);
 
         for (CapturedEvent event : editorialEvents) {
+            if (isCookieBannerEvent(event)) {
+                continue;
+            }
             JourneyStep step = toStep(event, ordinal++);
             steps.add(step);
         }
@@ -169,5 +172,33 @@ public final class StepBuilder {
                 || lower.contains("passwort")
                 || lower.contains("kennwort")
                 || lower.contains("pwd");
+    }
+
+    private static boolean isCookieBannerEvent(CapturedEvent event) {
+        if (event == null) {
+            return false;
+        }
+        String id = event.id() != null ? event.id().toLowerCase(Locale.ROOT) : "";
+        String css = event.cssPath() != null ? event.cssPath().toLowerCase(Locale.ROOT) : "";
+        return id.contains("usercentrics")
+                || id.contains("cookie-banner")
+                || id.contains("cookie_banner")
+                || id.contains("cookiebanner")
+                || id.contains("consent-banner")
+                || id.contains("onetrust")
+                || id.contains("cookiebot")
+                || id.contains("borlabs")
+                || id.contains("klaro")
+                || id.contains("complianz")
+                || css.contains("usercentrics")
+                || css.contains("cookie-banner")
+                || css.contains("cookie_banner")
+                || css.contains("cookiebanner")
+                || css.contains("consent-banner")
+                || css.contains("onetrust")
+                || css.contains("cookiebot")
+                || css.contains("borlabs")
+                || css.contains("klaro")
+                || css.contains("complianz");
     }
 }

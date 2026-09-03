@@ -12,6 +12,7 @@ import dev.hendrikhoemberg.webtesthelper.model.StepOutcome;
 import dev.hendrikhoemberg.webtesthelper.model.StepStatus;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Pattern;
@@ -57,6 +58,9 @@ public final class StepExecutor {
 
         LocatorMatch match = null;
         try {
+            if (isCookieBannerStep(step)) {
+                return StepOutcome.skipped(step.id());
+            }
             if (needsResolvedElement(step)) {
                 Optional<LocatorMatch> resolved =
                         LocatorResolver.resolveWithin(page, step, step.timeoutMs());
@@ -67,6 +71,9 @@ public final class StepExecutor {
             }
             return performAction(page, step, resolvedValue, match);
         } catch (TimeoutError e) {
+            if (isCookieBannerStep(step)) {
+                return StepOutcome.skipped(step.id());
+            }
             return failure(step, match, MSG_TIMEOUT, List.of(String.valueOf(step.timeoutMs())));
         } catch (RuntimeException e) {
             return failure(step, match, MSG_ACTION,
@@ -297,5 +304,27 @@ public final class StepExecutor {
     private static String firstLine(String message) {
         int newline = message.indexOf('\n');
         return newline == -1 ? message : message.substring(0, newline);
+    }
+
+    static boolean isCookieBannerStep(JourneyStep step) {
+        if (step == null || step.locatorCandidates() == null || step.locatorCandidates().isEmpty()) {
+            return false;
+        }
+        for (LocatorCandidate candidate : step.locatorCandidates()) {
+            String val = candidate.value().toLowerCase(Locale.ROOT);
+            if (val.contains("usercentrics")
+                    || val.contains("cookie-banner")
+                    || val.contains("cookie_banner")
+                    || val.contains("cookiebanner")
+                    || val.contains("consent-banner")
+                    || val.contains("onetrust")
+                    || val.contains("cookiebot")
+                    || val.contains("borlabs")
+                    || val.contains("klaro")
+                    || val.contains("complianz")) {
+                return true;
+            }
+        }
+        return false;
     }
 }

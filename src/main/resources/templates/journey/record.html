@@ -317,7 +317,7 @@
                         <label for="recorder-journey-name" th:text="#{ui.recorder.speichern.name_label}">Name des Ablaufs</label>
                         <input type="text" id="recorder-journey-name" name="name"
                                th:placeholder="#{ui.recorder.speichern.name_platzhalter}"
-                               th:value="#{ui.recorder.speichern.standard_name}" required
+                               th:value="${defaultJourneyName != null ? defaultJourneyName : #messages.msg('ui.recorder.speichern.standard_name')}" required
                                class="form-input" style="width: 100%;">
                     </div>
                     <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">

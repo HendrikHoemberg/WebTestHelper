@@ -121,4 +121,34 @@ class CookieBannerTest {
         assertThat(outcome.containerId()).isNull();
         assertThat(outcome.acceptLabel()).isNull();
     }
+
+    @Test
+    void shadowDomUsercentricsBannerIsDetectedAndDismissed() {
+        try (BrowserContext context = browser.newContext()) {
+            Page page = context.newPage();
+            page.navigate(site.url("interaktiv/ohne-banner.html"));
+            page.evaluate("""
+                () => {
+                    const host = document.createElement('div');
+                    host.id = 'usercentrics-root';
+                    document.body.appendChild(host);
+                    const shadow = host.attachShadow({ mode: 'open' });
+                    const container = document.createElement('div');
+                    container.setAttribute('data-testid', 'uc-app-container');
+                    const btn = document.createElement('button');
+                    btn.setAttribute('data-testid', 'uc-accept-all-button');
+                    btn.textContent = 'Alles akzeptieren';
+                    btn.onclick = () => { container.style.display = 'none'; };
+                    container.appendChild(btn);
+                    shadow.appendChild(container);
+                }
+            """);
+
+            BannerOutcome outcome = CookieBanner.accept(page, Duration.ofSeconds(2));
+
+            assertThat(outcome.present()).isTrue();
+            assertThat(outcome.dismissed()).isTrue();
+            assertThat(outcome.containerId()).isEqualTo("usercentrics-root");
+        }
+    }
 }

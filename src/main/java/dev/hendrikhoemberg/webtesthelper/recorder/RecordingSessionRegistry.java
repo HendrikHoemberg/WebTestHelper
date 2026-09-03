@@ -1,5 +1,6 @@
 package dev.hendrikhoemberg.webtesthelper.recorder;
 
+import dev.hendrikhoemberg.webtesthelper.checks.CookieBanner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,6 +73,11 @@ public class RecordingSessionRegistry implements AutoCloseable {
                 var intentCapture = IntentCapture.install(context);
                 var page = context.newPage();
                 page.navigate(startUrl);
+                try {
+                    CookieBanner.accept(page, CookieBanner.DISMISSAL_WAIT);
+                } catch (RuntimeException e) {
+                    log.warn("Cookie-Banner im Recorder nicht akzeptiert: {}", e.getMessage());
+                }
                 return new BrowserSessionContext(context, page, intentCapture);
             });
             var context = bsc != null ? bsc.context() : null;

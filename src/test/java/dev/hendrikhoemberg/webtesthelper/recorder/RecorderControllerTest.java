@@ -76,6 +76,7 @@ class RecorderControllerTest {
                 true, "AcmeBot/2.0", Map.of()
         );
         when(siteService.contextFor(1L)).thenReturn(testSite);
+        when(journeyService.resolveUniqueName(anyLong(), anyString())).thenAnswer(inv -> inv.getArgument(1));
     }
 
     @Test
@@ -298,6 +299,56 @@ class RecorderControllerTest {
 
         verify(capture).drain();
         verify(sessionRegistry).close(sessionId);
+    }
+
+    @Test
+    @WithMockUser(username = "alice", roles = "USER")
+    void saveSession_disambiguatesDuplicateNameWhenSaving() throws Exception {
+        UUID sessionId = UUID.randomUUID();
+        RecordingSession session = mock(RecordingSession.class);
+        IntentCapture capture = mock(IntentCapture.class);
+
+        when(session.sessionId()).thenReturn(sessionId);
+        when(session.siteId()).thenReturn(1L);
+        when(session.startUrl()).thenReturn("https://acme.example.com/");
+        when(session.intentCapture()).thenReturn(capture);
+        when(capture.drain()).thenReturn(List.of());
+        when(sessionRegistry.find(sessionId, "alice")).thenReturn(Optional.of(session));
+        when(journeyService.resolveUniqueName(1L, "Neuer Ablauf")).thenReturn("Neuer Ablauf 2");
+        when(journeyService.create(eq(1L), eq("Neuer Ablauf 2"), any())).thenReturn(43L);
+
+        mvc.perform(post("/recorder/" + sessionId + "/speichern")
+                        .with(csrf())
+                        .param("name", "Neuer Ablauf"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/websites/1/journeys/43/bearbeiten"));
+
+        verify(journeyService).create(eq(1L), eq("Neuer Ablauf 2"), any());
+        verify(sessionRegistry).close(sessionId);
+    }
+
+    @Test
+    @WithMockUser(username = "alice", roles = "USER")
+    void saveSession_whenCreateFails_redirectsWithFlashErrorWithout404() throws Exception {
+        UUID sessionId = UUID.randomUUID();
+        RecordingSession session = mock(RecordingSession.class);
+        IntentCapture capture = mock(IntentCapture.class);
+
+        when(session.sessionId()).thenReturn(sessionId);
+        when(session.siteId()).thenReturn(1L);
+        when(session.startUrl()).thenReturn("https://acme.example.com/");
+        when(session.intentCapture()).thenReturn(capture);
+        when(capture.drain()).thenReturn(List.of());
+        when(sessionRegistry.find(sessionId, "alice")).thenReturn(Optional.of(session));
+        when(journeyService.create(eq(1L), anyString(), any()))
+                .thenThrow(new IllegalArgumentException("journey.name.duplicate"));
+
+        mvc.perform(post("/recorder/" + sessionId + "/speichern")
+                        .with(csrf())
+                        .param("name", "Duplikat"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/websites/1/journeys"))
+                .andExpect(flash().attribute("flashError", "journey.name.duplicate"));
     }
 
     @Test

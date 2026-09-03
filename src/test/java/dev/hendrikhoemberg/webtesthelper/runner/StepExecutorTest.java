@@ -339,6 +339,17 @@ class StepExecutorTest {
     }
 
     @Test
+    void cookieBannerStepReturnsSkipped() {
+        LocatorCandidate usercentrics = new LocatorCandidate(LocatorStrategy.ID, "usercentrics-root", 0);
+        JourneyStep step = createStep(StepAction.CLICK, List.of(usercentrics), null, null, false, 500);
+
+        StepOutcome outcome = StepExecutor.execute(page, step, null);
+
+        assertThat(outcome.status()).isEqualTo(StepStatus.SKIPPED);
+        assertThat(outcome.failureMessageKey()).isNull();
+    }
+
+    @Test
     void driftedStepReportsDriftedAsPassingStatusWithWinningCandidate() {
         page.navigate(fixtureSite.url("reise/start.html"));
         LocatorCandidate missingTestId = new LocatorCandidate(LocatorStrategy.TEST_ID, "non-existent-link", 0);

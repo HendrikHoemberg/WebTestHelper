@@ -75,6 +75,7 @@ public class RecorderController {
             model.addAttribute("session", session);
             model.addAttribute("sessionId", session.sessionId());
             model.addAttribute("wsUrl", "/recorder/ws/" + session.sessionId());
+            model.addAttribute("defaultJourneyName", journeyService.resolveUniqueName(siteId, "Neuer Ablauf"));
             model.addAttribute("capacityExceeded", false);
             model.addAttribute("startFailed", false);
             return "journey/record";
@@ -111,7 +112,8 @@ public class RecorderController {
     @PostMapping("/recorder/{sessionId}/speichern")
     public String saveSession(@PathVariable("sessionId") UUID sessionId,
                               @RequestParam(value = "name", required = false) String name,
-                              Principal principal) {
+                              Principal principal,
+                              RedirectAttributes redirectAttributes) {
         String username = usernameOf(principal);
         RecordingSession session = sessionRegistry.find(sessionId, username)
                 .orElseThrow(() -> new ResponseStatusException(
@@ -123,10 +125,18 @@ public class RecorderController {
         List<CapturedEvent> events = capture != null ? capture.drain() : List.of();
         List<JourneyStep> steps = StepBuilder.build(events, startUrl);
 
-        String effectiveName = (name != null && !name.isBlank()) ? name.trim() : "Neuer Ablauf";
-        long journeyId = journeyService.create(siteId, effectiveName, steps);
-        sessionRegistry.close(sessionId);
-        return "redirect:/websites/" + siteId + "/journeys/" + journeyId + "/bearbeiten";
+        String rawName = (name != null && !name.isBlank()) ? name.trim() : "Neuer Ablauf";
+        String effectiveName = journeyService.resolveUniqueName(siteId, rawName);
+
+        try {
+            long journeyId = journeyService.create(siteId, effectiveName, steps);
+            sessionRegistry.close(sessionId);
+            return "redirect:/websites/" + siteId + "/journeys/" + journeyId + "/bearbeiten";
+        } catch (IllegalArgumentException e) {
+            log.warn("Fehler beim Speichern der Aufnahmesitzung {}: {}", sessionId, e.getMessage());
+            redirectAttributes.addFlashAttribute("flashError", e.getMessage());
+            return "redirect:/websites/" + siteId + "/journeys";
+        }
     }
 
     @PostMapping("/recorder/meine-sitzungen-beenden")

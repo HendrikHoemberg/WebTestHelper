@@ -203,12 +203,44 @@
     }
   }
 
+  function isCookieBannerElement(el) {
+    if (!el || el.nodeType !== Node.ELEMENT_NODE) return false;
+    const HINTS = ['cookie', 'consent', 'cmp', 'gdpr', 'dsgvo', 'privacy', 'datenschutz',
+                   'usercentrics', 'cookiebot', 'borlabs', 'klaro', 'onetrust', 'complianz'];
+    let curr = el;
+    while (curr && curr !== document.body && curr !== document.documentElement) {
+      if (curr.hasAttribute && curr.hasAttribute('data-wth-banner')) return true;
+      const id = (curr.id || '').toLowerCase();
+      const className = (curr.className && typeof curr.className === 'string' ? curr.className : '').toLowerCase();
+      if (id === 'usercentrics-root') return true;
+      if (HINTS.some(h => id.includes(h) || className.includes(h))) {
+        if (id.includes('root') || id.includes('banner') || id.includes('overlay') || id.includes('modal')
+            || id.includes('dialog') || id.includes('consent') || id.includes('cmp') || id.includes('usercentrics')
+            || className.includes('banner') || className.includes('overlay') || className.includes('modal')
+            || className.includes('dialog') || className.includes('usercentrics')) {
+          return true;
+        }
+      }
+      curr = curr.parentElement;
+    }
+    return false;
+  }
+
   window.addEventListener('click', function(e) {
+    const path = typeof e.composedPath === 'function' ? e.composedPath() : [];
+    for (const node of path) {
+      if (node && node.nodeType === Node.ELEMENT_NODE && isCookieBannerElement(node)) {
+        return;
+      }
+    }
     const interactive = e.target && e.target.closest
         ? e.target.closest('button, a[href], input[type="button"], input[type="submit"], input[type="reset"], [role="button"], [role="link"], select, summary')
         : null;
     const target = interactive || (e.target && e.target.nodeType === Node.ELEMENT_NODE ? e.target : (e.target ? e.target.parentElement : null));
     if (target) {
+      if (isCookieBannerElement(target)) {
+        return;
+      }
       report('CLICK', target);
     }
   }, true);

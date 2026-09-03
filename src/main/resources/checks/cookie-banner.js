@@ -15,7 +15,21 @@
   });
   // Outermost wins: a CMP nests a dialog inside its overlay and both match.
   const root = candidates.find(el => !candidates.some(o => o !== el && o.contains(el)));
-  if (!root) return null;
-  root.setAttribute('data-wth-banner', '1');   // a stable handle for the Java side
-  return root.id || root.className || root.tagName.toLowerCase();
+  if (root) {
+    root.setAttribute('data-wth-banner', '1');   // a stable handle for the Java side
+    return root.id || root.className || root.tagName.toLowerCase();
+  }
+
+  // Shadow DOM hosts (e.g. #usercentrics-root or any host matching HINTS with shadowRoot)
+  const shadowHost = [...document.querySelectorAll('body *')].find(el => {
+    if (!el.shadowRoot) return false;
+    const hay = (el.id + ' ' + el.className).toLowerCase();
+    return HINTS.some(h => hay.includes(h));
+  });
+  if (shadowHost) {
+    shadowHost.setAttribute('data-wth-banner', '1');
+    return shadowHost.id || shadowHost.className || shadowHost.tagName.toLowerCase();
+  }
+
+  return null;
 }

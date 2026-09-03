@@ -81,6 +81,42 @@ class StepBuilderTest {
     }
 
     @Test
+    void cookieBannerEventsAreFilteredOut() {
+        CapturedEvent cookieEvent = new CapturedEvent(
+                EventKind.CLICK,
+                "div",
+                "usercentrics-root",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                "#usercentrics-root"
+        );
+        CapturedEvent regularEvent = new CapturedEvent(
+                EventKind.CLICK,
+                "button",
+                "btn-submit",
+                "submit-btn",
+                "button",
+                "Absenden",
+                null,
+                "Absenden",
+                null,
+                "#btn-submit"
+        );
+
+        List<JourneyStep> steps = StepBuilder.build(List.of(cookieEvent, regularEvent), START_URL);
+
+        assertThat(steps).hasSize(2);
+        assertThat(steps.get(0).action()).isEqualTo(StepAction.GOTO);
+        assertThat(steps.get(1).action()).isEqualTo(StepAction.CLICK);
+        assertThat(steps.get(1).ordinal()).isEqualTo(1);
+        assertThat(steps.get(1).locatorCandidates().get(0).value()).isEqualTo("submit-btn");
+    }
+
+    @Test
     void inputEventProducesFillStepWithValue() {
         CapturedEvent inputEvent = new CapturedEvent(
                 EventKind.INPUT,

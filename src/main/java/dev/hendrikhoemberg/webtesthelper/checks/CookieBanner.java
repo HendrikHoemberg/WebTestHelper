@@ -44,7 +44,8 @@ public final class CookieBanner {
     }
 
     static final List<String> ACCEPT_LABELS = List.of(
-            "Alle akzeptieren", "Alle Cookies akzeptieren", "Alle zulassen", "Alle auswählen",
+            "Alle akzeptieren", "Alles akzeptieren", "Alle Cookies akzeptieren", "Alle zulassen", "Alle auswählen",
+            "Alle annehmen", "Alles annehmen", "Zustimmen & weiter", "Akzeptieren & weiter", "Einverstanden & weiter",
             "Accept all", "Allow all", "Akzeptieren", "Zustimmen", "Einverstanden",
             "Verstanden", "Ich stimme zu", "Accept", "Agree", "OK");
 
@@ -101,24 +102,38 @@ public final class CookieBanner {
         Locator chosenLocator = null;
         String chosenLabel = null;
 
-        for (String label : ACCEPT_LABELS) {
+        for (String testId : List.of("uc-accept-all-button", "uc-accept-button")) {
             try {
-                Locator button = banner.getByRole(AriaRole.BUTTON,
-                        new Locator.GetByRoleOptions().setName(label));
-                if (button.count() > 0 && button.first().isVisible()) {
-                    chosenLocator = button.first();
-                    chosenLabel = label;
-                    break;
-                }
-                Locator link = banner.getByRole(AriaRole.LINK,
-                        new Locator.GetByRoleOptions().setName(label));
-                if (link.count() > 0 && link.first().isVisible()) {
-                    chosenLocator = link.first();
-                    chosenLabel = label;
+                Locator btn = banner.getByTestId(testId);
+                if (btn.count() > 0 && btn.first().isVisible()) {
+                    chosenLocator = btn.first();
+                    chosenLabel = testId;
                     break;
                 }
             } catch (PlaywrightException ignored) {
-                // DOM mutated or element invalid
+            }
+        }
+
+        if (chosenLocator == null) {
+            for (String label : ACCEPT_LABELS) {
+                try {
+                    Locator button = banner.getByRole(AriaRole.BUTTON,
+                            new Locator.GetByRoleOptions().setName(label));
+                    if (button.count() > 0 && button.first().isVisible()) {
+                        chosenLocator = button.first();
+                        chosenLabel = label;
+                        break;
+                    }
+                    Locator link = banner.getByRole(AriaRole.LINK,
+                            new Locator.GetByRoleOptions().setName(label));
+                    if (link.count() > 0 && link.first().isVisible()) {
+                        chosenLocator = link.first();
+                        chosenLabel = label;
+                        break;
+                    }
+                } catch (PlaywrightException ignored) {
+                    // DOM mutated or element invalid
+                }
             }
         }
 
@@ -142,7 +157,8 @@ public final class CookieBanner {
         } catch (PlaywrightException e) {
             // On timeout, re-read the container once (D78's in-check retry) before answering dismissed=false
             try {
-                dismissed = banner.count() == 0 || !banner.first().isVisible();
+                dismissed = banner.count() == 0 || !banner.first().isVisible()
+                        || (chosenLocator != null && (chosenLocator.count() == 0 || !chosenLocator.isVisible()));
             } catch (Exception ignored) {
                 dismissed = true;
             }

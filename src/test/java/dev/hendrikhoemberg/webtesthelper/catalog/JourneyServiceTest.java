@@ -184,6 +184,23 @@ class JourneyServiceTest extends AbstractPostgresTest {
     }
 
     @Test
+    void resolveUniqueNameResolvesCollisions() {
+        JourneyStep step = new JourneyStep(UUID.randomUUID(), 0, StepAction.GOTO, List.of(), "https://a.test", null, false, 5000);
+        journeyService.create(siteA, "Neuer Ablauf", List.of(step));
+
+        assertThat(journeyService.resolveUniqueName(siteA, "Neuer Ablauf")).isEqualTo("Neuer Ablauf 2");
+
+        journeyService.create(siteA, "Neuer Ablauf 2", List.of(step));
+        assertThat(journeyService.resolveUniqueName(siteA, "Neuer Ablauf")).isEqualTo("Neuer Ablauf 3");
+
+        // Non-duplicate name returned as-is
+        assertThat(journeyService.resolveUniqueName(siteA, "Anderer Ablauf")).isEqualTo("Anderer Ablauf");
+
+        // Null or blank defaults to Neuer Ablauf (or disambiguated variant)
+        assertThat(journeyService.resolveUniqueName(siteA, null)).isEqualTo("Neuer Ablauf 3");
+    }
+
+    @Test
     void deletingSiteCascadesAndRemovesJourneyRows() {
         JourneyStep step = new JourneyStep(UUID.randomUUID(), 0, StepAction.GOTO, List.of(), "https://a.test", null, false, 5000);
         journeyService.create(siteA, "Journey 1", List.of(step));

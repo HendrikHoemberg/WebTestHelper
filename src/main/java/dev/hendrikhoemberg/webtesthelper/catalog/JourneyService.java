@@ -90,6 +90,19 @@ public class JourneyService {
         journeys.findById(journeyId).ifPresent(journeys::delete);
     }
 
+    @Transactional(readOnly = true)
+    public String resolveUniqueName(long siteId, String desiredName) {
+        String base = (desiredName != null && !desiredName.isBlank()) ? desiredName.trim() : "Neuer Ablauf";
+        if (!journeys.existsBySiteIdAndNameIgnoreCase(siteId, base)) {
+            return base;
+        }
+        int counter = 2;
+        while (journeys.existsBySiteIdAndNameIgnoreCase(siteId, base + " " + counter)) {
+            counter++;
+        }
+        return base + " " + counter;
+    }
+
     private List<JourneyStep> renumberSteps(List<JourneyStep> steps) {
         if (steps == null || steps.isEmpty()) {
             return List.of();
