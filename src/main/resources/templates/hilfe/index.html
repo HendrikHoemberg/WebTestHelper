@@ -18,6 +18,17 @@
         </div>
     </header>
 
+    <div class="card-box" style="margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem;">
+        <div>
+            <h2 style="font-size: 1.05rem; margin: 0 0 0.25rem; color: var(--text-main);" th:text="#{ui.tutorial.schritt1.titel}">Willkommen bei WebTestHelper</h2>
+            <p style="margin: 0; font-size: 0.875rem; color: var(--text-muted);" th:text="#{ui.tutorial.schritt1.text}">WebTestHelper überwacht Ihre Websites automatisch...</p>
+        </div>
+        <form th:action="@{/tutorial/neustarten}" method="post" style="margin: 0; flex-shrink: 0;">
+            <button type="submit" class="btn-ui btn-ui-primary" th:text="#{ui.tutorial.schaltflaeche.neustart}">Tour starten</button>
+        </form>
+    </div>
+
+
     <div th:if="${#lists.isEmpty(topics)}" class="card-box leer-zustand" style="padding: 3rem 1.5rem; text-align: center;">
         <p th:text="#{ui.hilfe.leer}" style="color: var(--text-muted); font-size: 0.95rem;">Noch keine Hilfethemen vorhanden.</p>
     </div>

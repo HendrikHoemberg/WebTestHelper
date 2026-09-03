@@ -7,9 +7,12 @@
     <meta th:if="${_csrf != null}" name="_csrf_header" th:content="${_csrf.headerName}">
     <title th:text="${titel}">WebTestHelper</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/vendor/driver.css}">
     <script defer th:src="@{/vendor/alpine.min.js}"></script>
     <script th:src="@{/vendor/htmx.min.js}"></script>
+    <script defer th:src="@{/vendor/driver.js}"></script>
     <script th:src="@{/js/kopieren.js}"></script>
+    <script defer th:src="@{/js/tutorial.js}"></script>
     <script>
         document.addEventListener('htmx:configRequest', function (evt) {
             const token = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
@@ -86,6 +89,11 @@
                     <span sec:authorize="!hasRole('ADMIN')" class="u-role" th:text="#{ui.nav.rolle_user}">Benutzer</span>
                 </div>
             </div>
+            <form th:action="@{/tutorial/neustarten}" method="post" class="inline-form">
+                <button type="submit" class="btn-sidebar-logout" th:title="#{ui.tutorial.schaltflaeche.neustart}">
+                    <span th:replace="~{fragments/icons :: help}"></span>
+                </button>
+            </form>
             <form th:action="@{/abmelden}" method="post" class="inline-form">
                 <button type="submit" class="btn-sidebar-logout" th:title="#{ui.nav.abmelden}">
                     <span th:replace="~{fragments/icons :: logout}"></span>
@@ -96,6 +104,32 @@
 
     <!-- Main Workspace Container -->
     <div class="app-main-wrapper" x-data="{ hilfeModalOffen: false }">
+        <!-- Tutorial-Konfiguration -->
+        <div id="wth-tutorial-config"
+             sec:authorize="isAuthenticated()"
+             th:attr="data-auto-start=${tutorialOffen},
+                      data-is-admin=${#authorization.expression('hasRole(''ADMIN'')')},
+                      data-finish-url=@{/tutorial/abschliessen}"
+             th:data-i18n-next="#{ui.tutorial.schaltflaeche.weiter}"
+             th:data-i18n-prev="#{ui.tutorial.schaltflaeche.zurueck}"
+             th:data-i18n-close="#{ui.tutorial.schaltflaeche.beenden}"
+             th:data-i18n-done="#{ui.tutorial.schaltflaeche.fertig}"
+             th:data-s1-title="#{ui.tutorial.schritt1.titel}"
+             th:data-s1-text="#{ui.tutorial.schritt1.text}"
+             th:data-s2-title="#{ui.tutorial.schritt2.titel}"
+             th:data-s2-text="#{ui.tutorial.schritt2.text}"
+             th:data-s3-title="#{ui.tutorial.schritt3.titel}"
+             th:data-s3-text="#{ui.tutorial.schritt3.text}"
+             th:data-s4-admin-title="#{ui.tutorial.schritt4.admin.titel}"
+             th:data-s4-admin-text="#{ui.tutorial.schritt4.admin.text}"
+             th:data-s4-user-title="#{ui.tutorial.schritt4.user.titel}"
+             th:data-s4-user-text="#{ui.tutorial.schritt4.user.text}"
+             th:data-s5-title="#{ui.tutorial.schritt5.titel}"
+             th:data-s5-text="#{ui.tutorial.schritt5.text}"
+             th:data-s6-title="#{ui.tutorial.abschluss.titel}"
+             th:data-s6-text="#{ui.tutorial.abschluss.text}"
+             hidden></div>
+
         <!-- Global Health Banners -->
         <div sec:authorize="hasRole('ADMIN')" th:if="${mailFailures != null && mailFailures > 0}" class="gesundheits-banner warnung system-banner" role="alert">
             <div class="banner-msg">
