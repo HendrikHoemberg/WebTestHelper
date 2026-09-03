@@ -400,6 +400,45 @@ class JourneyEditControllerTest {
 
     @Test
     @WithMockUser(roles = "USER")
+    void editJourney_post_submittingNewStepWithoutId_createsStepWithGeneratedUuid() throws Exception {
+        UUID id0 = UUID.randomUUID();
+        JourneyStep s0 = new JourneyStep(id0, 0, StepAction.GOTO, List.of(), "https://acme.example.com/", null, false, 5000);
+        JourneyDefinition journey = new JourneyDefinition(10L, 1L, "Anmeldung", true, List.of(s0));
+        when(journeyService.findDefinition(10L)).thenReturn(Optional.of(journey));
+
+        mvc.perform(post("/websites/1/journeys/10/bearbeiten")
+                        .with(csrf())
+                        .param("name", "Anmeldung")
+                        .param("enabled", "true")
+                        .param("steps[0].id", id0.toString())
+                        .param("steps[0].ordinal", "0")
+                        .param("steps[0].action", "GOTO")
+                        .param("steps[0].value", "https://acme.example.com/")
+                        // Step 1 is newly added without ID
+                        .param("steps[1].ordinal", "1")
+                        .param("steps[1].action", "CLICK")
+                        .param("steps[1].selector", "#submit-btn")
+                        .param("steps[1].timeoutMs", "3000"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/websites/1/journeys/10"));
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<JourneyStep>> captor = ArgumentCaptor.forClass(List.class);
+        verify(journeyService).update(eq(10L), eq("Anmeldung"), eq(true), captor.capture());
+
+        List<JourneyStep> saved = captor.getValue();
+        assertThat(saved).hasSize(2);
+        assertThat(saved.get(0).id()).isEqualTo(id0);
+        assertThat(saved.get(1).id()).isNotNull().isNotEqualTo(id0);
+        assertThat(saved.get(1).action()).isEqualTo(StepAction.CLICK);
+        assertThat(saved.get(1).locatorCandidates()).hasSize(1);
+        assertThat(saved.get(1).locatorCandidates().get(0).strategy()).isEqualTo(LocatorStrategy.CSS);
+        assertThat(saved.get(1).locatorCandidates().get(0).value()).isEqualTo("#submit-btn");
+        assertThat(saved.get(1).ordinal()).isEqualTo(1);
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
     void editJourney_whenNotFound_orSiteMismatch_returns404() throws Exception {
         when(journeyService.findDefinition(999L)).thenReturn(Optional.empty());
 

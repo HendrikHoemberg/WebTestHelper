@@ -6,6 +6,7 @@ import dev.hendrikhoemberg.webtesthelper.model.AssertionType;
 import dev.hendrikhoemberg.webtesthelper.model.JourneyDefinition;
 import dev.hendrikhoemberg.webtesthelper.model.JourneyStep;
 import dev.hendrikhoemberg.webtesthelper.model.LocatorCandidate;
+import dev.hendrikhoemberg.webtesthelper.model.LocatorStrategy;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
 import dev.hendrikhoemberg.webtesthelper.model.StepAction;
 import dev.hendrikhoemberg.webtesthelper.model.StepAssertion;
@@ -64,6 +65,7 @@ public class JourneyEditController {
         model.addAttribute("journey", journey);
         model.addAttribute("form", JourneyEditForm.from(journey));
         model.addAttribute("assertionTypes", AssertionType.values());
+        model.addAttribute("stepActions", StepAction.values());
         return "journey/edit";
     }
 
@@ -83,20 +85,27 @@ public class JourneyEditController {
         List<StepEditItem> submittedSteps = form.getSteps() != null ? form.getSteps() : List.of();
 
         List<StepEditItem> activeItems = submittedSteps.stream()
-                .filter(s -> s != null && !s.isDeleted() && s.getId() != null)
+                .filter(s -> s != null && !s.isDeleted())
                 .sorted(Comparator.comparingInt(StepEditItem::getOrdinal))
                 .toList();
 
         List<JourneyStep> updatedSteps = new ArrayList<>();
         for (int i = 0; i < activeItems.size(); i++) {
             StepEditItem item = activeItems.get(i);
-            JourneyStep existing = existingStepMap.get(item.getId());
+            UUID stepId = item.getId() != null ? item.getId() : UUID.randomUUID();
+            JourneyStep existing = item.getId() != null ? existingStepMap.get(item.getId()) : null;
 
             StepAction action = item.getAction() != null ? item.getAction()
                     : (existing != null ? existing.action() : StepAction.GOTO);
-            List<LocatorCandidate> candidates = (existing != null && existing.locatorCandidates() != null)
+
+            List<LocatorCandidate> candidates = (existing != null && existing.locatorCandidates() != null && !existing.locatorCandidates().isEmpty())
                     ? existing.locatorCandidates()
-                    : (item.getLocatorCandidates() != null ? item.getLocatorCandidates() : List.of());
+                    : (item.getLocatorCandidates() != null && !item.getLocatorCandidates().isEmpty() ? item.getLocatorCandidates() : new ArrayList<>());
+
+            if (candidates.isEmpty() && item.getSelector() != null && !item.getSelector().isBlank()) {
+                candidates = List.of(new LocatorCandidate(LocatorStrategy.CSS, item.getSelector().trim(), 0));
+            }
+
             int timeout = item.getTimeoutMs() > 0 ? item.getTimeoutMs()
                     : (existing != null ? existing.timeoutMs() : JourneyStep.DEFAULT_TIMEOUT_MS);
 
@@ -109,7 +118,7 @@ public class JourneyEditController {
             }
 
             JourneyStep updatedStep = new JourneyStep(
-                    item.getId(),
+                    stepId,
                     i,
                     action,
                     candidates,
@@ -129,6 +138,7 @@ public class JourneyEditController {
             model.addAttribute("journey", existingJourney);
             model.addAttribute("form", form);
             model.addAttribute("assertionTypes", AssertionType.values());
+            model.addAttribute("stepActions", StepAction.values());
             model.addAttribute("errorMessage", e.getMessage());
             return "journey/edit";
         }
@@ -190,6 +200,7 @@ public class JourneyEditController {
         private int timeoutMs = JourneyStep.DEFAULT_TIMEOUT_MS;
         private AssertionType assertionType;
         private String assertionExpected;
+        private String selector;
         private boolean deleted;
 
         public StepEditItem() {
@@ -281,6 +292,14 @@ public class JourneyEditController {
 
         public void setAssertionExpected(String assertionExpected) {
             this.assertionExpected = assertionExpected;
+        }
+
+        public String getSelector() {
+            return selector;
+        }
+
+        public void setSelector(String selector) {
+            this.selector = selector;
         }
 
         public boolean isDeleted() {

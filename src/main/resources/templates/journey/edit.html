@@ -176,6 +176,12 @@
                     </div>
                 </div>
             </div>
+
+            <div style="margin-top: 1.25rem; padding-top: 0.75rem; border-top: 1px dashed var(--border-subtle); display: flex; justify-content: flex-start;">
+                <button type="button" class="btn-ui btn-ui-secondary button sekundär" id="btn-add-step" onclick="addNewStep()">
+                    + <span th:text="#{ui.journey.edit.schritte.hinzufuegen}">Weiteren Schritt hinzufügen</span>
+                </button>
+            </div>
         </section>
 
         <div class="form-aktionen" style="margin-top: 1.5rem;">
@@ -228,6 +234,80 @@
     function deleteStep(btn) {
         const card = btn.closest('.schritt-editor-karte');
         card.remove();
+        updateStepIndices();
+    }
+
+    function addNewStep() {
+        const container = document.getElementById('schritte-liste');
+        const newIndex = container.querySelectorAll('.schritt-editor-karte').length;
+        const div = document.createElement('div');
+        div.className = 'schritt-editor-karte journey-step-node mb-3';
+        div.style = 'margin-bottom: 0; padding: 1.15rem 1.35rem;';
+        div.id = 'step-card-' + newIndex;
+        div.dataset.index = newIndex;
+
+        div.innerHTML = `
+            <div class="journey-node-bullet">${newIndex + 1}</div>
+            <input type="hidden" name="steps[${newIndex}].ordinal" value="${newIndex}" class="step-ordinal-input">
+            <div class="schritt-editor-kopf" style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.75rem; margin-bottom: 0.75rem;">
+                <div class="schritt-editor-titel" style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span class="type-pill-mono schritt-nummer-badge">#${newIndex + 1}</span>
+                    <select name="steps[${newIndex}].action" class="form-select eingabe-feld-schmal" style="font-size: 0.85rem; font-weight: 600; padding: 0.25rem 0.5rem;">
+                        <option value="GOTO">Seite aufrufen</option>
+                        <option value="CLICK" selected>Element anklicken</option>
+                        <option value="FILL">Text eingeben</option>
+                        <option value="SELECT">Option auswählen</option>
+                        <option value="PRESS">Taste drücken</option>
+                        <option value="WAIT_FOR">Warten auf Element</option>
+                        <option value="ASSERT">Ergebnis prüfen</option>
+                    </select>
+                </div>
+                <div class="schritt-editor-aktionen" style="display: flex; align-items: center; gap: 0.35rem;">
+                    <button type="button" class="btn-ui btn-ui-secondary btn-ui-sm button button-klein sekundär btn-move-up" onclick="moveStepUp(this)">▲</button>
+                    <button type="button" class="btn-ui btn-ui-secondary btn-ui-sm button button-klein sekundär btn-move-down" onclick="moveStepDown(this)">▼</button>
+                    <button type="button" class="btn-ui btn-ui-danger btn-ui-sm button button-klein gefahr btn-delete-step" onclick="deleteStep(this)">✕</button>
+                </div>
+            </div>
+            <div class="schritt-editor-felder mt-2">
+                <div class="form-gruppe" style="margin-bottom: 0.75rem;">
+                    <label style="font-size: 0.8rem;">Ziel / Erkennungsmerkmal (CSS-Selektor, z. B. button#submit)</label>
+                    <input type="text" name="steps[${newIndex}].selector" class="form-input eingabe-feld" placeholder="z. B. button#submit oder .btn-primary">
+                </div>
+                <div class="form-gruppe" style="margin-bottom: 0.75rem;">
+                    <label style="font-size: 0.8rem;">Wert / Eingabe / URL</label>
+                    <input type="text" name="steps[${newIndex}].value" class="form-input eingabe-feld" placeholder="z. B. https://example.com/ oder Text">
+                </div>
+                <div class="form-gruppe-inline" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 0.75rem;">
+                    <div class="form-gruppe" style="margin-bottom: 0;">
+                        <label style="font-size: 0.8rem;">Prüfung (Assertion)</label>
+                        <select name="steps[${newIndex}].assertionType" class="form-select eingabe-feld">
+                            <option value="">-- Keine Prüfung --</option>
+                            <option value="TEXT_CONTAINS">Text enthält</option>
+                            <option value="VISIBLE">Element sichtbar</option>
+                            <option value="URL_MATCHES">URL entspricht</option>
+                            <option value="COUNT">Element-Anzahl</option>
+                        </select>
+                    </div>
+                    <div class="form-gruppe" style="margin-bottom: 0;">
+                        <label style="font-size: 0.8rem;">Erwarteter Wert</label>
+                        <input type="text" name="steps[${newIndex}].assertionExpected" class="form-input eingabe-feld" placeholder="z. B. Willkommen">
+                    </div>
+                </div>
+                <div class="form-gruppe-inline mt-2" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+                    <div class="form-gruppe form-gruppe-checkbox" style="margin-bottom: 0;">
+                        <label style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" name="steps[${newIndex}].optional" value="true">
+                            <span style="font-size: 0.85rem;">Optional (bei Fehlen nicht abbrechen)</span>
+                        </label>
+                    </div>
+                    <div class="form-gruppe" style="margin-bottom: 0; display: flex; align-items: center; gap: 0.5rem;">
+                        <label style="font-size: 0.8rem; margin-bottom: 0;">Wartezeit (ms)</label>
+                        <input type="number" name="steps[${newIndex}].timeoutMs" value="5000" min="500" max="60000" step="500" class="form-input eingabe-feld-schmal" style="max-width: 120px; font-variant-numeric: tabular-nums;">
+                    </div>
+                </div>
+            </div>
+        `;
+        container.appendChild(div);
         updateStepIndices();
     }
     </script>
