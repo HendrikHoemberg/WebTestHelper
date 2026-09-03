@@ -655,6 +655,7 @@ class SettingsControllerTest {
                         .param("baseUrl", "https://example.com")
                         .param("webhookUrl", "https://hooks.slack.com/services/T00/B00/X00")
                         .param("webhookEnabled", "true")
+                        .param("webhookOnlyCritical", "false")
                         .param("fallbackRecipients", "admin@example.com"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/einstellungen"))
@@ -662,6 +663,7 @@ class SettingsControllerTest {
 
         verify(appSettings).saveWebhookUrl("https://hooks.slack.com/services/T00/B00/X00");
         verify(appSettings).saveWebhookEnabled(true);
+        verify(appSettings).saveWebhookOnlyCritical(false);
     }
 
     @Test

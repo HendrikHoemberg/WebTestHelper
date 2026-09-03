@@ -108,8 +108,12 @@ public class DigestService {
                     }
                 }
 
-                if (digest.notifiable() && appSettings.webhookEnabled() && !appSettings.webhookUrl().isBlank()) {
-                    webhookNotifier.sendDigestNotification(digest, appSettings.webhookUrl(), appSettings.baseUrl());
+                boolean onlyCritical = appSettings.webhookOnlyCritical();
+                boolean shouldSendWebhook = digest.notifiable()
+                        && (!onlyCritical || digest.errorTotal() > 0 || digest.failedRuns() > 0);
+
+                if (shouldSendWebhook && appSettings.webhookEnabled() && !appSettings.webhookUrl().isBlank()) {
+                    webhookNotifier.sendDigestNotificationAsync(digest, appSettings.webhookUrl(), appSettings.baseUrl());
                 }
 
                 runService.markDigested(window.runIds(), now);

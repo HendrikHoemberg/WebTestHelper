@@ -32,6 +32,7 @@ public class AppSettings {
     public static final String KEY_SCHEDULING_PAUSED = "scheduling.paused";
     public static final String KEY_WEBHOOK_URL = "webhook.url";
     public static final String KEY_WEBHOOK_ENABLED = "webhook.enabled";
+    public static final String KEY_WEBHOOK_ONLY_CRITICAL = "webhook.only-on-critical";
 
     private final AppSettingRepository repository;
     private final SecretBox secretBox;
@@ -219,6 +220,15 @@ public class AppSettings {
 
     public void saveWebhookEnabled(boolean enabled) {
         saveSetting(KEY_WEBHOOK_ENABLED, Boolean.toString(enabled), false);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean webhookOnlyCritical() {
+        return getSetting(KEY_WEBHOOK_ONLY_CRITICAL).map(Boolean::parseBoolean).orElse(true);
+    }
+
+    public void saveWebhookOnlyCritical(boolean onlyCritical) {
+        saveSetting(KEY_WEBHOOK_ONLY_CRITICAL, Boolean.toString(onlyCritical), false);
     }
 
     private Optional<String> getSetting(String key) {

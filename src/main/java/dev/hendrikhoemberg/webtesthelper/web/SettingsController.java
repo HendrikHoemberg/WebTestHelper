@@ -66,7 +66,8 @@ public class SettingsController {
                 appSettings.schedulingPaused(),
                 appSettings.fallbackRecipients(),
                 appSettings.webhookUrl(),
-                appSettings.webhookEnabled()
+                appSettings.webhookEnabled(),
+                appSettings.webhookOnlyCritical()
         );
         model.addAttribute("form", form);
         model.addAttribute("tlsModes", TlsMode.values());
@@ -144,6 +145,7 @@ public class SettingsController {
         appSettings.saveSchedulingPaused(Boolean.TRUE.equals(form.getSchedulingPaused()));
         appSettings.saveWebhookUrl(form.getWebhookUrl());
         appSettings.saveWebhookEnabled(form.isWebhookEnabled());
+        appSettings.saveWebhookOnlyCritical(form.isWebhookOnlyCritical());
 
         redirectAttributes.addFlashAttribute("gespeichert", true);
         return "redirect:/einstellungen";

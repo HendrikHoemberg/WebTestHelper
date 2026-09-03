@@ -94,9 +94,19 @@
                 </label>
             </div>
 
-            <div class="form-gruppe" style="margin-bottom: 0;">
+            <div class="form-gruppe" style="margin-bottom: 1rem;">
                 <label for="webhookUrl" th:text="#{ui.einstellungen.webhook.url}">Webhook-URL</label>
                 <input type="url" id="webhookUrl" th:field="*{webhookUrl}" class="form-input" th:placeholder="#{ui.einstellungen.webhook.url.platzhalter}">
+            </div>
+
+            <div class="form-gruppe form-gruppe-checkbox" style="margin-bottom: 0;">
+                <label style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    <input type="checkbox" th:field="*{webhookOnlyCritical}" style="width: 1.1rem; height: 1.1rem;">
+                    <span th:text="#{ui.einstellungen.webhook.nur_kritisch}" style="font-weight: 600;">Nur bei Fehlern benachrichtigen</span>
+                </label>
+                <p class="hinweis-text" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;" th:text="#{ui.einstellungen.webhook.nur_kritisch_hinweis}">
+                    Sendet Webhook-Nachrichten nur, wenn Mängel der Stufe „Fehler“ vorliegen oder ein Prüflauf abgebrochen ist.
+                </p>
             </div>
         </section>
 

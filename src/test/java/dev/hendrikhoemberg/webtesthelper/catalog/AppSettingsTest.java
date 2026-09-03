@@ -148,11 +148,14 @@ class AppSettingsTest extends AbstractPostgresTest {
     void saveAndGetWebhookSettings() {
         assertThat(appSettings.webhookUrl()).isEmpty();
         assertThat(appSettings.webhookEnabled()).isFalse();
+        assertThat(appSettings.webhookOnlyCritical()).isTrue();
 
         appSettings.saveWebhookUrl("https://hooks.slack.com/services/test");
         appSettings.saveWebhookEnabled(true);
+        appSettings.saveWebhookOnlyCritical(false);
 
         assertThat(appSettings.webhookUrl()).isEqualTo("https://hooks.slack.com/services/test");
         assertThat(appSettings.webhookEnabled()).isTrue();
+        assertThat(appSettings.webhookOnlyCritical()).isFalse();
     }
 }
