@@ -46,6 +46,18 @@ class HelpControllerTest {
 
     @Test
     @WithMockUser
+    void hilfeIndexRendersCardContainerAndStickyActions() throws Exception {
+        HelpTopic topic = new HelpTopic("test-topic", "Test Titel", "<p>HTML</p>", "<p>Teaser</p>");
+        when(helpService.all()).thenReturn(List.of(topic));
+
+        mvc.perform(get("/hilfe"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsStringIgnoringCase("hilfe-themen-liste")))
+                .andExpect(content().string(containsStringIgnoringCase("hilfe-kachel-aktion")));
+    }
+
+    @Test
+    @WithMockUser
     void getHilfeThemaReturnsTopic() throws Exception {
         HelpTopic topic = new HelpTopic("bericht-lesen", "Berichte lesen", "<p>Inhalt</p>", "<p>Teaser</p>");
         when(helpService.byId("bericht-lesen")).thenReturn(Optional.of(topic));

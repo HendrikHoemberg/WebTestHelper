@@ -1713,6 +1713,30 @@ body {
     }
 }
 
+/* Hilfe & Handbuch Index Grid & Equal Height Cards */
+.hilfe-themen-liste {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
+    align-items: stretch;
+}
+
+.hilfe-themen-liste .hilfe-thema-karte {
+    margin-bottom: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.hilfe-kachel-inhalt {
+    flex: 1;
+}
+
+.hilfe-kachel-aktion {
+    margin-top: auto;
+    padding-top: 1.25rem;
+}
 
 /* Website detail tabs and kebab-menu (desktop-only, per project boundaries) */
 .site-tabs {

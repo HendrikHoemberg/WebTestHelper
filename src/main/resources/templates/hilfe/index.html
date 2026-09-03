@@ -22,15 +22,15 @@
         <p th:text="#{ui.hilfe.leer}" style="color: var(--text-muted); font-size: 0.95rem;">Noch keine Hilfethemen vorhanden.</p>
     </div>
 
-    <div th:if="${not #lists.isEmpty(topics)}" class="hilfe-themen-liste" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.25rem;">
-        <article th:each="topic : ${topics}" class="card-box detail-bereich hilfe-thema-karte" style="display: flex; flex-direction: column; justify-content: space-between;">
-            <div>
+    <div th:if="${not #lists.isEmpty(topics)}" class="hilfe-themen-liste">
+        <article th:each="topic : ${topics}" class="card-box detail-bereich hilfe-thema-karte">
+            <div class="hilfe-kachel-inhalt">
                 <h2 style="font-size: 1.1rem; margin-top: 0; margin-bottom: 0.5rem;">
                     <a th:href="@{/hilfe/{id}(id=${topic.id})}" th:text="${topic.title}" class="hilfe-titel-link" style="color: var(--text-main); text-decoration: none;">Thementitel</a>
                 </h2>
                 <div class="hilfe-teaser" style="font-size: 0.875rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 1rem;" th:utext="${topic.teaserHtml}">Teaser-Text...</div>
             </div>
-            <div>
+            <div class="hilfe-kachel-aktion">
                 <a th:href="@{/hilfe/{id}(id=${topic.id})}" class="btn-ui btn-ui-secondary btn-ui-sm button sekundär" th:text="#{ui.hilfe.mehr_dazu}">Mehr dazu im Handbuch</a>
             </div>
         </article>
