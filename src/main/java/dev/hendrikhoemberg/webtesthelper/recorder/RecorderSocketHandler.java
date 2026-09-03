@@ -47,35 +47,85 @@ public class RecorderSocketHandler extends TextWebSocketHandler {
         log.info("WebSocket-Verbindung etabliert: session={}, recordingSession={}",
                 session.getId(), recordingSession != null ? recordingSession.sessionId() : null);
 
-        if (recordingSession != null && screencastBridge != null && !recordingSession.isClosed()) {
-            screencastBridge.attach(recordingSession, frame -> {
-                try {
-                    if (session.isOpen()) {
-                        JsonObject msg = new JsonObject();
-                        msg.addProperty("type", "frame");
-                        msg.addProperty("data", frame.data());
-                        if (frame.metadata() != null) {
-                            JsonObject meta = new JsonObject();
-                            meta.addProperty("offsetTop", frame.metadata().offsetTop());
-                            meta.addProperty("pageScaleFactor", frame.metadata().pageScaleFactor());
-                            meta.addProperty("deviceWidth", frame.metadata().deviceWidth());
-                            meta.addProperty("deviceHeight", frame.metadata().deviceHeight());
-                            meta.addProperty("scrollOffsetX", frame.metadata().scrollOffsetX());
-                            meta.addProperty("scrollOffsetY", frame.metadata().scrollOffsetY());
-                            meta.addProperty("timestamp", frame.metadata().timestamp());
-                            msg.add("metadata", meta);
-                        }
-                        synchronized (session) {
-                            if (session.isOpen()) {
-                                session.sendMessage(new TextMessage(msg.toString()));
+        if (recordingSession != null && !recordingSession.isClosed()) {
+            if (screencastBridge != null) {
+                screencastBridge.attach(recordingSession, frame -> {
+                    try {
+                        if (session.isOpen()) {
+                            JsonObject msg = new JsonObject();
+                            msg.addProperty("type", "frame");
+                            msg.addProperty("data", frame.data());
+                            if (frame.metadata() != null) {
+                                JsonObject meta = new JsonObject();
+                                meta.addProperty("offsetTop", frame.metadata().offsetTop());
+                                meta.addProperty("pageScaleFactor", frame.metadata().pageScaleFactor());
+                                meta.addProperty("deviceWidth", frame.metadata().deviceWidth());
+                                meta.addProperty("deviceHeight", frame.metadata().deviceHeight());
+                                meta.addProperty("scrollOffsetX", frame.metadata().scrollOffsetX());
+                                meta.addProperty("scrollOffsetY", frame.metadata().scrollOffsetY());
+                                meta.addProperty("timestamp", frame.metadata().timestamp());
+                                msg.add("metadata", meta);
+                            }
+                            synchronized (session) {
+                                if (session.isOpen()) {
+                                    session.sendMessage(new TextMessage(msg.toString()));
+                                }
                             }
                         }
+                    } catch (Exception e) {
+                        log.warn("Fehler beim Senden des Screencast-Frames über WebSocket {}: {}", session.getId(), e.getMessage());
                     }
-                } catch (Exception e) {
-                    log.warn("Fehler beim Senden des Screencast-Frames über WebSocket {}: {}", session.getId(), e.getMessage());
-                }
-            });
+                });
+            }
+
+            if (recordingSession.intentCapture() != null) {
+                recordingSession.intentCapture().addListener(event -> {
+                    try {
+                        if (session.isOpen()) {
+                            JsonObject msg = new JsonObject();
+                            msg.addProperty("type", "step_captured");
+                            msg.addProperty("kind", event.kind().name());
+                            msg.addProperty("description", formatStepDescription(event));
+                            synchronized (session) {
+                                if (session.isOpen()) {
+                                    session.sendMessage(new TextMessage(msg.toString()));
+                                }
+                            }
+                        }
+                    } catch (Exception e) {
+                        log.warn("Fehler beim Senden des Schritt-Feedbacks über WebSocket {}: {}", session.getId(), e.getMessage());
+                    }
+                });
+            }
         }
+    }
+
+    static String formatStepDescription(CapturedEvent event) {
+        if (event == null) {
+            return "Schritt ausgeführt";
+        }
+        String label = null;
+        if (event.accessibleName() != null && !event.accessibleName().isBlank()) {
+            label = event.accessibleName().trim();
+        } else if (event.labelText() != null && !event.labelText().isBlank()) {
+            label = event.labelText().trim();
+        } else if (event.textContent() != null && !event.textContent().isBlank() && event.textContent().trim().length() <= 30) {
+            label = event.textContent().trim();
+        } else if (event.id() != null && !event.id().isBlank()) {
+            label = "#" + event.id().trim();
+        }
+
+        return switch (event.kind()) {
+            case CLICK -> label != null ? "Klick auf „" + label + "“" : "Element angeklickt";
+            case INPUT, CHANGE -> {
+                if (label != null) {
+                    yield "Eingabe in „" + label + "“";
+                }
+                String val = event.value() != null ? event.value() : "";
+                yield val.isBlank() ? "Textfeld bearbeitet" : "Texteingabe: " + val;
+            }
+            case SUBMIT -> label != null ? "Formular „" + label + "“ abgesendet" : "Formular abgesendet";
+        };
     }
 
     @Override

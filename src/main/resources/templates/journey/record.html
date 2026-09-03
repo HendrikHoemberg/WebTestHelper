@@ -88,8 +88,21 @@
             </div>
         </div>
 
-        <div class="recorder-canvas-container" id="recorder-container" th:data-ws-url="${wsUrl}" th:data-session-id="${sessionId}" style="background: #09090b; border-radius: 8px; overflow: hidden; display: flex; justify-content: center; align-items: center; box-shadow: var(--shadow-card);">
-            <canvas id="recorder-canvas" tabindex="0" width="1280" height="720" class="recorder-canvas" aria-label="Live-Vorschau der Website" style="max-width: 100%; height: auto; outline: none;"></canvas>
+        <div style="display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 1.25rem; align-items: start;">
+            <div class="recorder-canvas-container" id="recorder-container" th:data-ws-url="${wsUrl}" th:data-session-id="${sessionId}" style="background: #09090b; border-radius: 8px; overflow: hidden; display: flex; justify-content: center; align-items: center; box-shadow: var(--shadow-card);">
+                <canvas id="recorder-canvas" tabindex="0" width="1280" height="720" class="recorder-canvas" aria-label="Live-Vorschau der Website" style="max-width: 100%; height: auto; outline: none;"></canvas>
+            </div>
+            <div class="recorder-live-sidebar" style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 1rem; max-height: 720px; display: flex; flex-direction: column;">
+                <div style="font-weight: 600; font-size: 0.95rem; margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: space-between;">
+                    <span th:text="#{ui.recorder.schritte.titel}">Aufgezeichnete Schritte</span>
+                    <span id="live-step-count" class="type-pill-mono" style="font-size: 0.75rem;">0</span>
+                </div>
+                <div id="live-steps-list" style="overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem; flex: 1; min-height: 200px;">
+                    <p id="live-steps-empty" class="text-gedaempft" style="font-size: 0.8rem; margin: 0; padding: 0.5rem 0;" th:text="#{ui.recorder.schritte.leer}">
+                        Noch keine Aktionen aufgezeichnet. Klicken oder tippen Sie im Vorschaufenster.
+                    </p>
+                </div>
+            </div>
         </div>
 
         <p class="hinweis-text mt-2" style="font-size: 0.825rem; color: var(--text-muted); margin-top: 0.75rem;" th:text="#{ui.recorder.hinweis.bedienung}">
@@ -149,6 +162,36 @@
                 }
             };
 
+            let stepCounter = 0;
+
+            function addLiveStep(data) {
+                stepCounter++;
+                const countEl = document.getElementById('live-step-count');
+                if (countEl) countEl.textContent = stepCounter;
+
+                const emptyEl = document.getElementById('live-steps-empty');
+                if (emptyEl) emptyEl.style.display = 'none';
+
+                const listEl = document.getElementById('live-steps-list');
+                if (!listEl) return;
+
+                const item = document.createElement('div');
+                item.className = 'live-step-item';
+                item.style = 'background: var(--bg-canvas); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 0.5rem 0.65rem; font-size: 0.825rem; display: flex; align-items: baseline; gap: 0.5rem;';
+                item.innerHTML = `
+                    <span class="type-pill-mono" style="font-size: 0.7rem; font-weight: 700; color: var(--accent);">#${stepCounter}</span>
+                    <span style="word-break: break-word;">${escapeHtml(data.description || 'Aktion registriert')}</span>
+                `;
+                listEl.appendChild(item);
+                listEl.scrollTop = listEl.scrollHeight;
+            }
+
+            function escapeHtml(str) {
+                const p = document.createElement('p');
+                p.textContent = str;
+                return p.innerHTML;
+            }
+
             ws.onmessage = function(event) {
                 try {
                     const msg = JSON.parse(event.data);
@@ -161,6 +204,8 @@
                             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                         };
                         img.src = 'data:image/jpeg;base64,' + msg.data;
+                    } else if (msg.type === 'step_captured') {
+                        addLiveStep(msg);
                     }
                 } catch (e) {
                     console.error('Frame decode error:', e);

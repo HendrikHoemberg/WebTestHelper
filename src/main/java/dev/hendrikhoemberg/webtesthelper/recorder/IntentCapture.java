@@ -34,8 +34,35 @@ public final class IntentCapture {
     }
 
     private final List<CapturedEvent> events = Collections.synchronizedList(new ArrayList<>());
+    private final List<java.util.function.Consumer<CapturedEvent>> listeners = new java.util.concurrent.CopyOnWriteArrayList<>();
 
     private IntentCapture() {
+    }
+
+    public void addListener(java.util.function.Consumer<CapturedEvent> listener) {
+        if (listener != null) {
+            listeners.add(listener);
+        }
+    }
+
+    public static IntentCapture createForTesting() {
+        return new IntentCapture();
+    }
+
+    public void recordForTesting(CapturedEvent event) {
+        if (event != null) {
+            events.add(event);
+            notifyListeners(event);
+        }
+    }
+
+    private void notifyListeners(CapturedEvent event) {
+        for (java.util.function.Consumer<CapturedEvent> listener : listeners) {
+            try {
+                listener.accept(event);
+            } catch (Exception ignored) {
+            }
+        }
     }
 
     /**
@@ -84,6 +111,7 @@ public final class IntentCapture {
                 kind, tagName, id, testId, role,
                 accessibleName, labelText, textContent, value, cssPath);
         events.add(event);
+        notifyListeners(event);
     }
 
     private static String getString(Map<?, ?> map, String key) {
