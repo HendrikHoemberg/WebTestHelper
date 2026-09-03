@@ -35,17 +35,20 @@ public class RunController {
     private final FindingViewFactory findingViewFactory;
     private final SiteService siteService;
     private final MessageSource messageSource;
+    private final dev.hendrikhoemberg.webtesthelper.reporting.PdfReportService pdfReportService;
 
     public RunController(RunService runService,
                          FindingService findingService,
                          FindingViewFactory findingViewFactory,
                          SiteService siteService,
-                         MessageSource messageSource) {
+                         MessageSource messageSource,
+                         dev.hendrikhoemberg.webtesthelper.reporting.PdfReportService pdfReportService) {
         this.runService = runService;
         this.findingService = findingService;
         this.findingViewFactory = findingViewFactory;
         this.siteService = siteService;
         this.messageSource = messageSource;
+        this.pdfReportService = pdfReportService;
     }
 
     /** A bare /laeufe has nothing to render; land on the websites overview instead of a 404. */
@@ -106,6 +109,33 @@ public class RunController {
         model.addAttribute("run", run);
         model.addAttribute("site", site);
         return "laeufe/druck";
+    }
+
+    @GetMapping("/{id}/bericht/pdf")
+    public org.springframework.http.ResponseEntity<byte[]> berichtPdf(@PathVariable("id") long id, Locale locale) {
+        RunSummary run = runService.summary(id);
+        SiteContext site = siteService.contextFor(run.siteId());
+
+        if (!run.status().isTerminal()) {
+            return org.springframework.http.ResponseEntity.status(org.springframework.http.HttpStatus.CONFLICT).build();
+        }
+
+        RunDiff diff = findingService.diffForReport(run.siteId(), id);
+        Map<ReportSection, List<FindingView>> sections = findingViewFactory.of(diff, locale);
+
+        Map<String, Object> variables = Map.of(
+                "run", run,
+                "site", site,
+                "diff", diff,
+                "sections", sections
+        );
+
+        byte[] pdf = pdfReportService.generatePdf("laeufe/druck", variables, locale);
+
+        return org.springframework.http.ResponseEntity.ok()
+                .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"pruefbericht-lauf-" + id + ".pdf\"")
+                .body(pdf);
     }
 
     @PostMapping("/{id}/ausgangsbestand")

@@ -74,6 +74,9 @@ class RunControllerTest {
     @MockitoBean
     AppUserService appUserService;
 
+    @MockitoBean
+    dev.hendrikhoemberg.webtesthelper.reporting.PdfReportService pdfReportService;
+
     private SiteContext sampleSite(long siteId) {
         return new SiteContext(
                 siteId,
@@ -656,5 +659,27 @@ class RunControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Vergleich zum vorherigen Lauf")))
                 .andExpect(content().string(containsString("0 neu")));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void berichtPdf_returnsPdfAttachmentWhenTerminal() throws Exception {
+        long runId = 101L;
+        long siteId = 42L;
+        RunSummary summary = sampleSummary(runId, siteId, RunStatus.COMPLETED, false, false, null);
+        SiteContext site = sampleSite(siteId);
+        RunDiff diff = new RunDiff(runId, Map.of());
+
+        when(runService.summary(runId)).thenReturn(summary);
+        when(siteService.contextFor(siteId)).thenReturn(site);
+        when(findingService.diffForReport(siteId, runId)).thenReturn(diff);
+        when(findingViewFactory.of(eq(diff), any(Locale.class))).thenReturn(Map.of());
+        when(pdfReportService.generatePdf(eq("laeufe/druck"), any(), any())).thenReturn("%PDF-1.4 test".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+
+        mvc.perform(get("/laeufe/" + runId + "/bericht/pdf"))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().string("Content-Disposition", "attachment; filename=\"pruefbericht-lauf-101.pdf\""))
+                .andExpect(content().contentType(org.springframework.http.MediaType.APPLICATION_PDF))
+                .andExpect(content().bytes("%PDF-1.4 test".getBytes(java.nio.charset.StandardCharsets.UTF_8)));
     }
 }
