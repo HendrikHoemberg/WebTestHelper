@@ -17,9 +17,11 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class OutboxController {
 
     private final OutboxService outboxService;
+    private final org.springframework.context.MessageSource messageSource;
 
-    public OutboxController(OutboxService outboxService) {
+    public OutboxController(OutboxService outboxService, org.springframework.context.MessageSource messageSource) {
         this.outboxService = outboxService;
+        this.messageSource = messageSource;
     }
 
     @GetMapping
@@ -29,30 +31,30 @@ public class OutboxController {
     }
 
     @PostMapping("/{id}/wiederholen")
-    public String wiederholen(@PathVariable("id") long id, RedirectAttributes redirectAttributes) {
+    public String wiederholen(@PathVariable("id") long id, RedirectAttributes redirectAttributes, java.util.Locale locale) {
         outboxService.retry(id);
-        redirectAttributes.addFlashAttribute("erfolg", "E-Mail wird erneut versendet.");
+        redirectAttributes.addFlashAttribute("erfolg", messageSource.getMessage("ui.postausgang.erfolg.wiederholen", null, locale));
         return "redirect:/postausgang";
     }
 
     @PostMapping("/alle-wiederholen")
-    public String alleWiederholen(RedirectAttributes redirectAttributes) {
+    public String alleWiederholen(RedirectAttributes redirectAttributes, java.util.Locale locale) {
         int count = outboxService.retryAllFailed();
-        redirectAttributes.addFlashAttribute("erfolg", count + " fehlgeschlagene E-Mails werden erneut versendet.");
+        redirectAttributes.addFlashAttribute("erfolg", messageSource.getMessage("ui.postausgang.erfolg.alle_wiederholen", new Object[]{count}, locale));
         return "redirect:/postausgang";
     }
 
     @PostMapping("/{id}/loeschen")
-    public String loeschen(@PathVariable("id") long id, RedirectAttributes redirectAttributes) {
+    public String loeschen(@PathVariable("id") long id, RedirectAttributes redirectAttributes, java.util.Locale locale) {
         outboxService.delete(id);
-        redirectAttributes.addFlashAttribute("erfolg", "E-Mail aus dem Postausgang gelöscht.");
+        redirectAttributes.addFlashAttribute("erfolg", messageSource.getMessage("ui.postausgang.erfolg.loeschen", null, locale));
         return "redirect:/postausgang";
     }
 
     @PostMapping("/alle-loeschen")
-    public String alleLoeschen(RedirectAttributes redirectAttributes) {
+    public String alleLoeschen(RedirectAttributes redirectAttributes, java.util.Locale locale) {
         int count = outboxService.deleteAllFailed();
-        redirectAttributes.addFlashAttribute("erfolg", count + " fehlgeschlagene Einträge wurden gelöscht.");
+        redirectAttributes.addFlashAttribute("erfolg", messageSource.getMessage("ui.postausgang.erfolg.alle_loeschen", new Object[]{count}, locale));
         return "redirect:/postausgang";
     }
 

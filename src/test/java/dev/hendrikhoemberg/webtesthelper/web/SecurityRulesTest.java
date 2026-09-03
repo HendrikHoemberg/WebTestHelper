@@ -62,6 +62,25 @@ class SecurityRulesTest {
     }
 
     @Test
+    @WithMockUser(roles = "USER")
+    void userCannotAccessOutboxSubpaths() throws Exception {
+        mvc.perform(get("/postausgang/1/details"))
+                .andExpect(status().isForbidden());
+
+        mvc.perform(post("/postausgang/1/wiederholen").with(csrf()))
+                .andExpect(status().isForbidden());
+
+        mvc.perform(post("/postausgang/alle-wiederholen").with(csrf()))
+                .andExpect(status().isForbidden());
+
+        mvc.perform(post("/postausgang/1/loeschen").with(csrf()))
+                .andExpect(status().isForbidden());
+
+        mvc.perform(post("/postausgang/alle-loeschen").with(csrf()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     @WithMockUser(roles = "ADMIN")
     void adminCanAccessSettings() throws Exception {
         mvc.perform(get("/einstellungen"))
