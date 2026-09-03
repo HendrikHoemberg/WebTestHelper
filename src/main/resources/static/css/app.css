@@ -1175,6 +1175,14 @@ body {
     text-align: right;
 }
 
+.benutzer-aktionen-gruppe {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.4rem;
+    white-space: nowrap;
+}
+
 .daten-tabelle .type-pill-mono {
     white-space: nowrap;
     font-family: var(--font-sans);

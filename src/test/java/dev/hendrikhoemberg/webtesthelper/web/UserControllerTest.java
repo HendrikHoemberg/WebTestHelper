@@ -80,6 +80,18 @@ class UserControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
+    void regularUserActionsRendersHorizontalGroup() throws Exception {
+        when(appUserService.list()).thenReturn(List.of(
+                benutzer(2, "bob", AppRole.USER, true)));
+        when(appUserService.enabledAdminCount()).thenReturn(2L);
+
+        mvc.perform(get("/einstellungen/benutzer"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("benutzer-aktionen-gruppe")));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
     void createUserRedirectsToUserListWithFlash() throws Exception {
         when(appUserService.create("carol", "geheim123", AppRole.USER)).thenReturn(7L);
 

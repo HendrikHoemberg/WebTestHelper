@@ -80,8 +80,8 @@
                         <span th:unless="${b.enabled()}" class="status-badge status-inaktiv inaktiv" th:text="#{ui.einstellungen.benutzer.status.inaktiv}">Deaktiviert</span>
                     </td>
                     <td class="benutzer-aktionen text-rechts" x-data="{ passwortOffen: false, loeschenOffen: false, loeschText: '' }">
-                        <div style="display: flex; align-items: center; justify-content: flex-end; gap: 0.5rem; flex-wrap: wrap;">
-                            <div th:if="${!geschuetzt}">
+                        <div class="benutzer-aktionen-gruppe">
+                            <div th:if="${!geschuetzt}" style="display: contents;">
                                 <form th:if="${b.role().name() == 'ADMIN'}"
                                       th:action="@{/einstellungen/benutzer/{id}(id=${b.id()})}" method="post" class="inline-form">
                                     <input type="hidden" name="aktion" value="rolle">
