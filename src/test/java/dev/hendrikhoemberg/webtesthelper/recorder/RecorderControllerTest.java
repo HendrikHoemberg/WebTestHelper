@@ -125,6 +125,22 @@ class RecorderControllerTest {
 
     @Test
     @WithMockUser(username = "alice", roles = "USER")
+    void record_rendersScriptThatMarksSessionClosedOnFormSubmit_preventingUnloadBeaconRace() throws Exception {
+        UUID sessionId = UUID.randomUUID();
+        RecordingSession session = mock(RecordingSession.class);
+        when(session.sessionId()).thenReturn(sessionId);
+        when(session.siteId()).thenReturn(1L);
+        when(session.startUrl()).thenReturn("https://acme.example.com/");
+        when(session.username()).thenReturn("alice");
+        when(sessionRegistry.open(1L, "https://acme.example.com/", "alice")).thenReturn(session);
+
+        mvc.perform(get("/websites/1/aufzeichnen"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("addEventListener('submit', function()")));
+    }
+
+    @Test
+    @WithMockUser(username = "alice", roles = "USER")
     void record_whenCapacityExceeded_rendersCapacityExceededStateInGermanWithoutOfferingSession() throws Exception {
         when(sessionRegistry.open(eq(1L), any(), eq("alice")))
                 .thenThrow(new RecorderCapacityException(2));

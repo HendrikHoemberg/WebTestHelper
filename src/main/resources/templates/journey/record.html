@@ -267,7 +267,14 @@
             }
         }
 
+        // Mark session as intentionally handled when any form is submitted (speichern or beenden),
+        // preventing the unload beacon race condition that terminates the session before save completes.
+        document.addEventListener('submit', function() {
+            sessionClosed = true;
+        });
+
         window.addEventListener('beforeunload', closeSession);
+        window.addEventListener('pagehide', closeSession);
     });
     </script>
 

@@ -66,7 +66,7 @@ public class RecorderController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Website nicht gefunden: " + siteId, e);
         }
 
-        String username = principal != null ? principal.getName() : "anonymous";
+        String username = usernameOf(principal);
         String effectiveStartUrl = (startUrl != null && !startUrl.isBlank()) ? startUrl : site.baseUrl().value();
 
         try {
@@ -98,7 +98,7 @@ public class RecorderController {
     @PostMapping("/recorder/{sessionId}/beenden")
     public String closeSession(@PathVariable("sessionId") UUID sessionId,
                                Principal principal) {
-        String username = principal != null ? principal.getName() : null;
+        String username = usernameOf(principal);
         RecordingSession session = sessionRegistry.find(sessionId, username)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Aufnahmesitzung nicht gefunden: " + sessionId));
@@ -112,7 +112,7 @@ public class RecorderController {
     public String saveSession(@PathVariable("sessionId") UUID sessionId,
                               @RequestParam(value = "name", required = false) String name,
                               Principal principal) {
-        String username = principal != null ? principal.getName() : null;
+        String username = usernameOf(principal);
         RecordingSession session = sessionRegistry.find(sessionId, username)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Aufnahmesitzung nicht gefunden: " + sessionId));
@@ -134,7 +134,7 @@ public class RecorderController {
                                   Principal principal,
                                   RedirectAttributes redirectAttributes,
                                   Locale locale) {
-        String username = principal != null ? principal.getName() : null;
+        String username = usernameOf(principal);
         int closed = sessionRegistry.closeAllForUser(username);
         String msg = messageSource.getMessage("ui.recorder.kapazitaet.erfolg_eigene", new Object[]{closed}, locale);
         redirectAttributes.addFlashAttribute("flashMessage", msg);
@@ -142,6 +142,10 @@ public class RecorderController {
             return "redirect:/websites/" + siteId + "/journeys";
         }
         return "redirect:/websites";
+    }
+
+    private static String usernameOf(Principal principal) {
+        return principal != null ? principal.getName() : "anonymous";
     }
 
     @PostMapping("/recorder/alle-beenden")
