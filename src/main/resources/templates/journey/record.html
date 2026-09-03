@@ -42,8 +42,16 @@
         <p class="hinweis-text" style="color: var(--status-warning-text);" th:text="#{ui.recorder.kapazitaet.text(${capacityLimit})}">
             Maximale Anzahl gleichzeitiger Aufzeichnungssitzungen (2) erreicht. Bitte beenden Sie eine laufende Sitzung oder versuchen Sie es später erneut.
         </p>
-        <div class="mt-4" style="margin-top: 1rem; display: flex; gap: 0.5rem;">
+        <div class="mt-4" style="margin-top: 1rem; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;">
             <a th:href="@{/websites/{id}/journeys(id=${site.siteId})}" class="btn-ui btn-ui-primary button primär" th:text="#{ui.recorder.zurueck_reisen}">Zurück zu den Abläufen</a>
+            <form th:action="@{/recorder/meine-sitzungen-beenden}" method="post" class="inline-form" style="margin: 0;">
+                <input type="hidden" name="siteId" th:value="${site.siteId}">
+                <button type="submit" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.recorder.kapazitaet.eigene_beenden}">Eigene Aufzeichnungen beenden</button>
+            </form>
+            <form sec:authorize="hasRole('ADMIN')" th:action="@{/recorder/alle-beenden}" method="post" class="inline-form" style="margin: 0;">
+                <input type="hidden" name="siteId" th:value="${site.siteId}">
+                <button type="submit" class="btn-ui btn-ui-danger button gefahr" th:text="#{ui.recorder.kapazitaet.alle_beenden}">Alle Aufzeichnungen zurücksetzen</button>
+            </form>
             <a th:href="@{/websites/{id}(id=${site.siteId})}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.recorder.zurueck}">Zurück zur Website</a>
         </div>
     </div>
@@ -242,10 +250,10 @@
             if (sessionClosed || !sessionId) return;
             sessionClosed = true;
             const closeUrl = '/recorder/' + sessionId + '/beenden';
+            const body = '_csrf=' + encodeURIComponent(csrfToken);
             if (navigator.sendBeacon) {
-                const formData = new FormData();
-                if (csrfToken) formData.append('_csrf', csrfToken);
-                navigator.sendBeacon(closeUrl, formData);
+                const blob = new Blob([body], { type: 'application/x-www-form-urlencoded' });
+                navigator.sendBeacon(closeUrl, blob);
             } else {
                 fetch(closeUrl, {
                     method: 'POST',
@@ -253,7 +261,7 @@
                         'Content-Type': 'application/x-www-form-urlencoded',
                         [csrfHeader]: csrfToken
                     },
-                    body: '_csrf=' + encodeURIComponent(csrfToken),
+                    body: body,
                     keepalive: true
                 }).catch(function() {});
             }

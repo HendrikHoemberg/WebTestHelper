@@ -6,6 +6,7 @@ import dev.hendrikhoemberg.webtesthelper.model.JourneyStep;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.MessageSource;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -14,9 +15,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.security.Principal;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -39,11 +42,16 @@ public class RecorderController {
     private final SiteService siteService;
     private final RecordingSessionRegistry sessionRegistry;
     private final JourneyService journeyService;
+    private final MessageSource messageSource;
 
-    public RecorderController(SiteService siteService, RecordingSessionRegistry sessionRegistry, JourneyService journeyService) {
+    public RecorderController(SiteService siteService,
+                              RecordingSessionRegistry sessionRegistry,
+                              JourneyService journeyService,
+                              MessageSource messageSource) {
         this.siteService = Objects.requireNonNull(siteService, "siteService must not be null");
         this.sessionRegistry = Objects.requireNonNull(sessionRegistry, "sessionRegistry must not be null");
         this.journeyService = Objects.requireNonNull(journeyService, "journeyService must not be null");
+        this.messageSource = Objects.requireNonNull(messageSource, "messageSource must not be null");
     }
 
     @GetMapping("/websites/{siteId}/aufzeichnen")
@@ -75,8 +83,10 @@ public class RecorderController {
             model.addAttribute("capacityExceeded", true);
             model.addAttribute("startFailed", false);
             model.addAttribute("capacityLimit", e.limit());
+            model.addAttribute("userActiveSessions", sessionRegistry.activeSessionsForUser(username));
             return "journey/record";
-        } catch (RuntimeException e) {
+        }
+ catch (RuntimeException e) {
             log.warn("Aufnahmesitzung für Website {} konnte nicht gestartet werden", siteId, e);
             model.addAttribute("site", site);
             model.addAttribute("capacityExceeded", false);
@@ -117,5 +127,33 @@ public class RecorderController {
         long journeyId = journeyService.create(siteId, effectiveName, steps);
         sessionRegistry.close(sessionId);
         return "redirect:/websites/" + siteId + "/journeys/" + journeyId + "/bearbeiten";
+    }
+
+    @PostMapping("/recorder/meine-sitzungen-beenden")
+    public String closeMySessions(@RequestParam(value = "siteId", required = false) Long siteId,
+                                  Principal principal,
+                                  RedirectAttributes redirectAttributes,
+                                  Locale locale) {
+        String username = principal != null ? principal.getName() : null;
+        int closed = sessionRegistry.closeAllForUser(username);
+        String msg = messageSource.getMessage("ui.recorder.kapazitaet.erfolg_eigene", new Object[]{closed}, locale);
+        redirectAttributes.addFlashAttribute("flashMessage", msg);
+        if (siteId != null) {
+            return "redirect:/websites/" + siteId + "/journeys";
+        }
+        return "redirect:/websites";
+    }
+
+    @PostMapping("/recorder/alle-beenden")
+    public String closeAllSessions(@RequestParam(value = "siteId", required = false) Long siteId,
+                                   RedirectAttributes redirectAttributes,
+                                   Locale locale) {
+        int closed = sessionRegistry.closeAll();
+        String msg = messageSource.getMessage("ui.recorder.kapazitaet.erfolg_alle", new Object[]{closed}, locale);
+        redirectAttributes.addFlashAttribute("flashMessage", msg);
+        if (siteId != null) {
+            return "redirect:/websites/" + siteId + "/journeys";
+        }
+        return "redirect:/websites";
     }
 }

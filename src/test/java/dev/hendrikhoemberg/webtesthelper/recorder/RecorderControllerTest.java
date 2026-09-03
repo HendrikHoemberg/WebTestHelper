@@ -38,6 +38,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -134,7 +135,23 @@ class RecorderControllerTest {
                 .andExpect(model().attributeExists("site", "capacityExceeded"))
                 .andExpect(content().string(containsString("Maximale Anzahl gleichzeitiger Aufzeichnungssitzungen (2) erreicht.")))
                 .andExpect(content().string(containsString("Bitte beenden Sie eine laufende Sitzung oder versuchen Sie es später erneut.")))
+                .andExpect(content().string(containsString("Eigene Aufzeichnungen beenden")))
+                .andExpect(content().string(containsString("/recorder/meine-sitzungen-beenden")))
+                .andExpect(content().string(not(containsString("Alle Aufzeichnungen zurücksetzen"))))
                 .andExpect(content().string(not(containsString("<canvas id=\"recorder-canvas\""))));
+    }
+
+    @Test
+    @WithMockUser(username = "admin", roles = "ADMIN")
+    void record_whenCapacityExceeded_asAdmin_rendersBothResetOptions() throws Exception {
+        when(sessionRegistry.open(eq(1L), any(), eq("admin")))
+                .thenThrow(new RecorderCapacityException(2));
+
+        mvc.perform(get("/websites/1/aufzeichnen"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Eigene Aufzeichnungen beenden")))
+                .andExpect(content().string(containsString("Alle Aufzeichnungen zurücksetzen")))
+                .andExpect(content().string(containsString("/recorder/alle-beenden")));
     }
 
     @Test
@@ -280,6 +297,47 @@ class RecorderControllerTest {
 
         verify(sessionRegistry, never()).close(aliceSession);
         verify(journeyService, never()).create(anyLong(), anyString(), any());
+    }
+
+    @Test
+    @WithMockUser(username = "alice", roles = "USER")
+    void closeMySessions_asAuthenticatedUser_closesUserSessionsAndRedirects() throws Exception {
+        when(sessionRegistry.closeAllForUser("alice")).thenReturn(2);
+
+        mvc.perform(post("/recorder/meine-sitzungen-beenden")
+                        .with(csrf())
+                        .param("siteId", "1"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/websites/1/journeys"))
+                .andExpect(flash().attributeExists("flashMessage"));
+
+        verify(sessionRegistry).closeAllForUser("alice");
+    }
+
+    @Test
+    @WithMockUser(username = "admin", roles = "ADMIN")
+    void closeAllSessions_asAdmin_closesAllSessionsAndRedirects() throws Exception {
+        when(sessionRegistry.closeAll()).thenReturn(2);
+
+        mvc.perform(post("/recorder/alle-beenden")
+                        .with(csrf())
+                        .param("siteId", "1"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/websites/1/journeys"))
+                .andExpect(flash().attributeExists("flashMessage"));
+
+        verify(sessionRegistry).closeAll();
+    }
+
+    @Test
+    @WithMockUser(username = "alice", roles = "USER")
+    void closeAllSessions_asRegularUser_isForbidden() throws Exception {
+        mvc.perform(post("/recorder/alle-beenden")
+                        .with(csrf())
+                        .param("siteId", "1"))
+                .andExpect(status().isForbidden());
+
+        verify(sessionRegistry, never()).closeAll();
     }
 
     @Test

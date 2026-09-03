@@ -152,12 +152,60 @@ public class RecordingSessionRegistry implements AutoCloseable {
         return sessions.size();
     }
 
-    @Override
-    public void close() {
+    /**
+     * Number of currently active sessions owned by the given user.
+     */
+    public int activeSessionsForUser(String username) {
+        if (username == null) {
+            return 0;
+        }
+        int count = 0;
+        for (RecordingSession session : sessions.values()) {
+            if (username.equals(session.username())) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /**
+     * Closes all active sessions owned by the given user and releases their workers to the pool.
+     *
+     * @param username the username of the owner
+     * @return the number of closed sessions
+     */
+    public int closeAllForUser(String username) {
+        if (username == null) {
+            return 0;
+        }
+        List<UUID> toClose = new ArrayList<>();
+        for (RecordingSession session : sessions.values()) {
+            if (username.equals(session.username())) {
+                toClose.add(session.sessionId());
+            }
+        }
+        for (UUID id : toClose) {
+            close(id);
+        }
+        return toClose.size();
+    }
+
+    /**
+     * Closes all active sessions across all users and releases workers to the pool.
+     *
+     * @return the number of closed sessions
+     */
+    public int closeAll() {
         List<UUID> ids = new ArrayList<>(sessions.keySet());
         for (UUID id : ids) {
             close(id);
         }
+        return ids.size();
+    }
+
+    @Override
+    public void close() {
+        closeAll();
     }
 
     private record BrowserSessionContext(com.microsoft.playwright.BrowserContext context, com.microsoft.playwright.Page page, IntentCapture intentCapture) {}

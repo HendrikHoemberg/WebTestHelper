@@ -221,6 +221,46 @@ class RecordingSessionRegistryTest {
         verify(mockRegistry).reapIdle();
     }
 
+    @Test
+    void closeAllForUserClosesOnlyMatchingSessionsAndReleasesWorkers() {
+        RecorderWorker worker1 = mock(RecorderWorker.class);
+        RecorderWorker worker2 = mock(RecorderWorker.class);
+        when(pool.allocate()).thenReturn(Optional.of(worker1), Optional.of(worker2));
+
+        RecordingSession aliceSession = registry.open(1L, "https://example.com/a", "alice");
+        RecordingSession bobSession = registry.open(1L, "https://example.com/b", "bob");
+
+        assertThat(registry.activeSessionsForUser("alice")).isEqualTo(1);
+        assertThat(registry.activeSessionsForUser("bob")).isEqualTo(1);
+
+        int closed = registry.closeAllForUser("alice");
+
+        assertThat(closed).isEqualTo(1);
+        assertThat(registry.find(aliceSession.sessionId(), "alice")).isEmpty();
+        assertThat(registry.find(bobSession.sessionId(), "bob")).isPresent();
+        assertThat(registry.activeSessionsForUser("alice")).isEqualTo(0);
+        assertThat(registry.activeSessionsForUser("bob")).isEqualTo(1);
+        verify(pool).release(worker1);
+        verify(pool, never()).release(worker2);
+    }
+
+    @Test
+    void closeAllClosesEverySessionAndReleasesWorkers() {
+        RecorderWorker worker1 = mock(RecorderWorker.class);
+        RecorderWorker worker2 = mock(RecorderWorker.class);
+        when(pool.allocate()).thenReturn(Optional.of(worker1), Optional.of(worker2));
+
+        RecordingSession s1 = registry.open(1L, "https://example.com/a", "alice");
+        RecordingSession s2 = registry.open(1L, "https://example.com/b", "bob");
+
+        int closed = registry.closeAll();
+
+        assertThat(closed).isEqualTo(2);
+        assertThat(registry.activeSessions()).isEqualTo(0);
+        verify(pool).release(worker1);
+        verify(pool).release(worker2);
+    }
+
     private static class TestClock extends Clock {
         private Instant current;
         private final ZoneId zone = ZoneOffset.UTC;

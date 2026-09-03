@@ -195,4 +195,18 @@ class SecurityRulesTest {
         mvc.perform(get("/recorder/ws/5f01ffa4-9864-4996-b761-bef67e716e76"))
                 .andExpect(status().isNotFound());
     }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void userCannotAccessRecorderAlleBeenden() throws Exception {
+        mvc.perform(post("/recorder/alle-beenden").with(csrf()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void adminCanAccessRecorderAlleBeendenInSecurityFilter() throws Exception {
+        mvc.perform(post("/recorder/alle-beenden").with(csrf()))
+                .andExpect(status().isNotFound()); // 404 in SecurityRulesTest since RecorderController is not in context
+    }
 }

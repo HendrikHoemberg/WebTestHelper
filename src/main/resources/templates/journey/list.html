@@ -20,16 +20,23 @@
             </div>
             <h1 class="page-main-title" th:text="#{ui.journey.liste.ueberschrift(${site.name})}">Abläufe für Website</h1>
         </div>
-        <div class="header-actions-cluster seiten-kopf-aktionen">
-            <a th:href="@{/websites/{id}/aufzeichnen(id=${site.siteId})}" class="btn-ui btn-ui-primary button primär">
+        <div class="header-actions-cluster seiten-kopf-aktionen" x-data="{ wirdVorbereitet: false }">
+            <a th:href="@{/websites/{id}/aufzeichnen(id=${site.siteId})}"
+               class="btn-ui btn-ui-primary button primär"
+               :class="{ 'inaktiv': wirdVorbereitet }"
+               :style="wirdVorbereitet ? 'pointer-events: none; opacity: 0.75;' : ''"
+               @click="wirdVorbereitet = true">
                 <span th:replace="~{fragments/icons :: record}"></span>
-                <span th:text="#{ui.journey.liste.aufzeichnen}">Ablauf aufzeichnen</span>
+                <span x-show="!wirdVorbereitet" th:text="#{ui.journey.liste.aufzeichnen}">Ablauf aufzeichnen</span>
+                <span x-cloak x-show="wirdVorbereitet" th:text="#{ui.journey.liste.wird_vorbereitet}">Browser wird gestartet...</span>
             </a>
             <a th:href="@{/websites/{id}(id=${site.siteId})}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.journey.detail.zurueck_website}">Zurück zur Website</a>
         </div>
     </header>
 
     <div th:replace="~{fragments/site-tabs :: tabs(${site}, 'journeys')}"></div>
+
+    <div th:if="${flashMessage}" class="hinweis erfolgs-meldung" role="status" style="margin-bottom: 1.5rem;" th:text="${flashMessage}"></div>
 
     <div class="card-box detail-bereich" style="margin-bottom: 1.5rem;">
         <div class="abschnitt-ueberschrift-zeile" style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); margin-bottom: 0.75rem; padding-bottom: 0.5rem;">
