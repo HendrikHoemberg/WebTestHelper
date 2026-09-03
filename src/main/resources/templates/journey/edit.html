@@ -23,9 +23,6 @@
                 <span>Bearbeiten</span>
             </div>
             <h1 class="page-main-title" th:text="#{ui.journey.edit.ueberschrift(${journey.name})}">Ablauf bearbeiten – Name</h1>
-            <div style="margin-top: 0.25rem;">
-                <a th:href="@{/websites/{id}(id=${site.siteId})}" th:text="${site.name}" class="basis-url-link" style="font-weight: 600;">Website Name</a>
-            </div>
         </div>
         <div class="header-actions-cluster seiten-kopf-aktionen">
             <a th:href="@{/websites/{siteId}/journeys/{journeyId}(siteId=${site.siteId},journeyId=${journey.id})}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.journey.edit.zurueck_detail}">Zurück zu den Details</a>

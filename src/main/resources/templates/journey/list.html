@@ -19,9 +19,6 @@
                 <span th:text="#{ui.journey.liste.titel}">Abläufe</span>
             </div>
             <h1 class="page-main-title" th:text="#{ui.journey.liste.ueberschrift(${site.name})}">Abläufe für Website</h1>
-            <div style="margin-top: 0.25rem;">
-                <a th:href="@{/websites/{id}(id=${site.siteId})}" th:text="${site.name}" class="basis-url-link" style="font-weight: 600;">Website Name</a>
-            </div>
         </div>
         <div class="header-actions-cluster seiten-kopf-aktionen">
             <a th:href="@{/websites/{id}/aufzeichnen(id=${site.siteId})}" class="btn-ui btn-ui-primary button primär">

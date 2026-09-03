@@ -158,6 +158,17 @@ class JourneyControllerTest {
 
     @Test
     @WithMockUser(roles = "USER")
+    void journeyListHeaderDoesNotContainRedundantSiteSubtitle() throws Exception {
+        when(journeyService.findBySite(1L)).thenReturn(List.of());
+        when(journeyHealthService.healthBySite(1L)).thenReturn(Map.of());
+
+        mvc.perform(get("/websites/1/journeys"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("class=\"basis-url-link\" style=\"font-weight: 600;\""))));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
     void detailJourney_rendersStepsInOrdinalOrderWithActionLocatorsValueAssertionAndNeverSecret() throws Exception {
         JourneyStep step0 = new JourneyStep(
                 UUID.randomUUID(), 0, StepAction.GOTO,

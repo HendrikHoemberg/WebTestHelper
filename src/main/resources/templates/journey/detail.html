@@ -21,9 +21,6 @@
                 <span th:text="${journey.name}">Ablauf Name</span>
             </div>
             <h1 class="page-main-title" th:text="${journey.name}">Ablauf Name</h1>
-            <div style="margin-top: 0.25rem;">
-                <a th:href="@{/websites/{id}(id=${site.siteId})}" th:text="${site.name}" class="basis-url-link" style="font-weight: 600;">Website Name</a>
-            </div>
         </div>
         <div class="header-actions-cluster seiten-kopf-aktionen">
             <a th:href="@{/websites/{siteId}/journeys/{journeyId}/bearbeiten(siteId=${site.siteId},journeyId=${journey.id})}" class="btn-ui btn-ui-primary button primär" th:text="#{ui.journey.detail.bearbeiten}">Ablauf bearbeiten</a>
