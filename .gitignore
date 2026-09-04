@@ -38,3 +38,7 @@ build/
 
 
 .env
+
+.agents/
+
+ASSESSMENT_REPORT.md
