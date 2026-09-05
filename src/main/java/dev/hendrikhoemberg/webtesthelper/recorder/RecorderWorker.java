@@ -13,6 +13,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * A dedicated, thread-confined Chromium worker for recording sessions (spec 10.1, D109).
@@ -103,8 +105,15 @@ public class RecorderWorker implements AutoCloseable {
 
     @Override
     public void close() {
+        close(5, TimeUnit.SECONDS);
+    }
+
+    void close(long timeout, TimeUnit unit) {
         try {
-            thread.submit(this::closeQuietly).get();
+            thread.submit(this::closeQuietly).get(timeout, unit);
+        } catch (TimeoutException e) {
+            log.warn("Recorder-Worker {} schloss nicht innerhalb von {} {}, erzwinge Abbruch",
+                    index, timeout, unit);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         } catch (ExecutionException e) {

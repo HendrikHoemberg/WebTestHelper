@@ -432,6 +432,23 @@ class StepBuilderTest {
     }
 
     @Test
+    void passwordInputWithUnrelatedNameIsRedactedWhenInputTypeIsPassword() {
+        String secret = "SensitiveToken99";
+        CapturedEvent pwdEvent = new CapturedEvent(
+                EventKind.INPUT, "input", "txt-custom", "unrelated-testid", "textbox",
+                "Code", "Code eingeben", null, secret, "form > div > input", "password"
+        );
+
+        List<JourneyStep> steps = StepBuilder.build(List.of(pwdEvent), START_URL);
+
+        assertThat(steps).hasSize(2);
+        JourneyStep fillStep = steps.get(1);
+        assertThat(fillStep.action()).isEqualTo(StepAction.FILL);
+        assertThat(fillStep.value()).isEmpty();
+        assertThat(fillStep.toString()).doesNotContain(secret);
+    }
+
+    @Test
     void assignsDenseSequentialOrdinalsAndFreshUuids() {
         CapturedEvent e1 = new CapturedEvent(
                 EventKind.INPUT, "input", "name", null, "textbox",

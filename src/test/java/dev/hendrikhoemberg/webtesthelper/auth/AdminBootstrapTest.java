@@ -1,8 +1,8 @@
-package dev.hendrikhoemberg.webtesthelper.web;
+package dev.hendrikhoemberg.webtesthelper.auth;
 
 import dev.hendrikhoemberg.webtesthelper.support.AbstractPostgresTest;
-import dev.hendrikhoemberg.webtesthelper.web.persistence.AppUserEntity;
-import dev.hendrikhoemberg.webtesthelper.web.persistence.AppUserRepository;
+import dev.hendrikhoemberg.webtesthelper.auth.persistence.AppUserEntity;
+import dev.hendrikhoemberg.webtesthelper.auth.persistence.AppUserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

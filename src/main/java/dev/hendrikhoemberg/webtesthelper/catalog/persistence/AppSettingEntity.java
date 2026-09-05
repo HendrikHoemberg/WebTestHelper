@@ -38,4 +38,17 @@ public class AppSettingEntity {
         this.encrypted = encrypted;
         this.updatedAt = Instant.now();
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        AppSettingEntity that = (AppSettingEntity) o;
+        return settingKey != null && settingKey.equals(that.settingKey);
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
 }

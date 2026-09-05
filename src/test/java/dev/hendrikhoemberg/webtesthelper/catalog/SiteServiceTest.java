@@ -125,5 +125,42 @@ class SiteServiceTest extends AbstractPostgresTest {
         SiteContext context = sites.contextFor(id);
         assertThat(context.formTestMode()).isEqualTo(FormTestMode.NO_SUBMIT);
     }
+
+    @Test
+    void summariesAndSummaryCountOnlyEnabledChecks() {
+        long id = sites.create(form());
+
+        // 19 checks seeded, 3 are disabled by default (CONSOLE_ERRORS, SITEMAP_CONSISTENCY, BUTTON_REACHABILITY) -> 16 enabled
+        SiteSummary singleSummary = sites.summary(id);
+        assertThat(singleSummary.settingCount()).isEqualTo(16);
+
+        List<SiteSummary> allSummaries = sites.summaries();
+        assertThat(allSummaries).filteredOn(s -> s.id() == id)
+                .singleElement()
+                .satisfies(s -> assertThat(s.settingCount()).isEqualTo(16));
+
+        // Disable another check (PAGE_STATUS) -> enabled drops to 15
+        sites.setCheckEnabled(id, CheckType.PAGE_STATUS, false);
+
+        assertThat(sites.summary(id).settingCount()).isEqualTo(15);
+        assertThat(sites.summaries()).filteredOn(s -> s.id() == id)
+                .singleElement()
+                .satisfies(s -> assertThat(s.settingCount()).isEqualTo(15));
+    }
+
+    @Test
+    void enabledSiteIdsAndAllSiteIdsExposeCorrectIds() {
+        long id1 = sites.create(form());
+        SiteForm disabledForm = new SiteForm("Inaktiv", "https://inactive.example.com/", 100, 2,
+                Duration.ofMinutes(10), List.of(), List.of(), true, null, false);
+        long id2 = sites.create(disabledForm);
+
+        List<Long> enabledIds = sites.enabledSiteIds();
+        List<Long> allIds = sites.allSiteIds();
+
+        assertThat(allIds).contains(id1, id2);
+        assertThat(enabledIds).contains(id1);
+        assertThat(enabledIds).doesNotContain(id2);
+    }
 }
 

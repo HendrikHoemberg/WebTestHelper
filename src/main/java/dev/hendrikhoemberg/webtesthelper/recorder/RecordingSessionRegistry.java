@@ -1,6 +1,7 @@
 package dev.hendrikhoemberg.webtesthelper.recorder;
 
 import dev.hendrikhoemberg.webtesthelper.checks.CookieBanner;
+import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -210,6 +211,7 @@ public class RecordingSessionRegistry implements AutoCloseable {
     }
 
     @Override
+    @PreDestroy
     public void close() {
         closeAll();
     }

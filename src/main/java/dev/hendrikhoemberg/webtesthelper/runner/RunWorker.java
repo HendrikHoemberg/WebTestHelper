@@ -22,7 +22,7 @@ public class RunWorker {
 
     private final RunLeaseJdbcRepository leases;
     private final WorkerIdentity identity;
-    private RunExecutor executor;
+    private volatile RunExecutor executor;
 
     public RunWorker(RunLeaseJdbcRepository leases, WorkerIdentity identity, RunExecutor executor) {
         this.leases = leases;

@@ -2,8 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 <div th:fragment="fortschritt" id="fortschritt"
-     th:attr="hx-get=@{/laeufe/{id}/fortschritt(id=${run.id})}"
-     hx-trigger="every 3s"
+     th:attr="hx-get=(${run.status.isTerminal()} ? null : @{/laeufe/{id}/fortschritt(id=${run.id})}),hx-trigger=(${run.status.isTerminal()} ? null : 'every 3s')"
      hx-swap="outerHTML"
      class="card-box fortschritt-kasten" style="border-left: 4px solid var(--status-info-dot);">
     <div class="fortschritt-kopf" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
@@ -20,7 +19,7 @@
     </div>
     <p th:if="${run.status.name() == 'QUEUED'}" style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.75rem;" th:text="#{ui.lauf.fortschritt.wartet}">Wartet auf Ausführung...</p>
     <p th:if="${run.status.name() == 'RUNNING'}" style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.75rem;" th:text="#{ui.lauf.fortschritt.laeuft}">Prüflauf wird ausgeführt...</p>
-    <button type="button" class="btn-ui btn-ui-danger btn-ui-sm button sekundär" @click="$dispatch('abbrechen-offen')"
+    <button th:if="${!run.status.isTerminal()}" type="button" class="btn-ui btn-ui-danger btn-ui-sm button sekundär" @click="$dispatch('abbrechen-offen')"
             th:text="#{ui.lauf.abbrechen.button}">Lauf abbrechen</button>
 </div>
 </body>

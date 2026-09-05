@@ -5,21 +5,23 @@
     <span th:if="${bis == null}" th:text="'-'">-</span>
     <span th:if="${bis != null}"
           th:with="dur=${T(java.time.Duration).between(T(java.time.Instant).now(), bis)}">
-        <span th:if="${dur.toMinutes() < 1}"
+        <span th:if="${dur.isNegative() and dur.abs().getSeconds() >= 60}"
+              th:text="#{ui.uebersicht.naechster.ueberfaellig}">überfällig</span>
+        <span th:if="${(dur.isNegative() and dur.abs().getSeconds() < 60) or (!dur.isNegative() and dur.toMinutes() < 1)}"
               th:text="#{ui.uebersicht.naechster.kurz}">in Kürze</span>
-        <span th:if="${dur.toMinutes() >= 1 and dur.toMinutes() < 60}">
+        <span th:if="${!dur.isNegative() and dur.toMinutes() >= 1 and dur.toMinutes() < 60}">
             <span th:if="${dur.toMinutes() == 1}"
                   th:text="#{ui.uebersicht.naechster.min.einzahl}">in 1 Minute</span>
             <span th:if="${dur.toMinutes() != 1}"
                   th:text="#{ui.uebersicht.naechster.min.mehrzahl(${dur.toMinutes()})}">in 5 Minuten</span>
         </span>
-        <span th:if="${dur.toHours() >= 1 and dur.toHours() < 24}">
+        <span th:if="${!dur.isNegative() and dur.toHours() >= 1 and dur.toHours() < 24}">
             <span th:if="${dur.toHours() == 1}"
                   th:text="#{ui.uebersicht.naechster.stunden.einzahl}">in 1 Stunde</span>
             <span th:if="${dur.toHours() != 1}"
                   th:text="#{ui.uebersicht.naechster.stunden.mehrzahl(${dur.toHours()})}">in 3 Stunden</span>
         </span>
-        <span th:if="${dur.toDays() >= 1}">
+        <span th:if="${!dur.isNegative() and dur.toDays() >= 1}">
             <span th:if="${dur.toDays() == 1}"
                   th:text="#{ui.uebersicht.naechster.tage.einzahl}">in 1 Tag</span>
             <span th:if="${dur.toDays() != 1}"

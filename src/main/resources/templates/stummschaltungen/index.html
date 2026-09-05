@@ -120,7 +120,8 @@
                                 <option value="gleich" th:text="#{ui.stummschaltungen.modus.gleich}">URL ist genau</option>
                             </select>
                             <input type="text" x-ref="rohwert" @input="anwenden($el)" class="form-input form-eingabe" style="flex: 1; min-width: 160px;"
-                                   th:placeholder="#{ui.stummschaltungen.modus.placeholder}">
+                                   th:placeholder="#{ui.stummschaltungen.modus.placeholder}"
+                                   th:attr="aria-label=#{ui.stummschaltungen.modus.placeholder}">
                         </div>
                         <p class="hinweis-text" style="font-size: 0.8rem; color: var(--text-muted); margin: 0.35rem 0 0;"
                            th:text="#{ui.stummschaltungen.modus.hinweis}">Dieser Baustein erzeugt das Fundort-Muster oben automatisch.</p>

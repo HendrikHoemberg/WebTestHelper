@@ -15,7 +15,7 @@
             <div class="breadcrumbs-trail">
                 <a th:href="@{/}">WebTestHelper</a>
                 <span>/</span>
-                <a th:href="@{/laeufe/{id}(id=${finding.lastSeenRun})}">Prüflauf #<span th:text="${finding.lastSeenRun}">101</span></a>
+                <a th:href="@{/laeufe/{id}(id=${finding.lastSeenRun})}" th:text="#{ui.befund.detail.breadcrumbs.lauf(${finding.lastSeenRun})}">Prüflauf #101</a>
                 <span>/</span>
                 <span th:text="#{ui.befund.detail.titel(${detail.summary.id})}">Befund #1</span>
             </div>
@@ -26,8 +26,8 @@
             </div>
             <div class="befund-link-zeile" th:if="${detail.summary.subjectUrl != null}" x-data="wthKopiere()" style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
                 <a th:href="${detail.summary.subjectUrl}" target="_blank" rel="noopener noreferrer"
-                   class="befund-subjekt-link" th:attr="aria-label=#{ui.befund.subject.aufrufen}"
-                   th:text="${detail.summary.subjectUrl}">https://example.com/tot</a>
+                    class="befund-subjekt-link" th:attr="aria-label=#{ui.befund.subject.aufrufen}"
+                    th:text="${detail.summary.subjectUrl}">https://example.com/tot</a>
                 <button type="button" class="kopie-button btn-icon-only"
                         th:data-url="${detail.summary.subjectUrl}"
                         th:attr="aria-label=#{ui.befund.subject.kopieren},title=#{ui.befund.subject.kopieren}"
@@ -43,6 +43,10 @@
             <a th:href="@{/laeufe/{id}(id=${finding.lastSeenRun})}" class="btn-ui btn-ui-secondary button sekundär">
                 <span th:replace="~{fragments/icons :: arrow_left}"></span>
                 <span th:text="#{ui.befund.detail.zurueck_zum_lauf(${finding.lastSeenRun})}">Zurück zum Prüflauf</span>
+            </a>
+            <a th:if="${finding.siteId != null}" th:href="@{/websites/{siteId}/befunde(siteId=${finding.siteId})}" class="btn-ui btn-ui-secondary button sekundär">
+                <span th:replace="~{fragments/icons :: arrow_left}"></span>
+                <span th:text="#{ui.befund.detail.zurueck_zu_befunden}">Zurück zu Befunden</span>
             </a>
         </div>
     </header>
@@ -83,14 +87,14 @@
     <section class="card-box detail-bereich">
         <h2 th:text="#{ui.befund.detail.uebersicht}">Übersicht</h2>
         <dl class="schluessel-werte">
-            <dt>Schweregrad</dt>
+            <dt th:text="#{ui.befund.detail.schweregrad}">Schweregrad</dt>
             <dd>
                 <span class="status-badge"
                       th:classappend="${detail.summary.severity.name() == 'ERROR' ? 'badge-failing' : (detail.summary.severity.name() == 'WARN' ? 'badge-warning' : 'status-inaktiv')} + ' severity-' + ${detail.summary.severity}"
                       th:text="#{${'ui.severity.' + detail.summary.severity}}">Fehler</span>
             </dd>
             
-            <dt>Status</dt>
+            <dt th:text="#{ui.befund.detail.status}">Status</dt>
             <dd>
                 <span class="status-badge status-inaktiv"
                       th:text="#{${'ui.triagestatus.' + detail.summary.triage}}">Ungeprüft</span>
@@ -157,7 +161,7 @@
                     <span class="browser-mockup-dot"></span>
                 </div>
                 <div class="browser-mockup-viewport">
-                    <img th:src="${detail.screenshotUrl}" alt="Screenshot des Fehlers" class="befund-screenshot" onclick="window.open(this.src, '_blank')" />
+                    <img th:src="${detail.screenshotUrl}" th:alt="#{ui.befund.detail.screenshot_alt}" alt="Screenshot des Fehlers" class="befund-screenshot" @click="window.open($el.src, '_blank')" />
                 </div>
             </div>
         </div>

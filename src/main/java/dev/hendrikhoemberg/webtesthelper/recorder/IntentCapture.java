@@ -106,10 +106,11 @@ public final class IntentCapture {
         String textContent = getString(map, "textContent");
         String value = getValue(map, "value");
         String cssPath = getString(map, "cssPath");
+        String inputType = getString(map, "inputType");
 
         CapturedEvent event = new CapturedEvent(
                 kind, tagName, id, testId, role,
-                accessibleName, labelText, textContent, value, cssPath);
+                accessibleName, labelText, textContent, value, cssPath, inputType);
         events.add(event);
         notifyListeners(event);
     }
@@ -136,10 +137,12 @@ public final class IntentCapture {
      *
      * @return an unmodifiable list of captured events
      */
-    public synchronized List<CapturedEvent> drain() {
-        List<CapturedEvent> copy = new ArrayList<>(events);
-        events.clear();
-        return List.copyOf(copy);
+    public List<CapturedEvent> drain() {
+        synchronized (events) {
+            List<CapturedEvent> copy = new ArrayList<>(events);
+            events.clear();
+            return List.copyOf(copy);
+        }
     }
 
     /**

@@ -1,5 +1,6 @@
 package dev.hendrikhoemberg.webtesthelper.web;
 
+import dev.hendrikhoemberg.webtesthelper.auth.AppUserService;
 import dev.hendrikhoemberg.webtesthelper.catalog.AppSettings;
 import dev.hendrikhoemberg.webtesthelper.catalog.CredentialService;
 import dev.hendrikhoemberg.webtesthelper.catalog.RecipientService;
@@ -102,7 +103,7 @@ class CheckSettingsControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "USER")
+    @WithMockUser(roles = "ADMIN")
     void savePersistsEnabledStateAndSeverityOverrideForEveryCheck() throws Exception {
         when(siteService.summary(SITE_ID)).thenReturn(new SiteSummary(SITE_ID, "Acme Shop",
                 "https://acme.example.com/", true, 17));
@@ -126,7 +127,7 @@ class CheckSettingsControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "USER")
+    @WithMockUser(roles = "ADMIN")
     void emptyFormDisablesAllChecksWithoutOverrides() throws Exception {
         when(siteService.summary(SITE_ID)).thenReturn(new SiteSummary(SITE_ID, "Acme Shop",
                 "https://acme.example.com/", true, 17));
@@ -141,7 +142,7 @@ class CheckSettingsControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "USER")
+    @WithMockUser(roles = "ADMIN")
     void anInvalidSeverityReRendersTheDetailPageWithAnErrorAndSavesNothing() throws Exception {
         when(siteService.summary(SITE_ID)).thenReturn(new SiteSummary(SITE_ID, "Acme Shop",
                 "https://acme.example.com/", true, 17));
@@ -166,7 +167,7 @@ class CheckSettingsControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "USER")
+    @WithMockUser(roles = "ADMIN")
     void unknownSiteReturns404() throws Exception {
         when(siteService.summary(999L)).thenThrow(new IllegalArgumentException("Site existiert nicht: 999"));
 

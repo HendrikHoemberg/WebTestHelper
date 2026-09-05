@@ -90,12 +90,12 @@
                 </div>
             </div>
             <form th:action="@{/tutorial/neustarten}" method="post" class="inline-form">
-                <button type="submit" class="btn-sidebar-logout" th:title="#{ui.tutorial.schaltflaeche.neustart}">
+                <button type="submit" class="btn-sidebar-logout" th:title="#{ui.tutorial.schaltflaeche.neustart}" th:attr="aria-label=#{ui.tutorial.schaltflaeche.neustart}">
                     <span th:replace="~{fragments/icons :: help}"></span>
                 </button>
             </form>
             <form th:action="@{/abmelden}" method="post" class="inline-form">
-                <button type="submit" class="btn-sidebar-logout" th:title="#{ui.nav.abmelden}">
+                <button type="submit" class="btn-sidebar-logout" th:title="#{ui.nav.abmelden}" th:attr="aria-label=#{ui.nav.abmelden}">
                     <span th:replace="~{fragments/icons :: logout}"></span>
                 </button>
             </form>

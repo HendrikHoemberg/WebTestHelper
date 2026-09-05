@@ -1,4 +1,4 @@
-package dev.hendrikhoemberg.webtesthelper.web;
+package dev.hendrikhoemberg.webtesthelper.auth;
 
 import java.time.Instant;
 

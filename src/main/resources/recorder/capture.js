@@ -193,7 +193,8 @@
         labelText: getLabelText(el),
         textContent: getTextContent(el),
         value: valueOverride !== undefined ? valueOverride : getValue(el),
-        cssPath: computeCssPath(el)
+        cssPath: computeCssPath(el),
+        inputType: (el.tagName && el.tagName.toLowerCase() === 'input' && el.type) ? el.type.toLowerCase() : (el.getAttribute && el.getAttribute('type') ? el.getAttribute('type').toLowerCase() : null)
       };
       if (window.__wth_capture__) {
         window.__wth_capture__(payload);

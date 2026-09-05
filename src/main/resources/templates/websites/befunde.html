@@ -59,7 +59,7 @@
                     <div class="befunde-liste-kopf inspector-header">
                         <div class="befunde-auswahl-kopf">
                             <label class="form-gruppe-checkbox befund-auswahl-alle" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; margin: 0;">
-                                <input type="checkbox" @change="toggleAll($event)" :checked="isAllSelected()" :indeterminate="isIndeterminate()" style="width: 1.1rem; height: 1.1rem;">
+                                <input type="checkbox" th:attr="aria-label=#{ui.befunde.liste.alle_auswaehlen}" @change="toggleAll($event)" :checked="isAllSelected()" :indeterminate="isIndeterminate()" style="width: 1.1rem; height: 1.1rem;">
                                 <span th:text="#{ui.befunde.liste.alle_auswaehlen}" style="font-weight: 600; font-size: 0.85rem;">Alle auswählen</span>
                             </label>
                         </div>

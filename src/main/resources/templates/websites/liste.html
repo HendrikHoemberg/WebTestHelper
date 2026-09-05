@@ -58,7 +58,7 @@
                             </span>
                         </td>
                         <td class="zell-badge">
-                            <span class="type-pill-mono" th:text="${site.settingCount} + ' aktiv'">10</span>
+                            <span class="type-pill-mono" th:text="#{ui.websites.tabelle.pruefungen.aktiv(${site.settingCount})}">10 aktiv</span>
                         </td>
                         <td class="text-rechts zell-aktion" x-data="{ loeschenOffen: false }">
                             <div style="display: flex; align-items: center; justify-content: flex-end; gap: 0.5rem;">

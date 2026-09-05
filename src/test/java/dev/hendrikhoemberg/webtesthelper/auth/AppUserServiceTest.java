@@ -1,8 +1,8 @@
-package dev.hendrikhoemberg.webtesthelper.web;
+package dev.hendrikhoemberg.webtesthelper.auth;
 
 import dev.hendrikhoemberg.webtesthelper.support.AbstractPostgresTest;
-import dev.hendrikhoemberg.webtesthelper.web.persistence.AppUserEntity;
-import dev.hendrikhoemberg.webtesthelper.web.persistence.AppUserRepository;
+import dev.hendrikhoemberg.webtesthelper.auth.persistence.AppUserEntity;
+import dev.hendrikhoemberg.webtesthelper.auth.persistence.AppUserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -115,6 +115,32 @@ class AppUserServiceTest extends AbstractPostgresTest {
 
         appUserService.setTutorialAbgeschlossen("tutorialUser", false);
         assertThat(appUserService.isTutorialAbgeschlossen("tutorialUser")).isFalse();
+    }
+
+    @Test
+    void setPasswordRejectsPasswordUnderEightCharactersOrNull() {
+        long id = appUserService.create("resetUser", "initialPass123", AppRole.USER);
+
+        assertThatThrownBy(() -> appUserService.setPassword(id, "short"))
+                .isInstanceOfSatisfying(UserValidationException.class, ex -> {
+                    assertThat(ex.messageKey()).isEqualTo("user.password.tooShort");
+                    assertThat(ex.args()).containsExactly(8);
+                });
+
+        assertThatThrownBy(() -> appUserService.setPassword(id, null))
+                .isInstanceOfSatisfying(UserValidationException.class, ex -> {
+                    assertThat(ex.messageKey()).isEqualTo("user.password.tooShort");
+                    assertThat(ex.args()).containsExactly(8);
+                });
+    }
+
+    @Test
+    void setPasswordUpdatesPasswordHashWhenValid() {
+        long id = appUserService.create("validResetUser", "initialPass123", AppRole.USER);
+        appUserService.setPassword(id, "newSecurePassword456");
+
+        UserDetails userDetails = appUserService.loadUserByUsername("validResetUser");
+        assertThat(passwordEncoder.matches("newSecurePassword456", userDetails.getPassword())).isTrue();
     }
 }
 

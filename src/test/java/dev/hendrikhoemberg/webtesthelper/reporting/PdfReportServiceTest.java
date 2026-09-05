@@ -1,6 +1,5 @@
 package dev.hendrikhoemberg.webtesthelper.reporting;
 
-import dev.hendrikhoemberg.webtesthelper.crawler.BrowserPool;
 import org.junit.jupiter.api.Test;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
@@ -17,19 +16,20 @@ import static org.mockito.Mockito.when;
 class PdfReportServiceTest {
 
     @Test
-    void generatePdf_delegatesToBrowserPoolSubmit() {
+    void generatePdf_delegatesToPdfRenderer() {
         TemplateEngine engine = mock(TemplateEngine.class);
-        BrowserPool pool = mock(BrowserPool.class);
+        PdfRenderer renderer = mock(PdfRenderer.class);
         byte[] fakePdf = "%PDF-1.4 mock".getBytes();
+        String html = "<html><body><h1>Test Bericht</h1></body></html>";
 
         when(engine.process(eq("test-template"), any(Context.class)))
-                .thenReturn("<html><body><h1>Test Bericht</h1></body></html>");
-        when(pool.submit(any())).thenReturn(fakePdf);
+                .thenReturn(html);
+        when(renderer.render(html)).thenReturn(fakePdf);
 
-        PdfReportService service = new PdfReportService(engine, pool);
+        PdfReportService service = new PdfReportService(engine, renderer);
         byte[] pdf = service.generatePdf("test-template", Map.of("title", "Test"));
 
         assertThat(pdf).isEqualTo(fakePdf);
-        verify(pool).submit(any());
+        verify(renderer).render(html);
     }
 }

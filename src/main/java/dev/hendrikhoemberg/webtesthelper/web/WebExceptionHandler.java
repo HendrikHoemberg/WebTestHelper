@@ -1,5 +1,6 @@
 package dev.hendrikhoemberg.webtesthelper.web;
 
+import dev.hendrikhoemberg.webtesthelper.auth.UserValidationException;
 import dev.hendrikhoemberg.webtesthelper.findings.TriageValidationException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.context.MessageSource;

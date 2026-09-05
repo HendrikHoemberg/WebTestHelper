@@ -1,16 +1,20 @@
 package dev.hendrikhoemberg.webtesthelper.scheduling;
 
+import dev.hendrikhoemberg.webtesthelper.catalog.SiteService;
 import dev.hendrikhoemberg.webtesthelper.model.RunScope;
 import dev.hendrikhoemberg.webtesthelper.scheduling.persistence.ScheduleEntity;
 import dev.hendrikhoemberg.webtesthelper.scheduling.persistence.ScheduleRepository;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.LinkedHashMap;
+import java.util.Set;
 
 /**
  * The schedule catalog: reads one tier's rows for a site, the due set for the dispatcher,
@@ -28,19 +32,27 @@ public class ScheduleService {
     private static final String DEFAULT_TIMEZONE = "Europe/Berlin";
 
     private final ScheduleRepository schedules;
+    private final SiteService siteService;
 
-    public ScheduleService(ScheduleRepository schedules) {
+    public ScheduleService(ScheduleRepository schedules, SiteService siteService) {
         this.schedules = schedules;
+        this.siteService = siteService;
     }
 
+    @Transactional(readOnly = true)
     public List<Schedule> forSite(long siteId) {
         return schedules.findBySiteIdOrderByScope(siteId).stream()
                 .map(this::toSchedule)
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public List<Schedule> due(Instant now, int limit) {
-        return schedules.findDue(now, Limit.of(limit)).stream()
+        List<Long> enabledSiteIds = siteService.enabledSiteIds();
+        if (enabledSiteIds.isEmpty()) {
+            return List.of();
+        }
+        return schedules.findDue(enabledSiteIds, now, Limit.of(limit)).stream()
                 .map(this::toSchedule)
                 .toList();
     }
@@ -51,9 +63,14 @@ public class ScheduleService {
      * by occurrence; DISTINCT ON is not expressible in JPQL, so the first row per site is taken
      * here. A site with no enabled, non-null row is absent.
      */
+    @Transactional(readOnly = true)
     public Map<Long, Schedule> nextFirePerSite() {
+        List<Long> enabledSiteIds = siteService.enabledSiteIds();
+        if (enabledSiteIds.isEmpty()) {
+            return Map.of();
+        }
         Map<Long, Schedule> firstPerSite = new LinkedHashMap<>();
-        for (ScheduleEntity row : schedules.findNextFirePerSite()) {
+        for (ScheduleEntity row : schedules.findNextFirePerSite(enabledSiteIds)) {
             firstPerSite.putIfAbsent(row.getSiteId(), toSchedule(row));
         }
         return firstPerSite;
@@ -89,17 +106,19 @@ public class ScheduleService {
 
     /** D38's lazy backfill: seeds every site that has no schedule rows at all. */
     public int seedMissingDefaults(Instant now) {
-        List<Long> siteIds = schedules.findSiteIdsMissingSchedules();
-        for (Long siteId : siteIds) {
+        Set<Long> missingSiteIds = new LinkedHashSet<>(siteService.allSiteIds());
+        missingSiteIds.removeAll(schedules.findConfiguredSiteIds());
+        for (Long siteId : missingSiteIds) {
             seedDefaults(siteId, now);
         }
-        return siteIds.size();
+        return missingSiteIds.size();
     }
 
     /**
      * Updates one tier's schedule. A cron {@code CronSchedule.parse} rejects raises before any
      * write, so a bad expression cannot publish a row that would stop the tick for every site.
      */
+    @Transactional
     public void update(long scheduleId, String cron, String timezone, boolean enabled, Instant now) {
         ScheduleEntity row = schedules.findById(scheduleId)
                 .orElseThrow(() -> new IllegalArgumentException("Zeitplan " + scheduleId + " existiert nicht"));

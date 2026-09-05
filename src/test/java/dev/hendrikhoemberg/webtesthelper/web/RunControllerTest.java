@@ -1,5 +1,6 @@
 package dev.hendrikhoemberg.webtesthelper.web;
 
+import dev.hendrikhoemberg.webtesthelper.auth.AppUserService;
 import dev.hendrikhoemberg.webtesthelper.catalog.SiteService;
 import dev.hendrikhoemberg.webtesthelper.findings.FindingService;
 import dev.hendrikhoemberg.webtesthelper.findings.ReportSection;
@@ -396,7 +397,10 @@ class RunControllerTest {
 
         mvc.perform(get("/laeufe/" + runId + "/fortschritt"))
                 .andExpect(status().isOk())
-                .andExpect(header().string("HX-Refresh", "true"));
+                .andExpect(header().string("HX-Refresh", "true"))
+                .andExpect(content().string(not(containsString("hx-trigger"))))
+                .andExpect(content().string(not(containsString("Lauf abbrechen"))))
+                .andExpect(content().string(not(containsString("$dispatch('abbrechen-offen')"))));
     }
 
     @Test
@@ -440,7 +444,7 @@ class RunControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "USER")
+    @WithMockUser(roles = "ADMIN")
     void postAusgangsbestandWithCsrfCallsAcceptBaselineAndRedirectsWithFlashMessage() throws Exception {
         long runId = 101L;
         when(runService.acceptBaseline(runId)).thenReturn(5);

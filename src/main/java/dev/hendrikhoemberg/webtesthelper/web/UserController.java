@@ -1,5 +1,8 @@
 package dev.hendrikhoemberg.webtesthelper.web;
 
+import dev.hendrikhoemberg.webtesthelper.auth.AppRole;
+import dev.hendrikhoemberg.webtesthelper.auth.AppUserService;
+import dev.hendrikhoemberg.webtesthelper.auth.UserValidationException;
 import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;

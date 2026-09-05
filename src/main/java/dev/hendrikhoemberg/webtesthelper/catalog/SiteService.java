@@ -148,12 +148,25 @@ public class SiteService {
         checkSettings.save(setting);
     }
 
+    @Transactional(readOnly = true)
+    public List<Long> enabledSiteIds() {
+        return sites.findEnabledIds();
+    }
+
+    @Transactional(readOnly = true)
+    public List<Long> allSiteIds() {
+        return sites.findAllIds();
+    }
+
+    @Transactional(readOnly = true)
     public List<SiteSummary> summaries() {
         List<SiteEntity> sites = this.sites.findAll();
         Map<Long, Integer> settingCounts = new java.util.HashMap<>();
         for (SiteCheckSettingEntity setting : checkSettings.findBySiteIdIn(
                 sites.stream().map(SiteEntity::getId).toList())) {
-            settingCounts.merge(setting.getSiteId(), 1, Integer::sum);
+            if (setting.isEnabled()) {
+                settingCounts.merge(setting.getSiteId(), 1, Integer::sum);
+            }
         }
         return sites.stream()
                 .map(site -> new SiteSummary(site.getId(), site.getName(), site.getBaseUrl(),
@@ -161,12 +174,17 @@ public class SiteService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public SiteSummary summary(long id) {
         SiteEntity site = requireSite(id);
+        long enabledCount = checkSettings.findBySiteId(id).stream()
+                .filter(SiteCheckSettingEntity::isEnabled)
+                .count();
         return new SiteSummary(site.getId(), site.getName(), site.getBaseUrl(), site.isEnabled(),
-                checkSettings.findBySiteId(id).size());
+                (int) enabledCount);
     }
 
+    @Transactional(readOnly = true)
     public boolean exists(long siteId) {
         return sites.existsById(siteId);
     }

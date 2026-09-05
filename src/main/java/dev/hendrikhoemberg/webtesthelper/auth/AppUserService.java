@@ -1,7 +1,7 @@
-package dev.hendrikhoemberg.webtesthelper.web;
+package dev.hendrikhoemberg.webtesthelper.auth;
 
-import dev.hendrikhoemberg.webtesthelper.web.persistence.AppUserEntity;
-import dev.hendrikhoemberg.webtesthelper.web.persistence.AppUserRepository;
+import dev.hendrikhoemberg.webtesthelper.auth.persistence.AppUserEntity;
+import dev.hendrikhoemberg.webtesthelper.auth.persistence.AppUserRepository;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Sort;
@@ -81,6 +81,9 @@ public class AppUserService implements UserDetailsService {
 
     @Transactional
     public void setPassword(long id, String rawPassword) {
+        if (rawPassword == null || rawPassword.length() < MIN_PASSWORD_LENGTH) {
+            throw new UserValidationException("user.password.tooShort", MIN_PASSWORD_LENGTH);
+        }
         AppUserEntity entity = require(id);
         entity.setPasswordHash(passwordEncoder.encode(rawPassword));
     }
@@ -179,4 +182,3 @@ public class AppUserService implements UserDetailsService {
                 entity.isEnabled(), entity.getCreatedAt());
     }
 }
-

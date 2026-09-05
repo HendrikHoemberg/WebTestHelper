@@ -2,6 +2,7 @@ package dev.hendrikhoemberg.webtesthelper.runner;
 
 import dev.hendrikhoemberg.webtesthelper.catalog.SiteService;
 import dev.hendrikhoemberg.webtesthelper.checks.CheckEngine;
+import dev.hendrikhoemberg.webtesthelper.crawler.CrawlCancelledException;
 import dev.hendrikhoemberg.webtesthelper.crawler.CrawlRequest;
 import dev.hendrikhoemberg.webtesthelper.crawler.CrawlResult;
 import dev.hendrikhoemberg.webtesthelper.crawler.CrawlService;
@@ -102,16 +103,22 @@ public class CrawlRunExecutor implements RunExecutor {
         heartbeatOrThrow(lease);
         SiteContext site = sites.contextFor(lease.siteId());
         Instant startedAt = Instant.now();
-        CrawlResult result = crawler.crawl(
-                new CrawlRequest(lease.runId(), site, lease.scope(), identity.name()),
-                (visited, failed) -> {
-                    // A crawl outlives the 30-minute lease it was claimed under; without this
-                    // the sweep would reclaim a run that is perfectly healthy (spec 14). The
-                    // heartbeat doubles as the crawl's cancellation checkpoint: once the user
-                    // cancels the run, the next batch boundary ends the crawl.
-                    heartbeatOrThrow(lease);
-                    results.updateProgress(lease.runId(), visited, failed);
-                });
+        CrawlResult result;
+        try {
+            result = crawler.crawl(
+                    new CrawlRequest(lease.runId(), site, lease.scope(), identity.name(),
+                            () -> !leases.isStillRunning(lease.runId(), identity.name())),
+                    (visited, failed) -> {
+                        // A crawl outlives the 30-minute lease it was claimed under; without this
+                        // the sweep would reclaim a run that is perfectly healthy (spec 14). The
+                        // heartbeat doubles as the crawl's cancellation checkpoint: once the user
+                        // cancels the run, the next batch boundary ends the crawl.
+                        heartbeatOrThrow(lease);
+                        results.updateProgress(lease.runId(), visited, failed);
+                    });
+        } catch (CrawlCancelledException e) {
+            throw new RunCancelledException("Lauf " + lease.runId() + " wurde abgebrochen");
+        }
 
         // Verification and the check pass both run outside the crawl's heartbeat callback, and a
         // large site's verification pass is minutes of blocking I/O. One extension here closes the

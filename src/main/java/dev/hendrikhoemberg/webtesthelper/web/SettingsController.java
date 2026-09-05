@@ -96,6 +96,14 @@ public class SettingsController {
                     "Mindestens eine der angegebenen E-Mail-Adressen ist ungültig.");
         }
 
+        if (form.getWebhookUrl() != null && !form.getWebhookUrl().isBlank()) {
+            try {
+                webhookNotifier.validateWebhookUrl(form.getWebhookUrl());
+            } catch (IllegalArgumentException e) {
+                bindingResult.rejectValue("webhookUrl", "ui.einstellungen.fehler.webhookUrl.invalid", e.getMessage());
+            }
+        }
+
         if (bindingResult.hasErrors()) {
             SmtpSettings currentSmtp = appSettings.smtp();
             ImapSettings currentImap = appSettings.imap();

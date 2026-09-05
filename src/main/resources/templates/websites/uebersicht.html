@@ -30,7 +30,7 @@
             <p style="font-size: 1.4rem; font-weight: 700; margin: 0 0 0.5rem;">
                 <span th:text="${openCounts.untriagedErrors()}">0</span> <span th:text="#{ui.websites.detail.status.fehler}">Fehler</span>
                 &middot;
-                <span th:text="${openCounts.untriagedWarnings()}">0</span> <span th:text="#{ui.websites.detail.status.hinweise}">Hinweise</span>
+                <span th:text="${openCounts.untriagedWarnings()}">0</span> <span th:text="#{ui.websites.detail.status.warnungen}">Warnungen</span>
             </p>
             <p th:if="${openCounts.acknowledged() > 0}" class="text-gedaempft" style="font-size: 0.85rem; margin: 0 0 0.5rem;"
                th:text="#{ui.uebersicht.altlasten(${openCounts.acknowledged()})}">40 im Ausgangsbestand</p>

@@ -25,6 +25,9 @@ class OutboxServiceTest extends AbstractPostgresTest {
     @Autowired
     JdbcTemplate jdbc;
 
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    Notifier notifier;
+
     @BeforeEach
     void setUp() {
         jdbc.execute("DELETE FROM notification");
@@ -103,5 +106,74 @@ class OutboxServiceTest extends AbstractPostgresTest {
 
         Optional<String> lastError = outboxService.lastError();
         assertThat(lastError).isPresent().contains("Newer relay connection timeout");
+    }
+
+    @Test
+    void sendNow_deliversOutsideTransaction() throws Exception {
+        java.util.concurrent.atomic.AtomicBoolean wasActive = new java.util.concurrent.atomic.AtomicBoolean(true);
+        org.mockito.Mockito.doAnswer(invocation -> {
+            wasActive.set(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive());
+            return null;
+        }).when(notifier).deliver(org.mockito.ArgumentMatchers.any());
+
+        long id = outboxService.enqueue(new OutboundMail("user@example.com", "Subject", "<p>hi</p>", "hi"));
+        DeliveryResult result = outboxService.sendNow(id);
+
+        assertThat(result.success()).isTrue();
+        assertThat(wasActive.get()).isFalse();
+
+        NotificationEntity entity = notificationRepository.findById(id).orElseThrow();
+        assertThat(entity.getState()).isEqualTo(NotificationState.SENT);
+        assertThat(entity.getSentAt()).isNotNull();
+    }
+
+    @Test
+    void sendNow_recordsFailureAndBackoffOutsideTransactionWhenUnderMaxAttempts() throws Exception {
+        java.util.concurrent.atomic.AtomicBoolean wasActive = new java.util.concurrent.atomic.AtomicBoolean(true);
+        org.mockito.Mockito.doAnswer(invocation -> {
+            wasActive.set(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive());
+            throw new MailDeliveryException("SMTP connection timeout");
+        }).when(notifier).deliver(org.mockito.ArgumentMatchers.any());
+
+        long id = outboxService.enqueue(new OutboundMail("user@example.com", "Subject", "<p>hi</p>", "hi"));
+        DeliveryResult result = outboxService.sendNow(id);
+
+        assertThat(result.success()).isFalse();
+        assertThat(wasActive.get()).isFalse();
+
+        NotificationEntity entity = notificationRepository.findById(id).orElseThrow();
+        assertThat(entity.getState()).isEqualTo(NotificationState.PENDING);
+        assertThat(entity.getAttempts()).isEqualTo(1);
+        assertThat(entity.getLastError()).contains("SMTP connection timeout");
+        assertThat(entity.getNextAttemptAt()).isAfter(Instant.now());
+    }
+
+    @Test
+    void retryAllFailed_retriesAllItemsOutsideTransaction() throws Exception {
+        java.util.concurrent.atomic.AtomicInteger deliveriesOutsideTx = new java.util.concurrent.atomic.AtomicInteger(0);
+        org.mockito.Mockito.doAnswer(invocation -> {
+            if (!org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive()) {
+                deliveriesOutsideTx.incrementAndGet();
+            }
+            return null;
+        }).when(notifier).deliver(org.mockito.ArgumentMatchers.any());
+
+        long f1 = outboxService.enqueue(new OutboundMail("f1@example.com", "S1", "b", "b"));
+        long f2 = outboxService.enqueue(new OutboundMail("f2@example.com", "S2", "b", "b"));
+
+        NotificationEntity e1 = notificationRepository.findById(f1).orElseThrow();
+        e1.setState(NotificationState.FAILED);
+        notificationRepository.save(e1);
+
+        NotificationEntity e2 = notificationRepository.findById(f2).orElseThrow();
+        e2.setState(NotificationState.FAILED);
+        notificationRepository.save(e2);
+
+        int retried = outboxService.retryAllFailed();
+
+        assertThat(retried).isEqualTo(2);
+        assertThat(deliveriesOutsideTx.get()).isEqualTo(2);
+        assertThat(notificationRepository.findById(f1).orElseThrow().getState()).isEqualTo(NotificationState.SENT);
+        assertThat(notificationRepository.findById(f2).orElseThrow().getState()).isEqualTo(NotificationState.SENT);
     }
 }

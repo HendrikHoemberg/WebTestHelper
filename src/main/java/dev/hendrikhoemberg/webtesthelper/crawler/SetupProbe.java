@@ -8,6 +8,7 @@ import dev.hendrikhoemberg.webtesthelper.model.NormalizedUrl;
 import dev.hendrikhoemberg.webtesthelper.model.PageSnapshot;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
 import dev.hendrikhoemberg.webtesthelper.model.UrlNormalizer;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.nio.file.Path;
@@ -32,14 +33,23 @@ public class SetupProbe {
     private final SiteResourceFetcher fetcher;
     private final SetupProbeProperties properties;
     private final CrawlerProperties crawlerProperties;
+    private final HostThrottle throttle;
 
+    @Autowired
     public SetupProbe(BrowserPool pool, PageNavigator navigator, SiteResourceFetcher fetcher,
-            SetupProbeProperties properties, CrawlerProperties crawlerProperties) {
+            SetupProbeProperties properties, CrawlerProperties crawlerProperties,
+            HostThrottle throttle) {
         this.pool = pool;
         this.navigator = navigator;
         this.fetcher = fetcher;
         this.properties = properties;
         this.crawlerProperties = crawlerProperties;
+        this.throttle = throttle;
+    }
+
+    public SetupProbe(BrowserPool pool, PageNavigator navigator, SiteResourceFetcher fetcher,
+            SetupProbeProperties properties, CrawlerProperties crawlerProperties) {
+        this(pool, navigator, fetcher, properties, crawlerProperties, new HostThrottle());
     }
 
     public ProbeEvidence probe(SiteContext site) {
@@ -92,6 +102,7 @@ public class SetupProbe {
     }
 
     private PageSnapshot capture(NormalizedUrl url, SiteContext site, Path artifacts) {
+        throttle.await(url.host(), crawlerProperties.perHostDelay());
         return pool.submit(browser -> navigator.capture(browser,
                 new CrawlTarget(-1L, url.value(), 0), site, artifacts));
     }

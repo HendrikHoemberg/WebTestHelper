@@ -116,7 +116,6 @@ public class PageNavigator {
             return PageSnapshot.unreachable(fallbackUrl(), target.url(), target.depth(),
                     "Nicht als URL interpretierbar", List.of(), List.of());
         }
-        throttle.await(requested.host(), properties.perHostDelay());
 
         List<ConsoleMessage> console = Collections.synchronizedList(new ArrayList<>());
         List<FailedRequest> failed = Collections.synchronizedList(new ArrayList<>());

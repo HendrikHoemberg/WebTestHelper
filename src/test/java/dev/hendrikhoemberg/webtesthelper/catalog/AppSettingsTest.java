@@ -26,6 +26,19 @@ class AppSettingsTest extends AbstractPostgresTest {
     @AfterEach
     void cleanUp() {
         appSettingRepository.deleteAll();
+        appSettings.invalidateSchedulingPausedCache();
+    }
+
+    @Test
+    void schedulingPausedIsServedFromCacheAndInvalidatedOnSave() {
+        appSettings.saveSchedulingPaused(true);
+        appSettingRepository.deleteAll();
+
+        // The row is gone, but the in-memory cache still answers (DB-04: one read per process).
+        assertThat(appSettings.schedulingPaused()).isTrue();
+
+        appSettings.saveSchedulingPaused(false);
+        assertThat(appSettings.schedulingPaused()).isFalse();
     }
 
     @Test
@@ -157,5 +170,20 @@ class AppSettingsTest extends AbstractPostgresTest {
         assertThat(appSettings.webhookUrl()).isEqualTo("https://hooks.slack.com/services/test");
         assertThat(appSettings.webhookEnabled()).isTrue();
         assertThat(appSettings.webhookOnlyCritical()).isFalse();
+    }
+
+    @Test
+    void corruptPasswordCiphertextReturnsNullPasswordWithoutThrowing() {
+        AppSettingEntity corruptSmtp = new AppSettingEntity("smtp.password", "not-a-valid-base64-or-key", true, java.time.Instant.now());
+        appSettingRepository.save(corruptSmtp);
+
+        SmtpSettings smtp = appSettings.smtp();
+        assertThat(smtp.password()).isNull();
+
+        AppSettingEntity corruptImap = new AppSettingEntity("imap.password", "not-a-valid-base64-or-key", true, java.time.Instant.now());
+        appSettingRepository.save(corruptImap);
+
+        ImapSettings imap = appSettings.imap();
+        assertThat(imap.password()).isNull();
     }
 }

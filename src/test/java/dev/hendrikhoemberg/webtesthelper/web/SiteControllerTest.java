@@ -1,5 +1,6 @@
 package dev.hendrikhoemberg.webtesthelper.web;
 
+import dev.hendrikhoemberg.webtesthelper.auth.AppUserService;
 import dev.hendrikhoemberg.webtesthelper.catalog.AppSettings;
 import dev.hendrikhoemberg.webtesthelper.catalog.CredentialService;
 import dev.hendrikhoemberg.webtesthelper.catalog.RecipientService;
@@ -429,5 +430,58 @@ class SiteControllerTest {
                 .andExpect(flash().attribute("flashMessage", containsString("Kunde A")));
 
         verify(siteService).delete(42L);
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void postWebsitesWithEmptyFormRerendersWithFieldErrorsAndNoSpelException() throws Exception {
+        mvc.perform(post("/websites")
+                        .with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(view().name("websites/formular"))
+                .andExpect(model().attributeHasFieldErrors("form", "name"))
+                .andExpect(model().attributeHasFieldErrors("form", "baseUrl"))
+                .andExpect(model().attributeHasFieldErrors("form", "maxPages"))
+                .andExpect(model().attributeHasFieldErrors("form", "maxDepth"))
+                .andExpect(model().attributeHasFieldErrors("form", "maxDurationMinutes"))
+                .andExpect(content().string(containsString("Bitte einen Namen für die Website angeben.")))
+                .andExpect(content().string(containsString("Bitte eine Basis-URL angeben.")))
+                .andExpect(content().string(containsString("Bitte ein Seitenlimit angeben.")))
+                .andExpect(content().string(containsString("Bitte eine maximale Tiefe angeben.")))
+                .andExpect(content().string(containsString("Bitte ein Zeitlimit angeben.")));
+
+        verifyNoInteractions(siteService);
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void postWebsitesEditWithEmptyFormRerendersWithFieldErrors() throws Exception {
+        mvc.perform(post("/websites/42")
+                        .with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(view().name("websites/formular"))
+                .andExpect(model().attribute("siteId", 42L))
+                .andExpect(model().attributeHasFieldErrors("form", "name"))
+                .andExpect(model().attributeHasFieldErrors("form", "baseUrl"));
+
+        verify(siteService, never()).update(anyLong(), any());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void postWebsitesWithTypeMismatchShowsFriendlyGermanError() throws Exception {
+        mvc.perform(post("/websites")
+                        .with(csrf())
+                        .param("name", "Test")
+                        .param("baseUrl", "https://example.com/")
+                        .param("maxPages", "keine-zahl")
+                        .param("maxDepth", "0")
+                        .param("maxDurationMinutes", "30"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("websites/formular"))
+                .andExpect(model().attributeHasFieldErrors("form", "maxPages"))
+                .andExpect(content().string(containsString("Bitte ein gültiges Seitenlimit als Zahl angeben.")));
+
+        verifyNoInteractions(siteService);
     }
 }

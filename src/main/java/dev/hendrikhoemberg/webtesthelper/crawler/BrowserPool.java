@@ -3,6 +3,7 @@ package dev.hendrikhoemberg.webtesthelper.crawler;
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserType;
 import com.microsoft.playwright.Playwright;
+import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.MDC;
 import org.slf4j.LoggerFactory;
@@ -17,6 +18,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * A fixed set of thread-confined browser workers (spec 5.4). Playwright's Java API is not
@@ -89,13 +92,18 @@ public class BrowserPool implements AutoCloseable {
     }
 
     @Override
+    @PreDestroy
     public void close() {
-        workers.forEach(Worker::close);
+        close(5, TimeUnit.SECONDS);
+    }
+
+    void close(long timeout, TimeUnit unit) {
+        workers.forEach(w -> w.close(timeout, unit));
         workers.clear();
         available.clear();
     }
 
-    private static final class Worker {
+    static final class Worker {
 
         private final int index;
         private final boolean headless;
@@ -104,7 +112,7 @@ public class BrowserPool implements AutoCloseable {
         private Playwright playwright;
         private Browser browser;
 
-        private Worker(int index, boolean headless, boolean noSandbox) {
+        Worker(int index, boolean headless, boolean noSandbox) {
             this.index = index;
             this.headless = headless;
             this.noSandbox = noSandbox;
@@ -155,9 +163,16 @@ public class BrowserPool implements AutoCloseable {
             browser = playwright.chromium().launch(launchOptions(headless, noSandbox));
         }
 
-        private void close() {
+        void close() {
+            close(5, TimeUnit.SECONDS);
+        }
+
+        void close(long timeout, TimeUnit unit) {
             try {
-                thread.submit(this::closeQuietly).get();
+                thread.submit(this::closeQuietly).get(timeout, unit);
+            } catch (TimeoutException e) {
+                log.warn("Browser-Worker {} schloss nicht innerhalb von {} {}, erzwinge Abbruch",
+                        index, timeout, unit);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             } catch (ExecutionException e) {

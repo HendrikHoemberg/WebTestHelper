@@ -1,5 +1,6 @@
 package dev.hendrikhoemberg.webtesthelper.web;
 
+import dev.hendrikhoemberg.webtesthelper.auth.AppUserService;
 import dev.hendrikhoemberg.webtesthelper.catalog.AppSettings;
 import dev.hendrikhoemberg.webtesthelper.catalog.CredentialService;
 import dev.hendrikhoemberg.webtesthelper.catalog.RecipientService;
@@ -274,4 +275,16 @@ class ScheduleControllerTest {
         verify(scheduleService, never()).update(anyLong(), anyString(), anyString(), anyBoolean(), any());
     }
 
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void emptySubmissionReRendersWithGlobalErrorWithoutNpe() throws Exception {
+        when(scheduleService.forSite(1L)).thenReturn(defaultSchedules());
+
+        mvc.perform(post("/websites/1/zeitplaene").with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(view().name("websites/konfiguration"))
+                .andExpect(model().hasErrors());
+
+        verify(scheduleService, never()).update(anyLong(), anyString(), anyString(), anyBoolean(), any());
+    }
 }

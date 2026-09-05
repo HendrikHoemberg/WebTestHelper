@@ -59,6 +59,10 @@ public class SiteController {
                          BindingResult bindingResult,
                          Model model) {
         if (bindingResult.hasErrors()) {
+            if (!model.containsAttribute("form") || model.getAttribute("form") == null) {
+                model.addAttribute("form", SiteFormModel.empty());
+                model.addAttribute(BindingResult.MODEL_KEY_PREFIX + "form", bindingResult);
+            }
             return "websites/formular";
         }
         if (siteService.baseUrlTaken(form.baseUrl())) {
@@ -115,6 +119,10 @@ public class SiteController {
                          BindingResult bindingResult,
                          Model model) {
         if (bindingResult.hasErrors()) {
+            if (!model.containsAttribute("form") || model.getAttribute("form") == null) {
+                model.addAttribute("form", SiteFormModel.empty());
+                model.addAttribute(BindingResult.MODEL_KEY_PREFIX + "form", bindingResult);
+            }
             model.addAttribute("siteId", id);
             return "websites/formular";
         }

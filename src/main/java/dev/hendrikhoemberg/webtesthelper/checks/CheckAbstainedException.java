@@ -5,9 +5,10 @@ import dev.hendrikhoemberg.webtesthelper.model.CheckType;
 /**
  * Thrown when an interaction check cannot judge a page (D86).
  *
- * <p>This is <em>not</em> {@link CheckEvaluationException}, whose javadoc says a throwing check
- * is a bug and should fail the run loudly. This says the page could not be judged, which is a fact
- * about the page and not about the code (for example, a restless page whose DOM never settles).
+ * <p>This is <em>not</em> a check bug: an unexpected exception inside a check is contained and
+ * logged by the engine, which continues with the remaining checks. This says the page could not
+ * be judged, which is a fact about the page and not about the code (for example, a restless
+ * page whose DOM never settles).
  *
  * <p>Why it cannot be an empty finding list: a check that returns {@code List.of()} is telling
  * coverage it looked and saw nothing, and §6.4 then lets the run resolve last week's findings on

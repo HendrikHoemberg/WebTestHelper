@@ -176,6 +176,13 @@ public class RunLeaseJdbcRepository {
         return jdbc.update(HEARTBEAT_SQL, (double) extendBy.toSeconds(), runId, owner) == 1;
     }
 
+    public boolean isStillRunning(long runId, String owner) {
+        Integer count = jdbc.queryForObject(
+                "SELECT count(*) FROM run WHERE id = ? AND lease_owner = ? AND status = 'RUNNING'",
+                Integer.class, runId, owner);
+        return count != null && count == 1;
+    }
+
     public boolean finish(long runId, String owner, RunStatus status, String errorMessage) {
         return jdbc.update(FINISH_SQL, status.name(), errorMessage, runId, owner) == 1;
     }

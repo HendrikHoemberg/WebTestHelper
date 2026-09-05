@@ -19,4 +19,11 @@ class BrowserPoolLaunchOptionsTest {
         assertThat(BrowserPool.launchOptions(true, false).args).isNullOrEmpty();
         assertThat(BrowserPool.launchOptions(false, true).args).contains("--no-sandbox");
     }
+
+    @Test
+    void closeMethodHasPreDestroyAnnotation() throws NoSuchMethodException {
+        assertThat(BrowserPool.class.getMethod("close").isAnnotationPresent(jakarta.annotation.PreDestroy.class))
+                .isTrue();
+    }
 }
+

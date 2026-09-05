@@ -1,4 +1,4 @@
-package dev.hendrikhoemberg.webtesthelper.web;
+package dev.hendrikhoemberg.webtesthelper.auth;
 
 /**
  * Thrown when a user-management write fails validation (blank or duplicate username, short

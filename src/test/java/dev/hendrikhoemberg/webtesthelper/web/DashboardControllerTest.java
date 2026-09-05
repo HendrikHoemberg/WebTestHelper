@@ -1,5 +1,6 @@
 package dev.hendrikhoemberg.webtesthelper.web;
 
+import dev.hendrikhoemberg.webtesthelper.auth.AppUserService;
 import dev.hendrikhoemberg.webtesthelper.findings.OpenFindingCounts;
 import dev.hendrikhoemberg.webtesthelper.model.RunScope;
 import dev.hendrikhoemberg.webtesthelper.model.RunStatus;

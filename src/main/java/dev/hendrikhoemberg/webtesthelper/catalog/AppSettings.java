@@ -2,6 +2,8 @@ package dev.hendrikhoemberg.webtesthelper.catalog;
 
 import dev.hendrikhoemberg.webtesthelper.catalog.persistence.AppSettingEntity;
 import dev.hendrikhoemberg.webtesthelper.catalog.persistence.AppSettingRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,6 +14,8 @@ import java.util.Optional;
 @Service
 @Transactional
 public class AppSettings {
+
+    private static final Logger log = LoggerFactory.getLogger(AppSettings.class);
 
     public static final String KEY_SMTP_HOST = "smtp.host";
     public static final String KEY_SMTP_PORT = "smtp.port";
@@ -36,6 +40,12 @@ public class AppSettings {
 
     private final AppSettingRepository repository;
     private final SecretBox secretBox;
+
+    /**
+     * In-memory copy of the pause flag (D36): every page render reads it, so it is loaded from
+     * the database once per process and refreshed on every save instead of once per request.
+     */
+    private volatile Boolean schedulingPausedCache;
 
     public AppSettings(AppSettingRepository repository, SecretBox secretBox) {
         this.repository = repository;
@@ -71,7 +81,12 @@ public class AppSettings {
         if (passwordEntity.isPresent() && passwordEntity.get().getSettingValue() != null) {
             String raw = passwordEntity.get().getSettingValue();
             if (passwordEntity.get().isEncrypted()) {
-                password = secretBox.decrypt(raw);
+                try {
+                    password = secretBox.decrypt(raw);
+                } catch (RuntimeException e) {
+                    log.warn("Entschlüsselung des SMTP-Passworts fehlgeschlagen; wird als null behandelt: {}", e.getMessage());
+                    password = null;
+                }
             } else {
                 password = raw;
             }
@@ -125,7 +140,12 @@ public class AppSettings {
         if (passwordEntity.isPresent() && passwordEntity.get().getSettingValue() != null) {
             String raw = passwordEntity.get().getSettingValue();
             if (passwordEntity.get().isEncrypted()) {
-                password = secretBox.decrypt(raw);
+                try {
+                    password = secretBox.decrypt(raw);
+                } catch (RuntimeException e) {
+                    log.warn("Entschlüsselung des IMAP-Passworts fehlgeschlagen; wird als null behandelt: {}", e.getMessage());
+                    password = null;
+                }
             } else {
                 password = raw;
             }
@@ -197,11 +217,22 @@ public class AppSettings {
 
     @Transactional(readOnly = true)
     public boolean schedulingPaused() {
-        return getSetting(KEY_SCHEDULING_PAUSED).map(Boolean::parseBoolean).orElse(false);
+        Boolean cached = schedulingPausedCache;
+        if (cached != null) {
+            return cached;
+        }
+        boolean value = getSetting(KEY_SCHEDULING_PAUSED).map(Boolean::parseBoolean).orElse(false);
+        schedulingPausedCache = value;
+        return value;
     }
 
     public void saveSchedulingPaused(boolean paused) {
         saveSetting(KEY_SCHEDULING_PAUSED, Boolean.toString(paused), false);
+        schedulingPausedCache = paused;
+    }
+
+    void invalidateSchedulingPausedCache() {
+        schedulingPausedCache = null;
     }
 
     @Transactional(readOnly = true)

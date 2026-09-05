@@ -115,7 +115,7 @@ public class SecretBox {
             cipher.init(Cipher.DECRYPT_MODE, key, new GCMParameterSpec(TAG_BITS, iv));
             byte[] pt = cipher.doFinal(ct);
             return new String(pt, StandardCharsets.UTF_8);
-        } catch (GeneralSecurityException e) {
+        } catch (GeneralSecurityException | IllegalArgumentException e) {
             throw new IllegalStateException("Decryption failed", e);
         }
     }

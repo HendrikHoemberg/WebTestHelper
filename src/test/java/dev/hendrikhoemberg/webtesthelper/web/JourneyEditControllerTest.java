@@ -1,5 +1,6 @@
 package dev.hendrikhoemberg.webtesthelper.web;
 
+import dev.hendrikhoemberg.webtesthelper.auth.AppUserService;
 import dev.hendrikhoemberg.webtesthelper.catalog.JourneyService;
 import dev.hendrikhoemberg.webtesthelper.catalog.SiteService;
 import dev.hendrikhoemberg.webtesthelper.model.AssertionType;
@@ -77,7 +78,7 @@ class JourneyEditControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "USER")
+    @WithMockUser(roles = "ADMIN")
     void editJourney_get_rendersFormWithJourneyDetailsAndStepsVerbatim() throws Exception {
         UUID step0Id = UUID.randomUUID();
         UUID step1Id = UUID.randomUUID();
@@ -120,7 +121,7 @@ class JourneyEditControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "USER")
+    @WithMockUser(roles = "ADMIN")
     void editJourney_rendersGermanActionAndStrategyLabels() throws Exception {
         UUID step0Id = UUID.randomUUID();
         JourneyStep step0 = new JourneyStep(
@@ -137,7 +138,7 @@ class JourneyEditControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "USER")
+    @WithMockUser(roles = "ADMIN")
     void editJourney_post_deletingStepLeavesDenseOrdinalsAndPreservesAllOtherStepUuids() throws Exception {
         UUID id0 = UUID.randomUUID();
         UUID id1 = UUID.randomUUID();
@@ -188,7 +189,7 @@ class JourneyEditControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "USER")
+    @WithMockUser(roles = "ADMIN")
     void editJourney_post_reorderingStepsChangesOrdinalsNotUuids() throws Exception {
         UUID id0 = UUID.randomUUID();
         UUID id1 = UUID.randomUUID();
@@ -225,7 +226,7 @@ class JourneyEditControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "USER")
+    @WithMockUser(roles = "ADMIN")
     void editJourney_post_editingValuePersistsItIncludingCredentialTemplates() throws Exception {
         UUID id0 = UUID.randomUUID();
         UUID id1 = UUID.randomUUID();
@@ -260,7 +261,7 @@ class JourneyEditControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "USER")
+    @WithMockUser(roles = "ADMIN")
     void editJourney_post_markingStepOptionalPersistsIt() throws Exception {
         UUID id0 = UUID.randomUUID();
         JourneyStep s0 = new JourneyStep(id0, 0, StepAction.GOTO, List.of(), "https://acme.example.com/", null, false, 5000);
@@ -288,7 +289,7 @@ class JourneyEditControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "USER")
+    @WithMockUser(roles = "ADMIN")
     void editJourney_post_addingAssertionsOfAllFourTypesPersistsThem() throws Exception {
         UUID id0 = UUID.randomUUID();
         UUID id1 = UUID.randomUUID();
@@ -346,7 +347,7 @@ class JourneyEditControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "USER")
+    @WithMockUser(roles = "ADMIN")
     void editJourney_post_removingAssertionSetsItToNull() throws Exception {
         UUID id0 = UUID.randomUUID();
         JourneyStep s0 = new JourneyStep(id0, 0, StepAction.GOTO, List.of(), "https://acme.example.com/",
@@ -376,7 +377,7 @@ class JourneyEditControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "USER")
+    @WithMockUser(roles = "ADMIN")
     void editJourney_post_whenNameBlankOrDuplicate_rendersFormWithError() throws Exception {
         UUID id0 = UUID.randomUUID();
         JourneyStep s0 = new JourneyStep(id0, 0, StepAction.GOTO, List.of(), "https://acme.example.com/", null, false, 5000);
@@ -399,7 +400,7 @@ class JourneyEditControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "USER")
+    @WithMockUser(roles = "ADMIN")
     void editJourney_post_submittingNewStepWithoutId_createsStepWithGeneratedUuid() throws Exception {
         UUID id0 = UUID.randomUUID();
         JourneyStep s0 = new JourneyStep(id0, 0, StepAction.GOTO, List.of(), "https://acme.example.com/", null, false, 5000);
@@ -438,7 +439,7 @@ class JourneyEditControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "USER")
+    @WithMockUser(roles = "ADMIN")
     void editJourney_whenNotFound_orSiteMismatch_returns404() throws Exception {
         when(journeyService.findDefinition(999L)).thenReturn(Optional.empty());
 

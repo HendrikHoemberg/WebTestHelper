@@ -18,4 +18,11 @@ class RecorderLaunchOptionsTest {
         assertThat(RecorderWorker.launchOptions(true, false).args).isNullOrEmpty();
         assertThat(RecorderWorker.launchOptions(false, true).args).contains("--no-sandbox");
     }
+
+    @Test
+    void closeMethodHasPreDestroyAnnotation() throws NoSuchMethodException {
+        assertThat(RecorderPool.class.getMethod("close").isAnnotationPresent(jakarta.annotation.PreDestroy.class))
+                .isTrue();
+    }
 }
+

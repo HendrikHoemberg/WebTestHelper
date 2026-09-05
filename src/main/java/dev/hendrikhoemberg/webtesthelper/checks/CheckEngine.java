@@ -6,6 +6,8 @@ import dev.hendrikhoemberg.webtesthelper.model.PageSnapshot;
 import dev.hendrikhoemberg.webtesthelper.model.RunFacts;
 import dev.hendrikhoemberg.webtesthelper.model.RunSnapshots;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,6 +29,8 @@ import java.util.Set;
  */
 public final class CheckEngine {
 
+    private static final Logger log = LoggerFactory.getLogger(CheckEngine.class);
+
     private final CheckRegistry registry;
 
     public CheckEngine(CheckRegistry registry) {
@@ -44,8 +48,8 @@ public final class CheckEngine {
 
     /**
      * The site pass: each registered {@link SiteCheck}, filtered by scope ∩ enabled exactly like
-     * the page pass, with the same failure wrapping. The site's base URL stands in for the page
-     * URL in the exception, because a site check has no single page it was evaluating.
+     * the page pass, with fault containment per check. The site's base URL stands in for the page
+     * URL in the log, because a site check has no single page it was evaluating.
      */
     public List<CheckFinding> evaluateSite(RunSnapshots snapshots, SiteContext site, RunFacts facts) {
         List<CheckFinding> findings = new ArrayList<>();
@@ -59,7 +63,8 @@ public final class CheckEngine {
             try {
                 findings.addAll(check.evaluate(snapshots, site, config));
             } catch (RuntimeException e) {
-                throw new CheckEvaluationException(check.type(), site.baseUrl().value(), e);
+                log.error("Site-Prüfung {} für {} fehlgeschlagen: {}",
+                        check.type(), site.baseUrl().value(), e.getMessage(), e);
             }
         }
         return findings;
@@ -86,7 +91,8 @@ public final class CheckEngine {
             try {
                 findings.addAll(check.evaluate(snapshot, config));
             } catch (RuntimeException e) {
-                throw new CheckEvaluationException(check.type(), snapshot.url().value(), e);
+                log.error("Prüfung {} auf Seite {} fehlgeschlagen: {}",
+                        check.type(), snapshot.url().value(), e.getMessage(), e);
             }
         }
         return findings;

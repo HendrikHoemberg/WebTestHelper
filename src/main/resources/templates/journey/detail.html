@@ -141,7 +141,7 @@
                         <div class="journey-meta-tags">
                             <span th:if="${step.optional}" class="status-badge status-inaktiv" th:text="#{ui.journey.detail.schritte.optional}">Optional</span>
                             <span th:unless="${step.optional}" class="text-gedaempft" style="font-size: 0.8rem;" th:text="#{ui.journey.detail.schritte.erforderlich}">Erforderlich</span>
-                            <span class="type-pill-mono" style="font-variant-numeric: tabular-nums;" th:text="${step.timeoutMs >= 1000 ? ((step.timeoutMs / 1000) + ' s') : (step.timeoutMs + ' ms')}">5 s</span>
+                            <span class="type-pill-mono" style="font-variant-numeric: tabular-nums;" th:text="${step.timeoutMs >= 1000 ? #messages.msg('ui.journey.detail.schritte.timeout_sekunden', step.timeoutMs / 1000) : #messages.msg('ui.journey.detail.schritte.timeout_millisekunden', step.timeoutMs)}">5 s</span>
                         </div>
                     </div>
                     <div class="journey-step-body">

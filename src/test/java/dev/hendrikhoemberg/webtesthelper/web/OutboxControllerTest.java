@@ -1,5 +1,6 @@
 package dev.hendrikhoemberg.webtesthelper.web;
 
+import dev.hendrikhoemberg.webtesthelper.auth.AppUserService;
 import dev.hendrikhoemberg.webtesthelper.reporting.NotificationState;
 import dev.hendrikhoemberg.webtesthelper.reporting.OutboxEntry;
 import dev.hendrikhoemberg.webtesthelper.reporting.OutboxService;

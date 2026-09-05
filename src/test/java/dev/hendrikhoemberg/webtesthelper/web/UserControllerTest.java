@@ -1,5 +1,9 @@
 package dev.hendrikhoemberg.webtesthelper.web;
 
+import dev.hendrikhoemberg.webtesthelper.auth.AppRole;
+import dev.hendrikhoemberg.webtesthelper.auth.AppUserService;
+import dev.hendrikhoemberg.webtesthelper.auth.AppUserSummary;
+import dev.hendrikhoemberg.webtesthelper.auth.UserValidationException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;

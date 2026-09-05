@@ -5,11 +5,12 @@ import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
 
 /** Decides what may enter the crawl frontier. Pure; one instance per run. */
-public record UrlAdmission(SiteContext site, RobotsRules robots) {
+public final class UrlAdmission {
 
     public enum Reason { OK, BAD_SCHEME, OFF_SITE, NOT_NAVIGABLE, TOO_DEEP, EXCLUDED,
                          NOT_INCLUDED, ROBOTS }
@@ -31,6 +32,26 @@ public record UrlAdmission(SiteContext site, RobotsRules robots) {
             "csv", "png", "jpg", "jpeg", "gif", "webp", "avif", "svg", "ico", "bmp", "tif", "tiff",
             "mp3", "mp4", "wav", "ogg", "webm", "mov", "avi", "css", "js", "json", "xml", "rss",
             "woff", "woff2", "ttf", "eot", "exe", "dmg", "apk");
+
+    private final SiteContext site;
+    private final RobotsRules robots;
+    private final List<Pattern> compiledExcludePatterns;
+    private final List<Pattern> compiledIncludePatterns;
+
+    public UrlAdmission(SiteContext site, RobotsRules robots) {
+        this.site = Objects.requireNonNull(site, "site must not be null");
+        this.robots = Objects.requireNonNull(robots, "robots must not be null");
+        this.compiledExcludePatterns = site.excludePatterns().stream().map(UrlAdmission::globOf).toList();
+        this.compiledIncludePatterns = site.includePatterns().stream().map(UrlAdmission::globOf).toList();
+    }
+
+    public SiteContext site() {
+        return site;
+    }
+
+    public RobotsRules robots() {
+        return robots;
+    }
 
     /**
      * Whether a URL may be verified over HTTP (deviation D19). The verifier's politeness gate:
@@ -63,10 +84,10 @@ public record UrlAdmission(SiteContext site, RobotsRules robots) {
             return Decision.no(Reason.TOO_DEEP);
         }
         String locationKey = url.locationKey();
-        if (matchesAny(site.excludePatterns(), locationKey)) {
+        if (matchesAny(compiledExcludePatterns, locationKey)) {
             return Decision.no(Reason.EXCLUDED);
         }
-        if (!site.includePatterns().isEmpty() && !matchesAny(site.includePatterns(), locationKey)) {
+        if (!compiledIncludePatterns.isEmpty() && !matchesAny(compiledIncludePatterns, locationKey)) {
             return Decision.no(Reason.NOT_INCLUDED);
         }
         if (site.respectRobots() && !robots.allows(locationKey)) {
@@ -81,8 +102,8 @@ public record UrlAdmission(SiteContext site, RobotsRules robots) {
         return dot > slash ? path.substring(dot + 1).toLowerCase(Locale.ROOT) : "";
     }
 
-    private static boolean matchesAny(List<String> patterns, String locationKey) {
-        return patterns.stream().anyMatch(pattern -> globOf(pattern).matcher(locationKey).matches());
+    private static boolean matchesAny(List<Pattern> patterns, String locationKey) {
+        return patterns.stream().anyMatch(pattern -> pattern.matcher(locationKey).matches());
     }
 
     /** Deviation D8: {@code *} is any run of characters, {@code ?} exactly one, anchored. */
@@ -97,5 +118,25 @@ public record UrlAdmission(SiteContext site, RobotsRules robots) {
             }
         }
         return Pattern.compile(regex.toString());
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        UrlAdmission that = (UrlAdmission) o;
+        return Objects.equals(site, that.site) && Objects.equals(robots, that.robots);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(site, robots);
+    }
+
+    @Override
+    public String toString() {
+        return "UrlAdmission[" +
+                "site=" + site + ", " +
+                "robots=" + robots + ']';
     }
 }

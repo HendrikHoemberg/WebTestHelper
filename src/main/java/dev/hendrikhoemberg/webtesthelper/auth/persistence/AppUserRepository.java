@@ -1,6 +1,6 @@
-package dev.hendrikhoemberg.webtesthelper.web.persistence;
+package dev.hendrikhoemberg.webtesthelper.auth.persistence;
 
-import dev.hendrikhoemberg.webtesthelper.web.AppRole;
+import dev.hendrikhoemberg.webtesthelper.auth.AppRole;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

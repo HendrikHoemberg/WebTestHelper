@@ -15,6 +15,7 @@ import java.util.Objects;
  * @param textContent    visible text content if present
  * @param value          current value (for inputs/selects) if present
  * @param cssPath        scoped CSS selector path
+ * @param inputType      HTML input type attribute (e.g. "password", "text") if present
  */
 public record CapturedEvent(
         EventKind kind,
@@ -26,10 +27,26 @@ public record CapturedEvent(
         String labelText,
         String textContent,
         String value,
-        String cssPath
+        String cssPath,
+        String inputType
 ) {
     public CapturedEvent {
         Objects.requireNonNull(kind, "kind must not be null");
+    }
+
+    public CapturedEvent(
+            EventKind kind,
+            String tagName,
+            String id,
+            String testId,
+            String role,
+            String accessibleName,
+            String labelText,
+            String textContent,
+            String value,
+            String cssPath
+    ) {
+        this(kind, tagName, id, testId, role, accessibleName, labelText, textContent, value, cssPath, null);
     }
 
     public enum EventKind {

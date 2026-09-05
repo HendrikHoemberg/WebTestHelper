@@ -1,5 +1,6 @@
 package dev.hendrikhoemberg.webtesthelper.web;
 
+import dev.hendrikhoemberg.webtesthelper.auth.AppUserService;
 import dev.hendrikhoemberg.webtesthelper.catalog.AppSettings;
 import dev.hendrikhoemberg.webtesthelper.catalog.ImapSettings;
 import dev.hendrikhoemberg.webtesthelper.catalog.SmtpSettings;
@@ -679,6 +680,35 @@ class SettingsControllerTest {
                 .andExpect(flash().attribute("webhookErfolg", "OK 200"));
 
         verify(webhookNotifier).sendTestNotification("https://hooks.slack.com/services/T00/B00/X00");
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void postWebhookTest_flashesErrorWhenNotifierReportsFailure() throws Exception {
+        when(webhookNotifier.sendTestNotification("http://127.0.0.1:8080"))
+                .thenReturn(new dev.hendrikhoemberg.webtesthelper.reporting.WebhookResult(false, "Zugriff auf interne Netzwerkadressen ist untersagt."));
+
+        mvc.perform(post("/einstellungen/webhook-test").with(csrf())
+                        .param("webhookUrl", "http://127.0.0.1:8080"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/einstellungen"))
+                .andExpect(flash().attribute("webhookFehler", "Zugriff auf interne Netzwerkadressen ist untersagt."));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void postSettings_rejectsInternalWebhookUrl() throws Exception {
+        org.mockito.Mockito.doThrow(new IllegalArgumentException("Zugriff auf interne Netzwerkadressen ist untersagt."))
+                .when(webhookNotifier).validateWebhookUrl("http://127.0.0.1:8080");
+
+        mvc.perform(post("/einstellungen").with(csrf())
+                        .param("baseUrl", "https://example.com")
+                        .param("webhookUrl", "http://127.0.0.1:8080")
+                        .param("webhookEnabled", "true")
+                        .param("fallbackRecipients", "admin@example.com"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("einstellungen/index"))
+                .andExpect(model().attributeHasFieldErrors("form", "webhookUrl"));
     }
 }
 

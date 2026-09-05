@@ -62,7 +62,7 @@ public class ScheduleController {
         List<Schedule> current = scheduleService.forSite(id);
         validate(form, bindingResult);
 
-        if (bindingResult.hasErrors()) {
+        if (bindingResult.hasErrors() || form == null || form.zeitplaene() == null) {
             siteDetailModel.populateConfigContext(id, model);
             model.addAttribute("zeitplaeneDetail", ScheduleView.detailByScope(current));
             return "websites/konfiguration";
@@ -90,10 +90,11 @@ public class ScheduleController {
 
     /** Cross-field rule for one row: the cron, when filled, is taken verbatim and the time ignored. */
     private void validate(ScheduleFormModel form, BindingResult bindingResult) {
-        List<ScheduleFormModel.Row> rows = form.zeitplaene();
-        if (rows == null) {
+        if (form == null || form.zeitplaene() == null || form.zeitplaene().isEmpty()) {
+            bindingResult.reject("ui.zeitplan.fehler.leer", "Es muss mindestens ein Zeitplan definiert sein.");
             return;
         }
+        List<ScheduleFormModel.Row> rows = form.zeitplaene();
         for (int i = 0; i < rows.size(); i++) {
             ScheduleFormModel.Row row = rows.get(i);
             String zeit = row.zeit() == null ? "" : row.zeit().strip();

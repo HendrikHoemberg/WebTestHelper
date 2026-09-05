@@ -1,5 +1,8 @@
 package dev.hendrikhoemberg.webtesthelper.web;
 
+import dev.hendrikhoemberg.webtesthelper.auth.AppRole;
+import dev.hendrikhoemberg.webtesthelper.auth.AppUserService;
+import dev.hendrikhoemberg.webtesthelper.auth.UserValidationException;
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserType;
 import com.microsoft.playwright.Page;

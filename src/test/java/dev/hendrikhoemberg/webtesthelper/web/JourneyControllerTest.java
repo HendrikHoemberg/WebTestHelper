@@ -1,5 +1,6 @@
 package dev.hendrikhoemberg.webtesthelper.web;
 
+import dev.hendrikhoemberg.webtesthelper.auth.AppUserService;
 import dev.hendrikhoemberg.webtesthelper.catalog.JourneyHealth;
 import dev.hendrikhoemberg.webtesthelper.catalog.JourneyHealthService;
 import dev.hendrikhoemberg.webtesthelper.catalog.JourneyService;
@@ -190,7 +191,10 @@ class JourneyControllerTest {
 
         JourneyStep step3 = new JourneyStep(
                 UUID.randomUUID(), 3, StepAction.CLICK,
-                List.of(new LocatorCandidate(LocatorStrategy.ROLE, "button-login", 0)),
+                List.of(
+                        new LocatorCandidate(LocatorStrategy.ROLE, "button-login", 0),
+                        new LocatorCandidate(LocatorStrategy.ID, "button-login-id", 1)
+                ),
                 null, null, false, 5000);
 
         JourneyStep step4 = new JourneyStep(
@@ -227,6 +231,7 @@ class JourneyControllerTest {
                 .andExpect(content().string(containsString("Passwort")))
                 .andExpect(content().string(containsString("#pwd-input")))
                 .andExpect(content().string(containsString("button-login")))
+                .andExpect(content().string(containsString("HTML-ID (Attribut id)")))
                 .andExpect(content().string(containsString("Willkommen zurück")))
                 // Credential templates rendered verbatim as text, NEVER resolved secret
                 .andExpect(content().string(containsString("{{cred.login.username}}")))
@@ -367,7 +372,7 @@ class JourneyControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "USER")
+    @WithMockUser(roles = "ADMIN")
     void runNow_replaysTheJourneyAndRendersThePassedResult() throws Exception {
         JourneyStep step1 = new JourneyStep(UUID.randomUUID(), 0, StepAction.GOTO, List.of(), "https://acme.example.com/login", null, false, 5000);
         JourneyDefinition journey = new JourneyDefinition(10L, 1L, "Anmeldung", true, List.of(step1));
@@ -384,7 +389,7 @@ class JourneyControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "USER")
+    @WithMockUser(roles = "ADMIN")
     void runNow_rendersFailedResultWithResolvedStepMessage() throws Exception {
         JourneyStep step1 = new JourneyStep(UUID.randomUUID(), 0, StepAction.GOTO, List.of(), "https://acme.example.com/login", null, false, 5000);
         JourneyDefinition journey = new JourneyDefinition(10L, 1L, "Anmeldung", true, List.of(step1));
@@ -402,7 +407,7 @@ class JourneyControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "USER")
+    @WithMockUser(roles = "ADMIN")
     void runNow_whenReplayThrows_rendersErrorResultWithoutRecordingHealth() throws Exception {
         JourneyDefinition journey = new JourneyDefinition(10L, 1L, "Anmeldung", true, List.of());
         when(journeyService.findDefinition(10L)).thenReturn(Optional.of(journey));
@@ -447,7 +452,7 @@ class JourneyControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     void deleteJourney_removesJourneyAndRedirectsWithFlashMessage() throws Exception {
         long siteId = 1L;
         long journeyId = 42L;
@@ -464,7 +469,7 @@ class JourneyControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     void deleteJourney_whenNotFound_returns404() throws Exception {
         when(journeyService.findDefinition(999L)).thenReturn(Optional.empty());
 
@@ -474,7 +479,7 @@ class JourneyControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     void deleteJourney_whenSiteMismatch_returns404() throws Exception {
         long journeyId = 42L;
         JourneyDefinition journey = new JourneyDefinition(journeyId, 2L, "Different Site", true, List.of());

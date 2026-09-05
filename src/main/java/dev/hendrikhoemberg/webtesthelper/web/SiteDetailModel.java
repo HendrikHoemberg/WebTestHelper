@@ -72,7 +72,11 @@ public class SiteDetailModel {
     }
 
     public void populate(long siteId, Model model) {
-        SiteContext site = siteService.contextFor(siteId);
+        populate(siteService.contextFor(siteId), model);
+    }
+
+    private void populate(SiteContext site, Model model) {
+        long siteId = site.siteId();
         List<RunSummary> recentRuns = runService.recentForSite(siteId, RECENT_RUNS);
         List<Schedule> schedules = scheduleService.forSite(siteId);
         List<Recipient> recipients = recipientService.list(siteId);
@@ -91,9 +95,10 @@ public class SiteDetailModel {
 
     /** Administrative view: budget, patterns, key pages, grouped checks and the panel forms. */
     public void populateConfig(long siteId, Model model) {
-        populate(siteId, model);
+        SiteContext site = siteService.contextFor(siteId);
+        populate(site, model);
         model.addAttribute("checkCategories", checkRegistry.categories());
-        model.addAttribute("trafficLight", trafficLight(siteService.contextFor(siteId)));
+        model.addAttribute("trafficLight", trafficLight(site));
     }
 
     /**

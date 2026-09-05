@@ -7,7 +7,7 @@ import dev.hendrikhoemberg.webtesthelper.model.JourneyStep;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
 import dev.hendrikhoemberg.webtesthelper.model.StepAction;
 import dev.hendrikhoemberg.webtesthelper.model.UrlNormalizer;
-import dev.hendrikhoemberg.webtesthelper.web.AppUserService;
+import dev.hendrikhoemberg.webtesthelper.auth.AppUserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;

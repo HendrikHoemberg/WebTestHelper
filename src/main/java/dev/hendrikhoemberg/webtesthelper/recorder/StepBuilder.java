@@ -156,7 +156,8 @@ public final class StepBuilder {
     }
 
     private static boolean isPasswordField(CapturedEvent event) {
-        return matchesPassword(event.cssPath())
+        return "password".equalsIgnoreCase(event.inputType())
+                || matchesPassword(event.cssPath())
                 || matchesPassword(event.id())
                 || matchesPassword(event.testId())
                 || matchesPassword(event.labelText())

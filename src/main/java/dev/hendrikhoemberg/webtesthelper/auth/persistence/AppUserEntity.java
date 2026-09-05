@@ -1,6 +1,6 @@
-package dev.hendrikhoemberg.webtesthelper.web.persistence;
+package dev.hendrikhoemberg.webtesthelper.auth.persistence;
 
-import dev.hendrikhoemberg.webtesthelper.web.AppRole;
+import dev.hendrikhoemberg.webtesthelper.auth.AppRole;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -41,4 +41,17 @@ public class AppUserEntity {
 
     @Version
     private long version;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        AppUserEntity that = (AppUserEntity) o;
+        return id != null && id.equals(that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
 }

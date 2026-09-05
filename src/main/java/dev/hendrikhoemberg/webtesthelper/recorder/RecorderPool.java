@@ -1,5 +1,6 @@
 package dev.hendrikhoemberg.webtesthelper.recorder;
 
+import jakarta.annotation.PreDestroy;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayDeque;
@@ -10,6 +11,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  * A dedicated pool of browser workers for interactive recording sessions (spec 10.1, D109).
@@ -79,13 +81,18 @@ public class RecorderPool implements AutoCloseable {
     }
 
     @Override
+    @PreDestroy
     public synchronized void close() {
+        close(5, TimeUnit.SECONDS);
+    }
+
+    synchronized void close(long timeout, TimeUnit unit) {
         if (closed) {
             return;
         }
         closed = true;
         allocated.clear();
         available.clear();
-        workers.forEach(RecorderWorker::close);
+        workers.forEach(w -> w.close(timeout, unit));
     }
 }

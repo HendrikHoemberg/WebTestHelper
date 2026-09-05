@@ -1,5 +1,6 @@
 package dev.hendrikhoemberg.webtesthelper.web;
 
+import dev.hendrikhoemberg.webtesthelper.auth.AppUserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -38,7 +39,9 @@ class SecurityRulesTest {
     void anonymousAnmeldenReturnsOk() throws Exception {
         mvc.perform(get("/anmelden"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("/css/app.css")));
+                .andExpect(content().string(containsString("/css/app.css")))
+                .andExpect(header().string("Content-Security-Policy",
+                        "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ws: wss:; frame-ancestors 'self';"));
     }
 
     @Test
@@ -227,5 +230,57 @@ class SecurityRulesTest {
     void adminCanAccessRecorderAlleBeendenInSecurityFilter() throws Exception {
         mvc.perform(post("/recorder/alle-beenden").with(csrf()))
                 .andExpect(status().isNotFound()); // 404 in SecurityRulesTest since RecorderController is not in context
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void userCannotAccessJourneyEditEndpoints() throws Exception {
+        mvc.perform(get("/websites/1/journeys/1/bearbeiten"))
+                .andExpect(status().isForbidden());
+
+        mvc.perform(post("/websites/1/journeys/1/bearbeiten").with(csrf()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void adminCanAccessJourneyEditEndpointsInSecurityFilter() throws Exception {
+        mvc.perform(get("/websites/1/journeys/1/bearbeiten"))
+                .andExpect(status().isNotFound());
+
+        mvc.perform(post("/websites/1/journeys/1/bearbeiten").with(csrf()))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void userCannotAccessSubResourceMutationEndpoints() throws Exception {
+        mvc.perform(post("/websites/1/pruefungen").with(csrf()))
+                .andExpect(status().isForbidden());
+
+        mvc.perform(post("/websites/1/journeys/1/loeschen").with(csrf()))
+                .andExpect(status().isForbidden());
+
+        mvc.perform(post("/websites/1/journeys/1/jetzt-ausfuehren").with(csrf()))
+                .andExpect(status().isForbidden());
+
+        mvc.perform(post("/laeufe/1/ausgangsbestand").with(csrf()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void adminCanAccessSubResourceMutationEndpointsInSecurityFilter() throws Exception {
+        mvc.perform(post("/websites/1/pruefungen").with(csrf()))
+                .andExpect(status().isNotFound());
+
+        mvc.perform(post("/websites/1/journeys/1/loeschen").with(csrf()))
+                .andExpect(status().isNotFound());
+
+        mvc.perform(post("/websites/1/journeys/1/jetzt-ausfuehren").with(csrf()))
+                .andExpect(status().isNotFound());
+
+        mvc.perform(post("/laeufe/1/ausgangsbestand").with(csrf()))
+                .andExpect(status().isNotFound());
     }
 }

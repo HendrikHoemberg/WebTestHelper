@@ -22,17 +22,27 @@ public class SecurityConfig implements WebMvcConfigurer {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http.requestCache(rc -> rc.requestCache(new SkipErrorDispatchRequestCache()))
+        http.headers(headers -> headers
+                .contentSecurityPolicy(csp -> csp
+                        .policyDirectives("default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ws: wss:; frame-ancestors 'self';")
+                )
+            )
+            .requestCache(rc -> rc.requestCache(new SkipErrorDispatchRequestCache()))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/anmelden", "/vendor/**", "/css/**", "/favicon.ico").permitAll()
                 .requestMatchers("/einstellungen/**",
                         "/postausgang", "/postausgang/**", "/actuator/**",
                         "/websites/neu", "/websites/*/bearbeiten",
+                        "/websites/*/journeys/*/bearbeiten", "/websites/*/journeys/*/bearbeiten/**",
                         "/recorder/alle-beenden").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/websites", "/websites/*", "/websites/*/loeschen",
                         "/websites/*/zeitplaene",
                         "/websites/*/empfaenger", "/websites/*/empfaenger/**",
-                        "/websites/*/zugangsdaten", "/websites/*/zugangsdaten/**").hasRole("ADMIN")
+                        "/websites/*/zugangsdaten", "/websites/*/zugangsdaten/**",
+                        "/websites/*/pruefungen", "/websites/*/pruefungen/**",
+                        "/websites/*/journeys/*/loeschen",
+                        "/websites/*/journeys/*/jetzt-ausfuehren",
+                        "/laeufe/*/ausgangsbestand", "/laeufe/*/ausgangsbestand/**").hasRole("ADMIN")
                 .requestMatchers("/stummschaltungen/**", "/stummschaltungen").authenticated()
                 .requestMatchers(HttpMethod.GET, "/websites/*/einrichtung", "/websites/*/einrichtung/stand")
                         .authenticated()

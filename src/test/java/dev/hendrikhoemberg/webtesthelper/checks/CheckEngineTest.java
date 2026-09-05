@@ -14,6 +14,7 @@ import dev.hendrikhoemberg.webtesthelper.model.SoftNotFoundProbe;
 import dev.hendrikhoemberg.webtesthelper.model.TlsCertificateFact;
 import dev.hendrikhoemberg.webtesthelper.model.UrlVerifications;
 import dev.hendrikhoemberg.webtesthelper.support.Snapshots;
+import dev.hendrikhoemberg.webtesthelper.model.Evidence;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -24,7 +25,6 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class CheckEngineTest {
 
@@ -137,25 +137,60 @@ class CheckEngineTest {
     }
 
     @Test
-    void aCheckThatThrowsNamesItselfInsteadOfFailingAnonymously() {
-        // Spec 14 is about a bad page not killing a run. A deterministically broken check is a
-        // different animal: it would fail every run of every site until someone fixed it, so it
-        // fails loudly and says which check and which page.
-        CheckEngine broken = new CheckEngine(new CheckRegistry(List.of(new PageCheck() {
-            @Override public CheckType type() { return CheckType.PAGE_STATUS; }
-            @Override public Severity defaultSeverity() { return Severity.ERROR; }
-            @Override public Set<String> messageKeys() { return Set.of("finding.PAGE_STATUS.x"); }
-            @Override public List<CheckFinding> evaluate(PageSnapshot s, CheckConfig c) {
-                throw new IllegalStateException("kaputt");
-            }
-        }), List.of()));
+    void aCheckThatThrowsIsContainedAndDoesNotAbortOtherChecksOnSamePage() {
+        CheckFinding healthyFinding = new CheckFinding(CheckType.PAGE_STATUS, Severity.ERROR,
+                "status:500:/x", Snapshots.url("https://example.com/x"), "finding.PAGE_STATUS.x", List.of(), Evidence.NONE);
+        CheckEngine engineWithFaultyCheck = new CheckEngine(new CheckRegistry(List.of(
+                new PageCheck() {
+                    @Override public CheckType type() { return CheckType.IMAGE_BROKEN; }
+                    @Override public Severity defaultSeverity() { return Severity.ERROR; }
+                    @Override public Set<String> messageKeys() { return Set.of("finding.IMAGE_BROKEN.x"); }
+                    @Override public List<CheckFinding> evaluate(PageSnapshot s, CheckConfig c) {
+                        throw new IllegalStateException("broken check boom");
+                    }
+                },
+                new PageCheck() {
+                    @Override public CheckType type() { return CheckType.PAGE_STATUS; }
+                    @Override public Severity defaultSeverity() { return Severity.ERROR; }
+                    @Override public Set<String> messageKeys() { return Set.of("finding.PAGE_STATUS.x"); }
+                    @Override public List<CheckFinding> evaluate(PageSnapshot s, CheckConfig c) {
+                        return List.of(healthyFinding);
+                    }
+                }
+        ), List.of()));
 
-        assertThatThrownBy(() ->
-                broken.evaluatePage(brokenPage(), site(allEnabled()), facts(RunScope.FULL)))
-                .isInstanceOf(CheckEvaluationException.class)
-                .hasMessageContaining("PAGE_STATUS")
-                .hasMessageContaining("https://example.com/x")
-                .hasRootCauseMessage("kaputt");
+        List<CheckFinding> findings = engineWithFaultyCheck.evaluatePage(
+                brokenPage(), site(allEnabled()), facts(RunScope.FULL));
+
+        assertThat(findings).containsExactly(healthyFinding);
+    }
+
+    @Test
+    void aCheckThatThrowsOnOnePageDoesNotAbortRunEvaluation() {
+        CheckFinding healthyFinding = new CheckFinding(CheckType.PAGE_STATUS, Severity.ERROR,
+                "status:200:/y", Snapshots.url("https://example.com/y"), "finding.PAGE_STATUS.x", List.of(), Evidence.NONE);
+        CheckEngine engineWithFaultyCheck = new CheckEngine(new CheckRegistry(List.of(
+                new PageCheck() {
+                    @Override public CheckType type() { return CheckType.PAGE_STATUS; }
+                    @Override public Severity defaultSeverity() { return Severity.ERROR; }
+                    @Override public Set<String> messageKeys() { return Set.of("finding.PAGE_STATUS.x"); }
+                    @Override public List<CheckFinding> evaluate(PageSnapshot s, CheckConfig c) {
+                        if (s.url().value().contains("/x")) {
+                            throw new RuntimeException("page x boom");
+                        }
+                        return List.of(healthyFinding);
+                    }
+                }
+        ), List.of()));
+
+        RunSnapshots runSnapshots = new RunSnapshots(1L, site(allEnabled()),
+                List.of(brokenPage(), Snapshots.page("https://example.com/y").status(200).build()),
+                SoftNotFoundProbe.NONE);
+
+        List<CheckFinding> findings = engineWithFaultyCheck.evaluateRun(
+                runSnapshots, site(allEnabled()), facts(RunScope.FULL));
+
+        assertThat(findings).containsExactly(healthyFinding);
     }
 
     @Test
@@ -183,22 +218,31 @@ class CheckEngineTest {
     }
 
     @Test
-    void aSiteCheckThatThrowsNamesItselfInsteadOfFailingAnonymously() {
-        CheckEngine broken = new CheckEngine(new CheckRegistry(List.of(), List.of(new SiteCheck() {
-            @Override public CheckType type() { return CheckType.TLS_CERT; }
-            @Override public Severity defaultSeverity() { return Severity.ERROR; }
-            @Override public Set<String> messageKeys() { return Set.of("finding.TLS_CERT.x"); }
-            @Override public List<CheckFinding> evaluate(RunSnapshots s, SiteContext c,
-                    CheckConfig cfg) {
-                throw new IllegalStateException("kaputt");
-            }
-        })));
+    void aSiteCheckThatThrowsIsContainedAndDoesNotAbortOtherSiteChecks() {
+        CheckFinding healthyFinding = new CheckFinding(CheckType.HREFLANG, Severity.WARN,
+                "hreflang:x", null, "finding.HREFLANG.x", List.of(), Evidence.NONE);
+        CheckEngine engineWithFaultySiteCheck = new CheckEngine(new CheckRegistry(List.of(), List.of(
+                new SiteCheck() {
+                    @Override public CheckType type() { return CheckType.TLS_CERT; }
+                    @Override public Severity defaultSeverity() { return Severity.ERROR; }
+                    @Override public Set<String> messageKeys() { return Set.of("finding.TLS_CERT.x"); }
+                    @Override public List<CheckFinding> evaluate(RunSnapshots s, SiteContext c, CheckConfig cfg) {
+                        throw new IllegalStateException("tls check failure");
+                    }
+                },
+                new SiteCheck() {
+                    @Override public CheckType type() { return CheckType.HREFLANG; }
+                    @Override public Severity defaultSeverity() { return Severity.WARN; }
+                    @Override public Set<String> messageKeys() { return Set.of("finding.HREFLANG.x"); }
+                    @Override public List<CheckFinding> evaluate(RunSnapshots s, SiteContext c, CheckConfig cfg) {
+                        return List.of(healthyFinding);
+                    }
+                }
+        )));
 
-        assertThatThrownBy(() ->
-                broken.evaluateSite(snapshots(), site(allEnabled()), facts(RunScope.FULL)))
-                .isInstanceOf(CheckEvaluationException.class)
-                .hasMessageContaining("TLS_CERT")
-                .hasMessageContaining("https://example.com/")
-                .hasRootCauseMessage("kaputt");
+        List<CheckFinding> findings = engineWithFaultySiteCheck.evaluateSite(
+                snapshots(), site(allEnabled()), facts(RunScope.FULL));
+
+        assertThat(findings).containsExactly(healthyFinding);
     }
 }

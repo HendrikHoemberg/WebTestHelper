@@ -5,6 +5,7 @@ import dev.hendrikhoemberg.webtesthelper.model.FormTestMode;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 
 import java.time.Duration;
@@ -15,21 +16,24 @@ import java.util.List;
  * Multiline pattern fields are accepted as newline-separated strings from textareas.
  */
 public record SiteFormModel(
-        @NotBlank
+        @NotBlank(message = "{ui.websites.formular.fehler.name.pflicht}")
         String name,
 
-        @NotBlank
-        @Pattern(regexp = "^https?://.*$")
+        @NotBlank(message = "{ui.websites.formular.fehler.baseUrl.pflicht}")
+        @Pattern(regexp = "^https?://.*$", message = "{ui.websites.formular.fehler.baseUrl.format}")
         String baseUrl,
 
-        @Min(1)
-        int maxPages,
+        @NotNull(message = "{ui.websites.formular.fehler.maxPages.pflicht}")
+        @Min(value = 1, message = "{ui.websites.formular.fehler.maxPages.min}")
+        Integer maxPages,
 
-        @Min(0)
-        int maxDepth,
+        @NotNull(message = "{ui.websites.formular.fehler.maxDepth.pflicht}")
+        @Min(value = 0, message = "{ui.websites.formular.fehler.maxDepth.min}")
+        Integer maxDepth,
 
-        @Min(1)
-        int maxDurationMinutes,
+        @NotNull(message = "{ui.websites.formular.fehler.maxDurationMinutes.pflicht}")
+        @Min(value = 1, message = "{ui.websites.formular.fehler.maxDurationMinutes.min}")
+        Integer maxDurationMinutes,
 
         String includePatterns,
 
@@ -51,14 +55,14 @@ public record SiteFormModel(
         }
     }
 
-    public SiteFormModel(String name, String baseUrl, int maxPages, int maxDepth, int maxDurationMinutes,
+    public SiteFormModel(String name, String baseUrl, Integer maxPages, Integer maxDepth, Integer maxDurationMinutes,
                          String includePatterns, String excludePatterns, boolean respectRobots, String userAgent,
                          boolean enabled) {
         this(name, baseUrl, maxPages, maxDepth, maxDurationMinutes, includePatterns, excludePatterns,
                 (Boolean) respectRobots, userAgent, (Boolean) enabled, "", FormTestMode.NO_SUBMIT.name());
     }
 
-    public SiteFormModel(String name, String baseUrl, int maxPages, int maxDepth, int maxDurationMinutes,
+    public SiteFormModel(String name, String baseUrl, Integer maxPages, Integer maxDepth, Integer maxDurationMinutes,
                          String includePatterns, String excludePatterns, boolean respectRobots, String userAgent,
                          boolean enabled, String pinnedKeyPages) {
         this(name, baseUrl, maxPages, maxDepth, maxDurationMinutes, includePatterns, excludePatterns,
@@ -89,9 +93,9 @@ public record SiteFormModel(
         return new SiteForm(
                 name,
                 baseUrl,
-                maxPages,
-                maxDepth,
-                Duration.ofMinutes(maxDurationMinutes),
+                maxPages != null ? maxPages : 300,
+                maxDepth != null ? maxDepth : 5,
+                Duration.ofMinutes(maxDurationMinutes != null ? maxDurationMinutes : 30),
                 splitPatterns(includePatterns),
                 splitPatterns(excludePatterns),
                 Boolean.TRUE.equals(respectRobots),

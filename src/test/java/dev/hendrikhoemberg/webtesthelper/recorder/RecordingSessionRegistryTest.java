@@ -261,6 +261,26 @@ class RecordingSessionRegistryTest {
         verify(pool).release(worker2);
     }
 
+    @Test
+    void closeMethodHasPreDestroyAnnotation() throws NoSuchMethodException {
+        assertThat(RecordingSessionRegistry.class.getMethod("close").isAnnotationPresent(jakarta.annotation.PreDestroy.class))
+                .isTrue();
+    }
+
+    @Test
+    void closeMethodCallsCloseAll() {
+        RecorderWorker worker = mock(RecorderWorker.class);
+        when(pool.allocate()).thenReturn(Optional.of(worker));
+        registry.open(1L, "https://example.com/start", "alice");
+        assertThat(registry.activeSessions()).isEqualTo(1);
+
+        registry.close();
+
+        assertThat(registry.activeSessions()).isEqualTo(0);
+        verify(pool).release(worker);
+    }
+
+
     private static class TestClock extends Clock {
         private Instant current;
         private final ZoneId zone = ZoneOffset.UTC;

@@ -88,7 +88,7 @@
                             </div>
                         </td>
                         <td class="zell-badge">
-                            <span class="type-pill-mono" th:text="${#lists.size(journey.steps)} + ' Schritte'">0</span>
+                            <span class="type-pill-mono" th:text="#{ui.journey.tabelle.schritte_anzahl(${#lists.size(journey.steps)})}">0 Schritte</span>
                         </td>
                         <td class="zell-badge">
                             <span th:if="${journey.enabled}" class="status-badge badge-healthy status-aktiv">

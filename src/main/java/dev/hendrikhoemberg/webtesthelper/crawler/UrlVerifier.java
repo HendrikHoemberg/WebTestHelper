@@ -15,6 +15,8 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import java.util.Collection;
 import java.util.Locale;
 import java.util.Map;
@@ -47,7 +49,10 @@ public class UrlVerifier {
     private final VerifierProperties properties;
     private final HostThrottle throttle;
     private final CrawlerProperties crawler;
-    private final Map<String, Semaphore> permits = new ConcurrentHashMap<>();
+    private final Cache<String, Semaphore> permits = Caffeine.newBuilder()
+            .maximumSize(10_000)
+            .expireAfterAccess(Duration.ofHours(1))
+            .build();
 
     public UrlVerifier(VerifierProperties properties, HostThrottle throttle,
                        CrawlerProperties crawler) {
@@ -89,7 +94,7 @@ public class UrlVerifier {
         try (ExecutorService fanOut = Executors.newVirtualThreadPerTaskExecutor()) {
             for (NormalizedUrl url : urls) {
                 fanOut.submit(() -> {
-                    Semaphore host = permits.computeIfAbsent(url.registrableHost(),
+                    Semaphore host = permits.get(url.registrableHost(),
                             ignored -> new Semaphore(properties.perHostPermits()));
                     try {
                         host.acquire();

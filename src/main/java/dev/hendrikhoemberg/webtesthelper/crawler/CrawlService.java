@@ -14,6 +14,7 @@ import dev.hendrikhoemberg.webtesthelper.model.UrlNormalizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -77,15 +78,24 @@ public class CrawlService {
     private final PageNavigator navigator;
     private final SiteResourceFetcher fetcher;
     private final CrawlerProperties properties;
+    private final HostThrottle throttle;
 
+    @Autowired
     public CrawlService(CrawlFrontierJdbcRepository frontier, BrowserPool pool,
                         PageNavigator navigator, SiteResourceFetcher fetcher,
-                        CrawlerProperties properties) {
+                        CrawlerProperties properties, HostThrottle throttle) {
         this.frontier = frontier;
         this.pool = pool;
         this.navigator = navigator;
         this.fetcher = fetcher;
         this.properties = properties;
+        this.throttle = throttle;
+    }
+
+    public CrawlService(CrawlFrontierJdbcRepository frontier, BrowserPool pool,
+                        PageNavigator navigator, SiteResourceFetcher fetcher,
+                        CrawlerProperties properties) {
+        this(frontier, pool, navigator, fetcher, properties, new HostThrottle());
     }
 
     public CrawlResult crawl(CrawlRequest request, CrawlProgressListener listener) {
@@ -145,6 +155,7 @@ public class CrawlService {
                     break;
                 }
                 if (Instant.now().isAfter(deadline)) { stopReason = "maxDuration"; break; }
+                checkCancellation(request);
 
                 int room = Math.min(properties.batchSize(),
                         maxPages - Math.max(visited.get(), snapshots.size()));
@@ -164,7 +175,14 @@ public class CrawlService {
                         Thread.currentThread().interrupt();
                         throw new IllegalStateException("Crawl unterbrochen", e);
                     } catch (ExecutionException e) {
-                        throw new IllegalStateException("Crawl-Aufgabe fehlgeschlagen", e.getCause());
+                        Throwable cause = e.getCause();
+                        if (cause instanceof CrawlCancelledException cce) {
+                            throw cce;
+                        }
+                        if (cause instanceof RuntimeException re && "RunCancelledException".equals(cause.getClass().getSimpleName())) {
+                            throw re;
+                        }
+                        throw new IllegalStateException("Crawl-Aufgabe fehlgeschlagen", cause);
                     }
                 }
                 frontier.complete(outcomes);
@@ -215,6 +233,17 @@ public class CrawlService {
         }
     }
 
+    private void checkCancellation(CrawlRequest request) {
+        if (request.cancellationCheck() != null && request.cancellationCheck().getAsBoolean()) {
+            throw new CrawlCancelledException("Lauf " + request.runId() + " wurde abgebrochen");
+        }
+    }
+
+    private void throttle(CrawlTarget target) {
+        UrlNormalizer.normalize(target.url())
+                .ifPresent(u -> throttle.await(u.host(), properties.perHostDelay()));
+    }
+
     /**
      * One page visit. Never throws: a browser worker that dies mid-page must cost one URL, not
      * the run (spec 14), so every exceptional failure returns a FAILED outcome. Discovery only
@@ -225,6 +254,7 @@ public class CrawlService {
             Path runArtifacts, List<PageSnapshot> snapshots, AtomicInteger visited,
             AtomicInteger failed) {
         try {
+            checkCancellation(request);
             PageSnapshot snapshot = capture(request, target, runArtifacts);
             snapshots.add(snapshot);
             if (!snapshot.reachable()) {
@@ -237,7 +267,12 @@ public class CrawlService {
                 enqueueDiscovered(request, target, admission, snapshot);
             }
             return new CrawlOutcome(target.id(), CrawlItemStatus.DONE, snapshot.httpStatus(), null);
+        } catch (CrawlCancelledException e) {
+            throw e;
         } catch (RuntimeException e) {
+            if ("RunCancelledException".equals(e.getClass().getSimpleName())) {
+                throw e;
+            }
             failed.incrementAndGet();
             return new CrawlOutcome(target.id(), CrawlItemStatus.FAILED, null,
                     truncate(e.getMessage(), 500));
@@ -254,6 +289,9 @@ public class CrawlService {
      * reported.
      */
     private PageSnapshot capture(CrawlRequest request, CrawlTarget target, Path runArtifacts) {
+        checkCancellation(request);
+        throttle(target);
+        checkCancellation(request);
         PageSnapshot snapshot = pool.submit(browser ->
                 navigator.capture(browser, target, request.site(), runArtifacts));
         for (int attempt = 1;
@@ -262,6 +300,9 @@ public class CrawlService {
                      && attempt < NAVIGATION_ATTEMPTS;
              attempt++) {
             sleep(RETRY_DELAY);
+            checkCancellation(request);
+            throttle(target);
+            checkCancellation(request);
             snapshot = pool.submit(browser ->
                     navigator.capture(browser, target, request.site(), runArtifacts));
         }

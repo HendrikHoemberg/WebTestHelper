@@ -8,6 +8,7 @@
             <div class="befund-titel-zeile" style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0.25rem;">
                 <label th:if="${auswaehlbar}" class="befund-checkbox-label" style="display: inline-flex; align-items: center; cursor: pointer; margin-right: 0.2rem;">
                     <input type="checkbox" name="ids" th:value="${befund.id}" class="befund-checkbox"
+                           th:attr="aria-label=${befund.title}"
                            @change="toggle($el.value)" :checked="isSelected($el.value)" style="width: 1.05rem; height: 1.05rem; cursor: pointer;">
                 </label>
                 <span class="status-badge"
@@ -22,7 +23,7 @@
                     📷 <span th:text="#{ui.befund.screenshot_vorhanden}">Screenshot</span>
                 </span>
             </div>
-            <div class="befund-ort" style="margin-left: ${auswaehlbar ? '1.5rem' : '0'};">
+            <div class="befund-ort" th:style="${auswaehlbar ? 'margin-left: 1.5rem;' : 'margin-left: 0;'}">
                 <a th:if="${!befund.siteWide and #strings.startsWith(befund.locationText, '/')}"
                    th:href="${site.baseUrl.origin() + befund.locationText}"
                    target="_blank" rel="noopener noreferrer" class="befund-ort-link"

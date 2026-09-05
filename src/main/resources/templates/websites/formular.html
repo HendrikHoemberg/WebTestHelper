@@ -145,7 +145,7 @@
             </div>
 
             <div class="form-gruppe"
-                 th:data-mode="*{formTestMode} ?: 'NO_SUBMIT'"
+                 th:data-mode="${form?.formTestMode ?: 'NO_SUBMIT'}"
                  x-data="{ mode: $el.dataset.mode || 'NO_SUBMIT' }">
                 <label for="formTestMode" th:text="#{ui.websites.formular.formTestMode}">Kontaktformular-Prüfung</label>
                 <select id="formTestMode" th:field="*{formTestMode}" x-model="mode" class="form-select">
