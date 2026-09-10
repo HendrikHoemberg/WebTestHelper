@@ -231,4 +231,12 @@ class UrlVerifierTest {
         assertThat(detail).contains("%PDF-body");
         assertThat(detail).doesNotContain("x".repeat(1000));
     }
+
+    @Test
+    void readPrefixReplacesNullBytesWithSpaces() throws Exception {
+        byte[] input = new byte[] { '%', 'P', 'D', 'F', 0, 0, 'a' };
+        String prefix = UrlVerifier.readPrefix(new java.io.ByteArrayInputStream(input));
+        assertThat(prefix).doesNotContain("\u0000");
+        assertThat(prefix).isEqualTo("%PDF  a");
+    }
 }

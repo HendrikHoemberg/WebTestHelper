@@ -149,10 +149,10 @@ public class UrlVerifier {
                 client.send(request, HttpResponse.BodyHandlers.ofInputStream()));
     }
 
-    private static String readPrefix(InputStream body) throws IOException {
+    static String readPrefix(InputStream body) throws IOException {
         try (InputStream in = body) {                    // BodyHandlers.ofInputStream()
             byte[] prefix = in.readNBytes(PREFIX_BYTES);            // 1024
-            return new String(prefix, StandardCharsets.ISO_8859_1);
+            return new String(prefix, StandardCharsets.ISO_8859_1).replace('\u0000', ' ');
         }                                              // closing aborts the transfer
     }
 

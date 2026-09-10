@@ -133,4 +133,28 @@ class ExternalUrlCacheJdbcRepositoryTest extends AbstractPostgresTest {
         assertThat(stored).isNotNull();
         assertThat(stored.bodyPrefix()).isEqualTo("%PDF-1.4");
     }
+
+    @Test
+    void storeHandlesNullBytesInBodyPrefixAndFailureTextWithoutPostgresError() {
+        Instant now = Instant.now().truncatedTo(ChronoUnit.MICROS);
+        UrlVerification withNullBytes = new UrlVerification(
+                "https://example.com/nullbytes.pdf",
+                UrlStatus.OK,
+                200,
+                "application/pdf",
+                1024L,
+                "%PDF-1.4\u0000\u0000some-binary-data",
+                "Some\u0000failure",
+                now);
+
+        cache.store(List.of(withNullBytes));
+
+        Map<String, UrlVerification> result = cache.fresh(List.of("https://example.com/nullbytes.pdf"), now);
+        UrlVerification stored = result.get("https://example.com/nullbytes.pdf");
+        assertThat(stored).isNotNull();
+        assertThat(stored.bodyPrefix()).doesNotContain("\u0000");
+        assertThat(stored.bodyPrefix()).isEqualTo("%PDF-1.4  some-binary-data");
+        assertThat(stored.failureText()).doesNotContain("\u0000");
+        assertThat(stored.failureText()).isEqualTo("Some failure");
+    }
 }

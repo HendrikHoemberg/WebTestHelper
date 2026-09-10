@@ -87,8 +87,8 @@ public class ExternalUrlCacheJdbcRepository {
                 ps.setInt(3, r.httpStatus());
                 ps.setString(4, r.contentType());
                 ps.setLong(5, r.contentLength());
-                ps.setString(6, r.bodyPrefix());
-                ps.setString(7, r.failureText());
+                ps.setString(6, sanitize(r.bodyPrefix()));
+                ps.setString(7, sanitize(r.failureText()));
                 ps.setTimestamp(8, Timestamp.from(r.checkedAt().truncatedTo(ChronoUnit.MICROS)));
             }
 
@@ -97,5 +97,9 @@ public class ExternalUrlCacheJdbcRepository {
                 return list.size();
             }
         });
+    }
+
+    private static String sanitize(String text) {
+        return text == null ? null : text.replace('\u0000', ' ');
     }
 }
