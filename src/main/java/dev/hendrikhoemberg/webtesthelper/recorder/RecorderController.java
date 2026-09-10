@@ -54,7 +54,7 @@ public class RecorderController {
         this.messageSource = Objects.requireNonNull(messageSource, "messageSource must not be null");
     }
 
-    @GetMapping("/websites/{siteId}/aufzeichnen")
+    @GetMapping({"/websites/{siteId}/aufzeichnen", "/websites/{siteId}/recorder"})
     public String record(@PathVariable("siteId") long siteId,
                          @RequestParam(value = "startUrl", required = false) String startUrl,
                          Principal principal,

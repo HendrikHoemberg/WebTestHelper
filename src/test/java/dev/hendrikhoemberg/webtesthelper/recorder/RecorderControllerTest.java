@@ -106,6 +106,22 @@ class RecorderControllerTest {
 
     @Test
     @WithMockUser(username = "alice", roles = "USER")
+    void record_supportsRecorderAliasUrl() throws Exception {
+        UUID sessionId = UUID.randomUUID();
+        RecordingSession session = mock(RecordingSession.class);
+        when(session.sessionId()).thenReturn(sessionId);
+        when(session.siteId()).thenReturn(1L);
+        when(session.startUrl()).thenReturn("https://acme.example.com/");
+        when(session.username()).thenReturn("alice");
+        when(sessionRegistry.open(1L, "https://acme.example.com/", "alice")).thenReturn(session);
+
+        mvc.perform(get("/websites/1/recorder"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("journey/record"));
+    }
+
+    @Test
+    @WithMockUser(username = "alice", roles = "USER")
     void activeRecorderHeaderDoesNotContainDuplicateEndButton() throws Exception {
         UUID sessionId = UUID.randomUUID();
         RecordingSession session = mock(RecordingSession.class);

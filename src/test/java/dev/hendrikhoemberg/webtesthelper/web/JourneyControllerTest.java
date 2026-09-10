@@ -159,6 +159,18 @@ class JourneyControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
+    void listJourneys_whenEmpty_asAdmin_rendersAufzeichnenLink() throws Exception {
+        when(journeyService.findBySite(1L)).thenReturn(List.of());
+        when(journeyHealthService.healthBySite(1L)).thenReturn(Map.of());
+
+        mvc.perform(get("/websites/1/journeys"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("/websites/1/aufzeichnen")))
+                .andExpect(content().string(not(containsString("/websites/1/recorder"))));
+    }
+
+    @Test
     @WithMockUser(roles = "USER")
     void journeyListHeaderDoesNotContainRedundantSiteSubtitle() throws Exception {
         when(journeyService.findBySite(1L)).thenReturn(List.of());

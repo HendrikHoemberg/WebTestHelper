@@ -57,7 +57,7 @@
 
     <div th:if="${#lists.isEmpty(journeys)}" class="card-box leer-zustand" style="text-align: center; padding: 3rem 1.5rem;">
         <p th:text="#{ui.journey.liste.leer}" style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1.25rem;">Noch keine Abläufe aufgezeichnet.</p>
-        <a sec:authorize="hasRole('ADMIN')" th:href="@{/websites/{siteId}/recorder(siteId=${site.siteId})}" class="btn-ui btn-ui-primary button primär">
+        <a sec:authorize="hasRole('ADMIN')" th:href="@{/websites/{id}/aufzeichnen(id=${site.siteId})}" class="btn-ui btn-ui-primary button primär">
             <span th:replace="~{fragments/icons :: record}"></span>
             <span th:text="#{ui.journey.liste.aufzeichnen}">Ablauf aufzeichnen</span>
         </a>
