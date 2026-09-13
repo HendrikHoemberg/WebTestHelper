@@ -27,7 +27,7 @@
 **Interfaces:**
 - Exposes: `th:fragment="camera"` and `th:fragment="lightbulb"`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
   Erstelle `src/test/java/dev/hendrikhoemberg/webtesthelper/web/IconsFragmentTest.java`, um sicherzustellen, dass die Fragmente `camera` und `lightbulb` existieren und als valide `<svg>`-Elemente mit `class="svg-icon"` gerendert werden.
 
   ```java
@@ -66,18 +66,18 @@
   }
   ```
 
-- [ ] **Step 2: Run the single test — verify it FAILS**
+- [x] **Step 2: Run the single test — verify it FAILS**
   `./mvnw test -Dtest=IconsFragmentTest -B --no-transfer-progress`
   Erwartetes Ergebnis: FAIL (Fragmente `camera` / `lightbulb` existieren noch nicht).
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
   Ergänze `src/main/resources/templates/fragments/icons.html` um die beiden Fragmente `camera` (Nr. 30) und `lightbulb` (Nr. 31).
 
-- [ ] **Step 4: Run the single test — verify it PASSES**
+- [x] **Step 4: Run the single test — verify it PASSES**
   `./mvnw test -Dtest=IconsFragmentTest -B --no-transfer-progress`
   Erwartetes Ergebnis: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   `git commit -m "feat(ui): add camera and lightbulb SVG icons to icons fragment"`
 
 ---
@@ -89,27 +89,27 @@
 - Modify: `src/main/resources/static/css/app.css` (falls Chevron-SVG-Klasse benötigt wird)
 - Test: `src/test/java/dev/hendrikhoemberg/webtesthelper/web/RunReportAcceptanceTest.java`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
   Erweitere `RunReportAcceptanceTest.java` um eine Assertion, dass das Abhilfe-Banner auf `/laeufe/{id}` kein Emoji `💡` enthält, sondern das SVG-Icon einbindet:
 
   ```java
   assertThat(html).doesNotContain("💡");
   ```
 
-- [ ] **Step 2: Run the single test — verify it FAILS**
+- [x] **Step 2: Run the single test — verify it FAILS**
   `./mvnw test -Dtest=RunReportAcceptanceTest#fullLifecycleAcrossThreeRuns -B --no-transfer-progress`
   Erwartetes Ergebnis: FAIL (falls `💡` noch im gerenderten HTML vorkommt).
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
   - In `laeufe/detail.html` Zeile 322: Ersetze `<span class="abhilfe-banner-icon">💡</span>` durch `<span class="abhilfe-banner-icon" th:replace="~{fragments/icons :: lightbulb}"></span>`.
   - In `laeufe/detail.html` Zeile 308: Ersetze `<span class="kategorie-chevron">▸</span>` durch ein sauberes SVG-Chevron `<span class="kategorie-chevron" th:replace="~{fragments/icons :: chevron_down}"></span>`.
   - In `app.css`: Passe `.kategorie-chevron` für SVG an (Rotation bei geöffnetem `<details>`: `transform: rotate(180deg)` oder `-90deg`).
 
-- [ ] **Step 4: Run the single test — verify it PASSES**
+- [x] **Step 4: Run the single test — verify it PASSES**
   `./mvnw test -Dtest=RunReportAcceptanceTest -B --no-transfer-progress`
   Erwartetes Ergebnis: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   `git commit -m "refactor(ui): replace emojis and text chevron in laeufe/detail with SVG icons"`
 
 ---
@@ -121,18 +121,18 @@
 - Modify: `src/main/resources/static/css/app.css`
 - Test: `src/test/java/dev/hendrikhoemberg/webtesthelper/web/BefundzeileViewTest.java` (Neuer fokussierter View-Test)
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
   Erstelle einen `@WebMvcTest` bzw. Template-Test `BefundzeileViewTest.java`, der das Rendering von `befundzeile` prüft:
   1. Kein Emoji `📷`, stattdessen SVG-Kamera (`fragments/icons :: camera`), wenn `screenshotUrl != null`.
   2. Wenn `inGruppe == true`: Kein redundantes `Ungeprüft`-Badge sichtbar, stattdessen kompakte Kopfzeile mit Status, Fundort und Fehlermeldung.
   3. Der URL-Hero-Streifen (`.befund-hero-row` / `.befund-link-zeile`) rendert die Ziel-URL und den Kopier-Button.
   4. Wenn `auswaehlbar == true`: Checkbox bleibt erhalten.
 
-- [ ] **Step 2: Run the single test — verify it FAILS**
+- [x] **Step 2: Run the single test — verify it FAILS**
   `./mvnw test -Dtest=BefundzeileViewTest -B --no-transfer-progress`
   Erwartetes Ergebnis: FAIL.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
   - Überarbeite `fragments/befundzeile.html`:
     - Kopfzeile: Statuscode / Severity + Fundort-Pill (`Auf: <code class="code-pill">/</code>`) + Meldung (`befund.message`) + Screenshot-Button (`<button type="button" class="btn-ui btn-ui-secondary btn-ui-sm">` mit `<span th:replace="~{fragments/icons :: camera}"></span> Screenshot</button>`) + `Details →` Link.
     - Repetitives `Ungeprüft`-Badge nur anzeigen, wenn `inGruppe != true` oder wenn ein abweichender Triage-Status/Stummschaltung vorliegt.
@@ -143,21 +143,21 @@
     - Hover-Zustände im Zinc-Farbraum.
     - Kein Blau!
 
-- [ ] **Step 4: Run the single test — verify it PASSES**
+- [x] **Step 4: Run the single test — verify it PASSES**
   `./mvnw test -Dtest=BefundzeileViewTest -B --no-transfer-progress`
   Erwartetes Ergebnis: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   `git commit -m "feat(ui): redesign befund cards to monochrome split-card layout and SVG icons"`
 
 ---
 
 ### Task 4: Gesamtsystem-Verifikation (`verification-before-completion`)
 
-- [ ] **Step 1: Schneller Testlauf**
+- [x] **Step 1: Schneller Testlauf**
   `bash -c "set -o pipefail; ./mvnw test -Pfast -B --no-transfer-progress | tail -n 50"`
-- [ ] **Step 2: Vollständige Testsuite inkl. Browser- und UI-Tests**
+- [x] **Step 2: Vollständige Testsuite inkl. Browser- und UI-Tests**
   `bash -c "set -o pipefail; ./mvnw test -B --no-transfer-progress | tail -n 60"`
-- [ ] **Step 3: Verifikation im Browser**
+- [x] **Step 3: Verifikation im Browser**
   Sicherstellen, dass keine visuellen Regressionen auf `/laeufe/{id}`, `/websites/{id}/befunde` und `/laeufe/{id}/druck` auftreten.
-- [ ] **Step 4: Commit & Abschlussbericht**
+- [x] **Step 4: Commit & Abschlussbericht**
