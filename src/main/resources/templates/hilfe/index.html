@@ -14,12 +14,12 @@
                 <span>/</span>
                 <span th:text="#{ui.hilfe.titel}">Handbuch</span>
             </div>
-            <h1 class="page-main-title" th:text="#{ui.hilfe.titel}">Handbuch</h1>
+            <h1 class="page-main-title handbuch-titel" th:text="#{ui.hilfe.titel}">Handbuch</h1>
         </div>
     </header>
 
     <div class="handbuch-suche-feld">
-        <form th:action="@{/hilfe}" method="get" class="suchfeld-form" role="search">
+        <form th:action="@{/handbuch}" method="get" class="suchfeld-form" role="search">
             <span class="suchfeld-icon">
                 <span th:replace="~{fragments/icons :: search}"></span>
             </span>
@@ -29,7 +29,7 @@
                    th:placeholder="#{ui.hilfe.suche.platzhalter}"
                    th:aria-label="#{ui.hilfe.suche.platzhalter}"
                    class="form-input"
-                   hx-get="/hilfe"
+                   hx-get="/handbuch"
                    hx-trigger="input changed delay:200ms, search"
                    hx-target="#themen-liste"
                    hx-push-url="true">
@@ -46,12 +46,12 @@
             <article th:each="topic : ${topics}" class="card-box detail-bereich hilfe-thema-karte">
                 <div class="hilfe-kachel-inhalt">
                     <h2 style="font-size: 1.1rem; margin-top: 0; margin-bottom: 0.5rem; line-height: 1.35;">
-                        <a th:href="@{/hilfe/{id}(id=${topic.id})}" th:text="${topic.title}" class="hilfe-titel-link" style="color: var(--text-main); text-decoration: none;">Thementitel</a>
+                        <a th:href="@{/handbuch/{id}(id=${topic.id})}" th:text="${topic.title}" class="hilfe-titel-link" style="color: var(--text-main); text-decoration: none;">Thementitel</a>
                     </h2>
                     <div class="hilfe-teaser" style="font-size: 0.875rem; color: var(--text-muted); line-height: 1.5;" th:utext="${topic.teaserHtml}">Teaser-Text...</div>
                 </div>
                 <div class="hilfe-kachel-aktion">
-                    <a th:href="@{/hilfe/{id}(id=${topic.id})}" class="hilfe-link-icon" th:title="#{ui.hilfe.thema_oeffnen}" th:aria-label="${topic.title} + ' – ' + #{ui.hilfe.thema_oeffnen}">
+                    <a th:href="@{/handbuch/{id}(id=${topic.id})}" class="hilfe-link-icon" th:title="#{ui.hilfe.thema_oeffnen}" th:aria-label="${topic.title} + ' – ' + #{ui.hilfe.thema_oeffnen}">
                         <span th:replace="~{fragments/icons :: arrow_right}"></span>
                     </a>
                 </div>

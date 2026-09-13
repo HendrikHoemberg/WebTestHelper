@@ -35,11 +35,19 @@ class HelpControllerTest {
 
     @Test
     @WithMockUser
-    void getHilfeIndexReturnsTopics() throws Exception {
+    void getHilfeRedirectsToHandbuch() throws Exception {
+        mvc.perform(get("/hilfe"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(view().name("redirect:/handbuch"));
+    }
+
+    @Test
+    @WithMockUser
+    void getHandbuchIndexReturnsTopics() throws Exception {
         HelpTopic topic = new HelpTopic("test-topic", "Test Titel", "<p>HTML</p>", "<p>Teaser</p>");
         when(helpService.search(null)).thenReturn(List.of(topic));
 
-        mvc.perform(get("/hilfe"))
+        mvc.perform(get("/handbuch"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("hilfe/index"))
                 .andExpect(model().attributeExists("topics"));
@@ -47,11 +55,11 @@ class HelpControllerTest {
 
     @Test
     @WithMockUser
-    void getHilfeIndexWithQueryReturnsSearchedTopics() throws Exception {
+    void getHandbuchIndexWithQueryReturnsSearchedTopics() throws Exception {
         HelpTopic topic = new HelpTopic("test-topic", "Test Titel", "<p>HTML</p>", "<p>Teaser</p>");
         when(helpService.search("webhook")).thenReturn(List.of(topic));
 
-        mvc.perform(get("/hilfe").param("q", "webhook"))
+        mvc.perform(get("/handbuch").param("q", "webhook"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("hilfe/index"))
                 .andExpect(model().attribute("topics", List.of(topic)))
@@ -62,21 +70,21 @@ class HelpControllerTest {
 
     @Test
     @WithMockUser
-    void getHilfeIndexWithEmptySearchResultsRendersEmptyMessage() throws Exception {
+    void getHandbuchIndexWithEmptySearchResultsRendersEmptyMessage() throws Exception {
         when(helpService.search("unbekannt")).thenReturn(List.of());
 
-        mvc.perform(get("/hilfe").param("q", "unbekannt"))
+        mvc.perform(get("/handbuch").param("q", "unbekannt"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsStringIgnoringCase("Keine Hilfethemen")));
     }
 
     @Test
     @WithMockUser
-    void getHilfeIndexWithHtmxRequestReturnsThemenListeFragment() throws Exception {
+    void getHandbuchIndexWithHtmxRequestReturnsThemenListeFragment() throws Exception {
         HelpTopic topic = new HelpTopic("test-topic", "Test Titel", "<p>HTML</p>", "<p>Teaser</p>");
         when(helpService.search(null)).thenReturn(List.of(topic));
 
-        mvc.perform(get("/hilfe").header("HX-Request", "true"))
+        mvc.perform(get("/handbuch").header("HX-Request", "true"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("hilfe/index :: themenListe"))
                 .andExpect(model().attributeExists("topics"));
@@ -84,11 +92,11 @@ class HelpControllerTest {
 
     @Test
     @WithMockUser
-    void hilfeIndexRendersCardContainerAndStickyActions() throws Exception {
+    void handbuchIndexRendersCardContainerAndStickyActions() throws Exception {
         HelpTopic topic = new HelpTopic("test-topic", "Test Titel", "<p>HTML</p>", "<p>Teaser</p>");
         when(helpService.search(null)).thenReturn(List.of(topic));
 
-        mvc.perform(get("/hilfe"))
+        mvc.perform(get("/handbuch"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsStringIgnoringCase("hilfe-themen-liste")))
                 .andExpect(content().string(containsStringIgnoringCase("hilfe-kachel-aktion")));
@@ -96,11 +104,11 @@ class HelpControllerTest {
 
     @Test
     @WithMockUser
-    void getHilfeThemaReturnsTopic() throws Exception {
+    void getHandbuchThemaReturnsTopic() throws Exception {
         HelpTopic topic = new HelpTopic("bericht-lesen", "Berichte lesen", "<p>Inhalt</p>", "<p>Teaser</p>");
         when(helpService.byId("bericht-lesen")).thenReturn(Optional.of(topic));
 
-        mvc.perform(get("/hilfe/bericht-lesen"))
+        mvc.perform(get("/handbuch/bericht-lesen"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("hilfe/thema"))
                 .andExpect(model().attribute("topic", topic));
@@ -108,20 +116,20 @@ class HelpControllerTest {
 
     @Test
     @WithMockUser
-    void getHilfeThemaNotFoundReturns404() throws Exception {
+    void getHandbuchThemaNotFoundReturns404() throws Exception {
         when(helpService.byId("unbekannt")).thenReturn(Optional.empty());
 
-        mvc.perform(get("/hilfe/unbekannt"))
+        mvc.perform(get("/handbuch/unbekannt"))
                 .andExpect(status().isNotFound());
     }
 
     @Test
     @WithMockUser
-    void getHilfeHinweisFragmentReturnsFragment() throws Exception {
+    void getHandbuchHinweisFragmentReturnsFragment() throws Exception {
         HelpTopic topic = new HelpTopic("bericht-lesen", "Berichte lesen", "<p>Inhalt</p>", "<p>Teaser</p>");
         when(helpService.byId("bericht-lesen")).thenReturn(Optional.of(topic));
 
-        mvc.perform(get("/hilfe/hinweis/bericht-lesen"))
+        mvc.perform(get("/handbuch/hinweis/bericht-lesen"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("fragments/hinweis :: hinweis"))
                 .andExpect(model().attribute("thema", topic))
@@ -133,10 +141,10 @@ class HelpControllerTest {
 
     @Test
     @WithMockUser
-    void getHilfeHinweisNotFoundReturns404() throws Exception {
+    void getHandbuchHinweisNotFoundReturns404() throws Exception {
         when(helpService.byId("unbekannt")).thenReturn(Optional.empty());
 
-        mvc.perform(get("/hilfe/hinweis/unbekannt"))
+        mvc.perform(get("/handbuch/hinweis/unbekannt"))
                 .andExpect(status().isNotFound());
     }
 }

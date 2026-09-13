@@ -27,10 +27,10 @@ class HelpTopicsTest {
     private static final Path HELP_DIR = Path.of("src/main/resources/help");
 
     private static final Pattern HINWEIS_AFFORDANCE_PATTERN = Pattern.compile("class=\"[^\"]*hinweis-schalter[^\"]*\"");
-    private static final Pattern HINWEIS_URL_PATTERN = Pattern.compile("/hilfe/hinweis/([a-zA-Z0-9_-]+)");
-    private static final Pattern HINWEIS_PARAM_PATTERN = Pattern.compile("/hilfe/hinweis/\\{id\\}\\(id='([a-zA-Z0-9_-]+)'\\)");
-    private static final Pattern HILFE_URL_PATTERN = Pattern.compile("/hilfe/([a-zA-Z0-9_-]+)");
-    private static final Pattern HILFE_PARAM_PATTERN = Pattern.compile("/hilfe/\\{id\\}\\(id='([a-zA-Z0-9_-]+)'\\)");
+    private static final Pattern HINWEIS_URL_PATTERN = Pattern.compile("/(?:handbuch|hilfe)/hinweis/([a-zA-Z0-9_-]+)");
+    private static final Pattern HINWEIS_PARAM_PATTERN = Pattern.compile("/(?:handbuch|hilfe)/hinweis/\\{id\\}\\(id='([a-zA-Z0-9_-]+)'\\)");
+    private static final Pattern HILFE_URL_PATTERN = Pattern.compile("/(?:handbuch|hilfe)/([a-zA-Z0-9_-]+)");
+    private static final Pattern HILFE_PARAM_PATTERN = Pattern.compile("/(?:handbuch|hilfe)/\\{id\\}\\(id='([a-zA-Z0-9_-]+)'\\)");
 
     @Test
     void allTemplateHelpTopicReferencesResolveToExistingMarkdownFiles() throws IOException {

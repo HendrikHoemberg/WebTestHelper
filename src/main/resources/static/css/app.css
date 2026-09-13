@@ -1808,6 +1808,16 @@ body {
 }
 
 /* Handbuch Index Grid & Cards */
+.page-main-title.handbuch-titel,
+.handbuch-titel {
+    font-size: 2.35rem;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1.15;
+    margin-top: 0.15rem;
+    margin-bottom: 0.25rem;
+}
+
 .handbuch-suche-feld {
     position: relative;
     max-width: 420px;

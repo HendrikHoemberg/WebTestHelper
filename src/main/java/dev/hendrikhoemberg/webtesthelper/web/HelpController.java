@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.server.ResponseStatusException;
 
 @Controller
-@RequestMapping("/hilfe")
 public class HelpController {
 
     private final HelpService helpService;
@@ -20,7 +19,12 @@ public class HelpController {
         this.helpService = helpService;
     }
 
-    @GetMapping
+    @GetMapping("/hilfe")
+    public String hilfeRedirect() {
+        return "redirect:/handbuch";
+    }
+
+    @GetMapping("/handbuch")
     public String index(@RequestParam(value = "q", required = false) String q,
                         @RequestHeader(value = "HX-Request", required = false) String hxRequest,
                         Model model) {
@@ -32,7 +36,7 @@ public class HelpController {
         return "hilfe/index";
     }
 
-    @GetMapping("/{id}")
+    @GetMapping({"/handbuch/{id}", "/hilfe/{id}"})
     public String thema(@PathVariable("id") String id, Model model) {
         HelpTopic topic = helpService.byId(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Hilfethema nicht gefunden: " + id));
@@ -40,7 +44,7 @@ public class HelpController {
         return "hilfe/thema";
     }
 
-    @GetMapping("/hinweis/{id}")
+    @GetMapping({"/handbuch/hinweis/{id}", "/hilfe/hinweis/{id}"})
     public String hinweis(@PathVariable("id") String id, Model model) {
         HelpTopic topic = helpService.byId(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Hilfethema nicht gefunden: " + id));

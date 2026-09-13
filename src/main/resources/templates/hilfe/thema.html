@@ -12,14 +12,14 @@
             <div class="breadcrumbs-trail">
                 <a th:href="@{/}">WebTestHelper</a>
                 <span>/</span>
-                <a th:href="@{/hilfe}">Handbuch</a>
+                <a th:href="@{/handbuch}">Handbuch</a>
                 <span>/</span>
                 <span th:text="${topic.title}">Thema</span>
             </div>
             <h1 class="page-main-title" th:text="${topic.title}">Thementitel</h1>
         </div>
         <div class="header-actions-cluster seiten-kopf-aktionen">
-            <a th:href="@{/hilfe}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.hilfe.zurueck}">Zurück zur Übersicht</a>
+            <a th:href="@{/handbuch}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.hilfe.zurueck}">Zurück zur Übersicht</a>
         </div>
     </header>
 

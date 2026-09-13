@@ -123,7 +123,7 @@
             const step4Title = (isAdmin && adminButton) ? i18n.s4AdminTitle : i18n.s4UserTitle;
             const step4Text = (isAdmin && adminButton) ? i18n.s4AdminText : i18n.s4UserText;
 
-            const helpNav = document.querySelector("a[href='/hilfe']") || document.querySelector("a[href='/stummschaltungen']") || '.sidebar-nav-scroll';
+            const helpNav = document.querySelector("a[href='/handbuch']") || document.querySelector("a[href='/hilfe']") || document.querySelector("a[href='/stummschaltungen']") || '.sidebar-nav-scroll';
 
             const steps = [
                 {

@@ -4,7 +4,7 @@
 <div th:fragment="hinweis" class="wth-hilfe-modal-teaser">
     <h2 id="hilfe-modal-titel" class="wth-hilfe-modal-titel" th:text="${thema.title}" hx-swap-oob="true">Titel</h2>
     <div th:utext="${thema.teaserHtml}">Teaser-Text</div>
-    <a th:href="@{/hilfe/{id}(id=${thema.id})}" th:text="#{ui.hilfe.mehr_dazu}">Mehr dazu im Handbuch</a>
+    <a th:href="@{/handbuch/{id}(id=${thema.id})}" th:text="#{ui.hilfe.mehr_dazu}">Mehr dazu im Handbuch</a>
 </div>
 </body>
 </html>

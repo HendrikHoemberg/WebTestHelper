@@ -33,9 +33,10 @@ class LayoutTutorialRenderingTest {
     @WithMockUser(username = "otto")
     void authenticatedLayoutIncludesDriverAssetsAndConfig() throws Exception {
         when(helpService.all()).thenReturn(List.of());
+        when(helpService.search(null)).thenReturn(List.of());
         when(appUserService.isTutorialAbgeschlossen("otto")).thenReturn(false);
 
-        mvc.perform(get("/hilfe"))
+        mvc.perform(get("/handbuch"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("vendor/driver.css")))
                 .andExpect(content().string(containsString("vendor/driver.js")))
