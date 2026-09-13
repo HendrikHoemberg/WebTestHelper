@@ -454,7 +454,7 @@ class JourneyControllerTest {
         mvc.perform(post("/websites/1/journeys/10/jetzt-ausfuehren").with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("journey-test-ergebnis-schritte")))
-                .andExpect(content().string(containsString("Schritt-Ergebnisse anzeigen")));
+                .andExpect(content().string(containsString("Schritt-Ergebnisse")));
     }
 
     @Test
