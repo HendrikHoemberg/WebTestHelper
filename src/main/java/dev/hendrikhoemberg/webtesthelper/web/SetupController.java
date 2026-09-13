@@ -25,8 +25,9 @@ import java.util.Set;
 /**
  * The guided-setup wizard (§13.3): instead of authoring a configuration, a colleague confirms
  * a proposal the probe assembled. The shell starts the probe; the {@code /stand} fragment is
- * what HTMX polls, and it ends its own polling by swapping in terminal markup with no
- * {@code hx-trigger} — the only way an HTMX poll stops without client-side state.
+ * what HTMX polls, and it ends its own polling by swapping in terminal markup with neither
+ * {@code hx-trigger} nor {@code hx-get} — omitting {@code hx-get} prevents HTMX from treating
+ * clicks inside the terminal container as trigger events.
  */
 @Controller
 public class SetupController {

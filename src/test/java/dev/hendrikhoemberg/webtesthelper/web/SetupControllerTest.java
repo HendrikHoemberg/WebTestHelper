@@ -145,6 +145,7 @@ class SetupControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(view().name("fragments/einrichtungsstand :: stand"))
                 .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("hx-trigger"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("hx-get"))))
                 .andReturn();
 
         String body = result.getResponse().getContentAsString();
@@ -161,6 +162,9 @@ class SetupControllerTest {
         // The found form is information only: a sentence, with no checkbox beside it
         assertThat(body).contains("Kontaktformular auf https://acme.example.com/kontakt gefunden");
         assertThat(body).contains("Standardmäßig abgeschaltet, weil die Erstprüfung dazu nichts belegt");
+        // Vertically centered and enlarged checkbox
+        assertThat(body).contains("style=\"width: 1.25rem; height: 1.25rem; accent-color: var(--primary-color); cursor: pointer; flex-shrink: 0; margin: 0;\"");
+        assertThat(body).contains("style=\"display: flex; align-items: center; gap: 0.85rem; cursor: pointer;\"");
     }
 
     @Test
@@ -172,6 +176,7 @@ class SetupControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(view().name("fragments/einrichtungsstand :: stand"))
                 .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("hx-trigger"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("hx-get"))))
                 .andReturn();
 
         String body = result.getResponse().getContentAsString();
