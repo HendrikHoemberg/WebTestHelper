@@ -1463,6 +1463,33 @@ body {
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
+.form-select:not([multiple]),
+.form-gruppe select:not([multiple]) {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='2' stroke='%2371717a'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='m19.5 8.25-7.5 7.5-7.5-7.5' /%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.85rem center;
+    background-size: 0.95rem 0.95rem;
+    padding-right: 2.25rem;
+    cursor: pointer;
+}
+
+.form-select[size]:not([size="1"]),
+.form-gruppe select[size]:not([size="1"]) {
+    appearance: auto;
+    -webkit-appearance: auto;
+    -moz-appearance: auto;
+    background-image: none;
+    padding-right: 0.8rem;
+}
+
+.form-select::-ms-expand,
+.form-gruppe select::-ms-expand {
+    display: none;
+}
+
 .form-gruppe textarea {
     resize: vertical;
     font-family: var(--font-mono);
