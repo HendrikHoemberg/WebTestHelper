@@ -728,4 +728,41 @@ class RunControllerTest {
 
         verify(runService).enqueue(siteId, RunTrigger.MANUAL, RunScope.FULL);
     }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void failedRunDetailRendersRetryButtons() throws Exception {
+        long runId = 101L;
+        long siteId = 42L;
+        RunSummary summary = sampleSummary(runId, siteId, RunStatus.FAILED, false, false, "Verbindungsfehler");
+        SiteContext site = sampleSite(siteId);
+
+        when(runService.summary(runId)).thenReturn(summary);
+        when(siteService.contextFor(siteId)).thenReturn(site);
+        when(findingService.diffForReport(siteId, runId)).thenReturn(new RunDiff(runId, Map.of()));
+        when(findingViewFactory.of(any(RunDiff.class), any(Locale.class))).thenReturn(Map.of());
+
+        mvc.perform(get("/laeufe/" + runId))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("/laeufe/" + runId + "/wiederholen")))
+                .andExpect(content().string(containsString("Prüflauf wiederholen")));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void completedRunDetailDoesNotRenderRetryButton() throws Exception {
+        long runId = 101L;
+        long siteId = 42L;
+        RunSummary summary = sampleSummary(runId, siteId, RunStatus.COMPLETED, false, false, null);
+        SiteContext site = sampleSite(siteId);
+
+        when(runService.summary(runId)).thenReturn(summary);
+        when(siteService.contextFor(siteId)).thenReturn(site);
+        when(findingService.diffForReport(siteId, runId)).thenReturn(new RunDiff(runId, Map.of()));
+        when(findingViewFactory.of(any(RunDiff.class), any(Locale.class))).thenReturn(Map.of());
+
+        mvc.perform(get("/laeufe/" + runId))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("/laeufe/" + runId + "/wiederholen"))));
+    }
 }

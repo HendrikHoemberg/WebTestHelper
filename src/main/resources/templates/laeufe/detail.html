@@ -46,6 +46,12 @@
             </div>
         </div>
         <div class="header-actions-cluster seiten-kopf-aktionen">
+            <form th:if="${run.status.name() == 'FAILED'}" th:action="@{/laeufe/{id}/wiederholen(id=${run.id})}" method="post" class="inline-form">
+                <button type="submit" class="btn-ui btn-ui-primary button primär">
+                    <span th:replace="~{fragments/icons :: refresh}"></span>
+                    <span th:text="#{ui.lauf.aktion.wiederholen}">Prüflauf wiederholen</span>
+                </button>
+            </form>
             <a th:if="${run.status.name() == 'COMPLETED' or run.status.name() == 'FAILED'}"
                th:href="@{/laeufe/{id}/bericht/pdf(id=${run.id})}" class="btn-ui btn-ui-secondary button sekundär">
                 <span th:replace="~{fragments/icons :: download}"></span>
@@ -159,7 +165,15 @@
 
     <!-- Technische Fehlermeldung bei FAILED -->
     <section th:if="${run.errorMessage != null and not #strings.isEmpty(run.errorMessage)}" class="card-box detail-bereich">
-        <h2 th:text="#{ui.lauf.technische_details.titel}">Technische Details</h2>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+            <h2 style="margin: 0; border: none; padding: 0;" th:text="#{ui.lauf.technische_details.titel}">Technische Details</h2>
+            <form th:action="@{/laeufe/{id}/wiederholen(id=${run.id})}" method="post" class="inline-form">
+                <button type="submit" class="btn-ui btn-ui-primary button primär btn-ui-sm">
+                    <span th:replace="~{fragments/icons :: refresh}"></span>
+                    <span th:text="#{ui.lauf.aktion.wiederholen}">Prüflauf wiederholen</span>
+                </button>
+            </form>
+        </div>
         <pre class="technischer-block" style="background: #09090b; color: #f4f4f5; padding: 1rem; border-radius: 8px; font-family: var(--font-mono); font-size: 0.8rem; overflow-x: auto;" th:text="${run.errorMessage}">Fehlermeldung...</pre>
     </section>
 
