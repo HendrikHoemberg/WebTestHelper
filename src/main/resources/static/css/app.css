@@ -1164,6 +1164,27 @@ body {
     background-color: #fafafa;
 }
 
+.daten-tabelle tbody tr.zeile-klickbar,
+.daten-tabelle tbody tr[data-href] {
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.daten-tabelle tbody tr.zeile-klickbar:hover,
+.daten-tabelle tbody tr[data-href]:hover {
+    background-color: var(--surface-hover);
+}
+
+.daten-tabelle tbody tr.zeile-klickbar:hover .zell-id a,
+.daten-tabelle tbody tr[data-href]:hover .zell-id a {
+    text-decoration: underline;
+}
+
+.daten-tabelle tbody tr.zeile-klickbar td.zell-aktion,
+.daten-tabelle tbody tr[data-href] td.zell-aktion {
+    cursor: default;
+}
+
 .daten-tabelle tbody tr:last-child td {
     border-bottom: none;
 }

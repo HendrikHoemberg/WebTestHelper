@@ -31,7 +31,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr th:each="run : ${recentRuns}">
+                    <tr th:each="run : ${recentRuns}" class="zeile-klickbar" th:attr="data-href=@{/laeufe/{id}(id=${run.id})}">
                         <td class="zell-id">
                             <a th:href="@{/laeufe/{id}(id=${run.id})}" th:text="${run.id}" style="font-weight: 700;">101</a>
                         </td>
@@ -67,6 +67,42 @@
             </table>
         </div>
     </section>
+
+    <script>
+        (function () {
+            function handleZeilenKlick(event) {
+                const row = event.target.closest('tr[data-href]');
+                if (!row) return;
+
+                // Native Interaktionen auf Links, Buttons, Formularen und Aktionen nicht abfangen
+                if (event.target.closest('a, button, input, select, textarea, label, form, .zell-aktion')) {
+                    return;
+                }
+
+                // Textauswahl ermöglichen: Wenn Text markiert wurde, keine Navigation auslösen
+                const selection = window.getSelection();
+                if (selection && selection.toString().trim().length > 0) {
+                    return;
+                }
+
+                const url = row.getAttribute('data-href');
+                if (!url) return;
+
+                // Neuer Tab bei mittlerer Maustaste (Button 1), Strg-Klick oder Cmd-Klick
+                if (event.button === 1 || event.ctrlKey || event.metaKey) {
+                    window.open(url, '_blank');
+                } else if (event.button === 0) {
+                    window.location.href = url;
+                }
+            }
+
+            const tabelleContainer = document.querySelector('.tabelle-container');
+            if (tabelleContainer) {
+                tabelleContainer.addEventListener('click', handleZeilenKlick);
+                tabelleContainer.addEventListener('auxclick', handleZeilenKlick);
+            }
+        })();
+    </script>
 </main>
 </body>
 </html>

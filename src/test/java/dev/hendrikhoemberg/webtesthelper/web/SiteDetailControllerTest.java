@@ -247,6 +247,18 @@ class SiteDetailControllerTest {
 
     @Test
     @WithMockUser(roles = "USER")
+    void getLaeufeRendersClickableRowsWithTargetUrl() throws Exception {
+        stubCommon();
+
+        mvc.perform(get("/websites/42/laeufe"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("websites/laeufe"))
+                .andExpect(content().string(containsString("class=\"zeile-klickbar\"")))
+                .andExpect(content().string(containsString("data-href=\"/laeufe/101\"")));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
     void getKonfigurationRendersGroupedChecksAndPanels() throws Exception {
         stubCommon();
 
