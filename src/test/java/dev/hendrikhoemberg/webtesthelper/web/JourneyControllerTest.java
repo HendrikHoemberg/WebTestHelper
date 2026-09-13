@@ -420,6 +420,45 @@ class JourneyControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
+    void runNow_whenDrifted_rendersFriendlyBannerAndStepDetails() throws Exception {
+        UUID stepId = UUID.randomUUID();
+        LocatorCandidate primary = new LocatorCandidate(LocatorStrategy.TEST_ID, "btn-submit", 0);
+        LocatorCandidate fallback = new LocatorCandidate(LocatorStrategy.TEXT, "Jetzt kaufen", 1);
+        JourneyStep step = new JourneyStep(stepId, 0, StepAction.CLICK, List.of(primary, fallback), null, null, false, 5000);
+        JourneyDefinition journey = new JourneyDefinition(10L, 1L, "Kaufabschluss", true, List.of(step));
+        when(journeyService.findDefinition(10L)).thenReturn(Optional.of(journey));
+
+        StepOutcome driftedOutcome = StepOutcome.drifted(stepId, fallback);
+        JourneyReplayResult result = new JourneyReplayResult(10L, "Kaufabschluss", ReplayStatus.DRIFTED, List.of(driftedOutcome), 1, Optional.empty(), Optional.empty());
+        when(journeyReplayer.replay(eq(journey), eq(testSite), isNull())).thenReturn(result);
+        when(journeyHealthService.record(10L, result)).thenReturn(new JourneyHealth(Instant.now(), 0, 1));
+
+        mvc.perform(post("/websites/1/journeys/10/jetzt-ausfuehren").with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(model().attributeExists("stepResults"))
+                .andExpect(content().string(containsString("automatischer Anpassung")))
+                .andExpect(content().string(containsString("Jetzt kaufen")));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void runNow_rendersExpandableStepTableMarkup() throws Exception {
+        JourneyStep step1 = new JourneyStep(UUID.randomUUID(), 0, StepAction.GOTO, List.of(), "https://acme.example.com", null, false, 5000);
+        JourneyDefinition journey = new JourneyDefinition(10L, 1L, "Start", true, List.of(step1));
+        when(journeyService.findDefinition(10L)).thenReturn(Optional.of(journey));
+
+        JourneyReplayResult result = new JourneyReplayResult(10L, "Start", ReplayStatus.PASSED, List.of(StepOutcome.passed(step1.id(), null)), 0, Optional.empty(), Optional.empty());
+        when(journeyReplayer.replay(eq(journey), eq(testSite), isNull())).thenReturn(result);
+        when(journeyHealthService.record(10L, result)).thenReturn(new JourneyHealth(Instant.now(), 0, 0));
+
+        mvc.perform(post("/websites/1/journeys/10/jetzt-ausfuehren").with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("journey-test-ergebnis-schritte")))
+                .andExpect(content().string(containsString("Schritt-Ergebnisse anzeigen")));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
     void runNow_whenReplayThrows_rendersErrorResultWithoutRecordingHealth() throws Exception {
         JourneyDefinition journey = new JourneyDefinition(10L, 1L, "Anmeldung", true, List.of());
         when(journeyService.findDefinition(10L)).thenReturn(Optional.of(journey));

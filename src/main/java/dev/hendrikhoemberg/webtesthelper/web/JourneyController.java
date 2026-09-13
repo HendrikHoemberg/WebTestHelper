@@ -6,8 +6,12 @@ import dev.hendrikhoemberg.webtesthelper.catalog.JourneyService;
 import dev.hendrikhoemberg.webtesthelper.catalog.SiteService;
 import dev.hendrikhoemberg.webtesthelper.model.JourneyDefinition;
 import dev.hendrikhoemberg.webtesthelper.model.JourneyReplayResult;
+import dev.hendrikhoemberg.webtesthelper.model.JourneyStep;
+import dev.hendrikhoemberg.webtesthelper.model.LocatorCandidate;
 import dev.hendrikhoemberg.webtesthelper.model.ReplayStatus;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
+import dev.hendrikhoemberg.webtesthelper.model.StepAction;
+import dev.hendrikhoemberg.webtesthelper.model.StepOutcome;
 import dev.hendrikhoemberg.webtesthelper.model.StepStatus;
 import dev.hendrikhoemberg.webtesthelper.runner.JourneyReplayer;
 import org.springframework.context.MessageSource;
@@ -20,10 +24,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Controller
 public class JourneyController {
@@ -93,12 +100,90 @@ public class JourneyController {
             JourneyReplayResult result = journeyReplayer.replay(journey, site, null);
             journeyHealthService.record(journey.id(), result);
             model.addAttribute("result", result);
+            model.addAttribute("journey", journey);
+            model.addAttribute("site", site);
             model.addAttribute("fehlermeldung", failureText(result, locale));
+            model.addAttribute("stepResults", buildStepResults(journey, result, locale));
         } catch (RuntimeException e) {
             model.addAttribute("fehler", e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
         }
 
         return "journey/ergebnis :: ergebnis";
+    }
+
+    private List<JourneyStepResultView> buildStepResults(JourneyDefinition journey, JourneyReplayResult result, Locale locale) {
+        Map<UUID, StepOutcome> outcomesByStepId = result.outcomes().stream()
+                .collect(Collectors.toMap(StepOutcome::stepId, o -> o, (a, b) -> a));
+
+        List<JourneyStepResultView> stepViews = new ArrayList<>();
+        for (JourneyStep step : journey.steps()) {
+            StepOutcome outcome = outcomesByStepId.get(step.id());
+            StepStatus status = outcome != null ? outcome.status() : StepStatus.SKIPPED;
+            boolean drifted = outcome != null && outcome.drifted();
+
+            String actionLabel = messageSource.getMessage("ui.journey.action." + step.action().name(), null, locale);
+            String targetSummary = stepTargetSummary(step, locale);
+
+            String statusBadgeClass;
+            String statusLabel;
+            switch (status) {
+                case PASSED -> {
+                    statusBadgeClass = "badge-healthy status-aktiv";
+                    statusLabel = messageSource.getMessage("ui.journey.test.schritt.status.erfolgreich", null, locale);
+                }
+                case DRIFTED -> {
+                    statusBadgeClass = "badge-warning schritt-drift";
+                    statusLabel = messageSource.getMessage("ui.journey.test.schritt.status.angepasst", null, locale);
+                }
+                case FAILED -> {
+                    statusBadgeClass = "status-inaktiv";
+                    statusLabel = messageSource.getMessage("ui.journey.test.schritt.status.fehlgeschlagen", null, locale);
+                }
+                default -> {
+                    statusBadgeClass = "status-inaktiv";
+                    statusLabel = messageSource.getMessage("ui.journey.test.schritt.status.uebersprungen", null, locale);
+                }
+            }
+
+            String winnerDetails = null;
+            if (drifted && outcome != null && outcome.winner() != null) {
+                LocatorCandidate winner = outcome.winner();
+                String strategyLabel = messageSource.getMessage("ui.journey.strategy." + winner.strategy().name(), null, locale);
+                winnerDetails = messageSource.getMessage("ui.journey.test.schritt.ausweich_verwendet",
+                        new Object[]{strategyLabel, winner.value()}, locale);
+            }
+
+            String failureMessage = null;
+            if (outcome != null && outcome.failureMessageKey() != null) {
+                failureMessage = messageSource.getMessage(outcome.failureMessageKey(), outcome.failureArgs().toArray(), locale);
+            }
+
+            stepViews.add(new JourneyStepResultView(
+                    step.ordinal() + 1,
+                    step.action(),
+                    actionLabel,
+                    targetSummary,
+                    status,
+                    statusBadgeClass,
+                    statusLabel,
+                    drifted,
+                    winnerDetails,
+                    failureMessage
+            ));
+        }
+        return stepViews;
+    }
+
+    private String stepTargetSummary(JourneyStep step, Locale locale) {
+        if (step.value() != null && !step.value().isBlank()) {
+            return step.value();
+        }
+        if (!step.locatorCandidates().isEmpty()) {
+            LocatorCandidate primary = step.locatorCandidates().get(0);
+            String strat = messageSource.getMessage("ui.journey.strategy." + primary.strategy().name(), null, locale);
+            return strat + ": " + primary.value();
+        }
+        return "—";
     }
 
     /** The first failed step's message, human-readable, or {@code null} when nothing failed. */

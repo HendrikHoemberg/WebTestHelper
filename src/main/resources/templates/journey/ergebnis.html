@@ -1,26 +1,98 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
-<div th:fragment="ergebnis" style="margin-bottom: 1rem;">
+<div th:fragment="ergebnis" style="margin-bottom: 1.5rem;" x-data="{ detailsOffen: false, sichtbar: true }" x-show="sichtbar" x-cloak>
+    <!-- Fehlerfall (Exception beim Starten) -->
     <div th:if="${fehler != null}" role="alert"
-         style="padding: 0.75rem 1rem; border-radius: 8px; background: var(--status-warning-bg); border: 1px solid var(--status-warning-border); color: var(--status-warning-text);">
-        <strong th:text="#{ui.journey.test.fehler(${fehler})}">Der Ablauf konnte nicht ausgeführt werden.</strong>
+         style="padding: 1rem 1.25rem; border-radius: 8px; background: var(--status-warning-bg); border: 1px solid var(--status-warning-border); color: var(--status-warning-text); display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+        <div>
+            <strong th:text="#{ui.journey.test.fehler(${fehler})}">Der Ablauf konnte nicht ausgeführt werden.</strong>
+        </div>
+        <button type="button" @click="sichtbar = false" style="background: none; border: none; cursor: pointer; color: inherit; padding: 0.2rem;" aria-label="Schließen">
+            <span th:replace="~{fragments/icons :: x}"></span>
+        </button>
     </div>
-    <th:block th:if="${fehler == null}">
-        <div th:if="${result.status.name() == 'PASSED'}" role="status"
-             style="padding: 0.75rem 1rem; border-radius: 8px; background: var(--status-success-bg); border: 1px solid var(--status-success-border); color: var(--status-success-text);">
-            <strong th:text="#{ui.journey.test.erfolgreich}">Der Ablauf wurde erfolgreich durchgeführt.</strong>
+
+    <!-- Normales Ergebnis -->
+    <div th:if="${fehler == null and result != null}"
+         th:style="${result.status.name() == 'PASSED' ? 'padding: 1.25rem 1.5rem; border-radius: 8px; background: var(--status-success-bg); border: 1px solid var(--status-success-border); color: var(--status-success-text);' : (result.status.name() == 'DRIFTED' ? 'padding: 1.25rem 1.5rem; border-radius: 8px; background: var(--status-warning-bg); border: 1px solid var(--status-warning-border); color: var(--status-warning-text);' : 'padding: 1.25rem 1.5rem; border-radius: 8px; background: var(--status-error-bg); border: 1px solid var(--status-error-border); color: var(--status-error-text);')}">
+        <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+            <div style="flex: 1;">
+                <!-- PASSED -->
+                <div th:if="${result.status.name() == 'PASSED'}" role="status">
+                    <strong style="font-size: 1.05rem;" th:text="#{ui.journey.test.erfolgreich}">Der Ablauf wurde erfolgreich durchgeführt.</strong>
+                    <p style="margin: 0.35rem 0 0; font-size: 0.9rem; opacity: 0.9;" th:text="#{ui.journey.test.erfolgreich.hinweis}">Alle Schritte wurden fehlerfrei und ohne Abweichungen ausgeführt.</p>
+                </div>
+                <!-- DRIFTED -->
+                <div th:if="${result.status.name() == 'DRIFTED'}" role="status">
+                    <strong style="font-size: 1.05rem;" th:text="#{ui.journey.test.drift.titel}">Ablauf erfolgreich durchgeführt (mit automatischer Anpassung)</strong>
+                    <p style="margin: 0.35rem 0 0; font-size: 0.9rem; opacity: 0.95;" th:text="#{ui.journey.test.drift.hinweis}">Alle Schritte wurden erfolgreich ausgeführt. Auf der Website haben sich einzelne Elemente verändert – WebTestHelper konnte sie über alternative Erkennungsmerkmale trotzdem finden. Es besteht aktuell kein Handlungsbedarf.</p>
+                </div>
+                <!-- FAILED -->
+                <div th:if="${result.status.name() == 'FAILED'}" role="alert">
+                    <strong style="font-size: 1.05rem;" th:text="#{ui.journey.test.fehlgeschlagen}">Der Ablauf ist fehlgeschlagen.</strong>
+                    <p th:if="${fehlermeldung != null}" style="margin: 0.35rem 0 0; font-size: 0.9rem; font-weight: 500;" th:text="${fehlermeldung}">…</p>
+                </div>
+
+                <!-- Toggle für Schritt-Ergebnisse -->
+                <div th:if="${stepResults != null and not #lists.isEmpty(stepResults)}" style="margin-top: 0.85rem;">
+                    <button type="button" @click="detailsOffen = !detailsOffen" class="btn-ui btn-ui-secondary btn-ui-sm" style="background: var(--surface-card, #ffffff); border: 1px solid var(--border-subtle); color: var(--text-main);">
+                        <span x-show="!detailsOffen" style="display: inline-flex; align-items: center; gap: 0.35rem;">
+                            <span th:text="#{ui.journey.test.schritte_anzeigen}">Schritt-Ergebnisse anzeigen</span>
+                            <span>▾</span>
+                        </span>
+                        <span x-show="detailsOffen" x-cloak style="display: inline-flex; align-items: center; gap: 0.35rem;">
+                            <span th:text="#{ui.journey.test.schritte_verbergen}">Schritt-Ergebnisse verbergen</span>
+                            <span>▴</span>
+                        </span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Schließen-Button -->
+            <button type="button" @click="sichtbar = false" style="background: none; border: none; cursor: pointer; color: inherit; padding: 0.25rem; opacity: 0.8;" aria-label="Schließen" title="Schließen">
+                <span th:replace="~{fragments/icons :: x}"></span>
+            </button>
         </div>
-        <div th:if="${result.status.name() == 'DRIFTED'}" role="status"
-             style="padding: 0.75rem 1rem; border-radius: 8px; background: var(--status-warning-bg); border: 1px solid var(--status-warning-border); color: var(--status-warning-text);">
-            <strong th:text="#{ui.journey.test.drift}">Der Ablauf wurde durchgeführt, aber mit Selektor-Abweichungen (Drift).</strong>
+
+        <!-- Aufklappbare Schritt-Tabelle -->
+        <div x-show="detailsOffen" x-cloak id="journey-test-ergebnis-schritte" class="journey-test-ergebnis-schritte"
+             style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(0,0,0,0.1); color: var(--text-main);">
+            <div style="background: var(--surface-card, #ffffff); border-radius: 6px; border: 1px solid var(--border-subtle); overflow: hidden;">
+                <table class="daten-tabelle" style="margin: 0; width: 100%; font-size: 0.875rem;">
+                    <thead>
+                        <tr>
+                            <th style="width: 3.5rem;" th:text="#{ui.journey.test.schritt.tabelle.nr}">Nr.</th>
+                            <th style="width: 9rem;" th:text="#{ui.journey.test.schritt.tabelle.aktion}">Aktion</th>
+                            <th th:text="#{ui.journey.test.schritt.tabelle.ziel}">Ziel / Wert</th>
+                            <th style="width: 8rem;" th:text="#{ui.journey.test.schritt.tabelle.status}">Status</th>
+                            <th th:text="#{ui.journey.test.schritt.tabelle.hinweis}">Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="stepResult : ${stepResults}">
+                            <td style="font-weight: 700; font-variant-numeric: tabular-nums;" th:text="${stepResult.ordinal}">1</td>
+                            <td th:text="${stepResult.actionLabel}">Seite aufrufen</td>
+                            <td>
+                                <code class="code-pill" th:text="${stepResult.targetSummary}">https://example.com</code>
+                            </td>
+                            <td>
+                                <span class="status-badge" th:classappend="${stepResult.statusBadgeClass}">
+                                    <span th:if="${stepResult.status.name() == 'PASSED' or stepResult.status.name() == 'DRIFTED'}" class="status-dot-pulse"></span>
+                                    <span th:text="${stepResult.statusLabel}">Erfolgreich</span>
+                                </span>
+                            </td>
+                            <td>
+                                <span th:if="${stepResult.winnerDetails != null}" style="font-size: 0.825rem; font-weight: 500;" th:text="${stepResult.winnerDetails}">Ausweich-Merkmal verwendet: Text</span>
+                                <span th:if="${stepResult.failureMessage != null}" style="color: var(--status-error-dot); font-size: 0.825rem;" th:text="${stepResult.failureMessage}">Fehlermeldung</span>
+                                <span th:if="${stepResult.winnerDetails == null and stepResult.failureMessage == null}" class="text-gedaempft">—</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
-        <div th:if="${result.status.name() == 'FAILED'}" role="alert"
-             style="padding: 0.75rem 1rem; border-radius: 8px; background: var(--status-error-bg); border: 1px solid var(--status-error-border); color: var(--status-error-text);">
-            <strong th:text="#{ui.journey.test.fehlgeschlagen}">Der Ablauf ist fehlgeschlagen.</strong>
-            <p th:if="${fehlermeldung != null}" style="margin: 0.25rem 0 0; font-size: 0.9rem;" th:text="${fehlermeldung}">…</p>
-        </div>
-    </th:block>
+    </div>
 </div>
 </body>
 </html>
