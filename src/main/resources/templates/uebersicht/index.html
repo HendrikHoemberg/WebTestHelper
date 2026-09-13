@@ -31,68 +31,7 @@
         </div>
     </header>
 
-    <!-- KPI Hero Metrics Strip -->
-    <section class="kpi-hero-grid uebersicht-kennzahlen">
-        <div class="kpi-card kennzahl">
-            <div class="kpi-eyebrow">
-                <span th:text="#{ui.severity.ERROR}">Fehler</span>
-                <span class="status-dot-pulse dot-error" style="background: var(--status-error-dot);"></span>
-            </div>
-            <div class="kpi-number-row">
-                <span class="kpi-value" style="color: var(--status-error-dot);" th:text="${uebersicht.totals.errors()}">0</span>
-            </div>
-            <div class="kpi-subtext" th:text="#{ui.uebersicht.kpi.ueber_alle_websites}">über alle Websites</div>
-        </div>
-
-        <div class="kpi-card kennzahl">
-            <div class="kpi-eyebrow">
-                <span th:text="#{ui.severity.WARN}">Warnungen</span>
-                <span class="status-dot-pulse dot-warn" style="background: var(--status-warning-dot);"></span>
-            </div>
-            <div class="kpi-number-row">
-                <span class="kpi-value" style="color: var(--status-warning-dot);" th:text="${uebersicht.totals.warnings()}">0</span>
-            </div>
-            <div class="kpi-subtext" th:text="#{ui.uebersicht.kpi.ueber_alle_websites}">über alle Websites</div>
-        </div>
-
-        <div class="kpi-card kennzahl">
-            <div class="kpi-eyebrow">
-                <span th:text="#{ui.severity.INFO}">Hinweise</span>
-                <span class="status-dot-pulse dot-info" style="background: var(--status-info-dot);"></span>
-            </div>
-            <div class="kpi-number-row">
-                <span class="kpi-value" style="color: var(--status-info-dot);" th:text="${uebersicht.totals.infos()}">0</span>
-            </div>
-            <div class="kpi-subtext" th:text="#{ui.uebersicht.kpi.ueber_alle_websites}">über alle Websites</div>
-        </div>
-
-        <div class="kpi-card kennzahl">
-            <div class="kpi-eyebrow">
-                <span th:text="#{ui.uebersicht.kpi.aktive_laeufe}">Aktive Läufe</span>
-                <span class="status-dot-pulse dot-success" style="background: var(--status-success-dot);" th:if="${uebersicht.runsInFlight() > 0}"></span>
-            </div>
-            <div class="kpi-number-row">
-                <span class="kpi-value" th:text="${uebersicht.runsInFlight()}">0</span>
-            </div>
-            <div class="kpi-subtext" th:text="${uebersicht.runsInFlight() == 0} ? #{ui.uebersicht.kpi.laeufe.keine} : (${uebersicht.runsInFlight() == 1} ? #{ui.uebersicht.kpi.laeufe.einzahl} : #{ui.uebersicht.kpi.laeufe.mehrzahl})">keine aktiven Läufe</div>
-        </div>
-    </section>
-
-    <!-- System Capacity: laienfreundlicher Status statt technischer Zähler -->
-    <div class="card-box" style="margin-bottom: 2rem; padding: 1rem 1.25rem;">
-        <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem;">
-            <strong style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);"
-                    th:text="#{ui.uebersicht.systemkapazitaet}">Systemkapazität</strong>
-            <span th:if="${uebersicht.capacity.browserWorkersBusy() < uebersicht.capacity.browserWorkersTotal()}"
-                  class="status-badge badge-healthy"
-                  th:text="#{ui.uebersicht.kapazitaet.bereit}">Bereit für Prüfungen</span>
-            <span th:if="${uebersicht.capacity.browserWorkersBusy() >= uebersicht.capacity.browserWorkersTotal()}"
-                  class="status-badge badge-warning"
-                  th:text="#{ui.uebersicht.kapazitaet.ausgelastet}">Ausgelastet</span>
-        </div>
-    </div>
-
-    <!-- Live Polling Target Tiles Grid -->
+    <!-- Dynamic live dashboard content (KPIs, capacity, tiles) -->
     <div th:replace="~{fragments/kacheln :: kacheln}"></div>
 </main>
 </body>

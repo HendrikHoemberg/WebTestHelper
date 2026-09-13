@@ -271,6 +271,19 @@ class DashboardControllerTest {
                 .andExpect(content().string(containsString("role=\"link\"")));
     }
 
+    @Test
+    @WithMockUser(roles = "USER")
+    void dashboardKachelnFragmentRendersKpisAndSystemCapacity() throws Exception {
+        when(dashboardService.overview()).thenReturn(sampleView());
+
+        mvc.perform(get("/uebersicht/kacheln"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("id=\"dashboard-live\"")))
+                .andExpect(content().string(containsString("über alle Websites")))
+                .andExpect(content().string(containsString("Systemkapazität")))
+                .andExpect(content().string(containsString("id=\"dashboard-kacheln\"")));
+    }
+
     // One enabled tile whose next occurrence lands `sekundenBisNaechsterLauf` seconds after the
 
     // test runs — mid-bucket values (90 s -> 1 minute, 150 s -> 2 minutes) so the displayed unit
