@@ -6,7 +6,7 @@
         <h2 style="margin: 0; border: none; padding: 0;" th:text="#{ui.einstellungen.systemlast.titel}">Systemauslastung</h2>
     </div>
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
-        <strong style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Browser-Worker</strong>
+        <strong style="font-size: 0.875rem; font-weight: 600; color: var(--text-main);">Browser-Worker</strong>
         <span style="font-family: var(--font-mono); font-size: 0.85rem; font-weight: 700;"
               th:text="#{ui.einstellungen.systemlast.anteil_belegt(${systemlast.browserWorkersBusy()}, ${systemlast.browserWorkersTotal()})}">
             1 / 4 belegt

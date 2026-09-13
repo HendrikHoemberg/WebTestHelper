@@ -845,10 +845,8 @@ body {
 }
 
 .kpi-eyebrow {
-    font-size: 0.725rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
+    font-size: 0.85rem;
+    font-weight: 600;
     color: var(--text-muted);
     margin-bottom: 0.4rem;
     display: flex;
