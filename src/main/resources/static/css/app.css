@@ -1528,6 +1528,98 @@ body {
     align-items: center;
 }
 
+/* Settings Page & Form Enhancements */
+.card-box.form-bereich {
+    padding: 1.75rem 2rem;
+    margin-bottom: 1.75rem;
+}
+
+.form-bereich .form-gruppe {
+    margin-bottom: 1.5rem;
+}
+
+.einstellungen-duo-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    align-items: stretch;
+    margin-bottom: 1.75rem;
+}
+
+.einstellungen-duo-grid .card-box.form-bereich {
+    margin-bottom: 0;
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.einstellungen-duo-grid .card-box.form-bereich > .card-action-footer {
+    margin-top: auto;
+}
+
+.form-input-constrained {
+    max-width: 640px;
+}
+
+.toggle-card-box {
+    padding: 1rem 1.25rem;
+    background: var(--surface-subtle);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    transition: border-color 0.15s ease;
+}
+
+.toggle-card-box:hover {
+    border-color: var(--border-strong);
+}
+
+.toggle-card-box label {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    cursor: pointer;
+    margin-bottom: 0 !important;
+}
+
+.toggle-card-box input[type="checkbox"] {
+    width: 1.15rem;
+    height: 1.15rem;
+    margin-top: 0;
+    flex-shrink: 0;
+    accent-color: #09090b;
+    cursor: pointer;
+}
+
+.toggle-card-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.toggle-card-title {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-main);
+}
+
+.toggle-card-desc {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
+.card-action-footer {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
 /* ==========================================================================
    12. STANDALONE LOGIN SCREEN (ANMELDEN) & ERROR
    ========================================================================== */

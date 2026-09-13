@@ -710,5 +710,37 @@ class SettingsControllerTest {
                 .andExpect(view().name("einstellungen/index"))
                 .andExpect(model().attributeHasFieldErrors("form", "webhookUrl"));
     }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void getSettingsRendersDuoGridAndToggleCardBox() throws Exception {
+        when(appSettings.smtp()).thenReturn(new SmtpSettings(
+                "smtp.example.com", 587, TlsMode.STARTTLS, "admin", "secret", "alerts@example.com"
+        ));
+        when(appSettings.imap()).thenReturn(new ImapSettings(
+                "imap.example.com", 993, TlsMode.SSL, "admin-imap", "secret-imap", "INBOX", "verify@example.com"
+        ));
+        when(appSettings.baseUrl()).thenReturn("https://webtesthelper.example.com");
+        when(appSettings.redirectAllMailTo()).thenReturn(Optional.empty());
+
+        mvc.perform(get("/einstellungen"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("einstellungen-duo-grid")))
+                .andExpect(content().string(containsString("toggle-card-box")));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void getSettingsRendersContextualPostfachAndWebhookTestButtons() throws Exception {
+        when(appSettings.smtp()).thenReturn(new SmtpSettings("smtp.example.com", 587, TlsMode.STARTTLS, "admin", "secret", "alerts@example.com"));
+        when(appSettings.imap()).thenReturn(new ImapSettings("imap.example.com", 993, TlsMode.SSL, "admin-imap", "secret-imap", "INBOX", "verify@example.com"));
+        when(appSettings.baseUrl()).thenReturn("https://webtesthelper.example.com");
+        when(appSettings.redirectAllMailTo()).thenReturn(Optional.empty());
+
+        mvc.perform(get("/einstellungen"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("formaction=\"/einstellungen/postfach-test\"")))
+                .andExpect(content().string(containsString("formaction=\"/einstellungen/webhook-test\"")));
+    }
 }
 
