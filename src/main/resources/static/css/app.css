@@ -1483,7 +1483,7 @@ body {
     border-left: 4px solid transparent;
     border-radius: 8px;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-    padding: 1rem 1.25rem;
+    padding: 0.75rem 1rem;
     border-bottom: 1px solid var(--border-subtle);
     transition: box-shadow 0.15s ease, border-color 0.15s ease;
 }
@@ -1508,7 +1508,7 @@ body {
 
 .triage-row-item,
 .befund-karte {
-    padding: 1rem 1.25rem;
+    padding: 0.75rem 1rem;
     border-bottom: 1px solid var(--border-subtle);
     border-left: 4px solid transparent;
     display: flex;
@@ -1541,6 +1541,61 @@ body {
     background: #fafafa;
 }
 
+.befund-kopf {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.25rem;
+}
+
+.befund-kopf-links {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    min-width: 0;
+    flex: 1;
+}
+
+.befund-kopf-rechts {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-shrink: 0;
+}
+
+.befund-trenner {
+    color: var(--border-strong);
+    font-size: 0.85rem;
+    user-select: none;
+}
+
+.befund-ort-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-right: 0.25rem;
+}
+
+.befund-meldung-inline {
+    font-size: 0.825rem;
+    color: var(--text-muted);
+}
+
+.befund-screenshot-btn {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.55rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.befund-screenshot-btn .svg-icon {
+    width: 13px;
+    height: 13px;
+}
+
 .remediation-callout {
     background: var(--surface-subtle);
     border: 1px solid var(--border-subtle);
@@ -1565,7 +1620,8 @@ body {
     display: inline-block;
 }
 
-/* URL & Link copy affordance — Option 1 pinned right */
+/* URL & Link copy affordance — Split-card hero row */
+.befund-hero-row,
 .befund-link-zeile {
     display: flex;
     align-items: center;
@@ -1574,22 +1630,32 @@ body {
     background: var(--surface-subtle);
     border: 1px solid var(--border-subtle);
     border-radius: 6px;
-    padding: 0.45rem 0.65rem;
-    margin: 0.45rem 0;
+    padding: 0.4rem 0.7rem;
+    margin: 0.35rem 0 0.15rem;
     max-width: 100%;
+    transition: background 0.15s ease, border-color 0.15s ease;
 }
 
+.befund-hero-row:hover,
+.befund-link-zeile:hover {
+    background: var(--bg-canvas);
+    border-color: var(--border-strong);
+}
+
+.befund-hero-url,
 .befund-subjekt-link {
     font-family: var(--font-mono);
-    font-size: 0.8rem;
+    font-size: 0.825rem;
+    font-weight: 600;
     color: var(--text-main);
     word-break: break-all;
-    font-weight: 500;
     line-height: 1.4;
+    text-decoration: none;
     flex: 1;
     min-width: 0;
 }
 
+.befund-hero-url:hover,
 .befund-subjekt-link:hover {
     text-decoration: underline;
 }

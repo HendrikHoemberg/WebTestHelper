@@ -4,13 +4,14 @@
 <div th:fragment="befundzeile(befund, auswaehlbar)" class="triage-row-item befund-karte"
      th:classappend="${'karte-severity-' + befund.severity}">
     <div style="flex: 1; min-width: 0;">
-        <div class="befund-kopf" style="margin-bottom: 0.35rem;">
-            <div class="befund-titel-zeile" style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0.25rem;">
+        <div class="befund-kopf">
+            <div class="befund-kopf-links">
                 <label th:if="${auswaehlbar}" class="befund-checkbox-label" style="display: inline-flex; align-items: center; cursor: pointer; margin-right: 0.2rem;">
                     <input type="checkbox" name="ids" th:value="${befund.id}" class="befund-checkbox"
                            th:attr="aria-label=${befund.title}"
                            @change="toggle($el.value)" :checked="isSelected($el.value)" style="width: 1.05rem; height: 1.05rem; cursor: pointer;">
                 </label>
+
                 <span class="status-badge"
                       th:classappend="${befund.severity.name() == 'ERROR' ? 'badge-failing' : (befund.severity.name() == 'WARN' ? 'badge-warning' : 'status-inaktiv')} + ' severity-' + ${befund.severity}"
                       th:text="#{${'ui.severity.' + befund.severity}}">Fehler</span>
@@ -21,28 +22,56 @@
                 </a>
 
                 <span th:if="${befund.siteWide}" class="siteweit-badge" th:text="#{ui.befund.siteweit}">Website-weit</span>
-                <span class="status-badge status-inaktiv" th:text="#{${'ui.triagestatus.' + befund.triage}}">Ungeprüft</span>
-                <span th:if="${befund.screenshotUrl != null}" class="status-badge status-inaktiv" style="font-size: 0.72rem; display: inline-flex; align-items: center; gap: 0.25rem;">
-                    📷 <span th:text="#{ui.befund.screenshot_vorhanden}">Screenshot</span>
-                </span>
+
+                <!-- Triage-Status: In Gruppen unterdrücken wenn default UNTRIAGED (verhindert 30x gleiches Rauschen) -->
+                <span th:if="${inGruppe != true or befund.triage.name() != 'UNTRIAGED'}"
+                      class="status-badge status-inaktiv"
+                      th:text="#{${'ui.triagestatus.' + befund.triage}}">Ungeprüft</span>
+
+                <span class="befund-trenner" th:if="${inGruppe == true and (site != null or befund.locationText != null)}">·</span>
+
+                <!-- Ort / Fundort -->
+                <div class="befund-ort" th:style="${auswaehlbar ? 'margin-left: 1.5rem;' : 'margin-left: 0;'}">
+                    <span th:if="${inGruppe == true}" class="befund-ort-label" th:text="#{ui.befund.ort.label}">Auf:</span>
+                    <a th:if="${!befund.siteWide and #strings.startsWith(befund.locationText, '/') and site != null}"
+                       th:href="${site.baseUrl.origin() + befund.locationText}"
+                       target="_blank" rel="noopener noreferrer" class="befund-ort-link"
+                       th:attr="aria-label=#{ui.befund.ort.aufrufen}">
+                        <code class="code-pill" th:text="${befund.locationText}">/pfad</code>
+                    </a>
+                    <code th:if="${befund.siteWide or !#strings.startsWith(befund.locationText, '/') or site == null}"
+                          class="code-pill"
+                          th:text="${befund.locationText}">auf 7 Seiten</code>
+                </div>
+
+                <!-- Kurzbeschreibung inline bei inGruppe -->
+                <span class="befund-trenner" th:if="${inGruppe == true and befund.message != null}">·</span>
+                <span th:if="${inGruppe == true and befund.message != null}"
+                      class="befund-meldung-inline"
+                      th:text="${befund.message}">Meldung</span>
             </div>
-            <div class="befund-ort" th:style="${auswaehlbar ? 'margin-left: 1.5rem;' : 'margin-left: 0;'}">
-                <a th:if="${!befund.siteWide and #strings.startsWith(befund.locationText, '/')}"
-                   th:href="${site.baseUrl.origin() + befund.locationText}"
-                   target="_blank" rel="noopener noreferrer" class="befund-ort-link"
-                   th:attr="aria-label=#{ui.befund.ort.aufrufen}">
-                    <code class="code-pill" th:text="${befund.locationText}">/pfad</code>
+
+            <!-- Kopfzeile rechts: Screenshot & Details -->
+            <div class="befund-kopf-rechts">
+                <a th:if="${befund.screenshotUrl != null}"
+                   th:href="${befund.screenshotUrl}"
+                   target="_blank" rel="noopener noreferrer"
+                   class="btn-ui btn-ui-secondary btn-ui-sm befund-screenshot-btn">
+                    <span th:replace="~{fragments/icons :: camera}"></span>
+                    <span th:text="#{ui.befund.screenshot_vorhanden}">Screenshot</span>
                 </a>
-                <code th:if="${befund.siteWide or !#strings.startsWith(befund.locationText, '/')}"
-                      class="code-pill"
-                      th:text="${befund.locationText}">auf 7 Seiten</code>
+                <a th:href="|/befunde/${befund.id}|" class="btn-ui btn-ui-ghost btn-ui-sm" style="font-size: 0.775rem; padding: 0.2rem 0.5rem;">Details →</a>
             </div>
         </div>
+
         <div class="befund-koerper">
-            <p class="befund-meldung" style="font-size: 0.875rem; color: var(--text-body); margin: 0.35rem 0;" th:text="${befund.message}">Meldung</p>
-            <div class="befund-link-zeile" th:if="${befund.subjectUrl != null}" x-data="wthKopiere()">
+            <!-- Meldung nur separat wenn NICHT inGruppe (in Gruppe steht sie kompakt in der Kopfzeile) -->
+            <p th:if="${inGruppe != true}" class="befund-meldung" style="font-size: 0.875rem; color: var(--text-body); margin: 0.35rem 0;" th:text="${befund.message}">Meldung</p>
+
+            <!-- Schlanker Monochromer URL-Hero-Streifen -->
+            <div class="befund-hero-row befund-link-zeile" th:if="${befund.subjectUrl != null}" x-data="wthKopiere()">
                 <a th:href="${befund.subjectUrl}" target="_blank" rel="noopener noreferrer"
-                   class="befund-subjekt-link" th:attr="aria-label=#{ui.befund.subject.aufrufen}"
+                   class="befund-hero-url befund-subjekt-link" th:attr="aria-label=#{ui.befund.subject.aufrufen}"
                    th:text="${befund.subjectUrl}">https://example.com/tot</a>
                 <div class="befund-link-aktionen">
                     <span class="kopie-rueckmeldung" x-cloak x-show="kopiert" aria-live="polite"
@@ -56,27 +85,26 @@
                     </button>
                 </div>
             </div>
+
             <!-- Abhilfe nur anzeigen wenn NICHT in einer Kategorie-Gruppe -->
-            <div th:if="${inGruppe != true}" class="remediation-callout" style="margin-top: 0.5rem;">
+            <div th:if="${inGruppe != true and befund.remediation != null and !#strings.isEmpty(befund.remediation)}" class="remediation-callout" style="margin-top: 0.5rem;">
                 <strong th:text="#{ui.befund.behebung.label}" style="color: var(--text-main);">Abhilfe:</strong>
                 <span th:text="${befund.remediation}" class="befund-behebung">Abhilfe-Text</span>
             </div>
-            <p th:if="${befund.mutedUntil != null}" class="befund-leise-zeile befund-stumm" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.4rem;">
+
+            <p th:if="${befund.mutedUntil != null}" class="befund-leise-zeile befund-stumm" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.35rem;">
                 <span th:if="${befund.triageReason != null and !#strings.isEmpty(befund.triageReason)}"
                       th:text="#{ui.befund.stumm_bis_mit_grund(${#temporals.format(befund.mutedUntil, 'dd.MM.yyyy')}, ${befund.triageReason})}">Stumm bis 24.11.2026 · Grund: ...</span>
                 <span th:if="${befund.triageReason == null or #strings.isEmpty(befund.triageReason)}"
                       th:text="#{ui.befund.stumm_bis_ohne_grund(${#temporals.format(befund.mutedUntil, 'dd.MM.yyyy')})}">Stumm bis 24.11.2026</span>
             </p>
-            <p th:if="${befund.muteExpired != null}" class="befund-leise-zeile befund-abgelaufen" style="font-size: 0.8rem; color: var(--status-warning-text); margin-top: 0.4rem;">
+            <p th:if="${befund.muteExpired != null}" class="befund-leise-zeile befund-abgelaufen" style="font-size: 0.8rem; color: var(--status-warning-text); margin-top: 0.35rem;">
                 <span th:if="${befund.triageReason != null and !#strings.isEmpty(befund.triageReason)}"
                       th:text="#{ui.befund.mute_abgelaufen_mit_grund(${#temporals.format(befund.muteExpired, 'dd.MM.yyyy')}, ${befund.triageReason})}">Stummschaltung abgelaufen am ... · Damalige Begründung: ...</span>
                 <span th:if="${befund.triageReason == null or #strings.isEmpty(befund.triageReason)}"
                       th:text="#{ui.befund.mute_abgelaufen_ohne_grund(${#temporals.format(befund.muteExpired, 'dd.MM.yyyy')})}">Stummschaltung abgelaufen am ...</span>
             </p>
         </div>
-    </div>
-    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem; flex-shrink: 0;">
-        <a th:href="|/befunde/${befund.id}|" class="btn-ui btn-ui-secondary btn-ui-sm">Details →</a>
     </div>
 </div>
 </body>

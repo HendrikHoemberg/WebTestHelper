@@ -1,0 +1,1701 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebTestHelper – Brainstorming: Befund-Karten Redesign</title>
+    <style>
+        :root {
+            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            --font-mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Monaco, Consolas, monospace;
+
+            --bg-canvas: #f4f4f5;
+            --surface-card: #ffffff;
+            --surface-subtle: #fafafa;
+            --surface-hover: #f4f4f5;
+
+            --text-main: #09090b;
+            --text-body: #27272a;
+            --text-muted: #71717a;
+            --text-faint: #a1a1aa;
+
+            --border-subtle: #e4e4e7;
+            --border-strong: #d4d4d8;
+            --border-dark: #27272a;
+
+            --status-error-dot: #f43f5e;
+            --status-error-bg: #fef2f2;
+            --status-error-border: #fecaca;
+            --status-error-text: #991b1b;
+
+            --status-warning-dot: #f59e0b;
+            --status-warning-bg: #fffbeb;
+            --status-warning-border: #fde68a;
+            --status-warning-text: #92400e;
+
+            --status-info-dot: #0284c7;
+            --status-info-bg: #f0f9ff;
+            --status-info-border: #bae6fd;
+            --status-info-text: #075985;
+
+            --primary: #09090b;
+            --primary-hover: #18181b;
+
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+            --shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--text-body);
+            background-color: var(--bg-canvas);
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1180px;
+            margin: 0 auto;
+        }
+
+        /* Header & Intro */
+        .page-header {
+            margin-bottom: 2rem;
+            background: #ffffff;
+            padding: 1.75rem 2rem;
+            border-radius: 12px;
+            border: 1px solid var(--border-subtle);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .page-header h1 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--text-main);
+            letter-spacing: -0.02em;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .page-header p {
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+            font-size: 0.95rem;
+            max-width: 800px;
+        }
+
+        .analysis-box {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+            margin-top: 1.25rem;
+            padding-top: 1.25rem;
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        .analysis-card {
+            background: var(--surface-subtle);
+            padding: 0.85rem 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .analysis-card strong {
+            display: block;
+            font-size: 0.825rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text-muted);
+            margin-bottom: 0.35rem;
+        }
+
+        .analysis-card p {
+            font-size: 0.875rem;
+            color: var(--text-body);
+            margin: 0;
+        }
+
+        /* Mode Switcher Nav */
+        .nav-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            position: sticky;
+            top: 1rem;
+            z-index: 50;
+            background: rgba(244, 244, 245, 0.92);
+            backdrop-filter: blur(8px);
+            padding: 0.5rem 0;
+        }
+
+        .nav-tab-btn {
+            background: #ffffff;
+            border: 1px solid var(--border-subtle);
+            padding: 0.55rem 1.1rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-body);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .nav-tab-btn:hover {
+            border-color: var(--border-strong);
+            background: #fafafa;
+        }
+
+        .nav-tab-btn.active {
+            background: var(--primary);
+            color: #ffffff;
+            border-color: var(--primary);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .nav-tab-btn .badge-count {
+            background: rgba(0, 0, 0, 0.08);
+            padding: 2px 6px;
+            border-radius: 999px;
+            font-size: 0.725rem;
+        }
+
+        .nav-tab-btn.active .badge-count {
+            background: rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+        }
+
+        /* Section Container */
+        .concept-section {
+            margin-bottom: 3rem;
+            background: #ffffff;
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .concept-header {
+            padding: 1.25rem 1.75rem;
+            background: #fafafa;
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .concept-title-group h2 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .concept-title-group p {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        .concept-metrics {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .metric-pill {
+            background: #ffffff;
+            border: 1px solid var(--border-subtle);
+            padding: 0.35rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.775rem;
+            color: var(--text-muted);
+        }
+
+        .metric-pill strong {
+            color: var(--text-main);
+            margin-left: 0.2rem;
+        }
+
+        .concept-body {
+            padding: 1.75rem;
+        }
+
+        /* Common Elements inside Cards & Lists */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .status-dot-pulse {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--status-error-dot);
+            box-shadow: 0 0 6px rgba(244, 63, 94, 0.7);
+            display: inline-block;
+        }
+
+        .status-dot-pulse.warn {
+            background: var(--status-warning-dot);
+            box-shadow: 0 0 6px rgba(245, 158, 11, 0.7);
+        }
+
+        .status-dot-pulse.info {
+            background: var(--status-info-dot);
+            box-shadow: 0 0 6px rgba(2, 132, 199, 0.7);
+        }
+
+        .code-pill {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 2px 7px;
+            border-radius: 4px;
+            background: #f4f4f5;
+            color: #27272a;
+            border: 1px solid var(--border-strong);
+            display: inline-block;
+            text-decoration: none;
+        }
+
+        .btn-ui {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.35rem 0.75rem;
+            font-size: 0.825rem;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+        }
+
+        .btn-ui-secondary {
+            background: #ffffff;
+            border: 1px solid var(--border-subtle);
+            color: var(--text-body);
+        }
+
+        .btn-ui-secondary:hover {
+            background: #f4f4f5;
+            border-color: var(--border-strong);
+            color: var(--text-main);
+        }
+
+        .btn-ui-ghost {
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-muted);
+            padding: 0.25rem 0.5rem;
+        }
+
+        .btn-ui-ghost:hover {
+            background: #f4f4f5;
+            color: var(--text-main);
+            border-color: var(--border-subtle);
+        }
+
+        .btn-icon-copy {
+            padding: 3px 6px;
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            cursor: pointer;
+            color: var(--text-muted);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+        }
+
+        .btn-icon-copy:hover {
+            background: #e4e4e7;
+            color: var(--text-main);
+            border-color: var(--border-strong);
+        }
+
+        .toast-copy {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: #09090b;
+            color: #ffffff;
+            padding: 0.75rem 1.25rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            box-shadow: var(--shadow-md);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            transform: translateY(10px);
+            z-index: 1000;
+        }
+
+        .toast-copy.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* -------------------------------------------------------------
+           MOCKUP: Category Accordion Shell (same context as in app)
+           ------------------------------------------------------------- */
+        .category-shell {
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            background: #ffffff;
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+        }
+
+        .category-header {
+            padding: 0.85rem 1.25rem;
+            background: #fafafa;
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .category-header-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .category-badge-pill {
+            background: #27272a;
+            color: #ffffff;
+            font-size: 0.75rem;
+            padding: 2px 7px;
+            border-radius: 999px;
+            font-weight: 600;
+        }
+
+        /* =============================================================
+           0. STATUS QUO (Current Implementation from Screenshot)
+           ============================================================= */
+        .status-quo-stack {
+            padding: 0.85rem;
+            background: var(--bg-canvas);
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .sq-card {
+            background: #ffffff;
+            border: 1px solid var(--border-subtle);
+            border-left: 4px solid var(--status-error-dot);
+            border-radius: 8px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+            padding: 1rem 1.25rem;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1.5rem;
+        }
+
+        .sq-card-body {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .sq-top-row {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.35rem;
+        }
+
+        .sq-badge-muted {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        .sq-location-row {
+            margin-bottom: 0.35rem;
+        }
+
+        .sq-message {
+            font-size: 0.875rem;
+            color: var(--text-body);
+            margin: 0.35rem 0;
+        }
+
+        .sq-url-box {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            background: var(--surface-subtle);
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            padding: 0.45rem 0.65rem;
+            margin: 0.45rem 0;
+            max-width: 100%;
+        }
+
+        .sq-url-text {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--text-main);
+            word-break: break-all;
+            font-weight: 500;
+            flex: 1;
+            text-decoration: underline;
+        }
+
+        /* =============================================================
+           IDEA 1: KOMPAKTE DATENZEILE (2-Zeiler / High Density)
+           ============================================================= */
+        .idea1-list {
+            display: flex;
+            flex-direction: column;
+            background: #ffffff;
+            border-radius: 6px;
+        }
+
+        .idea1-row {
+            padding: 0.65rem 1rem;
+            border-bottom: 1px solid var(--border-subtle);
+            border-left: 3px solid var(--status-error-dot);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            transition: background 0.15s ease;
+        }
+
+        .idea1-row:last-child {
+            border-bottom: none;
+        }
+
+        .idea1-row:hover {
+            background: #fafafa;
+        }
+
+        .idea1-main {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+        }
+
+        .idea1-top {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            flex-wrap: wrap;
+        }
+
+        .idea1-code-badge {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: 4px;
+            background: var(--status-error-bg);
+            color: var(--status-error-text);
+            border: 1px solid var(--status-error-border);
+            letter-spacing: 0.02em;
+        }
+
+        .idea1-url-link {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-main);
+            text-decoration: none;
+            word-break: break-all;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .idea1-url-link:hover {
+            color: var(--text-main);
+            text-decoration: underline;
+        }
+
+        .idea1-bottom {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            flex-wrap: wrap;
+        }
+
+        .idea1-loc-pill {
+            font-family: var(--font-mono);
+            font-size: 0.725rem;
+            background: #f4f4f5;
+            color: #3f3f46;
+            padding: 1px 5px;
+            border-radius: 3px;
+            border: 1px solid var(--border-subtle);
+            text-decoration: none;
+            max-width: 320px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .idea1-loc-pill:hover {
+            border-color: var(--border-strong);
+            color: var(--text-main);
+        }
+
+        .idea1-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            flex-shrink: 0;
+        }
+
+        .idea1-screenshot-btn {
+            padding: 0.25rem 0.5rem;
+            background: #ffffff;
+            border: 1px solid var(--border-subtle);
+            border-radius: 4px;
+            font-size: 0.75rem;
+            color: var(--text-body);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .idea1-screenshot-btn:hover {
+            background: #f4f4f5;
+            border-color: var(--border-strong);
+        }
+
+        /* =============================================================
+           IDEA 2: STRUKTURIERTE TABELLE (Table Inspector)
+           ============================================================= */
+        .idea2-table-wrapper {
+            overflow-x: auto;
+            border-radius: 6px;
+        }
+
+        .idea2-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.825rem;
+            text-align: left;
+        }
+
+        .idea2-table th {
+            background: #f4f4f5;
+            padding: 0.65rem 0.85rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            border-bottom: 1px solid var(--border-subtle);
+            white-space: nowrap;
+        }
+
+        .idea2-table td {
+            padding: 0.65rem 0.85rem;
+            border-bottom: 1px solid var(--border-subtle);
+            vertical-align: middle;
+        }
+
+        .idea2-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .idea2-table tbody tr:hover {
+            background: #fafafa;
+        }
+
+        .idea2-status-cell {
+            white-space: nowrap;
+            width: 100px;
+        }
+
+        .idea2-url-cell {
+            min-width: 320px;
+        }
+
+        .idea2-location-cell {
+            max-width: 260px;
+        }
+
+        .idea2-actions-cell {
+            text-align: right;
+            white-space: nowrap;
+            width: 150px;
+        }
+
+        /* =============================================================
+           IDEA 3: MODERNER SPLIT-CARD (Context-First / Hero URL)
+           ============================================================= */
+        .idea3-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 0.65rem;
+        }
+
+        .idea3-card {
+            background: #ffffff;
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 0.85rem 1.15rem;
+            transition: all 0.15s ease;
+            position: relative;
+        }
+
+        .idea3-card:hover {
+            border-color: var(--border-strong);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+        }
+
+        .idea3-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.45rem;
+            gap: 0.75rem;
+        }
+
+        .idea3-header-left {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .idea3-header-right {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .idea3-hero-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--surface-subtle);
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            padding: 0.45rem 0.75rem;
+            margin-top: 0.35rem;
+            gap: 0.75rem;
+            transition: all 0.15s ease;
+        }
+
+        .idea3-hero-row:hover {
+            background: var(--bg-canvas);
+            border-color: var(--border-strong);
+        }
+
+        .idea3-hero-url {
+            font-family: var(--font-mono);
+            font-size: 0.825rem;
+            font-weight: 600;
+            color: var(--text-main);
+            word-break: break-all;
+            text-decoration: none;
+            flex: 1;
+        }
+
+        .idea3-hero-url:hover {
+            color: var(--text-main);
+            text-decoration: underline;
+        }
+
+        /* Nuance variants for monochrome hero strip */
+        .idea3-hero-row.variant-canvas {
+            background: var(--bg-canvas);
+            border: 1px solid var(--border-strong);
+        }
+
+        .idea3-hero-row.variant-borderless {
+            background: #ffffff;
+            border: 1px solid var(--border-subtle);
+            border-left: 3px solid var(--border-dark);
+            border-radius: 4px 6px 6px 4px;
+        }
+
+        .idea3-message-text {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-left: 0.25rem;
+        }
+
+        .idea3-meta-tag {
+            font-size: 0.725rem;
+            color: var(--text-muted);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        /* Interactive Comparison Drawer / Toggle */
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            align-items: start;
+        }
+
+        .column-box {
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            background: #ffffff;
+            overflow: hidden;
+        }
+
+        .column-header {
+            padding: 0.75rem 1rem;
+            font-weight: 700;
+            font-size: 0.875rem;
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .column-header.old {
+            background: #fff1f2;
+            color: #9f1239;
+        }
+
+        .column-header.new {
+            background: #f0fdf4;
+            color: #166534;
+        }
+
+        /* Modal preview simulation */
+        .preview-modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            backdrop-filter: blur(4px);
+        }
+
+        .preview-modal-backdrop.open {
+            display: flex;
+        }
+
+        .preview-modal {
+            background: #ffffff;
+            border-radius: 12px;
+            max-width: 680px;
+            width: 90%;
+            padding: 1.5rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+        }
+
+        .preview-modal-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .mock-screenshot {
+            background: #e4e4e7;
+            border-radius: 6px;
+            height: 280px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #71717a;
+            font-weight: 500;
+            border: 1px dashed #a1a1aa;
+        }
+
+        /* Feature Matrix */
+        .feature-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1.5rem;
+            font-size: 0.85rem;
+        }
+
+        .feature-table th, .feature-table td {
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-subtle);
+            text-align: left;
+        }
+
+        .feature-table th {
+            background: #fafafa;
+            font-weight: 600;
+        }
+
+        .badge-pro {
+            color: #15803d;
+            font-weight: 600;
+        }
+
+        .badge-con {
+            color: #b91c1c;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- Header -->
+    <header class="page-header">
+        <h1>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
+            Brainstorming: Entrümpelung der Befund-Karten
+        </h1>
+        <p>
+            Auf der Prüflauf-Detailseite (<code>/laeufe/xy</code>) wirken die einzelnen Befunde in den Kategorie-Akkordeons (z.&thinsp;B. „Tote Links“) visuell überfrachtet, vertikal aufgebläht und repetitiv. Hier sind die Ursachen und 3 konkrete Lösungsvorschläge zum visuellen Vergleich.
+        </p>
+
+        <div class="analysis-box">
+            <div class="analysis-card">
+                <strong>Problem 1: Vertikaler Footprint</strong>
+                <p>Jeder Befund benötigt ca. 150px Höhe durch 4 getrennte Zeilen (Badges, Ort-Pill, Fehlermeldung, Riesen-URL-Box). Bei 30 Links scrollt man endlos.</p>
+            </div>
+            <div class="analysis-card">
+                <strong>Problem 2: Redundantes Rauschen</strong>
+                <p>30x das graue Badge <em>„Ungeprüft“</em> und das rote <em>„Fehler“</em> untereinander, obwohl die Kategorie-Überschrift bereits <em>„30 Fehler“</em> anzeigt.</p>
+            </div>
+            <div class="analysis-card">
+                <strong>Problem 3: Trennung von Ort & Ziel</strong>
+                <p>Die Seite (<code>/</code>), der HTTP-Code (<code>503</code>) und die defekte URL liegen unverbunden auf drei separaten visuellen Schichten.</p>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation / Mode Filter -->
+    <nav class="nav-tabs">
+        <button class="nav-tab-btn active" onclick="showTab('all')">
+            Alle Ansichten & Matrix
+        </button>
+        <button class="nav-tab-btn" onclick="showTab('status-quo')">
+            Status Quo <span class="badge-count">Ist-Zustand</span>
+        </button>
+        <button class="nav-tab-btn" onclick="showTab('idea1')">
+            Idee 1: Kompakte Datenzeile <span class="badge-count">Empfohlen</span>
+        </button>
+        <button class="nav-tab-btn" onclick="showTab('idea2')">
+            Idee 2: Tabellarischer Inspector
+        </button>
+        <button class="nav-tab-btn" onclick="showTab('idea3')">
+            Idee 3: Moderner Split-Card
+        </button>
+        <button class="nav-tab-btn" onclick="showTab('compare')">
+            1:1 Direktvergleich (Vorher vs. Nachher)
+        </button>
+    </nav>
+
+    <!-- =========================================================
+         SECTION: STATUS QUO
+         ========================================================= -->
+    <section id="sec-status-quo" class="concept-section">
+        <div class="concept-header">
+            <div class="concept-title-group">
+                <h2>🔴 Status Quo: Aktuelle Implementierung</h2>
+                <p>Exakte Nachbildung des aktuellen Zustands aus dem Screenshot (Höhe pro Befund ca. 145px).</p>
+            </div>
+            <div class="concept-metrics">
+                <span class="metric-pill">Höhe pro Item: <strong>~145 px</strong></span>
+                <span class="metric-pill">Sichtbar ohne Scrollen: <strong>~3-4 Items</strong></span>
+                <span class="metric-pill">Visuelle Schichten: <strong>4 Zeilen</strong></span>
+            </div>
+        </div>
+        <div class="concept-body">
+            <div class="category-shell">
+                <div class="category-header">
+                    <div class="category-header-title">
+                        <span>▾</span>
+                        <span>Tote Links</span>
+                        <span class="category-badge-pill">31</span>
+                    </div>
+                    <div>
+                        <span class="status-badge"><span class="status-dot-pulse"></span> 30 Fehler</span>
+                        <span class="status-badge" style="margin-left: 0.5rem; color: var(--text-muted);">1 Warnung</span>
+                    </div>
+                </div>
+
+                <div class="status-quo-stack">
+                    <!-- Item 1 -->
+                    <div class="sq-card">
+                        <div class="sq-card-body">
+                            <div class="sq-top-row">
+                                <span class="status-badge"><span class="status-dot-pulse"></span> Fehler</span>
+                                <span class="sq-badge-muted">Ungeprüft</span>
+                                <span class="sq-badge-muted">📷 Screenshot vorhanden</span>
+                            </div>
+                            <div class="sq-location-row">
+                                <span class="code-pill">/</span>
+                            </div>
+                            <div class="sq-message">Der Verweis führt ins Leere (503).</div>
+                            <div class="sq-url-box">
+                                <span class="sq-url-text">http://www.hessencampus.de/</span>
+                                <button class="btn-icon-copy" onclick="copyText('http://www.hessencampus.de/')">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <a href="#details" class="btn-ui btn-ui-secondary">Details →</a>
+                    </div>
+
+                    <!-- Item 2 -->
+                    <div class="sq-card">
+                        <div class="sq-card-body">
+                            <div class="sq-top-row">
+                                <span class="status-badge"><span class="status-dot-pulse"></span> Fehler</span>
+                                <span class="sq-badge-muted">Ungeprüft</span>
+                                <span class="sq-badge-muted">📷 Screenshot vorhanden</span>
+                            </div>
+                            <div class="sq-location-row">
+                                <span class="code-pill">/</span>
+                            </div>
+                            <div class="sq-message">Der Verweis führt ins Leere (404).</div>
+                            <div class="sq-url-box">
+                                <span class="sq-url-text">https://kultusministerium.hessen.de/foerderangebote/europaeische-foerderung/praxis-und-schule-pusch</span>
+                                <button class="btn-icon-copy" onclick="copyText('https://kultusministerium.hessen.de/foerderangebote/europaeische-foerderung/praxis-und-schule-pusch')">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <a href="#details" class="btn-ui btn-ui-secondary">Details →</a>
+                    </div>
+
+                    <!-- Item 3 -->
+                    <div class="sq-card">
+                        <div class="sq-card-body">
+                            <div class="sq-top-row">
+                                <span class="status-badge"><span class="status-dot-pulse"></span> Fehler</span>
+                                <span class="sq-badge-muted">Ungeprüft</span>
+                                <span class="sq-badge-muted">📷 Screenshot vorhanden</span>
+                            </div>
+                            <div class="sq-location-row">
+                                <span class="code-pill">/?cHash=5beb42a1426bef494c368d2de3d964ca&tx_newsfilter_newsfilter%5B%40widget_0%5D%5BcurrentPage%5D=3</span>
+                            </div>
+                            <div class="sq-message">Der Verweis führt ins Leere (503).</div>
+                            <div class="sq-url-box">
+                                <span class="sq-url-text">http://www.hessencampus.de/</span>
+                                <button class="btn-icon-copy" onclick="copyText('http://www.hessencampus.de/')">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <a href="#details" class="btn-ui btn-ui-secondary">Details →</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- =========================================================
+         SECTION: IDEA 1
+         ========================================================= -->
+    <section id="sec-idea1" class="concept-section">
+        <div class="concept-header">
+            <div class="concept-title-group">
+                <h2>🟢 Idee 1: Kompakte Datenzeile (2-Zeiler / High Density)</h2>
+                <p>Fasst das Wesentliche in 2 klare Zeilen zusammen: <strong>Zeile 1 = Was ist kaputt?</strong> (Code + URL), <strong>Zeile 2 = Wo & Warum?</strong> (Fundort + Fehlermeldung).</p>
+            </div>
+            <div class="concept-metrics">
+                <span class="metric-pill">Höhe pro Item: <strong>~52 px (-64%)</strong></span>
+                <span class="metric-pill">Sichtbar ohne Scrollen: <strong>~9-11 Items</strong></span>
+                <span class="metric-pill">Rauschen: <strong>Minimal</strong></span>
+            </div>
+        </div>
+        <div class="concept-body">
+            <div class="category-shell">
+                <div class="category-header">
+                    <div class="category-header-title">
+                        <span>▾</span>
+                        <span>Tote Links</span>
+                        <span class="category-badge-pill">31</span>
+                    </div>
+                    <div>
+                        <span class="status-badge"><span class="status-dot-pulse"></span> 30 Fehler</span>
+                        <span class="status-badge" style="margin-left: 0.5rem; color: var(--text-muted);">1 Warnung</span>
+                    </div>
+                </div>
+
+                <div class="idea1-list">
+                    <!-- Item 1 -->
+                    <div class="idea1-row">
+                        <div class="idea1-main">
+                            <div class="idea1-top">
+                                <span class="idea1-code-badge">503</span>
+                                <a href="http://www.hessencampus.de/" target="_blank" class="idea1-url-link">
+                                    http://www.hessencampus.de/
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.5;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                                </a>
+                                <button class="btn-icon-copy" title="URL kopieren" onclick="copyText('http://www.hessencampus.de/')">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                                </button>
+                            </div>
+                            <div class="idea1-bottom">
+                                <span>Auf Seite:</span>
+                                <a href="#page" class="idea1-loc-pill" title="/">/</a>
+                                <span>·</span>
+                                <span>Der Verweis führt ins Leere</span>
+                            </div>
+                        </div>
+                        <div class="idea1-actions">
+                            <button type="button" class="idea1-screenshot-btn" onclick="openScreenshotModal('http://www.hessencampus.de/', '/')">
+                                📷 Screenshot
+                            </button>
+                            <a href="#details" class="btn-ui btn-ui-ghost">Details →</a>
+                        </div>
+                    </div>
+
+                    <!-- Item 2 -->
+                    <div class="idea1-row">
+                        <div class="idea1-main">
+                            <div class="idea1-top">
+                                <span class="idea1-code-badge">404</span>
+                                <a href="https://kultusministerium.hessen.de/foerderangebote/europaeische-foerderung/praxis-und-schule-pusch" target="_blank" class="idea1-url-link">
+                                    https://kultusministerium.hessen.de/foerderangebote/europaeische-foerderung/praxis-und-schule-pusch
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.5;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                                </a>
+                                <button class="btn-icon-copy" title="URL kopieren" onclick="copyText('https://kultusministerium.hessen.de/foerderangebote/europaeische-foerderung/praxis-und-schule-pusch')">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                                </button>
+                            </div>
+                            <div class="idea1-bottom">
+                                <span>Auf Seite:</span>
+                                <a href="#page" class="idea1-loc-pill" title="/">/</a>
+                                <span>·</span>
+                                <span>Der Verweis führt ins Leere</span>
+                            </div>
+                        </div>
+                        <div class="idea1-actions">
+                            <button type="button" class="idea1-screenshot-btn" onclick="openScreenshotModal('https://kultusministerium.hessen.de/...', '/')">
+                                📷 Screenshot
+                            </button>
+                            <a href="#details" class="btn-ui btn-ui-ghost">Details →</a>
+                        </div>
+                    </div>
+
+                    <!-- Item 3 -->
+                    <div class="idea1-row">
+                        <div class="idea1-main">
+                            <div class="idea1-top">
+                                <span class="idea1-code-badge">503</span>
+                                <a href="http://www.hessencampus.de/" target="_blank" class="idea1-url-link">
+                                    http://www.hessencampus.de/
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.5;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                                </a>
+                                <button class="btn-icon-copy" title="URL kopieren" onclick="copyText('http://www.hessencampus.de/')">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                                </button>
+                            </div>
+                            <div class="idea1-bottom">
+                                <span>Auf Seite:</span>
+                                <a href="#page" class="idea1-loc-pill" title="/?cHash=5beb42a1426bef494c368d2de3d964ca&tx_newsfilter_newsfilter%5B%40widget_0%5D%5BcurrentPage%5D=3">/?cHash=5beb42a142...currentPage%5D=3</a>
+                                <span>·</span>
+                                <span>Der Verweis führt ins Leere</span>
+                            </div>
+                        </div>
+                        <div class="idea1-actions">
+                            <button type="button" class="idea1-screenshot-btn" onclick="openScreenshotModal('http://www.hessencampus.de/', 'Newsfilter...')">
+                                📷 Screenshot
+                            </button>
+                            <a href="#details" class="btn-ui btn-ui-ghost">Details →</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- =========================================================
+         SECTION: IDEA 2
+         ========================================================= -->
+    <section id="sec-idea2" class="concept-section">
+        <div class="concept-header">
+            <div class="concept-title-group">
+                <h2>🔵 Idee 2: Tabellarischer Inspector (Data-Table Grid)</h2>
+                <p>Reine Tabellenstruktur mit festen Spalten. Perfekt für Entwickler & QA: Schneller Blick nach unten vergleicht Statuscodes und URLs auf einen Blick.</p>
+            </div>
+            <div class="concept-metrics">
+                <span class="metric-pill">Höhe pro Item: <strong>~46 px (-68%)</strong></span>
+                <span class="metric-pill">Scan-Geschwindigkeit: <strong>Sehr hoch (Spaltenblick)</strong></span>
+                <span class="metric-pill">Eignung: <strong>Große Listen</strong></span>
+            </div>
+        </div>
+        <div class="concept-body">
+            <div class="category-shell">
+                <div class="category-header">
+                    <div class="category-header-title">
+                        <span>▾</span>
+                        <span>Tote Links</span>
+                        <span class="category-badge-pill">31</span>
+                    </div>
+                    <div>
+                        <span class="status-badge"><span class="status-dot-pulse"></span> 30 Fehler</span>
+                        <span class="status-badge" style="margin-left: 0.5rem; color: var(--text-muted);">1 Warnung</span>
+                    </div>
+                </div>
+
+                <div class="idea2-table-wrapper">
+                    <table class="idea2-table">
+                        <thead>
+                            <tr>
+                                <th class="idea2-status-cell">Status</th>
+                                <th class="idea2-url-cell">Defektes Ziel / Meldung</th>
+                                <th class="idea2-location-cell">Fundort</th>
+                                <th class="idea2-actions-cell">Aktionen</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Row 1 -->
+                            <tr>
+                                <td class="idea2-status-cell">
+                                    <span class="idea1-code-badge">503 Fehler</span>
+                                </td>
+                                <td class="idea2-url-cell">
+                                    <div style="display: flex; align-items: center; gap: 0.4rem;">
+                                        <a href="http://www.hessencampus.de/" target="_blank" class="idea1-url-link">http://www.hessencampus.de/</a>
+                                        <button class="btn-icon-copy" title="Kopieren" onclick="copyText('http://www.hessencampus.de/')">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                                        </button>
+                                    </div>
+                                    <div style="font-size: 0.775rem; color: var(--text-muted); margin-top: 2px;">Der Verweis führt ins Leere</div>
+                                </td>
+                                <td class="idea2-location-cell">
+                                    <a href="#loc" class="code-pill">/</a>
+                                </td>
+                                <td class="idea2-actions-cell">
+                                    <button type="button" class="btn-ui btn-ui-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;" onclick="openScreenshotModal('http://www.hessencampus.de/', '/')">📷</button>
+                                    <a href="#details" class="btn-ui btn-ui-ghost" style="font-size: 0.75rem;">Details →</a>
+                                </td>
+                            </tr>
+
+                            <!-- Row 2 -->
+                            <tr>
+                                <td class="idea2-status-cell">
+                                    <span class="idea1-code-badge">404 Fehler</span>
+                                </td>
+                                <td class="idea2-url-cell">
+                                    <div style="display: flex; align-items: center; gap: 0.4rem;">
+                                        <a href="https://kultusministerium.hessen.de/foerderangebote/europaeische-foerderung/praxis-und-schule-pusch" target="_blank" class="idea1-url-link">https://kultusministerium.hessen.de/.../praxis-und-schule-pusch</a>
+                                        <button class="btn-icon-copy" title="Kopieren" onclick="copyText('https://kultusministerium.hessen.de/foerderangebote/europaeische-foerderung/praxis-und-schule-pusch')">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                                        </button>
+                                    </div>
+                                    <div style="font-size: 0.775rem; color: var(--text-muted); margin-top: 2px;">Der Verweis führt ins Leere</div>
+                                </td>
+                                <td class="idea2-location-cell">
+                                    <a href="#loc" class="code-pill">/</a>
+                                </td>
+                                <td class="idea2-actions-cell">
+                                    <button type="button" class="btn-ui btn-ui-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;" onclick="openScreenshotModal('https://kultusministerium.hessen.de/...', '/')">📷</button>
+                                    <a href="#details" class="btn-ui btn-ui-ghost" style="font-size: 0.75rem;">Details →</a>
+                                </td>
+                            </tr>
+
+                            <!-- Row 3 -->
+                            <tr>
+                                <td class="idea2-status-cell">
+                                    <span class="idea1-code-badge">503 Fehler</span>
+                                </td>
+                                <td class="idea2-url-cell">
+                                    <div style="display: flex; align-items: center; gap: 0.4rem;">
+                                        <a href="http://www.hessencampus.de/" target="_blank" class="idea1-url-link">http://www.hessencampus.de/</a>
+                                        <button class="btn-icon-copy" title="Kopieren" onclick="copyText('http://www.hessencampus.de/')">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                                        </button>
+                                    </div>
+                                    <div style="font-size: 0.775rem; color: var(--text-muted); margin-top: 2px;">Der Verweis führt ins Leere</div>
+                                </td>
+                                <td class="idea2-location-cell">
+                                    <a href="#loc" class="code-pill" title="/?cHash=5beb42a1426bef494c368d2de3d964ca&tx_newsfilter_newsfilter%5B%40widget_0%5D%5BcurrentPage%5D=3">/?cHash=5beb42...</a>
+                                </td>
+                                <td class="idea2-actions-cell">
+                                    <button type="button" class="btn-ui btn-ui-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;" onclick="openScreenshotModal('http://www.hessencampus.de/', 'Newsfilter...')">📷</button>
+                                    <a href="#details" class="btn-ui btn-ui-ghost" style="font-size: 0.75rem;">Details →</a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- =========================================================
+         SECTION: IDEA 3
+         ========================================================= -->
+    <section id="sec-idea3" class="concept-section">
+        <div class="concept-header">
+            <div class="concept-title-group">
+                <h2>🟣 Idee 3: Moderner Split-Card (Hero URL in reinem Monochrom)</h2>
+                <p>Behält die Karten-Gliederung, nutzt 100% die etablierte Zink-Palette (kein Blau) und integriert Fundort, Fehlermeldung und URL harmonisch.</p>
+            </div>
+            <div class="concept-metrics">
+                <span class="metric-pill">Höhe pro Item: <strong>~78 px (-46%)</strong></span>
+                <span class="metric-pill">Farbschema: <strong>Monochrom / Neutral Zinc</strong></span>
+                <span class="metric-pill">Hierarchie: <strong>Aufgeräumt</strong></span>
+            </div>
+        </div>
+        <div class="concept-body">
+            <!-- Nuance Picker for Idea 3 -->
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.25rem; padding: 0.6rem 0.85rem; background: var(--surface-subtle); border-radius: 8px; border: 1px solid var(--border-subtle); font-size: 0.825rem;">
+                <span style="font-weight: 600; color: var(--text-main);">Hintergrund-Nuance des URL-Felds:</span>
+                <button type="button" class="btn-ui btn-ui-secondary btn-ui-sm active-nuance" style="font-size: 0.775rem; padding: 2px 8px;" onclick="setIdea3Nuance('subtle')">
+                    1. Zink Subtle (<code>#fafafa</code>)
+                </button>
+                <button type="button" class="btn-ui btn-ui-secondary btn-ui-sm" style="font-size: 0.775rem; padding: 2px 8px;" onclick="setIdea3Nuance('canvas')">
+                    2. Canvas Inlay (<code>#f4f4f5</code>)
+                </button>
+                <button type="button" class="btn-ui btn-ui-secondary btn-ui-sm" style="font-size: 0.775rem; padding: 2px 8px;" onclick="setIdea3Nuance('borderless')">
+                    3. Reines Weiß mit Akzent (<code>#ffffff</code>)
+                </button>
+            </div>
+
+            <div class="category-shell">
+                <div class="category-header">
+                    <div class="category-header-title">
+                        <span>▾</span>
+                        <span>Tote Links</span>
+                        <span class="category-badge-pill">31</span>
+                    </div>
+                    <div>
+                        <span class="status-badge"><span class="status-dot-pulse"></span> 30 Fehler</span>
+                        <span class="status-badge" style="margin-left: 0.5rem; color: var(--text-muted);">1 Warnung</span>
+                    </div>
+                </div>
+
+                <div class="idea3-stack" style="padding: 0.85rem; background: var(--bg-canvas);">
+                    <!-- Card 1 -->
+                    <div class="idea3-card">
+                        <div class="idea3-header">
+                            <div class="idea3-header-left">
+                                <span class="status-badge"><span class="status-dot-pulse"></span> Fehler (503)</span>
+                                <span style="color: var(--border-strong);">·</span>
+                                <span style="font-size: 0.8rem; color: var(--text-muted);">Auf Seite:</span>
+                                <a href="#page" class="code-pill">/</a>
+                                <span style="color: var(--border-strong);">·</span>
+                                <span style="font-size: 0.8rem; color: var(--text-muted);">Der Verweis führt ins Leere</span>
+                            </div>
+                            <div class="idea3-header-right">
+                                <button type="button" class="btn-ui btn-ui-secondary" style="padding: 0.2rem 0.6rem; font-size: 0.75rem;" onclick="openScreenshotModal('http://www.hessencampus.de/', '/')">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 2px;"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg> Screenshot
+                                </button>
+                                <a href="#details" class="btn-ui btn-ui-ghost" style="font-size: 0.75rem;">Details →</a>
+                            </div>
+                        </div>
+
+                        <div class="idea3-hero-row" id="idea3-row-1">
+                            <a href="http://www.hessencampus.de/" target="_blank" class="idea3-hero-url">
+                                http://www.hessencampus.de/
+                            </a>
+                            <div style="display: flex; gap: 0.35rem; align-items: center;">
+                                <button class="btn-icon-copy" title="URL kopieren" onclick="copyText('http://www.hessencampus.de/')">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card 2 -->
+                    <div class="idea3-card">
+                        <div class="idea3-header">
+                            <div class="idea3-header-left">
+                                <span class="status-badge"><span class="status-dot-pulse"></span> Fehler (404)</span>
+                                <span style="color: var(--border-strong);">·</span>
+                                <span style="font-size: 0.8rem; color: var(--text-muted);">Auf Seite:</span>
+                                <a href="#page" class="code-pill">/</a>
+                                <span style="color: var(--border-strong);">·</span>
+                                <span style="font-size: 0.8rem; color: var(--text-muted);">Der Verweis führt ins Leere</span>
+                            </div>
+                            <div class="idea3-header-right">
+                                <button type="button" class="btn-ui btn-ui-secondary" style="padding: 0.2rem 0.6rem; font-size: 0.75rem;" onclick="openScreenshotModal('https://kultusministerium.hessen.de/...', '/')">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 2px;"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg> Screenshot
+                                </button>
+                                <a href="#details" class="btn-ui btn-ui-ghost" style="font-size: 0.75rem;">Details →</a>
+                            </div>
+                        </div>
+
+                        <div class="idea3-hero-row" id="idea3-row-2">
+                            <a href="https://kultusministerium.hessen.de/foerderangebote/europaeische-foerderung/praxis-und-schule-pusch" target="_blank" class="idea3-hero-url">
+                                https://kultusministerium.hessen.de/foerderangebote/europaeische-foerderung/praxis-und-schule-pusch
+                            </a>
+                            <div style="display: flex; gap: 0.35rem; align-items: center;">
+                                <button class="btn-icon-copy" title="URL kopieren" onclick="copyText('https://kultusministerium.hessen.de/foerderangebote/europaeische-foerderung/praxis-und-schule-pusch')">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card 3 -->
+                    <div class="idea3-card">
+                        <div class="idea3-header">
+                            <div class="idea3-header-left">
+                                <span class="status-badge"><span class="status-dot-pulse"></span> Fehler (503)</span>
+                                <span style="color: var(--border-strong);">·</span>
+                                <span style="font-size: 0.8rem; color: var(--text-muted);">Auf Seite:</span>
+                                <a href="#page" class="code-pill" title="/?cHash=5beb42a1426bef494c368d2de3d964ca&tx_newsfilter_newsfilter%5B%40widget_0%5D%5BcurrentPage%5D=3">/?cHash=5beb42...</a>
+                                <span style="color: var(--border-strong);">·</span>
+                                <span style="font-size: 0.8rem; color: var(--text-muted);">Der Verweis führt ins Leere</span>
+                            </div>
+                            <div class="idea3-header-right">
+                                <button type="button" class="btn-ui btn-ui-secondary" style="padding: 0.2rem 0.6rem; font-size: 0.75rem;" onclick="openScreenshotModal('http://www.hessencampus.de/', 'Newsfilter...')">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 2px;"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg> Screenshot
+                                </button>
+                                <a href="#details" class="btn-ui btn-ui-ghost" style="font-size: 0.75rem;">Details →</a>
+                            </div>
+                        </div>
+
+                        <div class="idea3-hero-row" id="idea3-row-3">
+                            <a href="http://www.hessencampus.de/" target="_blank" class="idea3-hero-url">
+                                http://www.hessencampus.de/
+                            </a>
+                            <div style="display: flex; gap: 0.35rem; align-items: center;">
+                                <button class="btn-icon-copy" title="URL kopieren" onclick="copyText('http://www.hessencampus.de/')">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- =========================================================
+         SECTION: SIDE-BY-SIDE DIRECT COMPARISON
+         ========================================================= -->
+    <section id="sec-compare" class="concept-section">
+        <div class="concept-header">
+            <div class="concept-title-group">
+                <h2>⚖️ 1:1 Direktvergleich: Vorher vs. Nachher (Idee 3: Split-Card Monochrom)</h2>
+                <p>Gleicher Ausschnitt (2 Befunde) nebeneinander: Vorher (überfrachtete Formular-Boxen) vs. Nachher (Idee 3 im puren Monochrom-Design).</p>
+            </div>
+        </div>
+        <div class="concept-body">
+            <div class="comparison-grid">
+                <!-- Old Column -->
+                <div class="column-box">
+                    <div class="column-header old">
+                        <span>❌ Status Quo (Vorher: ~300px Höhe)</span>
+                        <span style="font-size: 0.75rem;">4 Schichten, Formular-Eingabefeld-Optik</span>
+                    </div>
+                    <div class="status-quo-stack" style="padding: 0.65rem;">
+                        <div class="sq-card" style="padding: 0.75rem;">
+                            <div class="sq-card-body">
+                                <div class="sq-top-row">
+                                    <span class="status-badge"><span class="status-dot-pulse"></span> Fehler</span>
+                                    <span class="sq-badge-muted">Ungeprüft</span>
+                                    <span class="sq-badge-muted">📷 Screenshot</span>
+                                </div>
+                                <div class="sq-location-row"><span class="code-pill">/</span></div>
+                                <div class="sq-message">Der Verweis führt ins Leere (503).</div>
+                                <div class="sq-url-box" style="margin-bottom: 0;">
+                                    <span class="sq-url-text" style="font-size: 0.75rem;">http://www.hessencampus.de/</span>
+                                </div>
+                            </div>
+                            <a href="#details" class="btn-ui btn-ui-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">Details →</a>
+                        </div>
+
+                        <div class="sq-card" style="padding: 0.75rem;">
+                            <div class="sq-card-body">
+                                <div class="sq-top-row">
+                                    <span class="status-badge"><span class="status-dot-pulse"></span> Fehler</span>
+                                    <span class="sq-badge-muted">Ungeprüft</span>
+                                    <span class="sq-badge-muted">📷 Screenshot</span>
+                                </div>
+                                <div class="sq-location-row"><span class="code-pill">/</span></div>
+                                <div class="sq-message">Der Verweis führt ins Leere (404).</div>
+                                <div class="sq-url-box" style="margin-bottom: 0;">
+                                    <span class="sq-url-text" style="font-size: 0.75rem;">https://kultusministerium.hessen.de/...</span>
+                                </div>
+                            </div>
+                            <a href="#details" class="btn-ui btn-ui-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">Details →</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- New Column (Idea 3) -->
+                <div class="column-box">
+                    <div class="column-header new">
+                        <span>✅ Idee 3 Monochrom (Nachher: ~165px Höhe)</span>
+                        <span style="font-size: 0.75rem;">-45% Höhe, ruhige Zink-Palette</span>
+                    </div>
+                    <div class="idea3-stack" style="padding: 0.65rem; background: var(--bg-canvas);">
+                        <!-- Item 1 -->
+                        <div class="idea3-card" style="padding: 0.75rem 0.9rem;">
+                            <div class="idea3-header" style="margin-bottom: 0.35rem;">
+                                <div class="idea3-header-left">
+                                    <span class="status-badge"><span class="status-dot-pulse"></span> Fehler (503)</span>
+                                    <span style="color: var(--border-strong);">·</span>
+                                    <span style="font-size: 0.775rem; color: var(--text-muted);">Auf:</span>
+                                    <a href="#page" class="code-pill">/</a>
+                                    <span style="color: var(--border-strong);">·</span>
+                                    <span style="font-size: 0.775rem; color: var(--text-muted);">Der Verweis führt ins Leere</span>
+                                </div>
+                                <div class="idea3-header-right">
+                                    <button type="button" class="btn-ui btn-ui-secondary" style="padding: 0.15rem 0.45rem; font-size: 0.7rem;" onclick="openScreenshotModal('http://www.hessencampus.de/', '/')">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+                                    </button>
+                                    <a href="#details" class="btn-ui btn-ui-ghost" style="font-size: 0.75rem; padding: 0.15rem 0.4rem;">Details →</a>
+                                </div>
+                            </div>
+                            <div class="idea3-hero-row" style="margin-top: 0.25rem; padding: 0.35rem 0.65rem;">
+                                <a href="http://www.hessencampus.de/" target="_blank" class="idea3-hero-url" style="font-size: 0.775rem;">
+                                    http://www.hessencampus.de/
+                                </a>
+                                <button class="btn-icon-copy" onclick="copyText('http://www.hessencampus.de/')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></button>
+                            </div>
+                        </div>
+
+                        <!-- Item 2 -->
+                        <div class="idea3-card" style="padding: 0.75rem 0.9rem;">
+                            <div class="idea3-header" style="margin-bottom: 0.35rem;">
+                                <div class="idea3-header-left">
+                                    <span class="status-badge"><span class="status-dot-pulse"></span> Fehler (404)</span>
+                                    <span style="color: var(--border-strong);">·</span>
+                                    <span style="font-size: 0.775rem; color: var(--text-muted);">Auf:</span>
+                                    <a href="#page" class="code-pill">/</a>
+                                    <span style="color: var(--border-strong);">·</span>
+                                    <span style="font-size: 0.775rem; color: var(--text-muted);">Der Verweis führt ins Leere</span>
+                                </div>
+                                <div class="idea3-header-right">
+                                    <button type="button" class="btn-ui btn-ui-secondary" style="padding: 0.15rem 0.45rem; font-size: 0.7rem;" onclick="openScreenshotModal('https://kultusministerium.hessen.de/...', '/')">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+                                    </button>
+                                    <a href="#details" class="btn-ui btn-ui-ghost" style="font-size: 0.75rem; padding: 0.15rem 0.4rem;">Details →</a>
+                                </div>
+                            </div>
+                            <div class="idea3-hero-row" style="margin-top: 0.25rem; padding: 0.35rem 0.65rem;">
+                                <a href="https://kultusministerium.hessen.de/..." target="_blank" class="idea3-hero-url" style="font-size: 0.775rem;">
+                                    https://kultusministerium.hessen.de/...
+                                </a>
+                                <button class="btn-icon-copy" onclick="copyText('https://kultusministerium.hessen.de/foerderangebote/europaeische-foerderung/praxis-und-schule-pusch')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- =========================================================
+         DECISION MATRIX
+         ========================================================= -->
+    <section id="sec-matrix" class="concept-section">
+        <div class="concept-header">
+            <div class="concept-title-group">
+                <h2>📊 Vergleich & Empfehlung</h2>
+                <p>Übersicht aller 3 Konzepte im direkten Abgleich hinsichtlich Ergonomie, Platz und Aufwand.</p>
+            </div>
+        </div>
+        <div class="concept-body">
+            <table class="feature-table">
+                <thead>
+                    <tr>
+                        <th style="width: 22%;">Kriterium</th>
+                        <th style="width: 26%;">Idee 1: Kompakte Datenzeile (2-Zeiler)</th>
+                        <th style="width: 26%;">Idee 2: Tabellarischer Inspector</th>
+                        <th style="width: 26%;">Idee 3: Moderner Split-Card</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Höhe pro Eintrag</strong></td>
+                        <td><span class="badge-pro">~52 px (-64%)</span></td>
+                        <td><span class="badge-pro">~46 px (-68%)</span></td>
+                        <td>~82 px (-43%)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Visuelle Ruhe</strong></td>
+                        <td><span class="badge-pro">Sehr hoch</span> (keine Box-Verschachtelung)</td>
+                        <td><span class="badge-pro">Sehr hoch</span> (klare Spaltenflucht)</td>
+                        <td>Mittel (bleibt Card-Element)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Flexibilität bei langen URLs</strong></td>
+                        <td><span class="badge-pro">Sehr hoch</span> (bricht natürlich um)</td>
+                        <td>Mittel (Spalte muss ggf. kürzen)</td>
+                        <td>Hoch</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Andere Befund-Arten</strong> (z.B. Bilder ohne Alt-Text, Zeitüberschreitungen)</td>
+                        <td><span class="badge-pro">Sehr hoch</span> (Zeile 1 = Bild-URL/Selektor, Zeile 2 = Seite & Problem)</td>
+                        <td>Hoch</td>
+                        <td>Hoch</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Implementierungsaufwand</strong></td>
+                        <td><span class="badge-pro">Gering</span> (Anpassung von <code>befundzeile.html</code> + CSS)</td>
+                        <td>Mittel (HTML-Table vs. Flex-Grid)</td>
+                        <td>Gering</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Empfehlung</strong></td>
+                        <td><strong>⭐ Empfohlen</strong> — Perfekte Balance aus Informationsdichte, Lesbarkeit und nativer Integration in das Design-System.</td>
+                        <td>Sehr gut für reine Tabellenansichten oder dedizierte Triage-Listen.</td>
+                        <td>Gut, wenn man den haptischen Karten-Charakter unbedingt behalten möchte.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+</div>
+
+<!-- Screenshot Modal Preview -->
+<div id="screenshot-modal" class="preview-modal-backdrop" onclick="closeScreenshotModal(event)">
+    <div class="preview-modal" onclick="event.stopPropagation()">
+        <div class="preview-modal-head">
+            <div>
+                <h3 style="font-size: 1.1rem; color: var(--text-main); display: flex; align-items: center; gap: 0.4rem;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+                    Screenshot-Vorschau
+                </h3>
+                <p id="modal-url" style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">url</p>
+            </div>
+            <button class="btn-ui btn-ui-ghost" onclick="document.getElementById('screenshot-modal').classList.remove('open')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <div class="mock-screenshot">
+            <span>[Simulierter Screenshot des Viewports mit hervorgehobenem Link / Fehler]</span>
+        </div>
+        <div style="margin-top: 1rem; display: flex; justify-content: flex-end; gap: 0.5rem;">
+            <button class="btn-ui btn-ui-secondary" onclick="document.getElementById('screenshot-modal').classList.remove('open')">Schließen</button>
+            <a href="#full" class="btn-ui btn-ui-primary" style="background: #09090b; color: #fff; display: inline-flex; align-items: center; gap: 0.4rem;">
+                Vollbild öffnen
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Copy Toast Notification -->
+<div id="copy-toast" class="toast-copy">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: -2px; margin-right: 4px;"><polyline points="20 6 9 17 4 12"/></svg>
+    In die Zwischenablage kopiert!
+</div>
+
+<script>
+    function showTab(tabId) {
+        document.querySelectorAll('.nav-tab-btn').forEach(btn => btn.classList.remove('active'));
+        event.currentTarget.classList.add('active');
+
+        const sections = {
+            'status-quo': ['sec-status-quo'],
+            'idea1': ['sec-idea1'],
+            'idea2': ['sec-idea2'],
+            'idea3': ['sec-idea3'],
+            'compare': ['sec-compare'],
+            'all': ['sec-status-quo', 'sec-idea1', 'sec-idea2', 'sec-idea3', 'sec-compare', 'sec-matrix']
+        };
+
+        const allSecs = ['sec-status-quo', 'sec-idea1', 'sec-idea2', 'sec-idea3', 'sec-compare', 'sec-matrix'];
+        allSecs.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = 'none';
+        });
+
+        const activeSecs = sections[tabId] || allSecs;
+        activeSecs.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = 'block';
+        });
+    }
+
+    function copyText(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            const toast = document.getElementById('copy-toast');
+            toast.classList.add('visible');
+            setTimeout(() => toast.classList.remove('visible'), 2200);
+        }).catch(() => {
+            // Fallback
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            const toast = document.getElementById('copy-toast');
+            toast.classList.add('visible');
+            setTimeout(() => toast.classList.remove('visible'), 2200);
+        });
+    }
+
+    function openScreenshotModal(targetUrl, sourcePage) {
+        const modal = document.getElementById('screenshot-modal');
+        document.getElementById('modal-url').innerText = targetUrl + ' (auf: ' + sourcePage + ')';
+        modal.classList.add('open');
+    }
+
+    function setIdea3Nuance(nuance) {
+        document.querySelectorAll('.btn-ui-sm').forEach(b => {
+            if (b.innerText.includes('Zink') || b.innerText.includes('Canvas') || b.innerText.includes('Weiß')) {
+                b.style.background = '#ffffff';
+                b.style.fontWeight = 'normal';
+            }
+        });
+        event.currentTarget.style.background = '#e4e4e7';
+        event.currentTarget.style.fontWeight = 'bold';
+
+        const rows = document.querySelectorAll('.idea3-hero-row');
+        rows.forEach(r => {
+            r.classList.remove('variant-canvas', 'variant-borderless');
+            if (nuance === 'canvas') r.classList.add('variant-canvas');
+            if (nuance === 'borderless') r.classList.add('variant-borderless');
+        });
+    }
+
+    function closeScreenshotModal(e) {
+        if (e.target.id === 'screenshot-modal') {
+            document.getElementById('screenshot-modal').classList.remove('open');
+        }
+    }
+</script>
+
+</body>
+</html>
