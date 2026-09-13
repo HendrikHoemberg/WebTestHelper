@@ -24,6 +24,7 @@ In Stummschaltungsregeln können Sie Muster für den Betreff (z. B. die verlinkt
 * Der Stern `*` dient als Platzhalter für beliebige Zeichenfolgen (z. B. `*linkedin.com*` oder `https://example.com/archiv/*`).
 * Ohne `*` erfolgt ein exakter Abgleich.
 * Werden Prüfungsart, Betreff- und Fundortmuster kombiniert, müssen alle angegebenen Kriterien gleichzeitig zutreffen (*Und-Verknüpfung*).
+* **Tipp:** Über die Schaltfläche **„Aus Feststellungen übernehmen“** können Sie aktive Befunde einer Website direkt als Vorlage für Prüfungsart und Fundort-Muster einfügen lassen.
 
 ## Warum die Befristung verpflichtend ist
 

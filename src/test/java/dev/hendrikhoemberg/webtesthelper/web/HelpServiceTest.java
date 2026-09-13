@@ -19,7 +19,7 @@ class HelpServiceTest {
         List<HelpTopic> topics = helpService.all();
 
         assertThat(topics)
-                .hasSize(17)
+                .hasSize(18)
                 .extracting(HelpTopic::title)
                 .isSortedAccordingTo(germanOrder);
 
@@ -29,7 +29,7 @@ class HelpServiceTest {
                         "zeitplaene", "stummschaltungen", "benachrichtigungen", "uebersicht",
                         "einrichtung", "cookie-hinweis", "sprachumschalter", "schaltflaechen",
                         "kontaktformular", "pruefpostfach", "zugangsdaten", "reisen",
-                        "pruefungen", "webhooks");
+                        "pruefungen", "webhooks", "feststellungen-uebernehmen");
     }
 
     @Test
@@ -92,8 +92,8 @@ class HelpServiceTest {
 
     @Test
     void searchWithBlankOrNullReturnsAllTopics() {
-        assertThat(helpService.search(null)).hasSize(17);
-        assertThat(helpService.search("   ")).hasSize(17);
+        assertThat(helpService.search(null)).hasSize(18);
+        assertThat(helpService.search("   ")).hasSize(18);
     }
 
     @Test
