@@ -8,5 +8,9 @@ package dev.hendrikhoemberg.webtesthelper.web;
  * @param html full rendered HTML representation
  * @param teaserHtml rendered HTML of the first paragraph, used for inline hints
  */
-public record HelpTopic(String id, String title, String html, String teaserHtml) {
+public record HelpTopic(String id, String title, String html, String teaserHtml, String rawContent) {
+
+    public HelpTopic(String id, String title, String html, String teaserHtml) {
+        this(id, title, html, teaserHtml, "");
+    }
 }

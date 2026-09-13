@@ -37,7 +37,7 @@ class HelpControllerTest {
     @WithMockUser
     void getHilfeIndexReturnsTopics() throws Exception {
         HelpTopic topic = new HelpTopic("test-topic", "Test Titel", "<p>HTML</p>", "<p>Teaser</p>");
-        when(helpService.all()).thenReturn(List.of(topic));
+        when(helpService.search(null)).thenReturn(List.of(topic));
 
         mvc.perform(get("/hilfe"))
                 .andExpect(status().isOk())
@@ -47,9 +47,46 @@ class HelpControllerTest {
 
     @Test
     @WithMockUser
+    void getHilfeIndexWithQueryReturnsSearchedTopics() throws Exception {
+        HelpTopic topic = new HelpTopic("test-topic", "Test Titel", "<p>HTML</p>", "<p>Teaser</p>");
+        when(helpService.search("webhook")).thenReturn(List.of(topic));
+
+        mvc.perform(get("/hilfe").param("q", "webhook"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("hilfe/index"))
+                .andExpect(model().attribute("topics", List.of(topic)))
+                .andExpect(model().attribute("q", "webhook"))
+                .andExpect(content().string(containsStringIgnoringCase("name=\"q\"")))
+                .andExpect(content().string(containsStringIgnoringCase("value=\"webhook\"")));
+    }
+
+    @Test
+    @WithMockUser
+    void getHilfeIndexWithEmptySearchResultsRendersEmptyMessage() throws Exception {
+        when(helpService.search("unbekannt")).thenReturn(List.of());
+
+        mvc.perform(get("/hilfe").param("q", "unbekannt"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsStringIgnoringCase("Keine Hilfethemen")));
+    }
+
+    @Test
+    @WithMockUser
+    void getHilfeIndexWithHtmxRequestReturnsThemenListeFragment() throws Exception {
+        HelpTopic topic = new HelpTopic("test-topic", "Test Titel", "<p>HTML</p>", "<p>Teaser</p>");
+        when(helpService.search(null)).thenReturn(List.of(topic));
+
+        mvc.perform(get("/hilfe").header("HX-Request", "true"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("hilfe/index :: themenListe"))
+                .andExpect(model().attributeExists("topics"));
+    }
+
+    @Test
+    @WithMockUser
     void hilfeIndexRendersCardContainerAndStickyActions() throws Exception {
         HelpTopic topic = new HelpTopic("test-topic", "Test Titel", "<p>HTML</p>", "<p>Teaser</p>");
-        when(helpService.all()).thenReturn(List.of(topic));
+        when(helpService.search(null)).thenReturn(List.of(topic));
 
         mvc.perform(get("/hilfe"))
                 .andExpect(status().isOk())

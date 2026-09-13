@@ -89,4 +89,35 @@ class HelpServiceTest {
 
         assertThat(missing).isEmpty();
     }
+
+    @Test
+    void searchWithBlankOrNullReturnsAllTopics() {
+        assertThat(helpService.search(null)).hasSize(17);
+        assertThat(helpService.search("   ")).hasSize(17);
+    }
+
+    @Test
+    void searchByTitleFindsMatchingTopics() {
+        List<HelpTopic> results = helpService.search("Webhook");
+
+        assertThat(results)
+                .isNotEmpty()
+                .allMatch(t -> t.title().toLowerCase().contains("webhook") || t.html().toLowerCase().contains("webhook"));
+        assertThat(results).extracting(HelpTopic::id).contains("webhooks");
+    }
+
+    @Test
+    void searchByContentFindsMatchingTopics() {
+        List<HelpTopic> results = helpService.search("Postfach");
+
+        assertThat(results).isNotEmpty();
+        assertThat(results).extracting(HelpTopic::id).contains("pruefpostfach");
+    }
+
+    @Test
+    void searchWithNoMatchesReturnsEmptyList() {
+        List<HelpTopic> results = helpService.search("vollkommenUnbekannterBegriff12345");
+
+        assertThat(results).isEmpty();
+    }
 }

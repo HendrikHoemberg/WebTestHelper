@@ -1807,7 +1807,29 @@ body {
     }
 }
 
-/* Hilfe & Handbuch Index Grid & Equal Height Cards */
+/* Handbuch Index Grid & Cards */
+.handbuch-suche-feld {
+    position: relative;
+    max-width: 420px;
+    margin-bottom: 1.5rem;
+}
+
+.handbuch-suche-feld .suchfeld-icon {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: var(--text-muted);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.handbuch-suche-feld input[type="search"] {
+    padding-left: 2.25rem;
+}
+
 .hilfe-themen-liste {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -1821,6 +1843,12 @@ body {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.hilfe-themen-liste .hilfe-thema-karte:hover {
+    border-color: var(--border-dark);
+    box-shadow: var(--shadow-card);
 }
 
 .hilfe-kachel-inhalt {
@@ -1828,8 +1856,32 @@ body {
 }
 
 .hilfe-kachel-aktion {
+    display: flex;
+    justify-content: flex-end;
     margin-top: auto;
-    padding-top: 1.25rem;
+    padding-top: 1rem;
+}
+
+.hilfe-link-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 6px;
+    border: 1px solid var(--border-subtle);
+    color: var(--text-muted);
+    background-color: var(--surface-card);
+    text-decoration: none;
+    transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.hilfe-thema-karte:hover .hilfe-link-icon,
+.hilfe-link-icon:hover {
+    color: #ffffff;
+    background-color: var(--text-main);
+    border-color: var(--text-main);
+    transform: translateX(2px);
 }
 
 /* Website detail tabs and kebab-menu (desktop-only, per project boundaries) */

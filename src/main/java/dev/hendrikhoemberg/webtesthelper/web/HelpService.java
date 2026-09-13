@@ -75,7 +75,7 @@ public class HelpService {
         String title = extractTitle(document, id, markdown);
         String html = RENDERER.render(document);
         String teaserHtml = extractTeaserHtml(document);
-        return new HelpTopic(id, title, html, teaserHtml);
+        return new HelpTopic(id, title, html, teaserHtml, markdown);
     }
 
     private static String extractTitle(Node document, String id, String markdown) {
@@ -117,6 +117,18 @@ public class HelpService {
 
     public List<HelpTopic> all() {
         return sortedTopics;
+    }
+
+    public List<HelpTopic> search(String query) {
+        if (query == null || query.isBlank()) {
+            return sortedTopics;
+        }
+        String normalized = query.trim().toLowerCase(Locale.GERMAN);
+        return sortedTopics.stream()
+                .filter(topic -> topic.title().toLowerCase(Locale.GERMAN).contains(normalized)
+                        || (topic.rawContent() != null && topic.rawContent().toLowerCase(Locale.GERMAN).contains(normalized))
+                        || (topic.html() != null && topic.html().toLowerCase(Locale.GERMAN).contains(normalized)))
+                .toList();
     }
 
     public Optional<HelpTopic> byId(String id) {
