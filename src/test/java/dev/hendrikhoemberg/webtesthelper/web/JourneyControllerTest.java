@@ -464,6 +464,19 @@ class JourneyControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "USER")
+    void listJourneys_runButtonHasDisabledEltAndIndicatorClasses() throws Exception {
+        JourneyStep step = new JourneyStep(UUID.randomUUID(), 0, StepAction.GOTO, List.of(), "https://example.com", null, false, 5000);
+        JourneyDefinition journey = new JourneyDefinition(42L, 1L, "Warenkorb", true, List.of(step));
+        when(journeyService.findBySite(1L)).thenReturn(List.of(journey));
+        when(journeyHealthService.healthBySite(1L)).thenReturn(Map.of());
+
+        mvc.perform(get("/websites/1/journeys").with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("data-hx-disabled-elt=\"this\"")));
+    }
+
+    @Test
     @WithMockUser(roles = "ADMIN")
     void deleteJourney_removesJourneyAndRedirectsWithFlashMessage() throws Exception {
         long siteId = 1L;
@@ -514,6 +527,27 @@ class JourneyControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Ablauf löschen")))
                 .andExpect(content().string(containsString("/websites/1/journeys/42/loeschen")));
+    }
+
+    @Test
+    @WithMockUser
+    void detail_rendersStartButtonAndResultContainer() throws Exception {
+        long siteId = 1L;
+        long journeyId = 42L;
+        JourneyDefinition journey = new JourneyDefinition(journeyId, siteId, "Warenkorb", true, List.of());
+        when(journeyService.findDefinition(journeyId)).thenReturn(Optional.of(journey));
+
+        mvc.perform(get("/websites/{siteId}/journeys/{journeyId}", siteId, journeyId))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Ablauf starten")))
+                .andExpect(content().string(containsString("Bearbeiten")))
+                .andExpect(content().string(containsString("Ablauf löschen")))
+                .andExpect(content().string(not(containsString("mehr-menue"))))
+                .andExpect(content().string(containsString("/websites/1/journeys/42/jetzt-ausfuehren")))
+                .andExpect(content().string(containsString("data-hx-target=\"#journey-ergebnis\"")))
+                .andExpect(content().string(containsString("id=\"journey-ergebnis\"")))
+                .andExpect(content().string(not(containsString("Zurück zur Übersicht"))))
+                .andExpect(content().string(not(containsString("Zurück zur Website"))));
     }
 
     @Test

@@ -1611,15 +1611,27 @@ body {
 
 /* HTMX request indicator: shown while an hx-request is in flight, hidden otherwise */
 .htmx-indicator {
-    display: none;
+    display: none !important;
 }
 
 .htmx-request .htmx-indicator {
-    display: inline;
+    display: inline-flex !important;
+    align-items: center;
+    gap: 0.35rem;
 }
 
 .htmx-request .htmx-indicator-hide {
-    display: none;
+    display: none !important;
+}
+
+.btn-spinner {
+    width: 0.85rem;
+    height: 0.85rem;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    border-top-color: currentColor;
+    border-radius: 9999px;
+    animation: wth-spin 0.75s linear infinite;
+    display: inline-block;
 }
 
 /* Druckansicht: interaktive Elemente ausblenden, Berichtseiten sauber brechen */

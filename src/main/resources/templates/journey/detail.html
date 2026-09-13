@@ -23,23 +23,31 @@
             <h1 class="page-main-title" th:text="${journey.name}">Ablauf Name</h1>
         </div>
         <div class="header-actions-cluster seiten-kopf-aktionen" x-data="{ loeschenOffen: false }">
-            <a th:href="@{/websites/{siteId}/journeys/{journeyId}/bearbeiten(siteId=${site.siteId},journeyId=${journey.id})}" class="btn-ui btn-ui-primary button primär">
+            <button type="button"
+                    th:attr="data-hx-post=@{/websites/{siteId}/journeys/{journeyId}/jetzt-ausfuehren(siteId=${site.siteId}, journeyId=${journey.id})}"
+                    data-hx-target="#journey-ergebnis"
+                    data-hx-swap="innerHTML"
+                    data-hx-indicator="closest button"
+                    data-hx-disabled-elt="this"
+                    class="btn-ui btn-ui-primary button primär">
+                <span class="htmx-indicator-hide" style="display: inline-flex; align-items: center; gap: 0.35rem;">
+                    <span th:replace="~{fragments/icons :: play}"></span>
+                    <span th:text="#{ui.journey.detail.starten}">Ablauf starten</span>
+                </span>
+                <span class="htmx-indicator">
+                    <span class="btn-spinner" aria-hidden="true"></span>
+                    <span th:text="#{ui.journey.test.laeuft}">Wird geprüft …</span>
+                </span>
+            </button>
+            <a th:href="@{/websites/{siteId}/journeys/{journeyId}/bearbeiten(siteId=${site.siteId},journeyId=${journey.id})}" class="btn-ui btn-ui-secondary button sekundär">
                 <span th:replace="~{fragments/icons :: pencil}"></span>
-                <span th:text="#{ui.journey.detail.bearbeiten}">Ablauf bearbeiten</span>
+                <span th:text="#{ui.journey.detail.bearbeiten}">Bearbeiten</span>
             </a>
             <button type="button" class="btn-ui btn-ui-secondary btn-danger-hover button sekundär"
                     @click="loeschenOffen = true">
                 <span th:replace="~{fragments/icons :: trash}"></span>
                 <span th:text="#{ui.journey.detail.loeschen}">Ablauf löschen</span>
             </button>
-            <a th:href="@{/websites/{siteId}/journeys(siteId=${site.siteId})}" class="btn-ui btn-ui-secondary button sekundär">
-                <span th:replace="~{fragments/icons :: arrow_left}"></span>
-                <span th:text="#{ui.journey.detail.zurueck_liste}">Zurück zur Übersicht</span>
-            </a>
-            <a th:href="@{/websites/{id}(id=${site.siteId})}" class="btn-ui btn-ui-secondary button sekundär">
-                <span th:replace="~{fragments/icons :: arrow_left}"></span>
-                <span th:text="#{ui.journey.detail.zurueck_website}">Zurück zur Website</span>
-            </a>
 
             <!-- Löschen-Modal -->
             <div x-cloak x-show="loeschenOffen" @keydown.escape.window="loeschenOffen = false" class="wth-modal text-links" style="text-align: left;">
@@ -67,6 +75,8 @@
     </header>
 
     <div th:replace="~{fragments/site-tabs :: tabs(${site}, 'journeys')}"></div>
+
+    <div id="journey-ergebnis"></div>
 
     <div class="card-box detail-bereich" style="margin-bottom: 1.5rem;">
         <div class="abschnitt-ueberschrift-zeile" style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); margin-bottom: 1rem; padding-bottom: 0.5rem;">
