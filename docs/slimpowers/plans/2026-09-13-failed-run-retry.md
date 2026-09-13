@@ -26,7 +26,7 @@
 - Consumes: `POST /laeufe/{id}/wiederholen`
 - Produces: Queries `runService.summary(id)`, enqueues `runService.enqueue(summary.siteId(), RunTrigger.MANUAL, summary.scope())`, redirects to `/laeufe/{newRunId}`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
   Add to `RunControllerTest.java`:
   ```java
   @Test
@@ -46,10 +46,10 @@
       verify(runService).enqueue(siteId, RunTrigger.MANUAL, RunScope.FULL);
   }
   ```
-- [ ] **Step 2: Run the single test — verify it FAILS**
+- [x] **Step 2: Run the single test — verify it FAILS**
   Command: `./mvnw test -Dtest=RunControllerTest#wiederholenEnqueuesRunWithSameScopeAndRedirectsToNewRun -B --no-transfer-progress`
   Expected: FAIL with status 404 (endpoint does not exist).
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
   In `RunController.java`:
   ```java
   @PostMapping("/{id}/wiederholen")
@@ -59,10 +59,10 @@
       return "redirect:/laeufe/" + newRunId;
   }
   ```
-- [ ] **Step 4: Run the single test — verify it PASSES**
+- [x] **Step 4: Run the single test — verify it PASSES**
   Command: `./mvnw test -Dtest=RunControllerTest#wiederholenEnqueuesRunWithSameScopeAndRedirectsToNewRun -B --no-transfer-progress`
   Expected: PASS.
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   `git commit -m "feat(web): add endpoint to retry run preserving scope"`
 
 ---
@@ -78,7 +78,7 @@
 - Consumes: `RunSummary` with status `FAILED` in model.
 - Produces: Renders `<form th:action="@{/laeufe/{id}/wiederholen(id=${run.id})}" method="post">` button in header actions and beside technical details.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
   Add to `RunControllerTest.java`:
   ```java
   @Test
@@ -118,10 +118,10 @@
               .andExpect(content().string(not(containsString("/laeufe/" + runId + "/wiederholen"))));
   }
   ```
-- [ ] **Step 2: Run the tests — verify it FAILS**
+- [x] **Step 2: Run the tests — verify it FAILS**
   Command: `./mvnw test -Dtest=RunControllerTest#failedRunDetailRendersRetryButtons -B --no-transfer-progress`
   Expected: FAIL with missing retry button markup.
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
   1. In `src/main/resources/messages.properties`:
      ```properties
      ui.lauf.aktion.wiederholen=Prüflauf wiederholen
@@ -152,10 +152,10 @@
          <pre class="technischer-block" style="background: #09090b; color: #f4f4f5; padding: 1rem; border-radius: 8px; font-family: var(--font-mono); font-size: 0.8rem; overflow-x: auto;" th:text="${run.errorMessage}">Fehlermeldung...</pre>
      </section>
      ```
-- [ ] **Step 4: Run the tests — verify they PASS**
+- [x] **Step 4: Run the tests — verify they PASS**
   Command: `./mvnw test -Dtest=RunControllerTest#failedRunDetailRendersRetryButtons,RunControllerTest#completedRunDetailDoesNotRenderRetryButton -B --no-transfer-progress`
   Expected: PASS.
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   `git commit -m "feat(web): add retry CTA to run detail view for failed runs"`
 
 ---
@@ -170,7 +170,7 @@
 - Consumes: List of `RunSummary` in `websites/laeufe.html`.
 - Produces: Renders retry button alongside `Ansehen` for rows where `run.status == FAILED`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
   Add to `SiteDetailControllerTest.java`:
   ```java
   @Test
@@ -193,10 +193,10 @@
               .andExpect(content().string(containsString("Wiederholen")));
   }
   ```
-- [ ] **Step 2: Run the test — verify it FAILS**
+- [x] **Step 2: Run the test — verify it FAILS**
   Command: `./mvnw test -Dtest=SiteDetailControllerTest#runsTableRendersRetryButtonForFailedRun -B --no-transfer-progress`
   Expected: FAIL.
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
   In `src/main/resources/templates/websites/laeufe.html`:
   Update `td.zell-aktion`:
   ```html
@@ -212,10 +212,10 @@
       </div>
   </td>
   ```
-- [ ] **Step 4: Run the test — verify it PASSES**
+- [x] **Step 4: Run the test — verify it PASSES**
   Command: `./mvnw test -Dtest=SiteDetailControllerTest#runsTableRendersRetryButtonForFailedRun -B --no-transfer-progress`
   Expected: PASS.
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   `git commit -m "feat(web): add retry action to runs history table for failed runs"`
 
 ---
