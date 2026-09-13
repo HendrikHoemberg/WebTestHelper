@@ -52,7 +52,15 @@
                                   th:text="${run.findingsTotal}">3</span>
                         </td>
                         <td class="text-rechts zell-aktion">
-                            <a th:href="@{/laeufe/{id}(id=${run.id})}" class="btn-ui btn-ui-secondary btn-ui-sm" th:text="#{ui.websites.detail.laeufe.ansehen}">Ansehen</a>
+                            <div style="display: flex; align-items: center; justify-content: flex-end; gap: 0.5rem;">
+                                <form th:if="${run.status.name() == 'FAILED'}" th:action="@{/laeufe/{id}/wiederholen(id=${run.id})}" method="post" class="inline-form">
+                                    <button type="submit" class="btn-ui btn-ui-secondary btn-ui-sm" th:title="#{ui.lauf.aktion.wiederholen}">
+                                        <span th:replace="~{fragments/icons :: refresh}"></span>
+                                        <span th:text="#{ui.lauf.aktion.wiederholen_kurz}">Wiederholen</span>
+                                    </button>
+                                </form>
+                                <a th:href="@{/laeufe/{id}(id=${run.id})}" class="btn-ui btn-ui-secondary btn-ui-sm" th:text="#{ui.websites.detail.laeufe.ansehen}">Ansehen</a>
+                            </div>
                         </td>
                     </tr>
                 </tbody>

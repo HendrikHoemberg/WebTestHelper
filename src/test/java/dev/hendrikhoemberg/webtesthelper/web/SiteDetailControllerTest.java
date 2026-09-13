@@ -344,4 +344,24 @@ class SiteDetailControllerTest {
                 .andExpect(content().string(containsString("Erste Prüfung starten")))
                 .andExpect(content().string(containsString("/websites/42/pruefen")));
     }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void runsTableRendersRetryButtonForFailedRun() throws Exception {
+        stubCommon();
+        RunSummary failedRun = new RunSummary(
+                101L, 42L, RunStatus.FAILED, RunTrigger.MANUAL, RunScope.FULL,
+                Instant.parse("2026-08-25T10:00:00Z"),
+                Instant.parse("2026-08-25T10:00:05Z"),
+                Instant.parse("2026-08-25T10:02:30Z"),
+                10, 2, 0, 0, 0, false, null, false, "Konnte Host nicht auflösen",
+                Set.of()
+        );
+        when(runService.recentForSite(42L, 20)).thenReturn(List.of(failedRun));
+
+        mvc.perform(get("/websites/42/laeufe"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("/laeufe/101/wiederholen")))
+                .andExpect(content().string(containsString("Wiederholen")));
+    }
 }
