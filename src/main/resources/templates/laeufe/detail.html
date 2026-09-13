@@ -105,63 +105,66 @@
         </div>
     </div>
 
-    <!-- Übersicht / Metadaten -->
-    <section class="card-box detail-bereich">
-        <h2 th:text="#{ui.lauf.uebersicht}">Übersicht</h2>
-        <dl class="schluessel-werte">
-            <div>
-                <dt th:text="#{ui.lauf.tabelle.status}">Status</dt>
-                <dd>
-                    <span class="status-badge"
-                          th:classappend="${run.status.name() == 'COMPLETED' ? 'badge-healthy status-aktiv' : (run.status.name() == 'FAILED' ? 'badge-failing severity-CRITICAL' : 'status-inaktiv')}"
-                          th:text="#{${'ui.runstatus.' + run.status}}">Abgeschlossen</span>
-                </dd>
-            </div>
-            <div>
-                <dt th:text="#{ui.lauf.tabelle.ausloeser}">Auslöser</dt>
-                <dd th:text="#{${'ui.runtrigger.' + run.trigger}}">Manuell</dd>
-            </div>
-            <div>
-                <dt th:text="#{ui.lauf.tabelle.umfang}">Umfang</dt>
-                <dd><span class="type-pill-mono" th:text="#{${run.trigger.name() == 'MANUAL' ? ('ui.runscope.manual.' + run.scope) : ('ui.runscope.' + run.scope)}}">Vollständig</span></dd>
-            </div>
-            <div th:if="${run.startedAt != null}">
-                <dt th:text="#{ui.lauf.tabelle.gestartet}">Gestartet</dt>
-                <dd style="font-variant-numeric: tabular-nums;" th:text="${#temporals.format(run.startedAt, 'dd.MM.yyyy HH:mm')}">25.08.2026 12:00</dd>
-            </div>
-            <div th:if="${run.finishedAt != null}">
-                <dt th:text="#{ui.lauf.tabelle.beendet}">Beendet</dt>
-                <dd style="font-variant-numeric: tabular-nums;" th:text="${#temporals.format(run.finishedAt, 'dd.MM.yyyy HH:mm')}">25.08.2026 12:00</dd>
-            </div>
-        </dl>
-    </section>
+    <!-- Dashboard-Grid für Übersicht und Abdeckung -->
+    <div class="lauf-dashboard-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem; align-items: start;">
+        <!-- Übersicht / Metadaten -->
+        <section class="card-box detail-bereich" style="margin-bottom: 0;">
+            <h2 th:text="#{ui.lauf.uebersicht}">Übersicht</h2>
+            <dl class="schluessel-werte">
+                <div>
+                    <dt th:text="#{ui.lauf.tabelle.status}">Status</dt>
+                    <dd>
+                        <span class="status-badge"
+                              th:classappend="${run.status.name() == 'COMPLETED' ? 'badge-healthy status-aktiv' : (run.status.name() == 'FAILED' ? 'badge-failing severity-CRITICAL' : 'status-inaktiv')}"
+                              th:text="#{${'ui.runstatus.' + run.status}}">Abgeschlossen</span>
+                    </dd>
+                </div>
+                <div>
+                    <dt th:text="#{ui.lauf.tabelle.ausloeser}">Auslöser</dt>
+                    <dd th:text="#{${'ui.runtrigger.' + run.trigger}}">Manuell</dd>
+                </div>
+                <div>
+                    <dt th:text="#{ui.lauf.tabelle.umfang}">Umfang</dt>
+                    <dd><span class="type-pill-mono" th:text="#{${run.trigger.name() == 'MANUAL' ? ('ui.runscope.manual.' + run.scope) : ('ui.runscope.' + run.scope)}}">Vollständig</span></dd>
+                </div>
+                <div th:if="${run.startedAt != null}">
+                    <dt th:text="#{ui.lauf.tabelle.gestartet}">Gestartet</dt>
+                    <dd style="font-variant-numeric: tabular-nums;" th:text="${#temporals.format(run.startedAt, 'dd.MM.yyyy HH:mm')}">25.08.2026 12:00</dd>
+                </div>
+                <div th:if="${run.finishedAt != null}">
+                    <dt th:text="#{ui.lauf.tabelle.beendet}">Beendet</dt>
+                    <dd style="font-variant-numeric: tabular-nums;" th:text="${#temporals.format(run.finishedAt, 'dd.MM.yyyy HH:mm')}">25.08.2026 12:00</dd>
+                </div>
+            </dl>
+        </section>
 
-    <!-- Abdeckung -->
-    <section th:if="${run.status.name() == 'COMPLETED' or run.status.name() == 'FAILED'}" class="card-box detail-bereich">
-        <div class="abschnitt-ueberschrift-zeile" style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); margin-bottom: 1rem; padding-bottom: 0.5rem;">
-            <h2 style="margin: 0; border: none; padding: 0;" th:text="#{ui.lauf.abdeckung.titel}">Abdeckung</h2>
-            <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
-                    th:data-hx-get="@{/hilfe/hinweis/{id}(id='bericht-lesen')}"
-                    data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">
-                <span th:replace="~{fragments/icons :: help}"></span>
-            </button>
-            <div class="hinweis" aria-live="polite"></div>
-        </div>
-        <p class="abdeckung-zeile" style="font-size: 0.95rem; margin-bottom: 0.5rem;">
-            <strong style="font-variant-numeric: tabular-nums;" th:text="#{ui.lauf.abdeckung.seiten_besucht(${run.pagesVisited})}">85 Seiten besucht</strong>
-            <span th:if="${site.budget != null and site.budget.maxPages != null}" style="color: var(--text-muted); font-size: 0.85rem;" th:text="#{ui.lauf.abdeckung.seiten_limit(${site.budget.maxPages})}">(von max. 120)</span>,
-            <span style="font-variant-numeric: tabular-nums; color: var(--text-muted);" th:text="#{ui.lauf.abdeckung.seiten_fehlgeschlagen(${run.pagesFailed})}">2 fehlgeschlagen</span>.
-        </p>
-        <p class="abdeckung-zeile" style="font-size: 0.85rem; color: var(--text-muted);">
-            <span th:if="${run.coveredInteractionCheckTypes == null or #sets.isEmpty(run.coveredInteractionCheckTypes) or run.coveredInteractionUrls == null or #lists.isEmpty(run.coveredInteractionUrls)}"
-                  th:text="#{ui.lauf.abdeckung.interaktiv.keine}">Interaktive Prüfungen: keine</span>
-            <span th:if="${run.coveredInteractionCheckTypes != null and not #sets.isEmpty(run.coveredInteractionCheckTypes) and run.coveredInteractionUrls != null and not #lists.isEmpty(run.coveredInteractionUrls)}"
-                  th:text="#{ui.lauf.abdeckung.interaktiv.ergebnis(${#sets.size(run.coveredInteractionCheckTypes)}, ${#lists.size(run.coveredInteractionUrls)})}">Interaktive Prüfungen: 2 Prüfungen auf 3 Seiten</span>
-        </p>
-        <p th:if="${run.partialCoverage}" class="fehler" style="margin-top: 0.75rem;" th:text="#{ui.lauf.abdeckung.teilweise}">
-            Der Prüflauf hat das Seiten- oder Zeitlimit erreicht und nicht alle Seiten geprüft.
-        </p>
-    </section>
+        <!-- Abdeckung -->
+        <section th:if="${run.status.name() == 'COMPLETED' or run.status.name() == 'FAILED'}" class="card-box detail-bereich" style="margin-bottom: 0;">
+            <div class="abschnitt-ueberschrift-zeile" style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); margin-bottom: 1rem; padding-bottom: 0.5rem;">
+                <h2 style="margin: 0; border: none; padding: 0;" th:text="#{ui.lauf.abdeckung.titel}">Abdeckung</h2>
+                <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
+                        th:data-hx-get="@{/hilfe/hinweis/{id}(id='bericht-lesen')}"
+                        data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">
+                    <span th:replace="~{fragments/icons :: help}"></span>
+                </button>
+                <div class="hinweis" aria-live="polite"></div>
+            </div>
+            <p class="abdeckung-zeile" style="font-size: 0.95rem; margin-bottom: 0.5rem;">
+                <strong style="font-variant-numeric: tabular-nums;" th:text="#{ui.lauf.abdeckung.seiten_besucht(${run.pagesVisited})}">85 Seiten besucht</strong>
+                <span th:if="${site.budget != null and site.budget.maxPages != null}" style="color: var(--text-muted); font-size: 0.85rem;" th:text="#{ui.lauf.abdeckung.seiten_limit(${site.budget.maxPages})}">(von max. 120)</span>,
+                <span style="font-variant-numeric: tabular-nums; color: var(--text-muted);" th:text="#{ui.lauf.abdeckung.seiten_fehlgeschlagen(${run.pagesFailed})}">2 fehlgeschlagen</span>.
+            </p>
+            <p class="abdeckung-zeile" style="font-size: 0.85rem; color: var(--text-muted);">
+                <span th:if="${run.coveredInteractionCheckTypes == null or #sets.isEmpty(run.coveredInteractionCheckTypes) or run.coveredInteractionUrls == null or #lists.isEmpty(run.coveredInteractionUrls)}"
+                      th:text="#{ui.lauf.abdeckung.interaktiv.keine}">Interaktive Prüfungen: keine</span>
+                <span th:if="${run.coveredInteractionCheckTypes != null and not #sets.isEmpty(run.coveredInteractionCheckTypes) and run.coveredInteractionUrls != null and not #lists.isEmpty(run.coveredInteractionUrls)}"
+                      th:text="#{ui.lauf.abdeckung.interaktiv.ergebnis(${#sets.size(run.coveredInteractionCheckTypes)}, ${#lists.size(run.coveredInteractionUrls)})}">Interaktive Prüfungen: 2 Prüfungen auf 3 Seiten</span>
+            </p>
+            <p th:if="${run.partialCoverage}" class="fehler" style="margin-top: 0.75rem;" th:text="#{ui.lauf.abdeckung.teilweise}">
+                Der Prüflauf hat das Seiten- oder Zeitlimit erreicht und nicht alle Seiten geprüft.
+            </p>
+        </section>
+    </div>
 
     <!-- Technische Fehlermeldung bei FAILED -->
     <section th:if="${run.errorMessage != null and not #strings.isEmpty(run.errorMessage)}" class="card-box detail-bereich">
@@ -240,6 +243,10 @@
              sectionHasItems(secEl) {
                  if (this.filterSeverity === 'ALL') return true;
                  return secEl.querySelector('[data-severity=\'' + this.filterSeverity + '\']') !== null;
+             },
+             categoryHasItems(catEl) {
+                 if (this.filterSeverity === 'ALL') return true;
+                 return catEl.querySelector('[data-severity=\'' + this.filterSeverity + '\']') !== null;
              }
          }"
          class="bericht-filter-container">
@@ -269,16 +276,67 @@
             <section th:each="entry : ${sections}" th:if="${not #lists.isEmpty(entry.value)}"
                      class="card-box detail-bereich" th:classappend="${'abschnitt-' + entry.key}"
                      x-show="sectionHasItems($el)">
-                <div class="abschnitt-ueberschrift-zeile" style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); margin-bottom: 1rem; padding-bottom: 0.5rem;">
-                    <h2 style="margin: 0; border: none; padding: 0;" th:text="#{${'ui.reportsection.' + entry.key}} + ' (' + ${#lists.size(entry.value)} + ')'">Neu aufgetreten (2)</h2>
-                    <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
-                            th:data-hx-get="@{/hilfe/hinweis/{id}(id='bericht-lesen')}"
-                            data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">
-                        <span th:replace="~{fragments/icons :: help}"></span>
-                    </button>
-                    <div class="hinweis" aria-live="polite"></div>
+                <div class="abschnitt-ueberschrift-zeile" style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); margin-bottom: 1rem; padding-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <h2 style="margin: 0; border: none; padding: 0;" th:text="#{${'ui.reportsection.' + entry.key}} + ' (' + ${#lists.size(entry.value)} + ')'">Neu aufgetreten (2)</h2>
+                        <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
+                                th:data-hx-get="@{/hilfe/hinweis/{id}(id='bericht-lesen')}"
+                                data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">
+                            <span th:replace="~{fragments/icons :: help}"></span>
+                        </button>
+                        <div class="hinweis" aria-live="polite"></div>
+                    </div>
+                    <div th:if="${groupedSections != null and groupedSections[entry.key] != null and #lists.size(groupedSections[entry.key]) > 0}" class="kategorien-steuerung" style="display: flex; gap: 0.5rem;">
+                        <button type="button" class="btn-ui btn-ui-secondary btn-ui-sm"
+                                @click="$el.closest('section').querySelectorAll('details.befund-kategorie-gruppe').forEach(d => d.open = true)"
+                                th:text="#{ui.lauf.kategorien.alle_oeffnen}">Alle aufklappen</button>
+                        <button type="button" class="btn-ui btn-ui-secondary btn-ui-sm"
+                                @click="$el.closest('section').querySelectorAll('details.befund-kategorie-gruppe').forEach(d => d.open = false)"
+                                th:text="#{ui.lauf.kategorien.alle_schliessen}">Alle zuklappen</button>
+                    </div>
                 </div>
-                <div class="befunde-liste inspector-card-shell" style="margin-bottom: 0;">
+
+                <!-- Gruppierte Kategorien -->
+                <div th:if="${groupedSections != null and groupedSections[entry.key] != null and not #lists.isEmpty(groupedSections[entry.key])}"
+                     class="kategorien-liste" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    <details th:each="group : ${groupedSections[entry.key]}"
+                             class="befund-kategorie-gruppe"
+                             th:open="${entry.key.name() == 'NEW'}"
+                             x-show="categoryHasItems($el)">
+                        <summary class="befund-kategorie-summary">
+                            <div class="kategorie-header-left">
+                                <span class="kategorie-chevron">▸</span>
+                                <strong class="kategorie-titel" th:text="${group.title}">Tote Links</strong>
+                                <span class="kategorie-anzahl-badge" th:text="${group.totalCount}">31</span>
+                            </div>
+                            <div class="kategorie-header-badges">
+                                <span th:if="${group.errorCount > 0}" class="status-badge badge-failing severity-ERROR" th:text="#{ui.lauf.kategorie.fehler_anzahl(${group.errorCount})}">30 Fehler</span>
+                                <span th:if="${group.warnCount == 1}" class="status-badge badge-warning severity-WARN" th:text="#{ui.lauf.kategorie.warnung_einzahl}">1 Warnung</span>
+                                <span th:if="${group.warnCount > 1}" class="status-badge badge-warning severity-WARN" th:text="#{ui.lauf.kategorie.warnungen_mehrzahl(${group.warnCount})}">2 Warnungen</span>
+                                <span th:if="${group.infoCount == 1}" class="status-badge status-inaktiv severity-INFO" th:text="#{ui.lauf.kategorie.hinweis_einzahl}">1 Hinweis</span>
+                                <span th:if="${group.infoCount > 1}" class="status-badge status-inaktiv severity-INFO" th:text="#{ui.lauf.kategorie.hinweise_mehrzahl(${group.infoCount})}">2 Hinweise</span>
+                            </div>
+                        </summary>
+                        <div class="befunde-liste befund-karten-stapel">
+                            <div th:if="${group.remediation != null and not #strings.isEmpty(group.remediation)}" class="kategorie-abhilfe-banner">
+                                <span class="abhilfe-banner-icon">💡</span>
+                                <div class="abhilfe-banner-text">
+                                    <strong th:text="#{ui.befund.behebung.label}">Abhilfe:</strong>
+                                    <span th:text="${group.remediation}">Verweis auf die richtige Adresse korrigieren oder entfernen...</span>
+                                </div>
+                            </div>
+                            <div th:each="befundItem : ${group.findings}"
+                                 th:with="inGruppe=true"
+                                 th:data-severity="${befundItem.severity.name()}"
+                                 x-show="filterSeverity === 'ALL' || filterSeverity === $el.dataset.severity">
+                                <div th:replace="~{fragments/befundzeile :: befundzeile(${befundItem}, false)}"></div>
+                            </div>
+                        </div>
+                    </details>
+                </div>
+
+                <!-- Fallback falls keine Gruppierung -->
+                <div th:if="${groupedSections == null or groupedSections[entry.key] == null or #lists.isEmpty(groupedSections[entry.key])}" class="befunde-liste inspector-card-shell" style="margin-bottom: 0;">
                     <div th:each="befundItem : ${entry.value}"
                          th:data-severity="${befundItem.severity.name()}"
                          x-show="filterSeverity === 'ALL' || filterSeverity === $el.dataset.severity">

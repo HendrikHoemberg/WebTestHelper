@@ -6,6 +6,7 @@ import dev.hendrikhoemberg.webtesthelper.findings.ReportSection;
 import dev.hendrikhoemberg.webtesthelper.findings.RunDiff;
 import dev.hendrikhoemberg.webtesthelper.model.RunTrigger;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
+import dev.hendrikhoemberg.webtesthelper.reporting.FindingGroup;
 import dev.hendrikhoemberg.webtesthelper.reporting.FindingView;
 import dev.hendrikhoemberg.webtesthelper.reporting.FindingViewFactory;
 import dev.hendrikhoemberg.webtesthelper.runner.RunService;
@@ -20,9 +21,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Handles run report views, live HTMX progress polling, and baseline acceptance.
@@ -66,18 +69,41 @@ public class RunController {
         if (run.status().isTerminal()) {
             RunDiff diff = findingService.diffForReport(run.siteId(), id);
             Map<ReportSection, List<FindingView>> sections = findingViewFactory.of(diff, locale);
+            Map<ReportSection, List<FindingGroup>> groupedSections = groupSections(sections);
             model.addAttribute("diff", diff);
             model.addAttribute("sections", sections);
+            model.addAttribute("groupedSections", groupedSections);
             model.addAttribute("diffNeu", diff.count(ReportSection.NEW));
             model.addAttribute("diffRegressionen", diff.count(ReportSection.REGRESSED));
             model.addAttribute("diffBehoben", diff.count(ReportSection.FIXED));
         } else {
             model.addAttribute("sections", Map.of());
+            model.addAttribute("groupedSections", Map.of());
         }
 
         model.addAttribute("run", run);
         model.addAttribute("site", site);
         return "laeufe/detail";
+    }
+
+    private Map<ReportSection, List<FindingGroup>> groupSections(Map<ReportSection, List<FindingView>> sections) {
+        if (sections == null || sections.isEmpty()) {
+            return Map.of();
+        }
+        Map<ReportSection, List<FindingGroup>> result = new LinkedHashMap<>();
+        for (Map.Entry<ReportSection, List<FindingView>> entry : sections.entrySet()) {
+            if (entry.getValue() == null || entry.getValue().isEmpty()) {
+                result.put(entry.getKey(), List.of());
+                continue;
+            }
+            Map<String, List<FindingView>> byTitle = entry.getValue().stream()
+                    .collect(Collectors.groupingBy(FindingView::title, LinkedHashMap::new, Collectors.toList()));
+            List<FindingGroup> groups = byTitle.entrySet().stream()
+                    .map(e -> FindingGroup.of(e.getKey(), e.getValue()))
+                    .toList();
+            result.put(entry.getKey(), groups);
+        }
+        return result;
     }
 
     @GetMapping("/{id}/fortschritt")

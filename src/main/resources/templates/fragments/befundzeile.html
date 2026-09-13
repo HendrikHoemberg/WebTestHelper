@@ -14,9 +14,12 @@
                 <span class="status-badge"
                       th:classappend="${befund.severity.name() == 'ERROR' ? 'badge-failing' : (befund.severity.name() == 'WARN' ? 'badge-warning' : 'status-inaktiv')} + ' severity-' + ${befund.severity}"
                       th:text="#{${'ui.severity.' + befund.severity}}">Fehler</span>
-                <a th:href="|/befunde/${befund.id}|" class="befund-titel-link" style="color: var(--text-main); text-decoration: none;">
+
+                <!-- Titel nur anzeigen wenn NICHT in einer Kategorie-Gruppe -->
+                <a th:if="${inGruppe != true}" th:href="|/befunde/${befund.id}|" class="befund-titel-link" style="color: var(--text-main); text-decoration: none;">
                     <strong th:text="${befund.title}" style="font-size: 0.95rem; font-weight: 700;">Tote Links</strong>
                 </a>
+
                 <span th:if="${befund.siteWide}" class="siteweit-badge" th:text="#{ui.befund.siteweit}">Website-weit</span>
                 <span class="status-badge status-inaktiv" th:text="#{${'ui.triagestatus.' + befund.triage}}">Ungeprüft</span>
                 <span th:if="${befund.screenshotUrl != null}" class="status-badge status-inaktiv" style="font-size: 0.72rem; display: inline-flex; align-items: center; gap: 0.25rem;">
@@ -37,21 +40,24 @@
         </div>
         <div class="befund-koerper">
             <p class="befund-meldung" style="font-size: 0.875rem; color: var(--text-body); margin: 0.35rem 0;" th:text="${befund.message}">Meldung</p>
-            <div class="befund-link-zeile" th:if="${befund.subjectUrl != null}" x-data="wthKopiere()" style="display: flex; align-items: center; gap: 0.4rem; margin: 0.35rem 0;">
+            <div class="befund-link-zeile" th:if="${befund.subjectUrl != null}" x-data="wthKopiere()">
                 <a th:href="${befund.subjectUrl}" target="_blank" rel="noopener noreferrer"
                    class="befund-subjekt-link" th:attr="aria-label=#{ui.befund.subject.aufrufen}"
                    th:text="${befund.subjectUrl}">https://example.com/tot</a>
-                <button type="button" class="kopie-button btn-icon-only"
-                        th:data-url="${befund.subjectUrl}"
-                        th:attr="aria-label=#{ui.befund.subject.kopieren},title=#{ui.befund.subject.kopieren}"
-                        @click="kopiere($event)">
-                    <span th:replace="~{fragments/icons :: copy}"></span>
-                    <span class="sr-only" th:text="#{ui.befund.subject.kopieren_kurz}">Kopieren</span>
-                </button>
-                <span class="kopie-rueckmeldung" x-cloak x-show="kopiert" aria-live="polite"
-                      th:text="#{ui.befund.subject.kopiert}">Kopiert!</span>
+                <div class="befund-link-aktionen">
+                    <span class="kopie-rueckmeldung" x-cloak x-show="kopiert" aria-live="polite"
+                          th:text="#{ui.befund.subject.kopiert}">Kopiert!</span>
+                    <button type="button" class="kopie-button btn-icon-only"
+                            th:data-url="${befund.subjectUrl}"
+                            th:attr="aria-label=#{ui.befund.subject.kopieren},title=#{ui.befund.subject.kopieren}"
+                            @click="kopiere($event)">
+                        <span th:replace="~{fragments/icons :: copy}"></span>
+                        <span class="sr-only" th:text="#{ui.befund.subject.kopieren_kurz}">Kopieren</span>
+                    </button>
+                </div>
             </div>
-            <div class="remediation-callout" style="margin-top: 0.5rem;">
+            <!-- Abhilfe nur anzeigen wenn NICHT in einer Kategorie-Gruppe -->
+            <div th:if="${inGruppe != true}" class="remediation-callout" style="margin-top: 0.5rem;">
                 <strong th:text="#{ui.befund.behebung.label}" style="color: var(--text-main);">Abhilfe:</strong>
                 <span th:text="${befund.remediation}" class="befund-behebung">Abhilfe-Text</span>
             </div>

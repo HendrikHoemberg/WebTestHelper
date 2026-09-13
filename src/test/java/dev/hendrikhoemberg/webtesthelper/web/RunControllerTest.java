@@ -765,4 +765,35 @@ class RunControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(not(containsString("/laeufe/" + runId + "/wiederholen"))));
     }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void detailPageRendersGroupedCategoriesWithAccordionControls() throws Exception {
+        long runId = 101L;
+        long siteId = 42L;
+        RunSummary summary = sampleSummary(runId, siteId, RunStatus.COMPLETED, false, false, null);
+        SiteContext site = sampleSite(siteId);
+        RunDiff diff = new RunDiff(runId, Map.of());
+
+        FindingView f1 = new FindingView(1L, "Tote Links", "404 Not Found", "Link prüfen", "/page-1", false, 1, Severity.ERROR, TriageStatus.UNTRIAGED);
+        FindingView f2 = new FindingView(2L, "Tote Links", "500 Server Error", "Link prüfen", "/page-2", false, 1, Severity.ERROR, TriageStatus.UNTRIAGED);
+        FindingView f3 = new FindingView(3L, "Seitenstatus", "403 Forbidden", "Zugriff prüfen", "/page-3", false, 1, Severity.WARN, TriageStatus.UNTRIAGED);
+
+        Map<ReportSection, List<FindingView>> sections = new LinkedHashMap<>();
+        sections.put(ReportSection.NEW, List.of(f1, f2));
+        sections.put(ReportSection.STILL_OPEN, List.of(f3));
+
+        when(runService.summary(runId)).thenReturn(summary);
+        when(siteService.contextFor(siteId)).thenReturn(site);
+        when(findingService.diffForReport(siteId, runId)).thenReturn(diff);
+        when(findingViewFactory.of(eq(diff), any(Locale.class))).thenReturn(sections);
+
+        mvc.perform(get("/laeufe/" + runId))
+                .andExpect(status().isOk())
+                .andExpect(model().attributeExists("groupedSections"))
+                .andExpect(content().string(containsString("befund-kategorie-gruppe")))
+                .andExpect(content().string(containsString("kategorie-titel")))
+                .andExpect(content().string(containsString("Alle aufklappen")))
+                .andExpect(content().string(containsString("Alle zuklappen")));
+    }
 }
