@@ -1546,7 +1546,8 @@ body {
     align-items: center;
     justify-content: space-between;
     gap: 0.75rem;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    min-width: 0;
     margin-bottom: 0.25rem;
 }
 
@@ -1554,9 +1555,11 @@ body {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     min-width: 0;
     flex: 1;
+    overflow: hidden;
+    white-space: nowrap;
 }
 
 .befund-kopf-rechts {
@@ -1570,30 +1573,72 @@ body {
     color: var(--border-strong);
     font-size: 0.85rem;
     user-select: none;
+    flex-shrink: 0;
+}
+
+.befund-ort {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    min-width: 0;
+    max-width: 220px;
+    flex-shrink: 0;
 }
 
 .befund-ort-label {
     font-size: 0.8rem;
     color: var(--text-muted);
-    margin-right: 0.25rem;
+    margin-right: 0.15rem;
+    flex-shrink: 0;
+}
+
+.befund-ort-link {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+    max-width: 100%;
+    text-decoration: none;
+}
+
+.befund-ort-pill,
+.befund-ort .code-pill {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: inline-block;
+    vertical-align: middle;
 }
 
 .befund-meldung-inline {
     font-size: 0.825rem;
     color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
 }
 
-.befund-screenshot-btn {
-    font-size: 0.75rem;
+.btn-ui-ghost {
+    background: transparent;
+    border-color: transparent;
+    color: var(--text-main);
+    box-shadow: none;
+}
+
+.btn-ui-ghost:hover {
+    background: var(--surface-subtle);
+    color: var(--text-main);
+    border-color: var(--border-subtle);
+}
+
+.befund-details-link {
+    font-size: 0.775rem;
     padding: 0.2rem 0.55rem;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-}
-
-.befund-screenshot-btn .svg-icon {
-    width: 13px;
-    height: 13px;
+    color: var(--text-main) !important;
+    white-space: nowrap;
+    text-decoration: none;
+    min-height: auto;
 }
 
 .remediation-callout {

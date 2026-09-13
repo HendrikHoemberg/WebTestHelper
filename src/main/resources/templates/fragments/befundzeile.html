@@ -36,12 +36,14 @@
                     <a th:if="${!befund.siteWide and #strings.startsWith(befund.locationText, '/') and site != null}"
                        th:href="${site.baseUrl.origin() + befund.locationText}"
                        target="_blank" rel="noopener noreferrer" class="befund-ort-link"
-                       th:attr="aria-label=#{ui.befund.ort.aufrufen}">
-                        <code class="code-pill" th:text="${befund.locationText}">/pfad</code>
+                       th:attr="aria-label=#{ui.befund.ort.aufrufen},title=${befund.locationText}">
+                        <code class="code-pill befund-ort-pill"
+                              th:text="${#strings.length(befund.locationText) > 28 ? #strings.substring(befund.locationText, 0, 26) + '…' : befund.locationText}">/pfad</code>
                     </a>
                     <code th:if="${befund.siteWide or !#strings.startsWith(befund.locationText, '/') or site == null}"
-                          class="code-pill"
-                          th:text="${befund.locationText}">auf 7 Seiten</code>
+                          class="code-pill befund-ort-pill"
+                          th:attr="title=${befund.locationText}"
+                          th:text="${#strings.length(befund.locationText) > 28 ? #strings.substring(befund.locationText, 0, 26) + '…' : befund.locationText}">auf 7 Seiten</code>
                 </div>
 
                 <!-- Kurzbeschreibung inline bei inGruppe -->
@@ -51,16 +53,9 @@
                       th:text="${befund.message}">Meldung</span>
             </div>
 
-            <!-- Kopfzeile rechts: Screenshot & Details -->
+            <!-- Kopfzeile rechts: Details -->
             <div class="befund-kopf-rechts">
-                <a th:if="${befund.screenshotUrl != null}"
-                   th:href="${befund.screenshotUrl}"
-                   target="_blank" rel="noopener noreferrer"
-                   class="btn-ui btn-ui-secondary btn-ui-sm befund-screenshot-btn">
-                    <span th:replace="~{fragments/icons :: camera}"></span>
-                    <span th:text="#{ui.befund.screenshot_vorhanden}">Screenshot</span>
-                </a>
-                <a th:href="|/befunde/${befund.id}|" class="btn-ui btn-ui-ghost btn-ui-sm" style="font-size: 0.775rem; padding: 0.2rem 0.5rem;">Details →</a>
+                <a th:href="|/befunde/${befund.id}|" class="btn-ui btn-ui-secondary btn-ui-sm befund-details-link">Details →</a>
             </div>
         </div>
 
