@@ -14,6 +14,7 @@ import dev.hendrikhoemberg.webtesthelper.findings.FindingService;
 import dev.hendrikhoemberg.webtesthelper.findings.OpenFindingCounts;
 import dev.hendrikhoemberg.webtesthelper.model.CheckCategory;
 import dev.hendrikhoemberg.webtesthelper.model.CheckSetting;
+import dev.hendrikhoemberg.webtesthelper.model.RunStatus;
 import dev.hendrikhoemberg.webtesthelper.model.Severity;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
 import dev.hendrikhoemberg.webtesthelper.reporting.FindingView;
@@ -151,10 +152,13 @@ public class SiteDetailModel {
     }
 
     private TrafficLight trafficLight(SiteContext site) {
-        List<RunSummary> runs = runService.recentForSite(site.siteId(), 1);
-        RunSummary last = runs.isEmpty() ? null : runs.get(0);
-        LastRun lr = last == null ? null
-                : new LastRun(site.siteId(), last.id(), last.status(), last.finishedAt(), last.partialCoverage());
+        List<RunSummary> runs = runService.recentForSite(site.siteId(), 5);
+        RunSummary lastTerminal = runs.stream()
+                .filter(r -> r.status() == RunStatus.COMPLETED || r.status() == RunStatus.FAILED)
+                .findFirst()
+                .orElse(null);
+        LastRun lr = lastTerminal == null ? null
+                : new LastRun(site.siteId(), lastTerminal.id(), lastTerminal.status(), lastTerminal.finishedAt(), lastTerminal.partialCoverage());
         boolean enabled = siteService.summary(site.siteId()).enabled();
         return TrafficLight.of(enabled, lr,
                 findingService.openCountsBySite().getOrDefault(site.siteId(), OpenFindingCounts.none()));

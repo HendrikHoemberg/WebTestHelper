@@ -190,6 +190,50 @@ class SiteDetailControllerTest {
 
     @Test
     @WithMockUser(roles = "USER")
+    void getUebersichtRendersGracefullyWhenRunIsQueued() throws Exception {
+        stubCommon();
+        RunSummary queuedRun = new RunSummary(
+                102L, 42L, RunStatus.QUEUED, RunTrigger.MANUAL, RunScope.FULL,
+                Instant.parse("2026-08-25T10:00:00Z"),
+                null,
+                null,
+                0, 0, 0, 0, 0, false, null, false, null,
+                Set.of()
+        );
+        when(runService.recentForSite(42L, 1)).thenReturn(List.of(queuedRun));
+        when(runService.recentForSite(42L, 5)).thenReturn(List.of(queuedRun));
+
+        mvc.perform(get("/websites/42"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("websites/uebersicht"))
+                .andExpect(content().string(containsString("In Warteschlange")));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void getUebersichtRendersGracefullyWhenRunIsRunning() throws Exception {
+        stubCommon();
+        RunSummary runningRun = new RunSummary(
+                102L, 42L, RunStatus.RUNNING, RunTrigger.MANUAL, RunScope.FULL,
+                Instant.parse("2026-08-25T10:00:00Z"),
+                Instant.parse("2026-08-25T10:00:05Z"),
+                null,
+                10, 0, 0, 0, 0, false, null, false, null,
+                Set.of()
+        );
+        when(runService.recentForSite(42L, 1)).thenReturn(List.of(runningRun));
+        when(runService.recentForSite(42L, 5)).thenReturn(List.of(runningRun));
+
+        mvc.perform(get("/websites/42"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("websites/uebersicht"))
+                .andExpect(content().string(containsString("Läuft")));
+    }
+
+
+
+    @Test
+    @WithMockUser(roles = "USER")
     void getLaeufeRendersRunHistory() throws Exception {
         stubCommon();
 
