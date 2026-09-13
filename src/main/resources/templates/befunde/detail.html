@@ -130,20 +130,18 @@
     <!-- Nachweise & Details (Evidenz) -->
     <section th:if="${detail.httpStatus != null or detail.requestDetail != null or detail.responseDetail != null or not #lists.isEmpty(detail.consoleExcerpt) or detail.screenshotUrl != null}" class="card-box detail-bereich">
         <h2 th:text="#{ui.befund.detail.evidenz}">Nachweise &amp; Details</h2>
-        <dl class="schluessel-werte">
-            <div th:if="${detail.httpStatus != null}">
-                <dt th:text="#{ui.befund.detail.http_status}">HTTP-Status</dt>
-                <dd><span class="type-pill-mono" th:text="${detail.httpStatus}">404</span></dd>
-            </div>
-            <div th:if="${detail.requestDetail != null and not #strings.isEmpty(detail.requestDetail)}">
-                <dt th:text="#{ui.befund.detail.anfrage}">Anfrage</dt>
-                <dd><pre class="technischer-block" style="background: #09090b; color: #f4f4f5; padding: 1rem; border-radius: 8px; font-family: var(--font-mono); font-size: 0.8rem; overflow-x: auto;" th:text="${detail.requestDetail}">GET /...</pre></dd>
-            </div>
-            <div th:if="${detail.responseDetail != null and not #strings.isEmpty(detail.responseDetail)}">
-                <dt th:text="#{ui.befund.detail.antwort}">Antwort</dt>
-                <dd><pre class="technischer-block" style="background: #09090b; color: #f4f4f5; padding: 1rem; border-radius: 8px; font-family: var(--font-mono); font-size: 0.8rem; overflow-x: auto;" th:text="${detail.responseDetail}">404 Not Found</pre></dd>
-            </div>
+        <dl th:if="${detail.httpStatus != null}" class="schluessel-werte">
+            <dt th:text="#{ui.befund.detail.http_status}">HTTP-Status</dt>
+            <dd><span class="type-pill-mono" th:text="${detail.httpStatus}">404</span></dd>
         </dl>
+        <div th:if="${detail.requestDetail != null and not #strings.isEmpty(detail.requestDetail)}" class="muster-block" style="margin-top: 1rem;">
+            <h3 style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 0.35rem;" th:text="#{ui.befund.detail.anfrage}">Anfrage</h3>
+            <pre class="technischer-block" style="background: #09090b; color: #f4f4f5; padding: 1rem; border-radius: 8px; font-family: var(--font-mono); font-size: 0.8rem; overflow-x: auto;" th:text="${detail.requestDetail}">GET /...</pre>
+        </div>
+        <div th:if="${detail.responseDetail != null and not #strings.isEmpty(detail.responseDetail)}" class="muster-block" style="margin-top: 1rem;">
+            <h3 style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 0.35rem;" th:text="#{ui.befund.detail.antwort}">Antwort</h3>
+            <pre class="technischer-block" style="background: #09090b; color: #f4f4f5; padding: 1rem; border-radius: 8px; font-family: var(--font-mono); font-size: 0.8rem; overflow-x: auto;" th:text="${detail.responseDetail}">404 Not Found</pre>
+        </div>
         <div th:if="${not #lists.isEmpty(detail.consoleExcerpt)}" class="muster-block" style="margin-top: 1rem;">
             <h3 style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 0.35rem;" th:text="#{ui.befund.detail.konsole}">Browser-Konsole</h3>
             <pre class="technischer-block" style="background: #09090b; color: #f4f4f5; padding: 1rem; border-radius: 8px; font-family: var(--font-mono); font-size: 0.8rem; overflow-x: auto;" th:each="line : ${detail.consoleExcerpt}" th:text="${line}">Konsole-Zeile</pre>

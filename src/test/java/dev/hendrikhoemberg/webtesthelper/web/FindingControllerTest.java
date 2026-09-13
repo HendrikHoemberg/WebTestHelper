@@ -281,6 +281,70 @@ class FindingControllerTest {
 
     @Test
     @WithMockUser(roles = "USER")
+    void evidenceRendersRequestAndResponseAsBlocksOutsideSchluesselWerteDl() throws Exception {
+        long findingId = 5L;
+        Evidence evidence = new Evidence(
+                null,
+                404,
+                "GET http://example.com/test\nRange: bytes=0-1023",
+                "404 Not Found\ncontent-type: text/html",
+                List.of()
+        );
+        Finding finding = new Finding(
+                findingId, 42L, "fp-5",
+                CheckType.DEAD_LINK,
+                "https://example.com/dead",
+                "https://example.com/page",
+                Severity.ERROR,
+                "finding.DEAD_LINK.dead",
+                List.of("https://example.com/dead", "404 Not Found"),
+                evidence,
+                ObservedStatus.ACTIVE,
+                TriageStatus.UNTRIAGED,
+                null,
+                10L, 10L, null, null,
+                1, 1,
+                Instant.parse("2026-08-25T10:00:00Z"),
+                Instant.parse("2026-08-25T10:00:00Z")
+        );
+
+        when(findingService.byId(findingId)).thenReturn(Optional.of(finding));
+        when(findingService.occurrencesOfLastRun(findingId, 50)).thenReturn(List.of());
+
+        MvcResult result = mvc.perform(get("/befunde/" + findingId))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String html = result.getResponse().getContentAsString();
+
+        // HTTP status should be in the key-value definition list
+        assertThat(html).contains("HTTP-Status");
+        assertThat(html).contains(">404<");
+
+        // Request and response should exist as blocks
+        assertThat(html).contains("Anfrage");
+        assertThat(html).contains("GET http://example.com/test");
+        assertThat(html).contains("Antwort");
+        assertThat(html).contains("404 Not Found");
+
+        // Verify request and response are not nested inside <dl class="schluessel-werte">
+        // Extract the dl block in the evidence section
+        int evidenceIdx = html.indexOf("Nachweise & Details");
+        assertThat(evidenceIdx).isGreaterThanOrEqualTo(0);
+        String evidenceHtml = html.substring(evidenceIdx);
+
+        int dlStart = evidenceHtml.indexOf("<dl class=\"schluessel-werte\"");
+        assertThat(dlStart).isGreaterThanOrEqualTo(0);
+        int dlEnd = evidenceHtml.indexOf("</dl>", dlStart);
+        assertThat(dlEnd).isGreaterThan(dlStart);
+
+        String dlContent = evidenceHtml.substring(dlStart, dlEnd);
+        assertThat(dlContent).as("requestDetail must not be inside dl.schluessel-werte").doesNotContain("GET http://example.com/test");
+        assertThat(dlContent).as("responseDetail must not be inside dl.schluessel-werte").doesNotContain("404 Not Found");
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
     void unknownFindingIdReturns404() throws Exception {
         when(findingService.byId(999L)).thenReturn(Optional.empty());
 
