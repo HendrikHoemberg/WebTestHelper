@@ -405,6 +405,7 @@ body {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    vertical-align: middle;
     gap: 0.45rem;
     padding: 0.5rem 0.95rem;
     border-radius: 7px;
@@ -417,6 +418,7 @@ body {
     box-shadow: var(--shadow-subtle);
     font-family: inherit;
     line-height: 1.4;
+    min-height: 2.375rem;
 }
 
 .btn-ui:active,
@@ -491,12 +493,15 @@ body {
     padding: 0.3rem 0.65rem;
     font-size: 0.8rem;
     border-radius: 6px;
+    min-height: 1.875rem;
 }
 
 .btn-icon-only {
-    padding: 0.4rem;
-    min-width: 2rem;
-    min-height: 2rem;
+    padding: 0.5rem;
+    width: 2.375rem;
+    height: 2.375rem;
+    min-width: 2.375rem;
+    min-height: 2.375rem;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -504,6 +509,8 @@ body {
 
 .btn-ui-sm.btn-icon-only {
     padding: 0.3rem;
+    width: 1.875rem;
+    height: 1.875rem;
     min-width: 1.75rem;
     min-height: 1.75rem;
 }
@@ -1948,9 +1955,16 @@ body {
     border-color: var(--border-subtle);
 }
 
+.inline-form {
+    display: inline-flex;
+    align-items: center;
+    margin: 0;
+}
+
 .mehr-menue {
     position: relative;
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
 }
 .mehr-menue > summary {
     list-style: none;
