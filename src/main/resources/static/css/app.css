@@ -1395,10 +1395,16 @@ body {
 }
 
 .kategorie-chevron {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     transition: transform 0.18s ease;
-    font-size: 0.75rem;
     color: var(--text-muted);
+}
+
+.kategorie-chevron .svg-icon {
+    width: 14px;
+    height: 14px;
 }
 
 .befund-kategorie-gruppe[open] .kategorie-chevron {
@@ -1443,9 +1449,17 @@ body {
 }
 
 .abhilfe-banner-icon {
-    font-size: 0.95rem;
+    display: inline-flex;
+    align-items: center;
     line-height: 1.2;
     flex-shrink: 0;
+    color: var(--text-main);
+    margin-top: 1px;
+}
+
+.abhilfe-banner-icon .svg-icon {
+    width: 16px;
+    height: 16px;
 }
 
 .abhilfe-banner-text strong {

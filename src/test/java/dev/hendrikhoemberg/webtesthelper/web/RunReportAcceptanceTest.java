@@ -140,7 +140,9 @@ class RunReportAcceptanceTest extends AbstractPostgresTest {
                 // Bulk triage lives on the findings list, not here (plan 7, "deliberately not in
                 // this plan"). befundzeile is shared, so its checkbox must stay switched off — the
                 // run report carries no findingsSelection() scope to make one work.
-                .andExpect(content().string(not(containsString("befund-checkbox"))));
+                .andExpect(content().string(not(containsString("befund-checkbox"))))
+                .andExpect(content().string(not(containsString("💡"))))
+                .andExpect(content().string(not(containsString("▸"))));
 
         // 3. POST /laeufe/{1}/ausgangsbestand redirects and reports three moved;
         //    re-rendering the page no longer offers the button.

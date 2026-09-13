@@ -305,7 +305,9 @@
                              x-show="categoryHasItems($el)">
                         <summary class="befund-kategorie-summary">
                             <div class="kategorie-header-left">
-                                <span class="kategorie-chevron">▸</span>
+                                <span class="kategorie-chevron">
+                                    <span th:replace="~{fragments/icons :: chevron_right}"></span>
+                                </span>
                                 <strong class="kategorie-titel" th:text="${group.title}">Tote Links</strong>
                                 <span class="kategorie-anzahl-badge" th:text="${group.totalCount}">31</span>
                             </div>
@@ -319,7 +321,9 @@
                         </summary>
                         <div class="befunde-liste befund-karten-stapel">
                             <div th:if="${group.remediation != null and not #strings.isEmpty(group.remediation)}" class="kategorie-abhilfe-banner">
-                                <span class="abhilfe-banner-icon">💡</span>
+                                <span class="abhilfe-banner-icon">
+                                    <span th:replace="~{fragments/icons :: lightbulb}"></span>
+                                </span>
                                 <div class="abhilfe-banner-text">
                                     <strong th:text="#{ui.befund.behebung.label}">Abhilfe:</strong>
                                     <span th:text="${group.remediation}">Verweis auf die richtige Adresse korrigieren oder entfernen...</span>
