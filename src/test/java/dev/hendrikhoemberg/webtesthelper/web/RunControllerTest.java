@@ -711,4 +711,21 @@ class RunControllerTest {
                 .andExpect(content().contentType(org.springframework.http.MediaType.APPLICATION_PDF))
                 .andExpect(content().bytes("%PDF-1.4 test".getBytes(java.nio.charset.StandardCharsets.UTF_8)));
     }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void wiederholenEnqueuesRunWithSameScopeAndRedirectsToNewRun() throws Exception {
+        long failedRunId = 101L;
+        long siteId = 42L;
+        long newRunId = 102L;
+        RunSummary failedRun = sampleSummary(failedRunId, siteId, RunStatus.FAILED, false, false, "Konnte Host nicht auflösen");
+        when(runService.summary(failedRunId)).thenReturn(failedRun);
+        when(runService.enqueue(siteId, RunTrigger.MANUAL, RunScope.FULL)).thenReturn(newRunId);
+
+        mvc.perform(post("/laeufe/" + failedRunId + "/wiederholen").with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/laeufe/" + newRunId));
+
+        verify(runService).enqueue(siteId, RunTrigger.MANUAL, RunScope.FULL);
+    }
 }

@@ -4,6 +4,7 @@ import dev.hendrikhoemberg.webtesthelper.catalog.SiteService;
 import dev.hendrikhoemberg.webtesthelper.findings.FindingService;
 import dev.hendrikhoemberg.webtesthelper.findings.ReportSection;
 import dev.hendrikhoemberg.webtesthelper.findings.RunDiff;
+import dev.hendrikhoemberg.webtesthelper.model.RunTrigger;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
 import dev.hendrikhoemberg.webtesthelper.reporting.FindingView;
 import dev.hendrikhoemberg.webtesthelper.reporting.FindingViewFactory;
@@ -154,5 +155,12 @@ public class RunController {
                 null, locale);
         redirectAttributes.addFlashAttribute("flashMessage", msg);
         return "redirect:/laeufe/" + id;
+    }
+
+    @PostMapping("/{id}/wiederholen")
+    public String wiederholen(@PathVariable("id") long id) {
+        RunSummary run = runService.summary(id);
+        long newRunId = runService.enqueue(run.siteId(), RunTrigger.MANUAL, run.scope());
+        return "redirect:/laeufe/" + newRunId;
     }
 }
