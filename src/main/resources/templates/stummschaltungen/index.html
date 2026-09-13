@@ -129,13 +129,19 @@
                 </div>
             </div>
 
-            <div class="form-gruppe" style="margin-bottom: 1rem;">
+            <div class="form-gruppe" style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
                 <button type="button" class="btn-ui btn-ui-secondary btn-ui-sm button sekundär klein"
                         th:attr="data-hx-get=@{/stummschaltungen/auswahl}"
                         data-hx-include="closest form"
                         data-hx-target="#feststellungsauswahl"
                         data-hx-swap="innerHTML"
                         th:text="#{ui.stummschaltungen.neu.aus_feststellungen}">Aus Feststellungen übernehmen</button>
+                <button type="button" class="hinweis-schalter" th:attr="aria-label=#{ui.hilfe.oeffnen}"
+                        th:data-hx-get="@{/hilfe/hinweis/{id}(id='feststellungen-uebernehmen')}"
+                        data-hx-target="#hilfe-modal-inhalt" data-hx-swap="innerHTML" @click="hilfeModalOffen = true">
+                    <span th:replace="~{fragments/icons :: help}"></span>
+                </button>
+                <div class="hinweis" aria-live="polite"></div>
             </div>
 
             <div id="feststellungsauswahl" style="margin-bottom: 1rem;"></div>

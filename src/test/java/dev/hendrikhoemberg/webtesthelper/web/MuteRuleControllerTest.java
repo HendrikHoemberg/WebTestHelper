@@ -180,6 +180,15 @@ class MuteRuleControllerTest extends AbstractPostgresTest {
     }
 
     @Test
+    @WithMockUser(username = "alice", roles = "USER")
+    void indexPageRendersHelpAffordanceForAusFeststellungenUebernehmen() throws Exception {
+        mvc.perform(get("/stummschaltungen"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("/hilfe/hinweis/feststellungen-uebernehmen")))
+                .andExpect(content().string(containsString("Aus Feststellungen übernehmen")));
+    }
+
+    @Test
     @WithMockUser(username = "bob", roles = "USER")
     void userCreatingGlobalRule_is403_andWritesNothing() throws Exception {
         LocalDate expiryDate = LocalDate.now().plusDays(90);
