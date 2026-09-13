@@ -2358,3 +2358,143 @@ body {
     background-color: var(--surface-hover) !important;
 }
 
+/* ==========================================================================
+   14. RECORDER & THEATER-MODUS (NEAR-FULLSCREEN)
+   ========================================================================== */
+.recorder-canvas-container {
+    background: #09090b;
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: var(--shadow-card);
+}
+
+.recorder-canvas {
+    max-width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    outline: none;
+    display: block;
+}
+
+/* Button icon alignment helper */
+.btn-ui .btn-content-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    line-height: 1;
+    vertical-align: middle;
+}
+
+.btn-ui .btn-content-wrap .svg-icon,
+.btn-ui > .svg-icon {
+    display: inline-block;
+    vertical-align: middle;
+    margin-top: 1px;
+}
+
+.recorder-wrapper.recorder-theater-active {
+    position: fixed;
+    inset: 0;
+    z-index: 950;
+    width: 100vw;
+    height: 100vh;
+    max-width: 100vw;
+    max-height: 100vh;
+    border-radius: 0;
+    margin: 0;
+    padding: 1rem 1.5rem;
+    background: var(--bg-canvas, #f4f4f5);
+    color: var(--text-main, #09090b);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-sizing: border-box;
+    box-shadow: none;
+    border: none;
+}
+
+.recorder-wrapper.recorder-theater-active .recorder-toolbar {
+    background: var(--surface-card, #ffffff);
+    border: 1px solid var(--border-subtle, #e4e4e7);
+    border-radius: 10px;
+    box-shadow: var(--shadow-subtle);
+    padding: 0.75rem 1.25rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+    flex-shrink: 0;
+}
+
+.recorder-wrapper.recorder-theater-active .recorder-layout-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 1.25rem;
+    height: calc(100% - 5rem);
+    min-height: 0;
+    align-items: stretch;
+    overflow: hidden;
+}
+
+.recorder-wrapper.recorder-theater-active .recorder-canvas-container {
+    height: 100%;
+    width: 100%;
+    min-height: 0;
+    min-width: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #09090b;
+    border: 1px solid var(--border-dark, #27272a);
+    border-radius: 10px;
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+    container-type: size;
+}
+
+.recorder-wrapper.recorder-theater-active .recorder-canvas {
+    /* Fallback if container queries are unsupported */
+    width: min(100%, calc((100vh - 7rem) * (16 / 9)));
+    height: auto;
+    /* Scale dynamically to fill maximum available container bounds in 16:9 */
+    width: min(100cqw, calc(100cqh * (16 / 9)));
+    height: min(100cqh, calc(100cqw * (9 / 16)));
+    aspect-ratio: 16 / 9;
+    max-width: 100%;
+    max-height: 100%;
+    outline: none;
+    display: block;
+}
+
+.recorder-wrapper.recorder-theater-active .recorder-live-sidebar {
+    height: 100%;
+    max-height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface-card, #ffffff);
+    border: 1px solid var(--border-subtle, #e4e4e7);
+    border-radius: 10px;
+    box-shadow: var(--shadow-card);
+    padding: 1.25rem;
+    color: var(--text-main, #09090b);
+}
+
+.recorder-wrapper.recorder-theater-active .recorder-live-sidebar #live-steps-list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.recorder-wrapper.recorder-theater-active .recorder-footer-hinweis {
+    display: none;
+}
+
+

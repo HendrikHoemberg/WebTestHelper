@@ -6,7 +6,8 @@
     <title th:text="${site.name} + ' – ' + #{ui.recorder.titel}">Ablauf aufzeichnen</title>
 </head>
 <body>
-<main x-data="{ beendenOffen: false, speichernOffen: false }">
+<main x-data="{ beendenOffen: false, speichernOffen: false, theaterModus: false }"
+      @keydown.escape.window="if (!beendenOffen && !speichernOffen && theaterModus) { theaterModus = false; }">
     <header class="page-header-bar seiten-kopf">
         <div>
             <div class="breadcrumbs-trail">
@@ -69,7 +70,7 @@
     </div>
 
     <!-- Aktive Aufzeichnungssitzung -->
-    <div th:unless="${capacityExceeded or startFailed}" class="recorder-wrapper card-box" style="padding: 1.25rem;">
+    <div th:unless="${capacityExceeded or startFailed}" class="recorder-wrapper card-box" :class="{ 'recorder-theater-active': theaterModus }" style="padding: 1.25rem;">
         <div class="recorder-toolbar" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-subtle);">
             <div class="recorder-info" style="display: flex; align-items: center; gap: 0.75rem;">
                 <span id="connection-status" class="status-badge badge-running status-inaktiv">
@@ -79,6 +80,18 @@
                 <span class="text-gedaempft ml-3" style="font-size: 0.825rem;" th:text="#{ui.recorder.hinweis.timeout}">Inaktive Sitzungen werden nach 15 Minuten automatisch beendet.</span>
             </div>
             <div class="recorder-actions" style="display: flex; align-items: center; gap: 0.5rem;">
+                <button type="button" class="btn-ui btn-ui-secondary button sekundär"
+                        @click="theaterModus = !theaterModus"
+                        :aria-pressed="theaterModus">
+                    <span x-show="!theaterModus" class="btn-content-wrap">
+                        <span th:replace="~{fragments/icons :: maximize}"></span>
+                        <span th:text="#{ui.recorder.theatermodus.aktivieren}">Theatermodus</span>
+                    </span>
+                    <span x-show="theaterModus" x-cloak class="btn-content-wrap">
+                        <span th:replace="~{fragments/icons :: minimize}"></span>
+                        <span th:text="#{ui.recorder.theatermodus.beenden}">Theatermodus beenden</span>
+                    </span>
+                </button>
                 <button type="button" class="btn-ui btn-ui-primary button primär"
                         @click="speichernOffen = true"
                         th:text="#{ui.recorder.speichern}">Ablauf speichern</button>
@@ -88,9 +101,9 @@
             </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 1.25rem; align-items: start;">
-            <div class="recorder-canvas-container" id="recorder-container" th:data-ws-url="${wsUrl}" th:data-session-id="${sessionId}" style="background: #09090b; border-radius: 8px; overflow: hidden; display: flex; justify-content: center; align-items: center; box-shadow: var(--shadow-card);">
-                <canvas id="recorder-canvas" tabindex="0" width="1280" height="720" class="recorder-canvas" aria-label="Live-Vorschau der Website" style="max-width: 100%; height: auto; outline: none;"></canvas>
+        <div class="recorder-layout-grid" style="display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 1.25rem; align-items: start;">
+            <div class="recorder-canvas-container" id="recorder-container" th:data-ws-url="${wsUrl}" th:data-session-id="${sessionId}">
+                <canvas id="recorder-canvas" tabindex="0" width="1280" height="720" class="recorder-canvas" aria-label="Live-Vorschau der Website"></canvas>
             </div>
             <div class="recorder-live-sidebar" style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 1rem; max-height: 720px; display: flex; flex-direction: column;">
                 <div style="font-weight: 600; font-size: 0.95rem; margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: space-between;">
@@ -105,7 +118,7 @@
             </div>
         </div>
 
-        <p class="hinweis-text mt-2" style="font-size: 0.825rem; color: var(--text-muted); margin-top: 0.75rem;" th:text="#{ui.recorder.hinweis.bedienung}">
+        <p class="hinweis-text mt-2 recorder-footer-hinweis" style="font-size: 0.825rem; color: var(--text-muted); margin-top: 0.75rem;" th:text="#{ui.recorder.hinweis.bedienung}">
             Klicken und scrollen Sie im Bild, um die Website zu steuern. Tastatureingaben werden an die Seite gesendet, sobald das Bild fokussiert ist.
         </p>
     </div>

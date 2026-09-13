@@ -98,6 +98,7 @@ class RecorderControllerTest {
                 .andExpect(content().string(containsString("<canvas id=\"recorder-canvas\"")))
                 .andExpect(content().string(containsString("/recorder/ws/" + sessionId)))
                 .andExpect(content().string(containsString("Aufzeichnung abbrechen")))
+                .andExpect(content().string(containsString("Theatermodus")))
                 .andExpect(content().string(not(containsString("Aufzeichnung beenden"))))
                 .andExpect(content().string(not(containsString("Maximale Anzahl gleichzeitiger Aufzeichnungssitzungen"))));
 
