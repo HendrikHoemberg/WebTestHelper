@@ -504,6 +504,18 @@ class JourneyControllerTest {
 
     @Test
     @WithMockUser(roles = "USER")
+    void listJourneys_rendersBeforeUnloadProtectionForActiveTests() throws Exception {
+        when(journeyService.findBySite(1L)).thenReturn(List.of());
+        when(journeyHealthService.healthBySite(1L)).thenReturn(Map.of());
+
+        mvc.perform(get("/websites/1/journeys").with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("aktiveAblaufTests")))
+                .andExpect(content().string(containsString("beforeunload")));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
     void listJourneys_runButtonHasDisabledEltAndIndicatorClasses() throws Exception {
         JourneyStep step = new JourneyStep(UUID.randomUUID(), 0, StepAction.GOTO, List.of(), "https://example.com", null, false, 5000);
         JourneyDefinition journey = new JourneyDefinition(42L, 1L, "Warenkorb", true, List.of(step));
