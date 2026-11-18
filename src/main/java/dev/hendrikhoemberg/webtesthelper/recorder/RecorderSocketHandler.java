@@ -48,6 +48,7 @@ public class RecorderSocketHandler extends TextWebSocketHandler {
                 session.getId(), recordingSession != null ? recordingSession.sessionId() : null);
 
         if (recordingSession != null && !recordingSession.isClosed()) {
+            recordingSession.markConnected();
             if (screencastBridge != null) {
                 screencastBridge.attach(recordingSession, frame -> {
                     try {
@@ -136,6 +137,9 @@ public class RecorderSocketHandler extends TextWebSocketHandler {
         log.info("WebSocket-Verbindung geschlossen: session={}, status={}, recordingSession={}",
                 session.getId(), status, recordingSession != null ? recordingSession.sessionId() : null);
 
+        if (recordingSession != null) {
+            recordingSession.markDisconnected();
+        }
         if (recordingSession != null && screencastBridge != null) {
             screencastBridge.detach(recordingSession);
         }

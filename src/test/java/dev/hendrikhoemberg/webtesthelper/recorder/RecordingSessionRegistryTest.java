@@ -281,6 +281,39 @@ class RecordingSessionRegistryTest {
     }
 
 
+    @Test
+    void aSessionWhoseTabWentAwayIsReapedAfterTheGracePeriod() {
+        RecorderWorker worker = mock(RecorderWorker.class);
+        when(pool.allocate()).thenReturn(Optional.of(worker));
+        RecordingSession session = registry.open(1L, "https://example.com/start", "alice");
+
+        session.markDisconnected();
+        clock.advance(Duration.ofSeconds(59));
+        registry.reapIdle();
+        assertThat(registry.find(session.sessionId(), "alice")).isPresent();
+
+        clock.advance(Duration.ofSeconds(2));
+        registry.reapIdle();
+        assertThat(registry.find(session.sessionId(), "alice")).isEmpty();
+        verify(pool).release(worker);
+    }
+
+    @Test
+    void aReconnectWithinTheGracePeriodKeepsTheSession() {
+        RecorderWorker worker = mock(RecorderWorker.class);
+        when(pool.allocate()).thenReturn(Optional.of(worker));
+        RecordingSession session = registry.open(1L, "https://example.com/start", "alice");
+
+        session.markDisconnected();
+        clock.advance(Duration.ofSeconds(30));
+        session.markConnected();
+        clock.advance(Duration.ofSeconds(60));
+        registry.reapIdle();
+
+        assertThat(registry.find(session.sessionId(), "alice")).isPresent();
+        verify(pool, never()).release(worker);
+    }
+
     private static class TestClock extends Clock {
         private Instant current;
         private final ZoneId zone = ZoneOffset.UTC;

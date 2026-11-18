@@ -32,6 +32,7 @@ public class RecordingSession implements AutoCloseable {
     private final IntentCapture intentCapture;
     private final Clock clock;
     private volatile Instant lastActivity;
+    private volatile Instant disconnectedAt;
     private volatile com.microsoft.playwright.CDPSession cdpSession;
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
@@ -111,6 +112,21 @@ public class RecordingSession implements AutoCloseable {
      */
     public void recordActivity(Instant activityAt) {
         this.lastActivity = Objects.requireNonNull(activityAt, "activityAt must not be null");
+    }
+
+    /** The browser tab's WebSocket closed; the registry reaps the session if it does not come back. */
+    public void markDisconnected() {
+        this.disconnectedAt = clock.instant();
+    }
+
+    /** A (re)connected tab cancels a pending disconnect. */
+    public void markConnected() {
+        this.disconnectedAt = null;
+    }
+
+    /** When the tab's WebSocket closed, or empty while a tab is connected. */
+    public java.util.Optional<Instant> disconnectedAt() {
+        return java.util.Optional.ofNullable(disconnectedAt);
     }
 
     public boolean isClosed() {

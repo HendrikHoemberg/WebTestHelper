@@ -29,6 +29,13 @@ public class RecordingSessionRegistry implements AutoCloseable {
 
     private static final Logger log = LoggerFactory.getLogger(RecordingSessionRegistry.class);
 
+    /**
+     * How long a session whose browser tab went away is kept: the save POST races the page unload,
+     * and a reload reconnects. Past this, the slot goes back to the pool instead of waiting out
+     * the full idle timeout.
+     */
+    static final Duration DISCONNECT_GRACE = Duration.ofSeconds(60);
+
     private final RecorderPool pool;
     private final RecorderProperties properties;
     private final Clock clock;
@@ -133,16 +140,19 @@ public class RecordingSessionRegistry implements AutoCloseable {
     }
 
     /**
-     * Reaps sessions that have been idle longer than {@link RecorderProperties#idleTimeout()},
-     * returning their workers to the pool even if closing the browser context throws an exception.
+     * Reaps sessions that have been idle longer than {@link RecorderProperties#idleTimeout()}, or
+     * whose tab has been disconnected longer than {@link #DISCONNECT_GRACE}, returning their workers to the pool even if closing the browser context throws an exception.
      */
     public void reapIdle() {
         Instant now = clock.instant();
         Duration idleTimeout = properties.idleTimeout();
         List<UUID> toReap = new ArrayList<>();
         for (RecordingSession session : sessions.values()) {
-            Duration idleTime = Duration.between(session.lastActivity(), now);
-            if (idleTime.compareTo(idleTimeout) >= 0) {
+            boolean idle = Duration.between(session.lastActivity(), now).compareTo(idleTimeout) >= 0;
+            boolean abandoned = session.disconnectedAt()
+                    .map(at -> Duration.between(at, now).compareTo(DISCONNECT_GRACE) >= 0)
+                    .orElse(false);
+            if (idle || abandoned) {
                 toReap.add(session.sessionId());
             }
         }
