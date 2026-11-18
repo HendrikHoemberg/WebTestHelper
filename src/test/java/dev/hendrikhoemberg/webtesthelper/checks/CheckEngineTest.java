@@ -12,6 +12,8 @@ import dev.hendrikhoemberg.webtesthelper.model.Severity;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
 import dev.hendrikhoemberg.webtesthelper.model.SoftNotFoundProbe;
 import dev.hendrikhoemberg.webtesthelper.model.TlsCertificateFact;
+import dev.hendrikhoemberg.webtesthelper.model.UrlStatus;
+import dev.hendrikhoemberg.webtesthelper.model.UrlVerification;
 import dev.hendrikhoemberg.webtesthelper.model.UrlVerifications;
 import dev.hendrikhoemberg.webtesthelper.support.Snapshots;
 import dev.hendrikhoemberg.webtesthelper.model.Evidence;
@@ -244,5 +246,33 @@ class CheckEngineTest {
                 snapshots(), site(allEnabled()), facts(RunScope.FULL));
 
         assertThat(findings).containsExactly(healthyFinding);
+    }
+
+    @Test
+    void aCrawled404PageThatIsAlsoADeadLinkIsReportedOnlyAsTheDeadLink() {
+        UrlVerification dead = new UrlVerification("https://example.com/tot", UrlStatus.DEAD, 404,
+                "text/html", 0, null, "Not Found", Instant.EPOCH);
+        RunFacts facts = new RunFacts(1L, RunScope.FULL, Instant.EPOCH, SoftNotFoundProbe.NONE,
+                UrlVerifications.of(List.of(dead)), TlsCertificateFact.NONE, List.of());
+        PageSnapshot start = Snapshots.page("https://example.com/").status(200)
+                .link("https://example.com/tot", true).build();
+        PageSnapshot gone = Snapshots.page("https://example.com/tot").status(404).build();
+        RunSnapshots run = new RunSnapshots(1L, site(allEnabled()), List.of(start, gone), SoftNotFoundProbe.NONE);
+
+        List<CheckFinding> forGonePage = engine.evaluateRun(run, site(allEnabled()), facts).stream()
+                .filter(f -> f.subjectKey().equals("https://example.com/tot")).toList();
+
+        assertThat(forGonePage).extracting(CheckFinding::type)
+                .contains(CheckType.DEAD_LINK)
+                .doesNotContain(CheckType.PAGE_STATUS);
+    }
+
+    @Test
+    void a404PageNobodyLinksToKeepsItsPageStatusFinding() {
+        PageSnapshot gone = Snapshots.page("https://example.com/tot").status(404).build();
+        RunSnapshots run = new RunSnapshots(1L, site(allEnabled()), List.of(gone), SoftNotFoundProbe.NONE);
+
+        assertThat(engine.evaluateRun(run, site(allEnabled()), facts(RunScope.FULL)))
+                .extracting(CheckFinding::type).contains(CheckType.PAGE_STATUS);
     }
 }

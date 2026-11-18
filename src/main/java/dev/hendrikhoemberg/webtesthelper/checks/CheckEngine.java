@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Runs the applicable page checks over the snapshots a crawl produced (deviation D2: one
@@ -43,7 +44,27 @@ public final class CheckEngine {
         for (PageSnapshot snapshot : snapshots.snapshots()) {
             findings.addAll(evaluatePage(snapshot, site, facts));
         }
+        dropPageErrorsAlreadyReportedAsDeadLinks(findings);
         return findings;
+    }
+
+    /**
+     * A crawled page that answers 404 is also the target of the dead link that led the crawler
+     * there. Both findings name the same URL; the dead link is the more useful one, because it
+     * says where the broken link sits. The page-status finding survives when nothing links to the
+     * page (for example the start URL) or when the dead-link check is off.
+     */
+    private static void dropPageErrorsAlreadyReportedAsDeadLinks(List<CheckFinding> findings) {
+        Set<String> deadTargets = findings.stream()
+                .filter(f -> f.type() == CheckType.DEAD_LINK && DeadLinkCheck.DEAD.equals(f.messageKey()))
+                .map(CheckFinding::subjectKey)
+                .collect(Collectors.toSet());
+        if (deadTargets.isEmpty()) {
+            return;
+        }
+        findings.removeIf(f -> f.type() == CheckType.PAGE_STATUS
+                && PageStatusCheck.HTTP_ERROR.equals(f.messageKey())
+                && deadTargets.contains(f.subjectKey()));
     }
 
     /**
