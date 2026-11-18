@@ -484,4 +484,26 @@ class SiteControllerTest {
 
         verifyNoInteractions(siteService);
     }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void aMissingPageLimitOpensTheAdvancedSettingsSoTheErrorIsVisible() throws Exception {
+        mvc.perform(post("/websites").with(csrf())
+                        .param("name", "Test")
+                        .param("baseUrl", "https://example.com/")
+                        .param("maxPages", "")
+                        .param("maxDepth", "3")
+                        .param("maxDurationMinutes", "10"))
+                .andExpect(status().isOk())
+                .andExpect(model().attributeHasFieldErrors("form", "maxPages"))
+                .andExpect(content().string(containsString("x-data=\"{ erweitert: true }\"")));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void aFreshNewSiteFormKeepsTheAdvancedSettingsClosed() throws Exception {
+        mvc.perform(get("/websites/neu"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("x-data=\"{ erweitert: false }\"")));
+    }
 }

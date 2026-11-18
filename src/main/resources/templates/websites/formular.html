@@ -79,7 +79,12 @@
                 <span th:if="${#fields.hasErrors('baseUrl')}" th:errors="*{baseUrl}" class="feld-fehler">Fehler</span>
             </div>
 
-            <div th:attr="x-data=|{ erweitert: ${siteId != null} }|" style="margin: 1rem 0;">
+            <div th:with="erweitertFehler=${#fields.hasErrors('maxPages') or #fields.hasErrors('maxDepth')
+                    or #fields.hasErrors('maxDurationMinutes') or #fields.hasErrors('includePatterns')
+                    or #fields.hasErrors('excludePatterns') or #fields.hasErrors('userAgent')
+                    or #fields.hasErrors('respectRobots') or #fields.hasErrors('enabled')
+                    or #fields.hasErrors('formTestMode')}"
+                 th:attr="x-data=|{ erweitert: ${siteId != null or erweitertFehler} }|" style="margin: 1rem 0;">
                 <button type="button" @click="erweitert = !erweitert" class="btn-ui btn-ui-secondary btn-ui-sm button sekundär klein"
                         th:text="#{ui.websites.formular.erweitert.schalter}">Erweiterte Einstellungen (optional)</button>
                 <p class="hinweis-text" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.35rem;"
