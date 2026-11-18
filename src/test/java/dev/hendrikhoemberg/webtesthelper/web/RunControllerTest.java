@@ -2,11 +2,14 @@ package dev.hendrikhoemberg.webtesthelper.web;
 
 import dev.hendrikhoemberg.webtesthelper.auth.AppUserService;
 import dev.hendrikhoemberg.webtesthelper.catalog.SiteService;
+import dev.hendrikhoemberg.webtesthelper.findings.Finding;
 import dev.hendrikhoemberg.webtesthelper.findings.FindingService;
 import dev.hendrikhoemberg.webtesthelper.findings.ReportSection;
 import dev.hendrikhoemberg.webtesthelper.findings.RunDiff;
 import dev.hendrikhoemberg.webtesthelper.model.CheckType;
 import dev.hendrikhoemberg.webtesthelper.model.CrawlBudget;
+import dev.hendrikhoemberg.webtesthelper.model.Evidence;
+import dev.hendrikhoemberg.webtesthelper.model.ObservedStatus;
 import dev.hendrikhoemberg.webtesthelper.model.RunScope;
 import dev.hendrikhoemberg.webtesthelper.model.RunStatus;
 import dev.hendrikhoemberg.webtesthelper.model.RunTrigger;
@@ -795,5 +798,30 @@ class RunControllerTest {
                 .andExpect(content().string(containsString("kategorie-titel")))
                 .andExpect(content().string(containsString("Alle aufklappen")))
                 .andExpect(content().string(containsString("Alle zuklappen")));
+    }
+
+    private static Finding finding(long id, TriageStatus triage) {
+        Instant t = Instant.parse("2026-08-25T10:00:00Z");
+        return new Finding(id, 42L, "fp-" + id, CheckType.DEAD_LINK, "https://example.com/" + id,
+                "https://example.com/", Severity.ERROR, "finding.DEAD_LINK.dead", List.of(),
+                Evidence.NONE, ObservedStatus.ACTIVE, triage, null, 10L, 10L, null, null, 1, 1, t, t);
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void baselineDialogAnnouncesOnlyTheUntriagedFindings() throws Exception {
+        long runId = 101L;
+        long siteId = 42L;
+        RunDiff diff = new RunDiff(runId, Map.of(
+                ReportSection.NEW, List.of(finding(1, TriageStatus.UNTRIAGED), finding(2, TriageStatus.UNTRIAGED)),
+                ReportSection.KNOWN, List.of(finding(3, TriageStatus.ACKNOWLEDGED))));
+        when(runService.summary(runId)).thenReturn(sampleSummary(runId, siteId, RunStatus.COMPLETED, false, false, null));
+        when(siteService.contextFor(siteId)).thenReturn(sampleSite(siteId));
+        when(findingService.diffForReport(siteId, runId)).thenReturn(diff);
+        when(findingViewFactory.of(eq(diff), any(Locale.class))).thenReturn(Map.of());
+
+        mvc.perform(get("/laeufe/" + runId))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Hiermit werden alle 2 noch ungeprüften Feststellungen")));
     }
 }

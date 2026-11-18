@@ -1,5 +1,7 @@
 package dev.hendrikhoemberg.webtesthelper.findings;
 
+import dev.hendrikhoemberg.webtesthelper.model.TriageStatus;
+
 import java.util.List;
 import java.util.Map;
 
@@ -26,6 +28,22 @@ public record RunDiff(long runId, Map<ReportSection, List<Finding>> bySection) {
         for (Map.Entry<ReportSection, List<Finding>> e : bySection.entrySet()) {
             if (e.getKey() != ReportSection.FIXED) {
                 total += e.getValue().size();
+            }
+        }
+        return total;
+    }
+
+    /** What "Ausgangsbestand festlegen" will move: the findings of this run nobody has triaged yet. */
+    public int untriagedOpenCount() {
+        int total = 0;
+        for (Map.Entry<ReportSection, List<Finding>> e : bySection.entrySet()) {
+            if (e.getKey() == ReportSection.FIXED) {
+                continue;
+            }
+            for (Finding f : e.getValue()) {
+                if (f.triage() == TriageStatus.UNTRIAGED) {
+                    total++;
+                }
             }
         }
         return total;

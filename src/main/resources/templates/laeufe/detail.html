@@ -209,7 +209,7 @@
                         </button>
                     </div>
                     <div class="wth-modal-inhalt">
-                        <p style="margin-top: 0; margin-bottom: 1.25rem;" th:text="#{ui.lauf.ausgangsbestand.folge(${diff != null ? diff.observedTotal() : run.findingsTotal})}">
+                        <p style="margin-top: 0; margin-bottom: 1.25rem;" th:text="#{ui.lauf.ausgangsbestand.folge(${diff != null ? diff.untriagedOpenCount() : run.findingsTotal})}">
                             Hiermit werden alle noch ungeprüften Feststellungen...
                         </p>
                         <form th:action="@{/laeufe/{id}/ausgangsbestand(id=${run.id})}" method="post" class="inline-form" style="display: flex; gap: 0.5rem; justify-content: flex-end;">
