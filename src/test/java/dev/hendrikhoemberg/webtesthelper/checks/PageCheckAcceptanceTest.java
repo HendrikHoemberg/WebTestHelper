@@ -105,11 +105,20 @@ class PageCheckAcceptanceTest extends AbstractPostgresTest {
     }
 
     @Test
-    void theHardNotFoundPageIsReportedWithItsStatusCode() {
-        assertThat(of(CheckType.PAGE_STATUS))
-                .filteredOn(finding -> finding.observedOn().path().equals("/hart-404"))
+    void theHardNotFoundPageIsReportedOnceAsTheDeadLinkWithItsStatusCode() {
+        // /hart-404 is linked from the fixture, so the dead link that leads there already names
+        // the URL, the status and where the broken link sits. A second PAGE_STATUS finding for
+        // the same URL was a duplicate in the report. (HREFLANG flags the same URL for a
+        // different reason — a dead language alternate — and is not part of that duplicate.)
+        assertThat(findings)
+                .filteredOn(finding -> finding.type() == CheckType.PAGE_STATUS
+                        || finding.type() == CheckType.DEAD_LINK)
+                .filteredOn(finding -> finding.subjectKey().endsWith("/hart-404"))
                 .singleElement()
-                .satisfies(finding -> assertThat(finding.messageArgs()).containsExactly("404"));
+                .satisfies(finding -> {
+                    assertThat(finding.type()).isEqualTo(CheckType.DEAD_LINK);
+                    assertThat(finding.messageArgs()).anySatisfy(arg -> assertThat(arg).contains("404"));
+                });
     }
 
     @Test
