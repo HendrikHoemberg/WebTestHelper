@@ -356,6 +356,23 @@ class MuteRuleControllerTest extends AbstractPostgresTest {
 
     @Test
     @WithMockUser(roles = "USER")
+    void previewSpeaksProperGermanForOneAndForNone() throws Exception {
+        createFinding(siteA, "https://linkedin.com/solo", "/page1");
+
+        mvc.perform(get("/stummschaltungen/vorschau")
+                        .param("siteId", String.valueOf(siteA))
+                        .param("subjectPattern", "*linkedin.com/solo*"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Trifft aktuell auf 1 Feststellung zu.")));
+        mvc.perform(get("/stummschaltungen/vorschau")
+                        .param("siteId", String.valueOf(siteA))
+                        .param("subjectPattern", "*gibt-es-nicht*"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Trifft aktuell auf keine Feststellungen zu.")));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
     void expiredRuleIsListed_visiblyMarked_andCannotBeEdited() throws Exception {
         // Create an expired rule directly in repository
         MuteRuleEntity expiredEntity = new MuteRuleEntity();
