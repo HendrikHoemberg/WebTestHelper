@@ -11,6 +11,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -43,6 +44,9 @@ class LayoutTutorialRenderingTest {
                 .andExpect(content().string(containsString("js/tutorial.js")))
                 .andExpect(content().string(containsString("id=\"wth-tutorial-config\"")))
                 .andExpect(content().string(containsString("data-auto-start=\"true\"")))
-                .andExpect(content().string(containsString("/tutorial/neustarten")));
+                .andExpect(content().string(containsString("/tutorial/neustarten")))
+                // The tour promises only what the tool checks: no accessibility, no uptime monitoring.
+                .andExpect(content().string(not(containsString("Barrierefreiheit"))))
+                .andExpect(content().string(containsString("tote Links und fehlende Inhalte")));
     }
 }

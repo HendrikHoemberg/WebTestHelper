@@ -39,8 +39,10 @@
             return;
         }
 
-        function markTutorialComplete() {
-            sessionStorage.removeItem('wth_tour_step');
+        // Both pages of the tour share one counter: 3 steps on the dashboard, 3 on /websites.
+        const TOTAL_STEPS = 6;
+
+        function postTutorialFinished() {
             const token = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
             const header = document.querySelector('meta[name="_csrf_header"]')?.getAttribute('content');
             const headers = { 'Content-Type': 'application/json' };
@@ -49,10 +51,16 @@
             }
             fetch(finishUrl, {
                 method: 'POST',
-                headers: headers
+                headers: headers,
+                keepalive: true
             }).catch(function () {
                 // Ignore network failure when marking complete
             });
+        }
+
+        function markTutorialComplete() {
+            sessionStorage.removeItem('wth_tour_step');
+            postTutorialFinished();
         }
 
         const path = window.location.pathname;
@@ -65,7 +73,7 @@
             nextBtnText: i18n.next,
             prevBtnText: i18n.prev,
             doneBtnText: i18n.done,
-            progressText: '{{current}} / {{total}}',
+            progressText: '{{current}} / ' + TOTAL_STEPS,
             onDestroyStarted: function () {
                 markTutorialComplete();
                 driverInstance.destroy();
@@ -75,6 +83,9 @@
         // Phase 1: Dashboard Tour (Steps 1 - 3)
         if (path === '/' || path === '' || path === '/index') {
             if (autoStart || tourStep === 'dashboard') {
+                // Seen once is enough: leaving mid-tour must not restart it on the next page.
+                // The websites part still runs, it keys off sessionStorage, not autoStart.
+                postTutorialFinished();
                 const steps = [
                     {
                         element: document.querySelector('.brand-title-text') || document.querySelector('.sidebar-brand-box') || 'body',
@@ -101,6 +112,8 @@
                             description: i18n.s3Text,
                             side: 'right',
                             align: 'start',
+                            // Driver.js sees this as the last step; the tour goes on on /websites.
+                            doneBtnText: i18n.next,
                             onNextClick: function () {
                                 sessionStorage.setItem('wth_tour_step', 'websites');
                                 window.location.href = '/websites';
@@ -114,7 +127,9 @@
             }
         }
         // Phase 2: Websites Tour (Steps 4 - 6)
-        else if (path.indexOf('/websites') === 0 && (tourStep === 'websites' || (autoStart && tourStep === 'websites'))) {
+        else if (path.indexOf('/websites') === 0 && tourStep === 'websites') {
+            // Consumed on start, so leaving this part of the tour does not loop it either.
+            sessionStorage.removeItem('wth_tour_step');
             const adminButton = document.querySelector("a[href='/websites/neu']");
             const step4Target = (isAdmin && adminButton)
                 ? adminButton
@@ -131,6 +146,7 @@
                     popover: {
                         title: step4Title,
                         description: step4Text,
+                        progressText: '4 / ' + TOTAL_STEPS,
                         side: 'bottom',
                         align: 'start'
                     }
@@ -140,6 +156,7 @@
                     popover: {
                         title: i18n.s5Title,
                         description: i18n.s5Text,
+                        progressText: '5 / ' + TOTAL_STEPS,
                         side: 'right',
                         align: 'start'
                     }
@@ -149,6 +166,7 @@
                     popover: {
                         title: i18n.s6Title,
                         description: i18n.s6Text,
+                        progressText: '6 / ' + TOTAL_STEPS,
                         side: 'top',
                         align: 'start',
                         nextBtnText: i18n.done,
