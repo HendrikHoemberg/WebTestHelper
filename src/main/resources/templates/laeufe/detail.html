@@ -9,10 +9,10 @@
 <main>
     <div th:if="${flashMessage}" class="hinweis" style="margin-bottom: 1.5rem;" th:text="${flashMessage}">Erfolgsmeldung</div>
 
-    <!-- Abschluss-Banner (Toast) bei beendeten Läufen -->
-    <div th:if="${run.status.name() == 'COMPLETED' or run.status.name() == 'FAILED'}"
+    <!-- Abschluss-Banner (Toast) nur direkt nach dem Ende des Laufs (Live-Fortschritt leitet mit ?abgeschlossen=1 hierher) -->
+    <div th:if="${frischAbgeschlossen}"
          x-data="{ sichtbar: true }"
-         x-init="setTimeout(() => sichtbar = false, 7000)"
+         x-init="history.replaceState(null, '', window.location.pathname); setTimeout(() => sichtbar = false, 7000)"
          x-show="sichtbar"
          x-cloak
          role="status" aria-live="polite"

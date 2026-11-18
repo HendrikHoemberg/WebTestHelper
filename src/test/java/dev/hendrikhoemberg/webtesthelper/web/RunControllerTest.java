@@ -392,7 +392,7 @@ class RunControllerTest {
 
     @Test
     @WithMockUser(roles = "USER")
-    void fortschrittForTerminalRunReturnsHxRefreshHeader() throws Exception {
+    void fortschrittForTerminalRunRedirectsToTheReportMarkedAsJustFinished() throws Exception {
         long runId = 106L;
         RunSummary summary = sampleSummary(runId, 42L, RunStatus.COMPLETED, false, false, null);
 
@@ -400,7 +400,8 @@ class RunControllerTest {
 
         mvc.perform(get("/laeufe/" + runId + "/fortschritt"))
                 .andExpect(status().isOk())
-                .andExpect(header().string("HX-Refresh", "true"))
+                .andExpect(header().string("HX-Redirect", "/laeufe/106?abgeschlossen=1"))
+                .andExpect(header().doesNotExist("HX-Refresh"))
                 .andExpect(content().string(not(containsString("hx-trigger"))))
                 .andExpect(content().string(not(containsString("Lauf abbrechen"))))
                 .andExpect(content().string(not(containsString("$dispatch('abbrechen-offen')"))));
@@ -823,5 +824,33 @@ class RunControllerTest {
         mvc.perform(get("/laeufe/" + runId))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Hiermit werden alle 2 noch ungeprüften Feststellungen")));
+    }
+
+    private void stubCompletedRun(long runId, long siteId) {
+        RunDiff diff = new RunDiff(runId, Map.of());
+        when(runService.summary(runId)).thenReturn(sampleSummary(runId, siteId, RunStatus.COMPLETED, false, false, null));
+        when(siteService.contextFor(siteId)).thenReturn(sampleSite(siteId));
+        when(findingService.diffForReport(siteId, runId)).thenReturn(diff);
+        when(findingViewFactory.of(eq(diff), any(Locale.class))).thenReturn(Map.of());
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void openingAFinishedRunLaterShowsNoCompletionBanner() throws Exception {
+        stubCompletedRun(101L, 42L);
+
+        mvc.perform(get("/laeufe/101"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("Der Prüflauf wurde abgeschlossen."))));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void arrivingFromTheLiveProgressShowsTheCompletionBanner() throws Exception {
+        stubCompletedRun(101L, 42L);
+
+        mvc.perform(get("/laeufe/101").param("abgeschlossen", "1"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Der Prüflauf wurde abgeschlossen.")));
     }
 }

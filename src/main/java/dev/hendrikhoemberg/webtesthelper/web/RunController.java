@@ -11,6 +11,7 @@ import dev.hendrikhoemberg.webtesthelper.reporting.FindingView;
 import dev.hendrikhoemberg.webtesthelper.reporting.FindingViewFactory;
 import dev.hendrikhoemberg.webtesthelper.runner.RunService;
 import dev.hendrikhoemberg.webtesthelper.runner.RunSummary;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Controller;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.LinkedHashMap;
@@ -62,7 +64,9 @@ public class RunController {
     }
 
     @GetMapping("/{id}")
-    public String detail(@PathVariable("id") long id, Model model, Locale locale) {
+    public String detail(@PathVariable("id") long id,
+                         @RequestParam(name = "abgeschlossen", required = false) String abgeschlossen,
+                         Model model, Locale locale) {
         RunSummary run = runService.summary(id);
         SiteContext site = siteService.contextFor(run.siteId());
 
@@ -81,6 +85,9 @@ public class RunController {
             model.addAttribute("groupedSections", Map.of());
         }
 
+        // The completion banner is news only on arrival from the live progress, not on every
+        // later visit to the report.
+        model.addAttribute("frischAbgeschlossen", abgeschlossen != null && run.status().isTerminal());
         model.addAttribute("run", run);
         model.addAttribute("site", site);
         return "laeufe/detail";
@@ -107,11 +114,14 @@ public class RunController {
     }
 
     @GetMapping("/{id}/fortschritt")
-    public String fortschritt(@PathVariable("id") long id, Model model, HttpServletResponse response) {
+    public String fortschritt(@PathVariable("id") long id, Model model,
+                              HttpServletRequest request, HttpServletResponse response) {
         RunSummary run = runService.summary(id);
         model.addAttribute("run", run);
         if (run.status().isTerminal()) {
-            response.setHeader("HX-Refresh", "true");
+            // A redirect, not a refresh: the marker tells the report it was reached by finishing.
+            response.setHeader("HX-Redirect",
+                    request.getContextPath() + "/laeufe/" + id + "?abgeschlossen=1");
         }
         return "fragments/fortschritt :: fortschritt";
     }
