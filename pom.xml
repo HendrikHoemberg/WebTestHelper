@@ -31,6 +31,7 @@
 		<playwright.version>1.62.0</playwright.version>
 		<spring-modulith.version>2.1.0</spring-modulith.version>
 		<greenmail.version>2.1.12</greenmail.version>
+		<lombok.version>1.18.48</lombok.version>
 		<commonmark.version>0.22.0</commonmark.version>
 		<!-- Empty: the default build runs every test. The `fast` profile sets this to
 		     `browser` for the edit-test loop. -->
