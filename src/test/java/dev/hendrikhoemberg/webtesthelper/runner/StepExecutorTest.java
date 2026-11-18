@@ -536,4 +536,28 @@ class StepExecutorTest {
 
         assertThat(outcome.status()).isEqualTo(StepStatus.FAILED);
     }
+
+    @Test
+    void textAssertionOnANavigatingClickIsCheckedOnTheNewPage() {
+        LocatorCandidate link = new LocatorCandidate(LocatorStrategy.CSS, "#reise-start-link", 0);
+        JourneyStep step = createStep(StepAction.CLICK, List.of(link), null,
+                new StepAssertion(AssertionType.TEXT_CONTAINS, "Reiseangaben"), false, 5000);
+
+        StepOutcome outcome = StepExecutor.execute(page, step, null);
+
+        assertThat(outcome.status()).isEqualTo(StepStatus.PASSED);
+    }
+
+    @Test
+    void aMissingTextAfterANavigatingClickIsAnAssertionFailureNotATimeout() {
+        LocatorCandidate link = new LocatorCandidate(LocatorStrategy.CSS, "#reise-start-link", 0);
+        JourneyStep step = createStep(StepAction.CLICK, List.of(link), null,
+                new StepAssertion(AssertionType.TEXT_CONTAINS, "Nicht auf der Seite"), false, 2000);
+
+        StepOutcome outcome = StepExecutor.execute(page, step, null);
+
+        assertThat(outcome.status()).isEqualTo(StepStatus.FAILED);
+        assertThat(outcome.failureMessageKey()).isEqualTo(StepExecutor.MSG_ASSERTION);
+        assertThat(outcome.failureArgs()).contains("Nicht auf der Seite");
+    }
 }

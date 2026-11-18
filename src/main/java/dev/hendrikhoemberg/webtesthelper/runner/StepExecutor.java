@@ -129,11 +129,48 @@ public final class StepExecutor {
     /** Runs the action, then evaluates the step's assertion if it carries one. */
     private static StepOutcome withAssertion(
             Page page, JourneyStep step, LocatorMatch match, String resolvedValue, Runnable action) {
+        String urlBefore = page.url();
         action.run();
-        if (step.assertion() != null) {
-            return evaluateAssertion(page, step, match, resolvedValue);
+        if (step.assertion() == null) {
+            return outcomeFor(step, match);
         }
-        return outcomeFor(step, match);
+        if (step.assertion().type() == AssertionType.TEXT_CONTAINS && leftTheElement(page, match, urlBefore)) {
+            return evaluatePageTextContains(page, step, match, step.assertion(), resolvedValue);
+        }
+        return evaluateAssertion(page, step, match, resolvedValue);
+    }
+
+    /**
+     * The action navigated away from, or removed, the element it acted on — "click 'Absenden',
+     * expect 'Danke'". The expected text then lives on the new page, not in the gone element.
+     */
+    private static boolean leftTheElement(Page page, LocatorMatch match, String urlBefore) {
+        if (match == null) {
+            return false;
+        }
+        return !page.url().equals(urlBefore) || match.locator().count() == 0;
+    }
+
+    /** The new page may still be loading, so the body text is polled until the step timeout. */
+    private static StepOutcome evaluatePageTextContains(
+            Page page, JourneyStep step, LocatorMatch match, StepAssertion assertion, String resolvedValue) {
+        String expected = assertion.expected() != null ? assertion.expected() : orEmpty(resolvedValue);
+        try {
+            page.waitForCondition(() -> bodyText(page).contains(expected),
+                    new Page.WaitForConditionOptions().setTimeout(step.timeoutMs()));
+            return outcomeFor(step, match);
+        } catch (TimeoutError e) {
+            return failure(step, match, MSG_ASSERTION, List.of(expected, bodyText(page)));
+        }
+    }
+
+    /** Empty while the old document is torn down mid-navigation; the next poll sees the new one. */
+    private static String bodyText(Page page) {
+        try {
+            return orEmpty(page.innerText("body", new Page.InnerTextOptions().setTimeout(1000)));
+        } catch (RuntimeException e) {
+            return "";
+        }
     }
 
     private static StepOutcome executeGoto(
