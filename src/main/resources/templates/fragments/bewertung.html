@@ -3,6 +3,8 @@
 <body>
 <div th:fragment="bewertung(actionUrl, isBulk, findingId)"
      th:data-default-action="${triageDefaultAction}"
+     th:data-default-reason="${triageCurrentReason}"
+     th:data-default-muted-until="${triageCurrentMutedUntil}"
      th:data-expiry-actions="${triageExpiryActions}"
      th:data-mandatory-reason-actions="${triageMandatoryReasonActions}"
      th:data-reason-actions="${triageReasonActions}"
@@ -11,8 +13,8 @@
          expiryActions: ($el.dataset.expiryActions || '').split(','),
          mandatoryReasonActions: ($el.dataset.mandatoryReasonActions || '').split(','),
          reasonActions: ($el.dataset.reasonActions || '').split(','),
-         grund: '',
-         stummBis: (function() {
+         grund: $el.dataset.defaultReason || '',
+         stummBis: $el.dataset.defaultMutedUntil || (function() {
              const d = new Date();
              d.setDate(d.getDate() + 90);
              return d.toISOString().split('T')[0];

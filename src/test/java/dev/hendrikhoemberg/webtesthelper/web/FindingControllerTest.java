@@ -351,4 +351,39 @@ class FindingControllerTest {
         mvc.perform(get("/befunde/999"))
                 .andExpect(status().isNotFound());
     }
+
+    private static Finding triagedFinding(TriageStatus triage, String reason, Instant mutedUntil) {
+        Instant t = Instant.parse("2026-08-25T10:00:00Z");
+        return new Finding(1L, 42L, "fp-1", CheckType.DEAD_LINK, "https://example.com/dead",
+                "https://example.com/source", Severity.ERROR, "finding.DEAD_LINK.dead",
+                List.of("https://example.com/dead", "404 Not Found"), Evidence.NONE, ObservedStatus.ACTIVE,
+                triage, reason, reason != null ? "otto" : null, mutedUntil, null, null,
+                10L, 10L, null, null, 1, 1, t, t);
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void aTriagedFindingPrefillsTheTriageFormWithItsCurrentDecision() throws Exception {
+        when(findingService.byId(1L)).thenReturn(Optional.of(triagedFinding(
+                TriageStatus.MUTED, "Bis zum Relaunch egal", Instant.parse("2026-12-31T12:00:00Z"))));
+        when(findingService.occurrencesOfLastRun(1L, 50)).thenReturn(List.of());
+
+        mvc.perform(get("/befunde/1"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("data-default-action=\"MUTED\"")))
+                .andExpect(content().string(containsString("data-default-reason=\"Bis zum Relaunch egal\"")))
+                .andExpect(content().string(containsString("data-default-muted-until=\"2026-12-31\"")));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void anUntriagedFindingKeepsTheAcknowledgeDefault() throws Exception {
+        when(findingService.byId(1L)).thenReturn(Optional.of(triagedFinding(TriageStatus.UNTRIAGED, null, null)));
+        when(findingService.occurrencesOfLastRun(1L, 50)).thenReturn(List.of());
+
+        mvc.perform(get("/befunde/1"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("data-default-action=\"ACKNOWLEDGED\"")))
+                .andExpect(content().string(not(containsString("data-default-reason"))));
+    }
 }
