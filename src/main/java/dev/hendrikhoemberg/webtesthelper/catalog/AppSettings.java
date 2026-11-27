@@ -124,7 +124,7 @@ public class AppSettings {
             }
         }
 
-        TlsMode tls = TlsMode.STARTTLS;
+        TlsMode tls = TlsMode.SSL;
         Optional<String> tlsStr = getSetting(KEY_IMAP_TLS);
         if (tlsStr.isPresent() && !tlsStr.get().isBlank()) {
             try {
@@ -160,7 +160,7 @@ public class AppSettings {
     public void saveImap(ImapSettings imap) {
         saveSetting(KEY_IMAP_HOST, imap.host(), false);
         saveSetting(KEY_IMAP_PORT, String.valueOf(imap.port()), false);
-        saveSetting(KEY_IMAP_TLS, imap.tls() != null ? imap.tls().name() : TlsMode.STARTTLS.name(), false);
+        saveSetting(KEY_IMAP_TLS, imap.tls() != null ? imap.tls().name() : TlsMode.SSL.name(), false);
         saveSetting(KEY_IMAP_USERNAME, imap.username(), false);
 
         if (imap.password() != null && !imap.password().isBlank()) {

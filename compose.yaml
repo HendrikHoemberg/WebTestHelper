@@ -2,12 +2,15 @@ services:
   webtesthelper:
     build: .
     image: webtesthelper:local
+    init: true
+    stop_grace_period: 45s
     ports:
       - "8080:8080"
     environment:
+      TZ: Europe/Berlin
       WTH_DB_URL: jdbc:postgresql://postgres:5432/webtesthelper
       WTH_DB_USER: webtesthelper
-      WTH_DB_PASSWORD: webtesthelper
+      WTH_DB_PASSWORD: ${WTH_DB_PASSWORD:?WTH_DB_PASSWORD must be set}
       WTH_ADMIN_PASSWORD: ${WTH_ADMIN_PASSWORD:-}
       WTH_BASE_URL: ${WTH_BASE_URL:-http://localhost:8080}
       WTH_SMTP_HOST: ${WTH_SMTP_HOST:-}
@@ -16,6 +19,13 @@ services:
       WTH_SMTP_USER: ${WTH_SMTP_USER:-}
       WTH_SMTP_PASSWORD: ${WTH_SMTP_PASSWORD:-}
       WTH_SMTP_FROM: ${WTH_SMTP_FROM:-}
+      WTH_IMAP_HOST: ${WTH_IMAP_HOST:-}
+      WTH_IMAP_PORT: ${WTH_IMAP_PORT:-}
+      WTH_IMAP_TLS: ${WTH_IMAP_TLS:-}
+      WTH_IMAP_USER: ${WTH_IMAP_USER:-}
+      WTH_IMAP_PASSWORD: ${WTH_IMAP_PASSWORD:-}
+      WTH_IMAP_FOLDER: ${WTH_IMAP_FOLDER:-}
+      WTH_IMAP_ADDRESS: ${WTH_IMAP_ADDRESS:-}
       WTH_CHROMIUM_NO_SANDBOX: "true"
       WTH_BROWSER_WORKERS: ${WTH_BROWSER_WORKERS:-1}
     volumes:
@@ -23,6 +33,17 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
     restart: unless-stopped
     # Chromium keeps tab memory in /dev/shm; Docker's 64 MB default crashes tabs on large pages.
     shm_size: 1gb
@@ -38,9 +59,7 @@ services:
     environment:
       POSTGRES_DB: webtesthelper
       POSTGRES_USER: webtesthelper
-      POSTGRES_PASSWORD: webtesthelper
-    ports:
-      - "5432:5432"
+      POSTGRES_PASSWORD: ${WTH_DB_PASSWORD:?WTH_DB_PASSWORD must be set}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -48,6 +67,12 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+    restart: unless-stopped
 
 volumes:
   pgdata:

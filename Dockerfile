@@ -25,7 +25,9 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 COPY --from=build /opt/playwright-cli/ /opt/playwright-cli/
 RUN java -cp "/opt/playwright-cli/*" com.microsoft.playwright.CLI install chromium \
  && java -cp "/opt/playwright-cli/*" com.microsoft.playwright.CLI install-deps chromium \
- && apt-get install -y --no-install-recommends \
+ && apt-get update \
+ && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+      curl tzdata \
       libxcursor1 libgtk-3-0t64 libpangocairo-1.0-0 libcairo-gobject2 libgdk-pixbuf-2.0-0 \
  && apt-get clean && rm -rf /var/lib/apt/lists/* \
  && rm -rf /opt/playwright-cli
@@ -35,9 +37,15 @@ ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
 COPY --from=build /app/target/webtesthelper.jar /app/webtesthelper.jar
 
+RUN groupadd --system appuser \
+ && useradd --system --gid appuser --create-home --home-dir /home/appuser appuser \
+ && mkdir -p /app /data \
+ && chown -R appuser:appuser /app /data /ms-playwright
+
 ENV WTH_DATA_DIR=/data
 # A fixed heap, not a percentage of the container limit: Chromium runs in the same container
 # and needs the rest. Override via JAVA_TOOL_OPTIONS in compose if a deployment needs more.
 ENV JAVA_TOOL_OPTIONS="-Xmx1g"
+USER appuser
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "/app/webtesthelper.jar"]

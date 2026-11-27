@@ -96,11 +96,33 @@ class AppSettingsImapTest extends AbstractPostgresTest {
     }
 
     @Test
-    void imapOnEmptyTableReturnsUnconfiguredRecordWithoutException() {
+    void imapOnEmptyTableReturnsUnconfiguredRecordWithPort993AndSslDefault() {
         ImapSettings loaded = appSettings.imap();
 
         assertThat(loaded).isNotNull();
         assertThat(loaded.configured()).isFalse();
+        assertThat(loaded.port()).isEqualTo(993);
+        assertThat(loaded.tls()).isEqualTo(TlsMode.SSL);
+        assertThat(loaded.folder()).isEqualTo("INBOX");
+    }
+
+    @Test
+    void saveImapWithNullTlsDefaultsToSsl() {
+        ImapSettings original = new ImapSettings(
+                "imap.example.com",
+                993,
+                null,
+                "imap-user",
+                "secret-pass",
+                "INBOX",
+                "verify@example.com"
+        );
+
+        appSettings.saveImap(original);
+
+        assertThat(appSettings.imap().tls()).isEqualTo(TlsMode.SSL);
+        AppSettingEntity tlsRow = appSettingRepository.findById("imap.tls").orElseThrow();
+        assertThat(tlsRow.getSettingValue()).isEqualTo("SSL");
     }
 
     @Test

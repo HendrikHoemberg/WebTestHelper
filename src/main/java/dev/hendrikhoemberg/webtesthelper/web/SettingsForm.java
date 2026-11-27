@@ -23,7 +23,7 @@ public class SettingsForm {
     private String fromAddress;
     private String imapHost;
     private int imapPort = 993;
-    private TlsMode imapTls = TlsMode.STARTTLS;
+    private TlsMode imapTls = TlsMode.SSL;
     private String imapUsername;
     private String imapPassword = "";
     private String imapFolder = "INBOX";
@@ -63,7 +63,7 @@ public class SettingsForm {
         if (imap != null) {
             form.setImapHost(imap.host());
             form.setImapPort(imap.port() > 0 ? imap.port() : 993);
-            form.setImapTls(imap.tls() != null ? imap.tls() : TlsMode.STARTTLS);
+            form.setImapTls(imap.tls() != null ? imap.tls() : TlsMode.SSL);
             form.setImapUsername(imap.username());
             // Password is intentionally left empty ("") on read/render
             form.setImapPassword("");

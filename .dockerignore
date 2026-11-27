@@ -1,6 +1,9 @@
 target/
 data/
 .git/
+.agents/
+.vscode/
 docs/
 *.md
 .env
+todo.txt
