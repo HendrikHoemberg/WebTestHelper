@@ -29,9 +29,15 @@ RUN java -cp "/opt/playwright-cli/*" com.microsoft.playwright.CLI install chromi
       libxcursor1 libgtk-3-0t64 libpangocairo-1.0-0 libcairo-gobject2 libgdk-pixbuf-2.0-0 \
  && apt-get clean && rm -rf /var/lib/apt/lists/* \
  && rm -rf /opt/playwright-cli
+# Chromium is baked in above; without this, Playwright.create() downloads Firefox and WebKit
+# (~200 MB, never used) into the container on first start.
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
 COPY --from=build /app/target/webtesthelper.jar /app/webtesthelper.jar
 
 ENV WTH_DATA_DIR=/data
+# A fixed heap, not a percentage of the container limit: Chromium runs in the same container
+# and needs the rest. Override via JAVA_TOOL_OPTIONS in compose if a deployment needs more.
+ENV JAVA_TOOL_OPTIONS="-Xmx1g"
 EXPOSE 8080
-ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75", "-jar", "/app/webtesthelper.jar"]
+ENTRYPOINT ["java", "-jar", "/app/webtesthelper.jar"]

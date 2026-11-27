@@ -17,18 +17,21 @@ services:
       WTH_SMTP_PASSWORD: ${WTH_SMTP_PASSWORD:-}
       WTH_SMTP_FROM: ${WTH_SMTP_FROM:-}
       WTH_CHROMIUM_NO_SANDBOX: "true"
+      WTH_BROWSER_WORKERS: ${WTH_BROWSER_WORKERS:-1}
     volumes:
       - wth-data:/data
     depends_on:
       postgres:
         condition: service_healthy
     restart: unless-stopped
-    # Spec 16: 4 browser workers x ~500 MB Chromium + ~1 GB JVM -> 3 GB minimum,
-    # 4 GB comfortable.
+    # Chromium keeps tab memory in /dev/shm; Docker's 64 MB default crashes tabs on large pages.
+    shm_size: 1gb
+    # 1 GB heap + 1 crawl worker (~500 MB Chromium) + recorder/PDF Chromium when in use.
+    # Each extra WTH_BROWSER_WORKERS needs ~500 MB more.
     deploy:
       resources:
         limits:
-          memory: 4g
+          memory: 2560m
 
   postgres:
     image: postgres:17-alpine
