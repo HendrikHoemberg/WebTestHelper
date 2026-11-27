@@ -416,4 +416,47 @@ class CrawlRunExecutorTest extends AbstractPostgresTest {
                 "SELECT covered_interaction_urls::text FROM run WHERE id = ?", String.class, pulseRunId);
         assertThat(pulseInteractionUrls).isEqualTo("[]");
     }
+
+    @Test
+    void aResumedRunWithPreExistingDoneQueueItemsReCrawlsAndDoesNotFalselyResolveActiveFindings() {
+        try (FixtureSite resumedSite = FixtureSite.start()) {
+            long isolatedSiteId = sites.create(new SiteForm("Fixture Resume", resumedSite.baseUrl(), 30, 3,
+                    Duration.ofMinutes(3), List.of(), List.of(), true, null, true));
+
+            // Establish a clean full baseline run first so we have active crawl findings to protect.
+            long baselineRunId = runs.enqueue(isolatedSiteId, RunTrigger.MANUAL, RunScope.FULL);
+            assertThat(worker.workOnce()).isTrue();
+
+            int activeBefore = jdbc.queryForObject(
+                    "SELECT count(*) FROM finding WHERE site_id = ? AND observed_status = 'ACTIVE'",
+                    Integer.class, isolatedSiteId);
+            assertThat(activeBefore).isGreaterThan(0);
+
+            // Simulate a reclaimed run whose pre-crash worker had already marked every crawled URL DONE
+            // before the JVM crashed (in-memory PageSnapshots lost).
+            long resumedRunId = runs.enqueue(isolatedSiteId, RunTrigger.MANUAL, RunScope.FULL);
+            List<String> previouslyDoneUrls = jdbc.queryForList(
+                    "SELECT url FROM crawl_queue_item WHERE run_id = ? AND status = 'DONE'",
+                    String.class, baselineRunId);
+            assertThat(previouslyDoneUrls).isNotEmpty();
+            for (String url : previouslyDoneUrls) {
+                jdbc.update("INSERT INTO crawl_queue_item (run_id, url, depth, status, http_status, completed_at) "
+                                + "VALUES (?, ?, 0, 'DONE', 200, now())",
+                        resumedRunId, url);
+            }
+
+            assertThat(worker.workOnce()).isTrue();
+
+            assertThat(jdbc.queryForObject("SELECT status FROM run WHERE id = ?", String.class, resumedRunId))
+                    .isEqualTo("COMPLETED");
+            assertThat(jdbc.queryForObject("SELECT pages_visited FROM run WHERE id = ?", Integer.class, resumedRunId))
+                    .isGreaterThanOrEqualTo(previouslyDoneUrls.size());
+            assertThat(jdbc.queryForObject("SELECT findings_resolved FROM run WHERE id = ?", Integer.class, resumedRunId))
+                    .isZero();
+            int activeAfter = jdbc.queryForObject(
+                    "SELECT count(*) FROM finding WHERE site_id = ? AND observed_status = 'ACTIVE'",
+                    Integer.class, isolatedSiteId);
+            assertThat(activeAfter).isEqualTo(activeBefore);
+        }
+    }
 }

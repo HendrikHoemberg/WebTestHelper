@@ -314,6 +314,125 @@ class RecordingSessionRegistryTest {
         verify(pool, never()).release(worker);
     }
 
+    @Test
+    @SuppressWarnings("unchecked")
+    void openClosesContextAndReleasesWorkerWhenNavigationFails() {
+        RecorderWorker worker = mock(RecorderWorker.class);
+        com.microsoft.playwright.Browser browser = mock(com.microsoft.playwright.Browser.class);
+        com.microsoft.playwright.BrowserContext context = mock(com.microsoft.playwright.BrowserContext.class);
+        com.microsoft.playwright.Page page = mock(com.microsoft.playwright.Page.class);
+
+        when(pool.allocate()).thenReturn(Optional.of(worker));
+        when(worker.submit(any())).thenAnswer(inv -> {
+            RecorderWorker.RecorderTask<Object> task = inv.getArgument(0);
+            return task.run(browser);
+        });
+        when(browser.newContext(any())).thenReturn(context);
+        when(context.newPage()).thenReturn(page);
+        when(page.navigate("https://example.com/unreachable"))
+                .thenThrow(new RuntimeException("net::ERR_CONNECTION_REFUSED"));
+
+        assertThatThrownBy(() -> registry.open(1L, "https://example.com/unreachable", "alice"))
+                .isInstanceOf(IllegalStateException.class);
+
+        verify(context).close();
+        verify(pool).release(worker);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void openInstallsRouteGuardOnBrowserContext() {
+        RecorderWorker worker = mock(RecorderWorker.class);
+        com.microsoft.playwright.Browser browser = mock(com.microsoft.playwright.Browser.class);
+        com.microsoft.playwright.BrowserContext context = mock(com.microsoft.playwright.BrowserContext.class);
+        com.microsoft.playwright.Page page = mock(com.microsoft.playwright.Page.class);
+
+        when(pool.allocate()).thenReturn(Optional.of(worker));
+        when(worker.submit(any())).thenAnswer(inv -> {
+            RecorderWorker.RecorderTask<Object> task = inv.getArgument(0);
+            return task.run(browser);
+        });
+        when(browser.newContext(any())).thenReturn(context);
+        when(context.newPage()).thenReturn(page);
+
+        RecordingSession session = registry.open(1L, "https://example.com/start", "alice");
+
+        assertThat(session).isNotNull();
+        verify(context).route(org.mockito.ArgumentMatchers.eq("**/*"), any());
+    }
+
+    @Test
+    void openRejectsFileSchemeLoopbackAndLinkLocalStartUrlsByDefault() {
+        RecorderWorker worker = mock(RecorderWorker.class);
+        when(pool.allocate()).thenReturn(Optional.of(worker));
+
+        for (String blockedUrl : java.util.List.of(
+                "file:///etc/passwd",
+                "javascript:alert(1)",
+                "http://127.0.0.1:8080/",
+                "http://localhost:8080/",
+                "http://[::1]:8080/",
+                "http://169.254.169.254/latest/meta-data/")) {
+            assertThatThrownBy(() -> registry.open(1L, blockedUrl, "alice"))
+                    .as("Blocked recorder URL: %s", blockedUrl)
+                    .isInstanceOf(RuntimeException.class);
+        }
+
+        // RFC1918 LAN targets are permitted for company-LAN staging sites
+        RecordingSession lanSession = registry.open(1L, "http://192.168.1.50:8080/staging", "alice");
+        assertThat(lanSession).isNotNull();
+        registry.close(lanSession.sessionId());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void routeGuardAbortsDisallowedSubrequestsAndResumesLanTargets() {
+        RecorderWorker worker = mock(RecorderWorker.class);
+        com.microsoft.playwright.Browser browser = mock(com.microsoft.playwright.Browser.class);
+        com.microsoft.playwright.BrowserContext context = mock(com.microsoft.playwright.BrowserContext.class);
+        com.microsoft.playwright.Page page = mock(com.microsoft.playwright.Page.class);
+
+        when(pool.allocate()).thenReturn(Optional.of(worker));
+        when(worker.submit(any())).thenAnswer(inv -> {
+            RecorderWorker.RecorderTask<Object> task = inv.getArgument(0);
+            return task.run(browser);
+        });
+        when(browser.newContext(any())).thenReturn(context);
+        when(context.newPage()).thenReturn(page);
+
+        org.mockito.ArgumentCaptor<java.util.function.Consumer<com.microsoft.playwright.Route>> captor =
+                org.mockito.ArgumentCaptor.forClass(java.util.function.Consumer.class);
+
+        registry.open(1L, "http://192.168.1.50:8080/staging", "alice");
+        verify(context).route(org.mockito.ArgumentMatchers.eq("**/*"), captor.capture());
+
+        java.util.function.Consumer<com.microsoft.playwright.Route> handler = captor.getValue();
+
+        for (String blocked : java.util.List.of(
+                "file:///etc/passwd",
+                "http://127.0.0.1:8080/admin",
+                "http://localhost:8080/admin",
+                "http://[::1]:8080/admin",
+                "http://169.254.169.254/latest/meta-data/")) {
+            com.microsoft.playwright.Route route = mock(com.microsoft.playwright.Route.class);
+            com.microsoft.playwright.Request req = mock(com.microsoft.playwright.Request.class);
+            when(route.request()).thenReturn(req);
+            when(req.url()).thenReturn(blocked);
+
+            handler.accept(route);
+            verify(route).abort("blockedbyclient");
+            verify(route, never()).resume();
+        }
+
+        com.microsoft.playwright.Route lanRoute = mock(com.microsoft.playwright.Route.class);
+        com.microsoft.playwright.Request lanReq = mock(com.microsoft.playwright.Request.class);
+        when(lanRoute.request()).thenReturn(lanReq);
+        when(lanReq.url()).thenReturn("http://10.0.0.12:8080/app");
+        handler.accept(lanRoute);
+        verify(lanRoute).resume();
+        verify(lanRoute, never()).abort(any());
+    }
+
     private static class TestClock extends Clock {
         private Instant current;
         private final ZoneId zone = ZoneOffset.UTC;

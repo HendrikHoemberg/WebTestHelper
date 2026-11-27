@@ -1,17 +1,24 @@
 package dev.hendrikhoemberg.webtesthelper.recorder;
 
+import com.microsoft.playwright.BrowserContext;
 import dev.hendrikhoemberg.webtesthelper.checks.CookieBanner;
 import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.net.InetAddress;
+import java.net.URI;
+import java.net.UnknownHostException;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -39,17 +46,31 @@ public class RecordingSessionRegistry implements AutoCloseable {
     private final RecorderPool pool;
     private final RecorderProperties properties;
     private final Clock clock;
+    private final boolean allowLoopback;
     private final Map<UUID, RecordingSession> sessions = new ConcurrentHashMap<>();
 
     @Autowired
+    public RecordingSessionRegistry(
+            RecorderPool pool,
+            RecorderProperties properties,
+            @Value("${webtesthelper.recorder.allow-loopback:false}") boolean allowLoopback) {
+        this(pool, properties, Clock.systemUTC(), allowLoopback);
+    }
+
     public RecordingSessionRegistry(RecorderPool pool, RecorderProperties properties) {
-        this(pool, properties, Clock.systemUTC());
+        this(pool, properties, Clock.systemUTC(), false);
     }
 
     public RecordingSessionRegistry(RecorderPool pool, RecorderProperties properties, Clock clock) {
+        this(pool, properties, clock, false);
+    }
+
+    public RecordingSessionRegistry(RecorderPool pool, RecorderProperties properties, Clock clock,
+                                    boolean allowLoopback) {
         this.pool = Objects.requireNonNull(pool, "pool must not be null");
         this.properties = Objects.requireNonNull(properties, "properties must not be null");
         this.clock = clock != null ? clock : Clock.systemUTC();
+        this.allowLoopback = allowLoopback;
     }
 
     /**
@@ -60,11 +81,16 @@ public class RecordingSessionRegistry implements AutoCloseable {
      * @param username the username of the authenticated owner
      * @return the opened {@link RecordingSession}
      * @throws RecorderCapacityException if every worker is already allocated
+     * @throws IllegalArgumentException  if the startUrl uses a disallowed scheme or target address
      * @throws IllegalStateException     if the browser cannot be started for this session
      */
     public RecordingSession open(long siteId, String startUrl, String username) {
         Objects.requireNonNull(startUrl, "startUrl must not be null");
         Objects.requireNonNull(username, "username must not be null");
+
+        if (!isAllowedUrl(startUrl, allowLoopback, false)) {
+            throw new IllegalArgumentException("Unzulässige Recorder-Ziel-URL: " + startUrl);
+        }
 
         RecorderWorker worker = pool.allocate()
                 .orElseThrow(() -> new RecorderCapacityException(properties.maxSessions()));
@@ -78,15 +104,25 @@ public class RecordingSessionRegistry implements AutoCloseable {
                 var contextOptions = new com.microsoft.playwright.Browser.NewContextOptions()
                         .setViewportSize(properties.viewportWidth(), properties.viewportHeight());
                 var context = browser.newContext(contextOptions);
-                var intentCapture = IntentCapture.install(context);
-                var page = context.newPage();
-                page.navigate(startUrl);
                 try {
-                    CookieBanner.accept(page, CookieBanner.DISMISSAL_WAIT);
+                    installRouteGuard(context);
+                    var intentCapture = IntentCapture.install(context);
+                    var page = context.newPage();
+                    page.navigate(startUrl);
+                    try {
+                        CookieBanner.accept(page, CookieBanner.DISMISSAL_WAIT);
+                    } catch (RuntimeException e) {
+                        log.warn("Cookie-Banner im Recorder nicht akzeptiert: {}", e.getMessage());
+                    }
+                    return new BrowserSessionContext(context, page, intentCapture);
                 } catch (RuntimeException e) {
-                    log.warn("Cookie-Banner im Recorder nicht akzeptiert: {}", e.getMessage());
+                    try {
+                        context.close();
+                    } catch (RuntimeException closeEx) {
+                        e.addSuppressed(closeEx);
+                    }
+                    throw e;
                 }
-                return new BrowserSessionContext(context, page, intentCapture);
             });
             var context = bsc != null ? bsc.context() : null;
             var page = bsc != null ? bsc.page() : null;
@@ -99,6 +135,172 @@ public class RecordingSessionRegistry implements AutoCloseable {
         } catch (Exception e) {
             pool.release(worker);
             throw new IllegalStateException("Aufnahmesitzung konnte nicht gestartet werden", e);
+        }
+    }
+
+    private void installRouteGuard(BrowserContext context) {
+        context.route("**/*", route -> {
+            String requestUrl = route.request().url();
+            if (isAllowedUrl(requestUrl, allowLoopback, true)) {
+                route.resume();
+            } else {
+                log.warn("Recorder blockiert unzulässige Anfrage: {}", requestUrl);
+                route.abort("blockedbyclient");
+            }
+        });
+    }
+
+    static boolean isAllowedUrl(String rawUrl, boolean allowLoopback, boolean resolveDns) {
+        if (rawUrl == null || rawUrl.isBlank()) {
+            return false;
+        }
+        URI uri;
+        try {
+            uri = URI.create(rawUrl.strip());
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+        String scheme = uri.getScheme();
+        if (scheme == null || (!scheme.equalsIgnoreCase("http") && !scheme.equalsIgnoreCase("https"))) {
+            return false;
+        }
+        String rawHost = uri.getHost();
+        if (rawHost == null || rawHost.isBlank()) {
+            return false;
+        }
+        String host = normalizeHost(rawHost);
+        if (host.isEmpty() || host.equals("metadata.google.internal")) {
+            return false;
+        }
+        if (!allowLoopback && (host.equals("localhost") || host.endsWith(".localhost"))) {
+            return false;
+        }
+
+        if (isIpLiteral(host)) {
+            try {
+                InetAddress addr = InetAddress.getByName(host);
+                return !isBlockedAddress(addr, allowLoopback);
+            } catch (UnknownHostException e) {
+                return false;
+            }
+        }
+
+        if (resolveDns) {
+            try {
+                InetAddress[] addresses = InetAddress.getAllByName(host);
+                if (addresses == null || addresses.length == 0) {
+                    return false;
+                }
+                for (InetAddress address : addresses) {
+                    if (isBlockedAddress(address, allowLoopback)) {
+                        return false;
+                    }
+                }
+            } catch (UnknownHostException e) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static String normalizeHost(String rawHost) {
+        String host = rawHost.strip().toLowerCase(Locale.ROOT);
+        if (host.startsWith("[") && host.endsWith("]") && host.length() > 2) {
+            host = host.substring(1, host.length() - 1);
+        }
+        while (host.endsWith(".")) {
+            host = host.substring(0, host.length() - 1);
+        }
+        return host;
+    }
+
+    private static boolean isIpLiteral(String host) {
+        if (host.contains(":")) {
+            return true;
+        }
+        boolean hasDot = false;
+        for (int i = 0; i < host.length(); i++) {
+            char c = host.charAt(i);
+            if (c == '.') {
+                hasDot = true;
+            } else if (c < '0' || c > '9') {
+                return false;
+            }
+        }
+        return hasDot;
+    }
+
+    /**
+     * Blocks link-local / cloud metadata ({@code 169.254.0.0/16}, {@code fe80::/10}),
+     * unspecified ({@code 0.0.0.0/8}, {@code ::}), and (unless {@code allowLoopback}) loopback
+     * ({@code 127.0.0.0/8}, {@code ::1}), while allowing RFC1918 LAN targets for internal staging sites.
+     */
+    static boolean isBlockedAddress(InetAddress address, boolean allowLoopback) {
+        if (address == null) {
+            return true;
+        }
+        if (address.isAnyLocalAddress() || address.isLinkLocalAddress()) {
+            return true;
+        }
+        if (!allowLoopback && address.isLoopbackAddress()) {
+            return true;
+        }
+        byte[] bytes = address.getAddress();
+        if (bytes.length == 4) {
+            int b0 = bytes[0] & 0xFF;
+            int b1 = bytes[1] & 0xFF;
+            if (b0 == 0) {
+                return true;
+            }
+            if (b0 == 169 && b1 == 254) {
+                return true;
+            }
+            if (!allowLoopback && b0 == 127) {
+                return true;
+            }
+        } else if (bytes.length == 16) {
+            int b0 = bytes[0] & 0xFF;
+            int b1 = bytes[1] & 0xFF;
+            if (b0 == 0xFE && (b1 & 0xC0) == 0x80) {
+                return true;
+            }
+            boolean first12Zero = true;
+            for (int i = 0; i < 12; i++) {
+                if (bytes[i] != 0) {
+                    first12Zero = false;
+                    break;
+                }
+            }
+            if (first12Zero) {
+                boolean isUnspecified = bytes[12] == 0 && bytes[13] == 0 && bytes[14] == 0 && bytes[15] == 0;
+                boolean isLoopback = bytes[12] == 0 && bytes[13] == 0 && bytes[14] == 0 && (bytes[15] & 0xFF) == 1;
+                if (isUnspecified) {
+                    return true;
+                }
+                if (isLoopback) {
+                    return !allowLoopback;
+                }
+                return checkEmbeddedIpv4(bytes, 12, allowLoopback);
+            }
+            boolean first10Zero = true;
+            for (int i = 0; i < 10; i++) {
+                if (bytes[i] != 0) {
+                    first10Zero = false;
+                    break;
+                }
+            }
+            if (first10Zero && (bytes[10] & 0xFF) == 0xFF && (bytes[11] & 0xFF) == 0xFF) {
+                return checkEmbeddedIpv4(bytes, 12, allowLoopback);
+            }
+        }
+        return false;
+    }
+
+    private static boolean checkEmbeddedIpv4(byte[] bytes, int offset, boolean allowLoopback) {
+        try {
+            return isBlockedAddress(InetAddress.getByAddress(Arrays.copyOfRange(bytes, offset, offset + 4)), allowLoopback);
+        } catch (UnknownHostException e) {
+            return true;
         }
     }
 

@@ -32,6 +32,9 @@ class OutboxServiceAdversarialTest extends AbstractPostgresTest {
     OutboxService outboxService;
 
     @Autowired
+    dev.hendrikhoemberg.webtesthelper.reporting.OutboxDispatcher outboxDispatcher;
+
+    @Autowired
     NotificationRepository notificationRepository;
 
     @Autowired
@@ -100,7 +103,7 @@ class OutboxServiceAdversarialTest extends AbstractPostgresTest {
     }
 
     @Test
-    void retryAllFailed_assertsNoTransactionDuringAnyDelivery() throws Exception {
+    void retryAllFailed_requeuesAsyncAndDispatcherDeliversOutsideTransaction() throws Exception {
         AtomicInteger totalDeliveries = new AtomicInteger(0);
         AtomicInteger activeDeliveries = new AtomicInteger(0);
 
@@ -126,6 +129,12 @@ class OutboxServiceAdversarialTest extends AbstractPostgresTest {
         int count = outboxService.retryAllFailed();
 
         assertThat(count).isEqualTo(2);
+        assertThat(totalDeliveries.get())
+                .as("retryAllFailed must requeue asynchronously rather than blocking on SMTP")
+                .isZero();
+
+        int dispatched = outboxDispatcher.dispatchCycle();
+        assertThat(dispatched).isEqualTo(2);
         assertThat(totalDeliveries.get()).isEqualTo(2);
         assertThat(activeDeliveries.get())
                 .as("Zero deliveries should have an active transaction")

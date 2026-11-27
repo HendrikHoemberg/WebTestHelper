@@ -150,4 +150,22 @@ class CrawlFrontierJdbcRepositoryTest extends AbstractPostgresTest {
         assertThat(jdbc.queryForObject("SELECT count(*) FROM crawl_queue_item", Integer.class))
                 .isZero();
     }
+
+    @Test
+    void hasCompletedAndClearResetResumedFrontier() {
+        frontier.seed(runId, List.of("http://h/", "http://h/a"), 0);
+        assertThat(frontier.hasCompleted(runId)).isFalse();
+
+        List<CrawlTarget> batch = frontier.claimBatch(runId, "worker-1", 1);
+        assertThat(frontier.hasCompleted(runId)).isFalse();
+
+        frontier.complete(List.of(new CrawlOutcome(batch.get(0).id(), CrawlItemStatus.DONE, 200, null)));
+        assertThat(frontier.hasCompleted(runId)).isTrue();
+
+        int cleared = frontier.clear(runId);
+        assertThat(cleared).isEqualTo(2);
+        assertThat(frontier.hasCompleted(runId)).isFalse();
+        assertThat(frontier.visitedUrls(runId)).isEmpty();
+        assertThat(frontier.countPending(runId)).isZero();
+    }
 }

@@ -3,6 +3,7 @@ package dev.hendrikhoemberg.webtesthelper.runner;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.TimeoutError;
+import dev.hendrikhoemberg.webtesthelper.catalog.Redactor;
 import dev.hendrikhoemberg.webtesthelper.model.AssertionType;
 import dev.hendrikhoemberg.webtesthelper.model.JourneyStep;
 import dev.hendrikhoemberg.webtesthelper.model.LocatorCandidate;
@@ -11,6 +12,7 @@ import dev.hendrikhoemberg.webtesthelper.model.StepAssertion;
 import dev.hendrikhoemberg.webtesthelper.model.StepOutcome;
 import dev.hendrikhoemberg.webtesthelper.model.StepStatus;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -53,8 +55,17 @@ public final class StepExecutor {
      * @return the outcome of the step execution
      */
     public static StepOutcome execute(Page page, JourneyStep step, String resolvedValue) {
+        return execute(page, step, resolvedValue, Redactor.NONE);
+    }
+
+    /**
+     * Executes the given step against the page with the resolved value, redacting any secrets
+     * known to {@code redactor} from failure arguments and error messages.
+     */
+    public static StepOutcome execute(Page page, JourneyStep step, String resolvedValue, Redactor redactor) {
         Objects.requireNonNull(page, "page");
         Objects.requireNonNull(step, "step");
+        Redactor effectiveRedactor = redactor != null ? redactor : Redactor.NONE;
 
         LocatorMatch match = null;
         try {
@@ -69,15 +80,16 @@ public final class StepExecutor {
                 }
                 match = resolved.get();
             }
-            return performAction(page, step, resolvedValue, match);
+            return performAction(page, step, resolvedValue, match, effectiveRedactor);
         } catch (TimeoutError e) {
             if (isCookieBannerStep(step)) {
                 return StepOutcome.skipped(step.id());
             }
-            return failure(step, match, MSG_TIMEOUT, List.of(String.valueOf(step.timeoutMs())));
+            return failure(step, match, MSG_TIMEOUT, List.of(String.valueOf(step.timeoutMs())), effectiveRedactor);
         } catch (RuntimeException e) {
             return failure(step, match, MSG_ACTION,
-                    List.of(e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()));
+                    List.of(e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()),
+                    effectiveRedactor);
         }
     }
 
@@ -98,18 +110,18 @@ public final class StepExecutor {
     }
 
     private static StepOutcome performAction(
-            Page page, JourneyStep step, String resolvedValue, LocatorMatch match) {
+            Page page, JourneyStep step, String resolvedValue, LocatorMatch match, Redactor redactor) {
         return switch (step.action()) {
-            case GOTO -> executeGoto(page, step, resolvedValue, match);
-            case CLICK -> withAssertion(page, step, match, resolvedValue, () ->
+            case GOTO -> executeGoto(page, step, resolvedValue, match, redactor);
+            case CLICK -> withAssertion(page, step, match, resolvedValue, redactor, () ->
                     match.locator().click(new Locator.ClickOptions().setTimeout(step.timeoutMs())));
-            case FILL -> withAssertion(page, step, match, resolvedValue, () ->
+            case FILL -> withAssertion(page, step, match, resolvedValue, redactor, () ->
                     match.locator().fill(orEmpty(resolvedValue),
                             new Locator.FillOptions().setTimeout(step.timeoutMs())));
-            case SELECT -> withAssertion(page, step, match, resolvedValue, () ->
+            case SELECT -> withAssertion(page, step, match, resolvedValue, redactor, () ->
                     match.locator().selectOption(orEmpty(resolvedValue),
                             new Locator.SelectOptionOptions().setTimeout(step.timeoutMs())));
-            case PRESS -> withAssertion(page, step, match, resolvedValue, () -> {
+            case PRESS -> withAssertion(page, step, match, resolvedValue, redactor, () -> {
                 if (match != null) {
                     match.locator().press(orEmpty(resolvedValue),
                             new Locator.PressOptions().setTimeout(step.timeoutMs()));
@@ -117,27 +129,27 @@ public final class StepExecutor {
                     page.keyboard().press(orEmpty(resolvedValue));
                 }
             });
-            case HOVER -> withAssertion(page, step, match, resolvedValue, () ->
+            case HOVER -> withAssertion(page, step, match, resolvedValue, redactor, () ->
                     match.locator().hover(new Locator.HoverOptions().setTimeout(step.timeoutMs())));
             // The element was already awaited by resolveWithin: reaching here is the success case.
-            case WAIT_FOR -> withAssertion(page, step, match, resolvedValue, () -> {
+            case WAIT_FOR -> withAssertion(page, step, match, resolvedValue, redactor, () -> {
             });
-            case ASSERT -> evaluateAssertion(page, step, match, resolvedValue);
+            case ASSERT -> evaluateAssertion(page, step, match, resolvedValue, redactor);
         };
     }
 
     /** Runs the action, then evaluates the step's assertion if it carries one. */
     private static StepOutcome withAssertion(
-            Page page, JourneyStep step, LocatorMatch match, String resolvedValue, Runnable action) {
+            Page page, JourneyStep step, LocatorMatch match, String resolvedValue, Redactor redactor, Runnable action) {
         String urlBefore = page.url();
         action.run();
         if (step.assertion() == null) {
             return outcomeFor(step, match);
         }
         if (step.assertion().type() == AssertionType.TEXT_CONTAINS && leftTheElement(page, match, urlBefore)) {
-            return evaluatePageTextContains(page, step, match, step.assertion(), resolvedValue);
+            return evaluatePageTextContains(page, step, match, step.assertion(), resolvedValue, redactor);
         }
-        return evaluateAssertion(page, step, match, resolvedValue);
+        return evaluateAssertion(page, step, match, resolvedValue, redactor);
     }
 
     /**
@@ -153,14 +165,15 @@ public final class StepExecutor {
 
     /** The new page may still be loading, so the body text is polled until the step timeout. */
     private static StepOutcome evaluatePageTextContains(
-            Page page, JourneyStep step, LocatorMatch match, StepAssertion assertion, String resolvedValue) {
+            Page page, JourneyStep step, LocatorMatch match, StepAssertion assertion,
+            String resolvedValue, Redactor redactor) {
         String expected = assertion.expected() != null ? assertion.expected() : orEmpty(resolvedValue);
         try {
             page.waitForCondition(() -> bodyText(page).contains(expected),
                     new Page.WaitForConditionOptions().setTimeout(step.timeoutMs()));
             return outcomeFor(step, match);
         } catch (TimeoutError e) {
-            return failure(step, match, MSG_ASSERTION, List.of(expected, bodyText(page)));
+            return failure(step, match, MSG_ASSERTION, List.of(expected, bodyText(page)), redactor);
         }
     }
 
@@ -174,38 +187,70 @@ public final class StepExecutor {
     }
 
     private static StepOutcome executeGoto(
-            Page page, JourneyStep step, String resolvedValue, LocatorMatch match) {
+            Page page, JourneyStep step, String resolvedValue, LocatorMatch match, Redactor redactor) {
         String url = resolvedValue != null ? resolvedValue : step.value();
+        if (!isHttpOrHttpsUrl(url)) {
+            return failure(step, match, MSG_NAVIGATION,
+                    List.of(String.valueOf(url), "Nur HTTP- und HTTPS-URLs sind zulässig"), redactor);
+        }
         try {
             page.navigate(url, new Page.NavigateOptions().setTimeout(step.timeoutMs()));
         } catch (RuntimeException e) {
             return failure(step, match, MSG_NAVIGATION,
                     List.of(String.valueOf(url),
-                            e.getMessage() != null ? firstLine(e.getMessage()) : e.getClass().getSimpleName()));
+                            e.getMessage() != null ? firstLine(e.getMessage()) : e.getClass().getSimpleName()),
+                    redactor);
         }
         if (step.assertion() != null) {
-            return evaluateAssertion(page, step, match, resolvedValue);
+            return evaluateAssertion(page, step, match, resolvedValue, redactor);
         }
         return outcomeFor(step, match);
     }
 
+    static boolean isHttpOrHttpsUrl(String rawUrl) {
+        if (rawUrl == null || rawUrl.isBlank()) {
+            return false;
+        }
+        String trimmed = rawUrl.strip();
+        try {
+            URI uri = URI.create(trimmed);
+            String scheme = uri.getScheme();
+            return scheme != null
+                    && (scheme.equalsIgnoreCase("http") || scheme.equalsIgnoreCase("https"))
+                    && uri.getHost() != null
+                    && !uri.getHost().isBlank();
+        } catch (IllegalArgumentException e) {
+            int schemeEnd = trimmed.indexOf("://");
+            if (schemeEnd <= 0) {
+                return false;
+            }
+            String scheme = trimmed.substring(0, schemeEnd);
+            if (!scheme.equalsIgnoreCase("http") && !scheme.equalsIgnoreCase("https")) {
+                return false;
+            }
+            String rest = trimmed.substring(schemeEnd + 3);
+            return !rest.isEmpty() && rest.charAt(0) != '/' && rest.charAt(0) != '?' && rest.charAt(0) != '#';
+        }
+    }
+
     private static StepOutcome evaluateAssertion(
-            Page page, JourneyStep step, LocatorMatch match, String resolvedValue) {
+            Page page, JourneyStep step, LocatorMatch match, String resolvedValue, Redactor redactor) {
         StepAssertion assertion = step.assertion();
         if (assertion == null) {
             return outcomeFor(step, match);
         }
 
         return switch (assertion.type()) {
-            case TEXT_CONTAINS -> evaluateTextContains(page, step, match, assertion, resolvedValue);
-            case VISIBLE -> evaluateVisible(step, match);
-            case URL_MATCHES -> evaluateUrlMatches(page, step, match, assertion, resolvedValue);
-            case COUNT -> evaluateCount(page, step, assertion);
+            case TEXT_CONTAINS -> evaluateTextContains(page, step, match, assertion, resolvedValue, redactor);
+            case VISIBLE -> evaluateVisible(step, match, redactor);
+            case URL_MATCHES -> evaluateUrlMatches(page, step, match, assertion, resolvedValue, redactor);
+            case COUNT -> evaluateCount(page, step, assertion, redactor);
         };
     }
 
     private static StepOutcome evaluateTextContains(
-            Page page, JourneyStep step, LocatorMatch match, StepAssertion assertion, String resolvedValue) {
+            Page page, JourneyStep step, LocatorMatch match, StepAssertion assertion,
+            String resolvedValue, Redactor redactor) {
         String expected = assertion.expected() != null ? assertion.expected() : orEmpty(resolvedValue);
         String actualText = match != null
                 ? match.locator().innerText(new Locator.InnerTextOptions().setTimeout(step.timeoutMs()))
@@ -214,21 +259,22 @@ public final class StepExecutor {
         if (actualText != null && actualText.contains(expected)) {
             return outcomeFor(step, match);
         }
-        return failure(step, match, MSG_ASSERTION, List.of(expected, orEmpty(actualText)));
+        return failure(step, match, MSG_ASSERTION, List.of(expected, orEmpty(actualText)), redactor);
     }
 
-    private static StepOutcome evaluateVisible(JourneyStep step, LocatorMatch match) {
+    private static StepOutcome evaluateVisible(JourneyStep step, LocatorMatch match, Redactor redactor) {
         if (match == null) {
             return missingElementOutcome(step);
         }
         if (match.locator().isVisible()) {
             return outcomeFor(step, match);
         }
-        return failure(step, match, MSG_NOT_VISIBLE, List.of());
+        return failure(step, match, MSG_NOT_VISIBLE, List.of(), redactor);
     }
 
     private static StepOutcome evaluateUrlMatches(
-            Page page, JourneyStep step, LocatorMatch match, StepAssertion assertion, String resolvedValue) {
+            Page page, JourneyStep step, LocatorMatch match, StepAssertion assertion,
+            String resolvedValue, Redactor redactor) {
         String expected = assertion.expected() != null ? assertion.expected() : orEmpty(resolvedValue);
         Pattern pattern;
         try {
@@ -236,14 +282,14 @@ public final class StepExecutor {
         } catch (PatternSyntaxException e) {
             // An unusable pattern is an authoring fault, not a failed assertion: say so distinctly
             // rather than reporting "the URL did not match" about a pattern that can never match.
-            return failure(step, match, MSG_PATTERN, List.of(expected));
+            return failure(step, match, MSG_PATTERN, List.of(expected), redactor);
         }
 
         String currentUrl = orEmpty(page.url());
         if (pattern.matcher(currentUrl).find()) {
             return outcomeFor(step, match);
         }
-        return failure(step, match, MSG_ASSERTION, List.of(expected, currentUrl));
+        return failure(step, match, MSG_ASSERTION, List.of(expected, currentUrl), redactor);
     }
 
     /**
@@ -254,12 +300,13 @@ public final class StepExecutor {
      * number would turn the assertion into a search for a number that agrees with it, and no
      * {@code COUNT} assertion could then fail.
      */
-    private static StepOutcome evaluateCount(Page page, JourneyStep step, StepAssertion assertion) {
+    private static StepOutcome evaluateCount(Page page, JourneyStep step, StepAssertion assertion, Redactor redactor) {
         int expected;
         try {
             expected = Integer.parseInt(String.valueOf(assertion.expected()).trim());
         } catch (NumberFormatException e) {
-            return failure(step, null, MSG_COUNT_EXPECTATION, List.of(String.valueOf(assertion.expected())));
+            return failure(step, null, MSG_COUNT_EXPECTATION,
+                    List.of(String.valueOf(assertion.expected())), redactor);
         }
 
         List<LocatorCandidate> ladder = LocatorResolver.inLadderOrder(step.locatorCandidates());
@@ -280,7 +327,7 @@ public final class StepExecutor {
         }
 
         return StepOutcome.failed(step.id(), observed.candidate(), observed.drifted(), MSG_ASSERTION,
-                List.of(String.valueOf(expected), String.valueOf(observed.count())));
+                redactArgs(List.of(String.valueOf(expected), String.valueOf(observed.count())), redactor));
     }
 
     /** What the ladder currently observes for a {@code COUNT} assertion. */
@@ -318,11 +365,19 @@ public final class StepExecutor {
      * breaking" case §10.2 exists to surface, so its winner and drift must survive the failure.
      */
     private static StepOutcome failure(
-            JourneyStep step, LocatorMatch match, String messageKey, List<String> args) {
+            JourneyStep step, LocatorMatch match, String messageKey, List<String> args, Redactor redactor) {
+        List<String> safeArgs = redactArgs(args, redactor);
         if (match == null) {
-            return StepOutcome.failed(step.id(), messageKey, args);
+            return StepOutcome.failed(step.id(), messageKey, safeArgs);
         }
-        return StepOutcome.failed(step.id(), match.winner(), match.drifted(), messageKey, args);
+        return StepOutcome.failed(step.id(), match.winner(), match.drifted(), messageKey, safeArgs);
+    }
+
+    private static List<String> redactArgs(List<String> args, Redactor redactor) {
+        if (args == null || args.isEmpty() || redactor == null || redactor.isEmpty()) {
+            return args == null ? List.of() : args;
+        }
+        return args.stream().map(redactor::redact).toList();
     }
 
     private static StepOutcome outcomeFor(JourneyStep step, LocatorMatch match) {

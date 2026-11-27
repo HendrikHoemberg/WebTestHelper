@@ -48,6 +48,7 @@ import static org.mockito.Mockito.when;
 @Tag("browser")
 @org.junit.jupiter.api.parallel.ResourceLock("browser")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@org.springframework.test.context.TestPropertySource(properties = "webtesthelper.recorder.allow-loopback=true")
 class RecordToReplayAcceptanceTest extends AbstractPostgresTest {
 
     @Autowired

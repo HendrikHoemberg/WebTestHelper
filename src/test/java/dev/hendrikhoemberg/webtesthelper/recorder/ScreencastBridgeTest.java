@@ -180,11 +180,12 @@ class ScreencastBridgeTest {
     }
 
     @Test
-    void everyDeliveredScreencastFrameIsAcknowledgedAndUpdatesActivity() throws Exception {
+    void everyDeliveredScreencastFrameIsAcknowledgedWithoutUpdatingActivity() throws Exception {
         BlockingQueue<ScreencastFrame> frames = new LinkedBlockingQueue<>();
         bridge.attach(session, frames::add);
         try {
             Instant beforeActivity = session.lastActivity();
+            Thread.sleep(20);
 
             for (int i = 0; i < 3; i++) {
                 final int index = i;
@@ -207,7 +208,9 @@ class ScreencastBridgeTest {
                     .as("Every screencast frame is acknowledged exactly once - an unacknowledged "
                             + "frame stops the stream, and a doubled ack would hide that")
                     .isEqualTo(needingAck);
-            assertThat(session.lastActivity()).isAfter(beforeActivity);
+            assertThat(session.lastActivity())
+                    .as("Automatic CDP screencast frames must not reset idle timeout")
+                    .isEqualTo(beforeActivity);
         } finally {
             bridge.detach(session);
         }

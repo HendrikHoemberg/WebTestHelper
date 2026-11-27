@@ -126,6 +126,16 @@ public class CrawlService {
                 : RobotsRules.ALLOW_ALL;
         UrlAdmission admission = new UrlAdmission(request.site(), robots);
 
+        // PageSnapshots live only in memory: if this run already has DONE or FAILED rows from an
+        // earlier crashed/reclaimed attempt, leaving them in place would skip those URLs during the
+        // crawl while frontier.visitedUrls(runId) still claims them as covered, causing
+        // FindingStore.resolveOutsideRun to falsely resolve active findings on pre-crash pages.
+        if (frontier.hasCompleted(request.runId())) {
+            int cleared = frontier.clear(request.runId());
+            log.info("Lauf {} setzt {} vorhandene Queue-Einträge für einen vollständigen Neustart zurück",
+                    request.runId(), cleared);
+        }
+
         // A run whose lease expired is re-queued and re-executed (spec 14), and rows its dead
         // worker had claimed are still CLAIMED. Unreclaimed they are never visited and never
         // pending, so the resumed run would report full coverage for pages it never reached —

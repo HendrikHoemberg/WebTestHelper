@@ -49,7 +49,7 @@ class RecordingSessionAcceptanceTest {
 
     @Test
     void fullLiveSessionFlowNavigatesAndReleasesWorker() throws Exception {
-        RecordingSessionRegistry registry = new RecordingSessionRegistry(pool, properties);
+        RecordingSessionRegistry registry = new RecordingSessionRegistry(pool, properties, Clock.systemUTC(), true);
         String startUrl = fixtureSite.url("reise/start.html");
 
         // 1. Opens a recording session on reise/start.html via RecordingSessionRegistry
@@ -159,7 +159,7 @@ class RecordingSessionAcceptanceTest {
     @Test
     void idleSessionPastTimeoutIsReapedAndWorkerReturnedToPool() throws Exception {
         MutableTestClock clock = new MutableTestClock(Instant.parse("2026-08-28T14:00:00Z"));
-        RecordingSessionRegistry registry = new RecordingSessionRegistry(pool, properties, clock);
+        RecordingSessionRegistry registry = new RecordingSessionRegistry(pool, properties, clock, true);
         String startUrl = fixtureSite.url("reise/start.html");
 
         // 1. Opens a session

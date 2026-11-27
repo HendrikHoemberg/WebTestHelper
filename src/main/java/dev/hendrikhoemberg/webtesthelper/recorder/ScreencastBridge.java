@@ -24,8 +24,7 @@ import java.util.function.Consumer;
  * <p>Manages the CDP session on the session's worker thread to preserve Playwright thread confinement.
  * Screencast is change-driven: an initial frame is captured and delivered on attach (D110),
  * and subsequent frames are emitted when page visual updates occur.
- * Every received screencast frame is acknowledged via {@code Page.screencastFrameAck}, updating
- * the session's activity timestamp.
+ * Every received screencast frame is acknowledged via {@code Page.screencastFrameAck}.
  *
  * <p><strong>An attached session is pumped.</strong> playwright-java has no dispatcher thread:
  * {@code Connection.processOneMessage()} runs only while the owning thread is inside a Playwright
@@ -119,7 +118,6 @@ public class ScreencastBridge {
                     if (total != null) {
                         total.incrementAndGet();
                     }
-                    session.recordActivity();
                 } catch (Exception e) {
                     log.debug("Fehler bei Verarbeitung von screencastFrame: {}", e.getMessage());
                 }

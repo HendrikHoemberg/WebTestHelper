@@ -560,4 +560,17 @@ class StepExecutorTest {
         assertThat(outcome.failureMessageKey()).isEqualTo(StepExecutor.MSG_ASSERTION);
         assertThat(outcome.failureArgs()).contains("Nicht auf der Seite");
     }
+
+    @Test
+    void gotoRejectsNonHttpSchemes() {
+        String initialUrl = page.url();
+        for (String forbidden : List.of("file:///etc/passwd", "javascript:alert(1)", "data:text/html,<h1>x</h1>", "ftp://example.com/")) {
+            JourneyStep step = createStep(StepAction.GOTO, List.of(), forbidden, null, false, 1000);
+            StepOutcome outcome = StepExecutor.execute(page, step, forbidden);
+
+            assertThat(outcome.status()).as("Scheme must be rejected: %s", forbidden).isEqualTo(StepStatus.FAILED);
+            assertThat(outcome.failureMessageKey()).isEqualTo(StepExecutor.MSG_NAVIGATION);
+            assertThat(page.url()).isEqualTo(initialUrl);
+        }
+    }
 }

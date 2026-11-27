@@ -4,6 +4,9 @@ import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Tracing;
+import dev.hendrikhoemberg.webtesthelper.catalog.CredentialReference;
+import dev.hendrikhoemberg.webtesthelper.catalog.CredentialService;
+import dev.hendrikhoemberg.webtesthelper.catalog.Redactor;
 import dev.hendrikhoemberg.webtesthelper.catalog.SecretText;
 import dev.hendrikhoemberg.webtesthelper.checks.CookieBanner;
 import dev.hendrikhoemberg.webtesthelper.crawler.BrowserPool;
@@ -18,6 +21,7 @@ import dev.hendrikhoemberg.webtesthelper.model.StepOutcome;
 import dev.hendrikhoemberg.webtesthelper.model.StepStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -49,10 +53,18 @@ public class JourneyReplayer {
 
     private final BrowserPool pool;
     private final JourneyValueResolver journeyValueResolver;
+    private final CredentialService credentialService;
 
-    public JourneyReplayer(BrowserPool pool, JourneyValueResolver journeyValueResolver) {
+    @Autowired
+    public JourneyReplayer(BrowserPool pool, JourneyValueResolver journeyValueResolver,
+                           CredentialService credentialService) {
         this.pool = Objects.requireNonNull(pool, "pool");
         this.journeyValueResolver = Objects.requireNonNull(journeyValueResolver, "journeyValueResolver");
+        this.credentialService = credentialService;
+    }
+
+    public JourneyReplayer(BrowserPool pool, JourneyValueResolver journeyValueResolver) {
+        this(pool, journeyValueResolver, null);
     }
 
     /**
@@ -67,7 +79,10 @@ public class JourneyReplayer {
         Objects.requireNonNull(journey, "journey");
         Objects.requireNonNull(site, "site");
 
-        return pool.submit(browser -> driveJourney(browser, journey, site, artifacts));
+        Redactor redactor = credentialService != null
+                ? credentialService.redactorFor(site.siteId())
+                : Redactor.NONE;
+        return pool.submit(browser -> driveJourney(browser, journey, site, artifacts, redactor));
     }
 
     /**
@@ -78,45 +93,59 @@ public class JourneyReplayer {
      * with no {@link JourneyReplayResult} at all, so a journey with a stale reference could never
      * be recorded, reported or triaged.
      */
-    private StepOutcome executeStep(Page page, JourneyDefinition journey, SiteContext site, JourneyStep step) {
+    private StepOutcome executeStep(Page page, JourneyDefinition journey, SiteContext site,
+                                    JourneyStep step, Redactor redactor) {
         SecretText value;
         try {
             value = journeyValueResolver.resolve(site.siteId(), step);
         } catch (RuntimeException e) {
             // The message carries the {{cred.…}} token, never the secret behind it (D100).
+            String safeMessage = redactor.redact(e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName());
             log.warn("Journey {} Schritt {}: Zugangsdaten nicht auflösbar: {}",
-                    journey.id(), step.ordinal(), e.getMessage());
-            return StepOutcome.failed(step.id(), StepExecutor.MSG_CREDENTIAL,
-                    List.of(e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()));
+                    journey.id(), step.ordinal(), safeMessage);
+            return StepOutcome.failed(step.id(), StepExecutor.MSG_CREDENTIAL, List.of(safeMessage));
+        }
+
+        Redactor stepRedactor = redactor;
+        if (value.sensitive() && stepRedactor.isEmpty() && value.expose() != null && !value.expose().isBlank()) {
+            stepRedactor = Redactor.of(List.of(value.expose()));
         }
 
         log.debug("Lauf Journey {} Step {}: action={}, val={}",
                 journey.id(), step.ordinal(), step.action(), value);
-        return StepExecutor.execute(page, step, value.expose());
+        return StepExecutor.execute(page, step, value.expose(), stepRedactor);
     }
 
     private JourneyReplayResult driveJourney(
             Browser browser,
             JourneyDefinition journey,
             SiteContext site,
-            Path artifacts
+            Path artifacts,
+            Redactor redactor
     ) {
+        boolean usesCredentials = journeyUsesCredentials(journey);
+
         try (BrowserContext context = browser.newContext(new Browser.NewContextOptions()
                 .setUserAgent(site.effectiveUserAgent())
                 .setViewportSize(1366, 900)
                 .setIgnoreHTTPSErrors(true)
                 .setLocale("de-DE"))) {
 
-            context.tracing().start(new Tracing.StartOptions()
-                    .setScreenshots(true)
-                    .setSnapshots(true));
-            boolean tracingStopped = false;
+            // Do not record Playwright traces (which store filled inputs, DOM snapshots, and network
+            // payloads in plaintext) when a journey references {{cred.*}} placeholders.
+            boolean tracingStopped = usesCredentials;
+            if (!usesCredentials) {
+                context.tracing().start(new Tracing.StartOptions()
+                        .setScreenshots(true)
+                        .setSnapshots(true));
+            }
 
             try (Page page = context.newPage()) {
                 try {
                     CookieBanner.accept(page, CookieBanner.DISMISSAL_WAIT);
                 } catch (RuntimeException e) {
-                    log.warn("Cookie-Banner Accept vor Journey {} fehlgeschlagen: {}", journey.id(), e.getMessage());
+                    log.warn("Cookie-Banner Accept vor Journey {} fehlgeschlagen: {}",
+                            journey.id(), redactor.redact(e.getMessage()));
                 }
 
                 List<StepOutcome> outcomes = new ArrayList<>();
@@ -126,14 +155,15 @@ public class JourneyReplayer {
                 String failureTraceName = null;
 
                 for (JourneyStep step : journey.steps()) {
-                    StepOutcome outcome = executeStep(page, journey, site, step);
+                    StepOutcome outcome = executeStep(page, journey, site, step, redactor);
                     outcomes.add(outcome);
 
                     if (step.action() == StepAction.GOTO && outcome.status() != StepStatus.FAILED) {
                         try {
                             CookieBanner.accept(page, CookieBanner.DISMISSAL_WAIT);
                         } catch (RuntimeException e) {
-                            log.warn("Cookie-Banner Accept nach GOTO in Journey {} fehlgeschlagen: {}", journey.id(), e.getMessage());
+                            log.warn("Cookie-Banner Accept nach GOTO in Journey {} fehlgeschlagen: {}",
+                                    journey.id(), redactor.redact(e.getMessage()));
                         }
                     }
 
@@ -154,15 +184,17 @@ public class JourneyReplayer {
                                 page.screenshot(new Page.ScreenshotOptions()
                                         .setPath(artifacts.resolve(sName))
                                         .setFullPage(true));
-                                context.tracing().stop(new Tracing.StopOptions()
-                                        .setPath(artifacts.resolve(tName)));
-                                tracingStopped = true;
-
                                 failureScreenshotName = sName;
-                                failureTraceName = tName;
+
+                                if (!tracingStopped) {
+                                    context.tracing().stop(new Tracing.StopOptions()
+                                            .setPath(artifacts.resolve(tName)));
+                                    tracingStopped = true;
+                                    failureTraceName = tName;
+                                }
                             } catch (IOException | RuntimeException e) {
                                 log.warn("Fehler beim Erfassen von Screenshot/Trace für Journey {}: {}",
-                                        journey.id(), e.getMessage(), e);
+                                        journey.id(), redactor.redact(e.getMessage()));
                             }
                         }
                         break;
@@ -205,5 +237,24 @@ public class JourneyReplayer {
                 }
             }
         }
+    }
+
+    private static boolean journeyUsesCredentials(JourneyDefinition journey) {
+        for (JourneyStep step : journey.steps()) {
+            if (containsCredentialPlaceholder(step.value())) {
+                return true;
+            }
+            if (step.assertion() != null && containsCredentialPlaceholder(step.assertion().expected())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean containsCredentialPlaceholder(String text) {
+        if (text == null || text.isEmpty()) {
+            return false;
+        }
+        return !CredentialReference.findAll(text).isEmpty() || text.contains("{{cred.");
     }
 }

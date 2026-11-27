@@ -5,6 +5,7 @@ import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.BrowserType;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Playwright;
+import com.microsoft.playwright.Route;
 import com.microsoft.playwright.options.Margin;
 import com.microsoft.playwright.options.WaitUntilState;
 import jakarta.annotation.PreDestroy;
@@ -63,17 +64,19 @@ public class PdfRenderer implements AutoCloseable {
     public byte[] render(String html) {
         Future<byte[]> future = executor.submit(() -> {
             ensureBrowser();
-            try (BrowserContext context = browser.newContext();
-                 Page page = context.newPage()) {
-                page.setContent(html, new Page.SetContentOptions().setWaitUntil(WaitUntilState.LOAD));
-                return page.pdf(new Page.PdfOptions()
-                        .setFormat("A4")
-                        .setPrintBackground(true)
-                        .setMargin(new Margin()
-                                .setTop("15mm")
-                                .setBottom("15mm")
-                                .setLeft("15mm")
-                                .setRight("15mm")));
+            try (BrowserContext context = browser.newContext()) {
+                context.route("**/*", Route::abort);
+                try (Page page = context.newPage()) {
+                    page.setContent(html, new Page.SetContentOptions().setWaitUntil(WaitUntilState.LOAD));
+                    return page.pdf(new Page.PdfOptions()
+                            .setFormat("A4")
+                            .setPrintBackground(true)
+                            .setMargin(new Margin()
+                                    .setTop("15mm")
+                                    .setBottom("15mm")
+                                    .setLeft("15mm")
+                                    .setRight("15mm")));
+                }
             }
         });
 

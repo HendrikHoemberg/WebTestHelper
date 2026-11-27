@@ -334,4 +334,60 @@ class JourneyReplayAcceptanceTest {
         assertThat(credentialOutcome.failureArgs()).isNotEmpty();
         assertThat(result.screenshotName()).isPresent();
     }
+
+    @Test
+    void secretValuesAreRedactedFromFailureArgsAndTraceIsSkippedWhenJourneyUsesCredentials(@TempDir Path artifacts) throws IOException {
+        String secretValue = "TopSecretPassword!99";
+        CredentialRepository credentials = mock(CredentialRepository.class);
+        SiteRepository sites = mock(SiteRepository.class);
+        SecretBox secretBox = mock(SecretBox.class);
+
+        dev.hendrikhoemberg.webtesthelper.catalog.persistence.CredentialEntity entity =
+                new dev.hendrikhoemberg.webtesthelper.catalog.persistence.CredentialEntity();
+        entity.setSiteId(1L);
+        entity.setName("anmeldung");
+        entity.setUsername("alice");
+        entity.setSecret("enc-secret");
+
+        org.mockito.Mockito.when(credentials.findBySiteIdAndName(1L, "anmeldung"))
+                .thenReturn(java.util.Optional.of(entity));
+        org.mockito.Mockito.when(credentials.findBySiteIdOrderByNameAsc(1L))
+                .thenReturn(List.of(entity));
+        org.mockito.Mockito.when(secretBox.decrypt("enc-secret")).thenReturn(secretValue);
+
+        CredentialService credentialService = new CredentialService(credentials, sites, secretBox);
+        JourneyValueResolver resolver = new JourneyValueResolver(credentialService);
+        JourneyReplayer secretReplayer = new JourneyReplayer(pool, resolver, credentialService);
+
+        // Step 0 goes to an unreachable URL carrying the resolved secret, failing with MSG_NAVIGATION
+        // whose failureArgs include the URL (and potentially error text).
+        JourneyStep step0 = step(0, StepAction.GOTO, List.of(),
+                "http://127.0.0.1:1/login?token={{cred.anmeldung.password}}", null, 2000);
+
+        JourneyDefinition journey = new JourneyDefinition(
+                105L,
+                1L,
+                "Reise mit Geheimnis",
+                true,
+                List.of(step0)
+        );
+
+        JourneyReplayResult result = secretReplayer.replay(journey, siteContext(), artifacts);
+
+        assertThat(result.status()).isEqualTo(ReplayStatus.FAILED);
+        assertThat(result.outcomes()).hasSize(1);
+        StepOutcome failedOutcome = result.outcomes().get(0);
+        assertThat(failedOutcome.status()).isEqualTo(StepStatus.FAILED);
+        assertThat(failedOutcome.failureArgs())
+                .allSatisfy(arg -> assertThat(arg).doesNotContain(secretValue));
+        assertThat(failedOutcome.failureArgs())
+                .anySatisfy(arg -> assertThat(arg).contains(dev.hendrikhoemberg.webtesthelper.catalog.Redactor.MASK));
+
+        // Trace zip must NOT be written for journeys referencing {{cred.*}} placeholders
+        assertThat(result.traceName()).isEmpty();
+        try (var files = Files.list(artifacts)) {
+            assertThat(files.map(p -> p.getFileName().toString()).toList())
+                    .noneMatch(name -> name.endsWith(".zip"));
+        }
+    }
 }

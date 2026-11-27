@@ -8,6 +8,7 @@ import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public class OutboxClaimJdbcRepository {
@@ -46,6 +47,18 @@ public class OutboxClaimJdbcRepository {
              RETURNING n.id, n.recipient, n.subject, n.body_html, n.body_text, n.attempts
             """;
 
+    private static final String CLAIM_BY_ID_SQL = """
+            UPDATE notification
+               SET state = 'PENDING',
+                   attempts = attempts + 1,
+                   next_attempt_at = now() + make_interval(secs => ?),
+                   last_error = NULL
+             WHERE id = ?
+               AND state <> 'SENT'
+               AND (state = 'FAILED' OR next_attempt_at <= now() OR attempts = 0)
+            RETURNING id, recipient, subject, body_html, body_text, attempts
+            """;
+
     /** How long a claimed mail stays out of the due window while its delivery is in flight. */
     private static final Duration CLAIM_LEASE = Duration.ofMinutes(5);
 
@@ -66,6 +79,22 @@ public class OutboxClaimJdbcRepository {
 
     public List<ClaimedNotification> claimDue(int limit) {
         return jdbc.query(CLAIM_SQL, ROW_MAPPER, limit, CLAIM_LEASE.toSeconds());
+    }
+
+    /**
+     * Atomically claims and leases a single notification for immediate delivery so concurrent
+     * {@code OutboxDispatcher} cycles cannot pick up the same row while SMTP delivery is in flight.
+     */
+    public Optional<ClaimedNotification> claimById(long id) {
+        List<ClaimedNotification> claimed = jdbc.query(CLAIM_BY_ID_SQL, ROW_MAPPER, CLAIM_LEASE.toSeconds(), id);
+        return claimed.isEmpty() ? Optional.empty() : Optional.of(claimed.get(0));
+    }
+
+    /** Resets all {@code FAILED} notifications to {@code PENDING} so {@code OutboxDispatcher} drains them asynchronously. */
+    public int requeueAllFailed() {
+        return jdbc.update(
+                "UPDATE notification SET state = 'PENDING', attempts = 0, next_attempt_at = now(), last_error = NULL WHERE state = 'FAILED'"
+        );
     }
 
     public void markSent(long id, Instant sentAt) {

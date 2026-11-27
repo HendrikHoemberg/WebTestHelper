@@ -23,6 +23,9 @@ class OutboxServiceTest extends AbstractPostgresTest {
     NotificationRepository notificationRepository;
 
     @Autowired
+    dev.hendrikhoemberg.webtesthelper.reporting.persistence.OutboxClaimJdbcRepository claimRepository;
+
+    @Autowired
     JdbcTemplate jdbc;
 
     @org.springframework.test.context.bean.override.mockito.MockitoBean
@@ -125,6 +128,7 @@ class OutboxServiceTest extends AbstractPostgresTest {
         NotificationEntity entity = notificationRepository.findById(id).orElseThrow();
         assertThat(entity.getState()).isEqualTo(NotificationState.SENT);
         assertThat(entity.getSentAt()).isNotNull();
+        assertThat(entity.getAttempts()).isEqualTo(1);
     }
 
     @Test
@@ -149,31 +153,77 @@ class OutboxServiceTest extends AbstractPostgresTest {
     }
 
     @Test
-    void retryAllFailed_retriesAllItemsOutsideTransaction() throws Exception {
-        java.util.concurrent.atomic.AtomicInteger deliveriesOutsideTx = new java.util.concurrent.atomic.AtomicInteger(0);
+    void sendNow_doesNotDuplicateDeliveryWhenAlreadyLeasedByDispatcher() throws Exception {
+        long id = outboxService.enqueue(new OutboundMail("user@example.com", "Subject", "<p>hi</p>", "hi"));
+
+        // Dispatcher claims and leases the row before sendNow runs
+        assertThat(claimRepository.claimDue(10)).hasSize(1);
+
+        DeliveryResult result = outboxService.sendNow(id);
+
+        assertThat(result.success()).isFalse();
+        org.mockito.Mockito.verify(notifier, org.mockito.Mockito.never()).deliver(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void retry_atomicallyLeasesFailedRowSoDispatcherCannotDoubleSend() throws Exception {
+        long id = outboxService.enqueue(new OutboundMail("failed@example.com", "Subject", "<p>hi</p>", "hi"));
+        NotificationEntity entity = notificationRepository.findById(id).orElseThrow();
+        entity.setState(NotificationState.FAILED);
+        entity.setAttempts(5);
+        entity.setLastError("SMTP down");
+        notificationRepository.save(entity);
+
+        java.util.concurrent.atomic.AtomicInteger concurrentClaims = new java.util.concurrent.atomic.AtomicInteger(-1);
         org.mockito.Mockito.doAnswer(invocation -> {
-            if (!org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive()) {
-                deliveriesOutsideTx.incrementAndGet();
-            }
+            concurrentClaims.set(claimRepository.claimDue(10).size());
             return null;
         }).when(notifier).deliver(org.mockito.ArgumentMatchers.any());
 
+        DeliveryResult result = outboxService.retry(id);
+
+        assertThat(result.success()).isTrue();
+        assertThat(concurrentClaims.get())
+                .as("Dispatcher must not be able to claim a row while retry() is delivering it")
+                .isZero();
+
+        NotificationEntity after = notificationRepository.findById(id).orElseThrow();
+        assertThat(after.getState()).isEqualTo(NotificationState.SENT);
+        assertThat(after.getAttempts()).isEqualTo(6);
+        assertThat(after.getLastError()).isNull();
+    }
+
+    @Test
+    void retryAllFailed_requeuesFailedRowsForAsyncDispatchWithoutSynchronousDelivery() throws Exception {
         long f1 = outboxService.enqueue(new OutboundMail("f1@example.com", "S1", "b", "b"));
         long f2 = outboxService.enqueue(new OutboundMail("f2@example.com", "S2", "b", "b"));
 
         NotificationEntity e1 = notificationRepository.findById(f1).orElseThrow();
         e1.setState(NotificationState.FAILED);
+        e1.setAttempts(5);
+        e1.setLastError("SMTP down");
+        e1.setNextAttemptAt(Instant.now().plusSeconds(3600));
         notificationRepository.save(e1);
 
         NotificationEntity e2 = notificationRepository.findById(f2).orElseThrow();
         e2.setState(NotificationState.FAILED);
+        e2.setAttempts(5);
+        e2.setLastError("SMTP down");
+        e2.setNextAttemptAt(Instant.now().plusSeconds(3600));
         notificationRepository.save(e2);
 
         int retried = outboxService.retryAllFailed();
 
         assertThat(retried).isEqualTo(2);
-        assertThat(deliveriesOutsideTx.get()).isEqualTo(2);
-        assertThat(notificationRepository.findById(f1).orElseThrow().getState()).isEqualTo(NotificationState.SENT);
-        assertThat(notificationRepository.findById(f2).orElseThrow().getState()).isEqualTo(NotificationState.SENT);
+        org.mockito.Mockito.verify(notifier, org.mockito.Mockito.never()).deliver(org.mockito.ArgumentMatchers.any());
+
+        NotificationEntity after1 = notificationRepository.findById(f1).orElseThrow();
+        NotificationEntity after2 = notificationRepository.findById(f2).orElseThrow();
+        assertThat(after1.getState()).isEqualTo(NotificationState.PENDING);
+        assertThat(after1.getLastError()).isNull();
+        assertThat(after1.getNextAttemptAt()).isBeforeOrEqualTo(Instant.now().plusSeconds(1));
+        assertThat(after2.getState()).isEqualTo(NotificationState.PENDING);
+        assertThat(after2.getLastError()).isNull();
+        assertThat(after2.getNextAttemptAt()).isBeforeOrEqualTo(Instant.now().plusSeconds(1));
     }
 }

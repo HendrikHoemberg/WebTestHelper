@@ -3,6 +3,8 @@ package dev.hendrikhoemberg.webtesthelper.reporting;
 import dev.hendrikhoemberg.webtesthelper.catalog.AppSettings;
 import dev.hendrikhoemberg.webtesthelper.reporting.persistence.NotificationEntity;
 import dev.hendrikhoemberg.webtesthelper.reporting.persistence.NotificationRepository;
+import dev.hendrikhoemberg.webtesthelper.reporting.persistence.OutboxClaimJdbcRepository;
+import dev.hendrikhoemberg.webtesthelper.reporting.persistence.OutboxClaimJdbcRepository.ClaimedNotification;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -18,6 +20,7 @@ import java.util.Optional;
 public class OutboxService {
 
     private final NotificationRepository notificationRepository;
+    private final OutboxClaimJdbcRepository claimRepository;
     private final Notifier notifier;
     private final AppSettings appSettings;
     private final ReportingProperties properties;
@@ -26,12 +29,14 @@ public class OutboxService {
     @org.springframework.beans.factory.annotation.Autowired
     public OutboxService(
             NotificationRepository notificationRepository,
+            OutboxClaimJdbcRepository claimRepository,
             Notifier notifier,
             AppSettings appSettings,
             ReportingProperties properties,
             PlatformTransactionManager transactionManager
     ) {
         this.notificationRepository = notificationRepository;
+        this.claimRepository = claimRepository;
         this.notifier = notifier;
         this.appSettings = appSettings;
         this.properties = properties;
@@ -42,9 +47,19 @@ public class OutboxService {
             NotificationRepository notificationRepository,
             Notifier notifier,
             AppSettings appSettings,
+            ReportingProperties properties,
+            PlatformTransactionManager transactionManager
+    ) {
+        this(notificationRepository, null, notifier, appSettings, properties, transactionManager);
+    }
+
+    public OutboxService(
+            NotificationRepository notificationRepository,
+            Notifier notifier,
+            AppSettings appSettings,
             ReportingProperties properties
     ) {
-        this(notificationRepository, notifier, appSettings, properties, null);
+        this(notificationRepository, null, notifier, appSettings, properties, null);
     }
 
     private void executeInTransaction(Runnable action) {
@@ -55,10 +70,15 @@ public class OutboxService {
         }
     }
 
-    private void recordSuccess(long id) {
+    private void recordSuccess(long id, int attempt) {
+        if (claimRepository != null) {
+            claimRepository.markSent(id, Instant.now());
+            return;
+        }
         executeInTransaction(() -> {
             notificationRepository.findById(id).ifPresent(entity -> {
                 entity.setState(NotificationState.SENT);
+                entity.setAttempts(attempt);
                 entity.setSentAt(Instant.now());
                 entity.setLastError(null);
                 notificationRepository.save(entity);
@@ -67,28 +87,26 @@ public class OutboxService {
     }
 
     private void recordFailure(long id, int attempt, String error) {
+        int maxAttempts = (properties != null) ? properties.maxAttempts() : 5;
+        if (claimRepository != null) {
+            if (attempt >= maxAttempts) {
+                claimRepository.markFailed(id, error);
+            } else {
+                Duration wait = calculateBackoff(attempt);
+                claimRepository.markRetry(id, Instant.now().plus(wait), error);
+            }
+            return;
+        }
         executeInTransaction(() -> {
             notificationRepository.findById(id).ifPresent(entity -> {
                 entity.setAttempts(attempt);
                 entity.setLastError(error);
-                int maxAttempts = (properties != null) ? properties.maxAttempts() : 5;
                 if (attempt >= maxAttempts) {
                     entity.setState(NotificationState.FAILED);
                 } else {
                     Duration wait = calculateBackoff(attempt);
                     entity.setNextAttemptAt(Instant.now().plus(wait));
                 }
-                notificationRepository.save(entity);
-            });
-        });
-    }
-
-    private void resetToPending(long id) {
-        executeInTransaction(() -> {
-            notificationRepository.findById(id).ifPresent(entity -> {
-                entity.setState(NotificationState.PENDING);
-                entity.setNextAttemptAt(Instant.now());
-                entity.setLastError(null);
                 notificationRepository.save(entity);
             });
         });
@@ -107,30 +125,49 @@ public class OutboxService {
     }
 
     public DeliveryResult sendNow(long id) {
-        NotificationEntity entity = notificationRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Notification not found: " + id));
-
-        if (entity.getState() == NotificationState.SENT) {
-            return DeliveryResult.successful();
+        ClaimedNotification claimed;
+        if (claimRepository != null) {
+            Optional<ClaimedNotification> opt = claimRepository.claimById(id);
+            if (opt.isEmpty()) {
+                NotificationEntity existing = notificationRepository.findById(id)
+                        .orElseThrow(() -> new IllegalArgumentException("Notification not found: " + id));
+                if (existing.getState() == NotificationState.SENT) {
+                    return DeliveryResult.successful();
+                }
+                return DeliveryResult.failed("Benachrichtigung wird bereits versendet");
+            }
+            claimed = opt.get();
+        } else {
+            NotificationEntity entity = notificationRepository.findById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("Notification not found: " + id));
+            if (entity.getState() == NotificationState.SENT) {
+                return DeliveryResult.successful();
+            }
+            claimed = new ClaimedNotification(
+                    entity.getId(),
+                    entity.getRecipient(),
+                    entity.getSubject(),
+                    entity.getBodyHtml(),
+                    entity.getBodyText(),
+                    entity.getAttempts() + 1
+            );
         }
 
-        int attempt = entity.getAttempts() + 1;
-
-        String targetRecipient = appSettings.redirectAllMailTo().orElse(entity.getRecipient());
+        String targetRecipient = appSettings.redirectAllMailTo().orElse(claimed.recipient());
         OutboundMail mail = new OutboundMail(
                 targetRecipient,
-                entity.getSubject(),
-                entity.getBodyHtml(),
-                entity.getBodyText()
+                claimed.subject(),
+                claimed.bodyHtml(),
+                claimed.bodyText()
         );
 
         try {
             notifier.deliver(mail);
-            recordSuccess(id);
+            recordSuccess(claimed.id(), claimed.attempts());
             return DeliveryResult.successful();
         } catch (Exception e) {
             String error = (e.getMessage() != null && !e.getMessage().isBlank()) ? e.getMessage() : e.toString();
-            recordFailure(id, attempt, error);
+            recordFailure(claimed.id(), claimed.attempts(), error);
             return DeliveryResult.failed(error);
         }
     }
@@ -160,22 +197,24 @@ public class OutboxService {
     }
 
     public DeliveryResult retry(long id) {
-        resetToPending(id);
         return sendNow(id);
     }
 
+    @Transactional
     public int retryAllFailed() {
-        List<Long> failedIds = notificationRepository.findByState(NotificationState.FAILED)
-                .stream()
-                .map(NotificationEntity::getId)
-                .toList();
-        int count = 0;
-        for (Long id : failedIds) {
-            resetToPending(id);
-            sendNow(id);
-            count++;
+        if (claimRepository != null) {
+            return claimRepository.requeueAllFailed();
         }
-        return count;
+        List<NotificationEntity> failed = notificationRepository.findByState(NotificationState.FAILED);
+        Instant now = Instant.now();
+        for (NotificationEntity entity : failed) {
+            entity.setState(NotificationState.PENDING);
+            entity.setAttempts(0);
+            entity.setNextAttemptAt(now);
+            entity.setLastError(null);
+        }
+        notificationRepository.saveAll(failed);
+        return failed.size();
     }
 
     @Transactional

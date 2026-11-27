@@ -151,4 +151,20 @@ public class CrawlFrontierJdbcRepository {
                 "SELECT url FROM crawl_queue_item WHERE run_id = ? AND status = 'DONE' ORDER BY url",
                 String.class, runId);
     }
+
+    /**
+     * Whether this run already has completed ({@code DONE} or {@code FAILED}) frontier rows from an
+     * earlier attempt that crashed or lost its lease before finishing.
+     */
+    public boolean hasCompleted(long runId) {
+        Boolean exists = jdbc.queryForObject(
+                "SELECT EXISTS (SELECT 1 FROM crawl_queue_item WHERE run_id = ? AND status IN ('DONE', 'FAILED'))",
+                Boolean.class, runId);
+        return Boolean.TRUE.equals(exists);
+    }
+
+    /** Removes every frontier row for the run so a resumed attempt rebuilds snapshots from scratch. */
+    public int clear(long runId) {
+        return jdbc.update("DELETE FROM crawl_queue_item WHERE run_id = ?", runId);
+    }
 }
