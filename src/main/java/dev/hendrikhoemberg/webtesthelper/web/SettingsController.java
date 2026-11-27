@@ -9,11 +9,16 @@ import dev.hendrikhoemberg.webtesthelper.reporting.DeliveryResult;
 import dev.hendrikhoemberg.webtesthelper.reporting.MailRenderer;
 import dev.hendrikhoemberg.webtesthelper.reporting.OutboundMail;
 import dev.hendrikhoemberg.webtesthelper.reporting.OutboxService;
+import dev.hendrikhoemberg.webtesthelper.reporting.TechnicalText;
 import dev.hendrikhoemberg.webtesthelper.runner.CapacityService;
+import jakarta.mail.AuthenticationFailedException;
 import jakarta.mail.Folder;
 import jakarta.mail.Session;
 import jakarta.mail.Store;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -27,6 +32,7 @@ import dev.hendrikhoemberg.webtesthelper.reporting.WebhookNotifier;
 import dev.hendrikhoemberg.webtesthelper.reporting.WebhookResult;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.util.Locale;
 import java.util.Properties;
 
 
@@ -34,24 +40,29 @@ import java.util.Properties;
 @RequestMapping("/einstellungen")
 public class SettingsController {
 
+    private static final Logger log = LoggerFactory.getLogger(SettingsController.class);
+
     private final AppSettings appSettings;
     private final MailRenderer mailRenderer;
     private final OutboxService outboxService;
     private final CapacityService capacityService;
     private final WebhookNotifier webhookNotifier;
+    private final MessageSource messageSource;
 
     public SettingsController(
             AppSettings appSettings,
             MailRenderer mailRenderer,
             OutboxService outboxService,
             CapacityService capacityService,
-            WebhookNotifier webhookNotifier
+            WebhookNotifier webhookNotifier,
+            MessageSource messageSource
     ) {
         this.appSettings = appSettings;
         this.mailRenderer = mailRenderer;
         this.outboxService = outboxService;
         this.capacityService = capacityService;
         this.webhookNotifier = webhookNotifier;
+        this.messageSource = messageSource;
     }
 
     @GetMapping
@@ -161,7 +172,17 @@ public class SettingsController {
 
     @PostMapping("/testmail")
     public String sendTestMail(@ModelAttribute("form") SettingsForm form,
-                               RedirectAttributes redirectAttributes) {
+                               RedirectAttributes redirectAttributes,
+                               Locale locale) {
+        if (form != null && form.getBaseUrl() != null && !form.getBaseUrl().isBlank()) {
+            String trimmedBaseUrl = form.getBaseUrl().strip();
+            if (!trimmedBaseUrl.startsWith("http://") && !trimmedBaseUrl.startsWith("https://")) {
+                redirectAttributes.addFlashAttribute("testmailFehler",
+                        messageSource.getMessage("ui.einstellungen.fehler.baseUrl.scheme", null, locale));
+                return "redirect:/einstellungen";
+            }
+        }
+
         SmtpSettings smtp = null;
         if (form != null && form.getHost() != null && !form.getHost().isBlank()) {
             String password = form.getPassword();
@@ -179,7 +200,7 @@ public class SettingsController {
             );
             appSettings.saveSmtp(smtp);
             if (form.getBaseUrl() != null && !form.getBaseUrl().isBlank()) {
-                appSettings.saveBaseUrl(form.getBaseUrl());
+                appSettings.saveBaseUrl(form.getBaseUrl().strip());
             }
         }
 
@@ -207,7 +228,7 @@ public class SettingsController {
     }
 
     @PostMapping("/postfach-test")
-    public String testPostfach(RedirectAttributes redirectAttributes) {
+    public String testPostfach(RedirectAttributes redirectAttributes, Locale locale) {
         ImapSettings imap = appSettings.imap();
         if (imap == null || !imap.configured()) {
             redirectAttributes.addFlashAttribute("postfachFehler", "Das Prüfpostfach ist nicht konfiguriert.");
@@ -259,7 +280,18 @@ public class SettingsController {
                 }
             }
         } catch (Exception e) {
-            String msg = e.getMessage() != null && !e.getMessage().isBlank() ? e.getMessage() : e.getClass().getSimpleName();
+            log.warn("Verbindung zum Prüfpostfach fehlgeschlagen", e);
+            String msg;
+            if (e instanceof AuthenticationFailedException) {
+                msg = messageSource.getMessage("ui.einstellungen.imap.fehler.anmeldung", null, locale);
+            } else if (e.getMessage() != null && TechnicalText.isTechnical(e.getMessage())) {
+                msg = TechnicalText.humanise(e.getMessage(), messageSource, locale);
+            } else if (e.getCause() != null && e.getCause().getMessage() != null
+                    && TechnicalText.isTechnical(e.getCause().getMessage())) {
+                msg = TechnicalText.humanise(e.getCause().getMessage(), messageSource, locale);
+            } else {
+                msg = messageSource.getMessage("ui.einstellungen.imap.fehler.verbindung", null, locale);
+            }
             redirectAttributes.addFlashAttribute("postfachFehler", msg);
         }
 

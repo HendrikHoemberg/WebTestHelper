@@ -68,6 +68,15 @@ class SetupControllerTest {
 
     @Test
     @WithMockUser(roles = "USER")
+    void getEinrichtungAsUserIsForbidden() throws Exception {
+        mvc.perform(get("/websites/" + SITE_ID + "/einrichtung"))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/websites/" + SITE_ID + "/einrichtung/neu").with(csrf()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
     void getEinrichtungStartsProbeWhenNoneIsHeld() throws Exception {
         siteExists();
         when(setupProbeService.stateOf(SITE_ID))
@@ -81,7 +90,7 @@ class SetupControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "USER")
+    @WithMockUser(roles = "ADMIN")
     void setupPagePlacesHelpIconAdjacentToTitle() throws Exception {
         siteExists();
         when(setupProbeService.stateOf(SITE_ID)).thenReturn(Optional.of(laeuft()));
@@ -93,7 +102,7 @@ class SetupControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "USER")
+    @WithMockUser(roles = "ADMIN")
     void getEinrichtungDoesNotRestartAnExistingProbe() throws Exception {
         siteExists();
         when(setupProbeService.stateOf(SITE_ID)).thenReturn(Optional.of(laeuft()));
@@ -106,7 +115,7 @@ class SetupControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "USER")
+    @WithMockUser(roles = "ADMIN")
     void getEinrichtungUnknownSiteReturns404() throws Exception {
         when(siteService.summary(SITE_ID)).thenThrow(new IllegalArgumentException("Site existiert nicht: " + SITE_ID));
 
@@ -115,7 +124,7 @@ class SetupControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "USER")
+    @WithMockUser(roles = "ADMIN")
     void standWhileRunningCarriesTheTriggerAndTheWaitingSentence() throws Exception {
         when(siteService.summary(SITE_ID)).thenReturn(summary());
         when(setupProbeService.stateOf(SITE_ID)).thenReturn(Optional.of(laeuft()));
@@ -137,7 +146,7 @@ class SetupControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "USER")
+    @WithMockUser(roles = "ADMIN")
     void standWhenFinishedRendersOneCheckboxPerCheckTypeWithReasonFromBundleAndNoTrigger() throws Exception {
         when(setupProbeService.stateOf(SITE_ID)).thenReturn(Optional.of(fertig()));
 
@@ -168,7 +177,7 @@ class SetupControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "USER")
+    @WithMockUser(roles = "ADMIN")
     void standWhenFailedRendersErrorRetryAndBaselineChecksChecked() throws Exception {
         when(setupProbeService.stateOf(SITE_ID)).thenReturn(Optional.of(failed("Website nicht erreichbar")));
 
@@ -194,7 +203,7 @@ class SetupControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "USER")
+    @WithMockUser(roles = "ADMIN")
     void applyWithTwoTickedIsAuthoritativeNotAdditive() throws Exception {
         siteExists();
 
@@ -217,7 +226,7 @@ class SetupControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "USER")
+    @WithMockUser(roles = "ADMIN")
     void applyBaselineFromFailedProbeEnablesExactlyTheFiveAlwaysOnChecks() throws Exception {
         siteExists();
 
@@ -241,7 +250,7 @@ class SetupControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "USER")
+    @WithMockUser(roles = "ADMIN")
     void neuClearsAndRestartsTheProbeAndRedirectsBack() throws Exception {
         siteExists();
 
@@ -254,7 +263,7 @@ class SetupControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "USER")
+    @WithMockUser(roles = "ADMIN")
     void standWithNoSignalsRendersNoRawPlaceholders() throws Exception {
         ProbeEvidence evidence = new ProbeEvidence(true, null,
                 List.of("https://acme.example.com/"),

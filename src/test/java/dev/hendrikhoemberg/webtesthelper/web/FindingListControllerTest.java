@@ -352,4 +352,37 @@ class FindingListControllerTest {
                 .andExpect(content().string(not(containsString("badge-prioritaet-dringend"))))
                 .andExpect(content().string(not(containsString("badge-prioritaet-empfohlen"))));
     }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void paginationPreservesSearchTermAndResetLinkClearsFilterStateAndSwapClearsSelection() throws Exception {
+        long siteId = 42L;
+        when(siteService.contextFor(siteId)).thenReturn(sampleSite(siteId));
+        when(findingService.search(any(FindingQuery.class)))
+                .thenReturn(new FindingPage(List.of(sampleFinding(siteId)), 2, 1, 3));
+
+        String html = mvc.perform(get("/websites/{id}/befunde", siteId)
+                        .param("q", "impressum")
+                        .param("page", "2")
+                        .param("size", "1"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("q=impressum")))
+                .andExpect(content().string(containsString("htmx:afterSwap")))
+                .andReturn().getResponse().getContentAsString();
+
+        // Pagination links must include q=impressum
+        int paginationStart = html.indexOf("class=\"pagination-zeile\"");
+        assertThat(paginationStart).isGreaterThan(-1);
+        int paginationEnd = html.indexOf("</div>", paginationStart);
+        String paginationHtml = html.substring(paginationStart, paginationEnd);
+        assertThat(paginationHtml).contains("q=impressum");
+
+        // Filter reset link must be a standard full navigation without data-hx-get
+        int resetStart = html.indexOf("class=\"filter-aktionen\"");
+        assertThat(resetStart).isGreaterThan(-1);
+        int resetEnd = html.indexOf("</div>", resetStart);
+        String resetHtml = html.substring(resetStart, resetEnd);
+        assertThat(resetHtml).contains("href=\"/websites/42/befunde\"");
+        assertThat(resetHtml).doesNotContain("data-hx-get");
+    }
 }

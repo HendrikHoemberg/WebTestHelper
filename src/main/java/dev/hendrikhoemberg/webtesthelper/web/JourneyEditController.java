@@ -10,6 +10,7 @@ import dev.hendrikhoemberg.webtesthelper.model.LocatorStrategy;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
 import dev.hendrikhoemberg.webtesthelper.model.StepAction;
 import dev.hendrikhoemberg.webtesthelper.model.StepAssertion;
+import org.springframework.context.MessageSource;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -22,6 +23,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -46,10 +48,12 @@ public class JourneyEditController {
 
     private final JourneyService journeyService;
     private final SiteService siteService;
+    private final MessageSource messageSource;
 
-    public JourneyEditController(JourneyService journeyService, SiteService siteService) {
+    public JourneyEditController(JourneyService journeyService, SiteService siteService, MessageSource messageSource) {
         this.journeyService = Objects.requireNonNull(journeyService, "journeyService must not be null");
         this.siteService = Objects.requireNonNull(siteService, "siteService must not be null");
+        this.messageSource = Objects.requireNonNull(messageSource, "messageSource must not be null");
     }
 
     @GetMapping("/websites/{siteId}/journeys/{journeyId}/bearbeiten")
@@ -73,7 +77,8 @@ public class JourneyEditController {
     public String updateJourney(@PathVariable("siteId") long siteId,
                                 @PathVariable("journeyId") long journeyId,
                                 @ModelAttribute("form") JourneyEditForm form,
-                                Model model) {
+                                Model model,
+                                Locale locale) {
         SiteContext site = siteService.contextFor(siteId);
         JourneyDefinition existingJourney = journeyService.findDefinition(journeyId)
                 .filter(j -> Objects.equals(j.siteId(), siteId))
@@ -139,9 +144,18 @@ public class JourneyEditController {
             model.addAttribute("form", form);
             model.addAttribute("assertionTypes", AssertionType.values());
             model.addAttribute("stepActions", StepAction.values());
-            model.addAttribute("errorMessage", e.getMessage());
+            model.addAttribute("errorMessage", resolveErrorMessage(e, locale));
             return "journey/edit";
         }
+    }
+
+    private String resolveErrorMessage(IllegalArgumentException e, Locale locale) {
+        String key = e.getMessage();
+        String fallback = messageSource.getMessage("ui.journey.fehler.speichern", null, locale);
+        if ("journey.name.blank".equals(key) || "journey.name.duplicate".equals(key)) {
+            return messageSource.getMessage(key, null, fallback, locale);
+        }
+        return fallback;
     }
 
     public static class JourneyEditForm {

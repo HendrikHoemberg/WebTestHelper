@@ -22,7 +22,7 @@
             </div>
             <h1 class="page-main-title" th:text="${journey.name}">Ablauf Name</h1>
         </div>
-        <div class="header-actions-cluster seiten-kopf-aktionen" x-data="{ loeschenOffen: false }">
+        <div sec:authorize="hasRole('ADMIN')" class="header-actions-cluster seiten-kopf-aktionen" x-data="{ loeschenOffen: false }">
             <button type="button"
                     th:attr="data-hx-post=@{/websites/{siteId}/journeys/{journeyId}/jetzt-ausfuehren(siteId=${site.siteId}, journeyId=${journey.id})}"
                     data-hx-target="#journey-ergebnis"

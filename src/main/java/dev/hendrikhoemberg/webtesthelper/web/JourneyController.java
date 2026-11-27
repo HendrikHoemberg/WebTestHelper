@@ -13,7 +13,10 @@ import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
 import dev.hendrikhoemberg.webtesthelper.model.StepAction;
 import dev.hendrikhoemberg.webtesthelper.model.StepOutcome;
 import dev.hendrikhoemberg.webtesthelper.model.StepStatus;
+import dev.hendrikhoemberg.webtesthelper.reporting.TechnicalText;
 import dev.hendrikhoemberg.webtesthelper.runner.JourneyReplayer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSource;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -34,6 +37,8 @@ import java.util.stream.Collectors;
 
 @Controller
 public class JourneyController {
+
+    private static final Logger log = LoggerFactory.getLogger(JourneyController.class);
 
     private final JourneyService journeyService;
     private final SiteService siteService;
@@ -105,7 +110,12 @@ public class JourneyController {
             model.addAttribute("fehlermeldung", failureText(result, locale));
             model.addAttribute("stepResults", buildStepResults(journey, result, locale));
         } catch (RuntimeException e) {
-            model.addAttribute("fehler", e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
+            log.warn("Ablauf {} für Website {} konnte nicht ausgeführt werden", journeyId, siteId, e);
+            String raw = e.getMessage();
+            String fehlerText = (raw != null && TechnicalText.isTechnical(raw))
+                    ? TechnicalText.humanise(raw, messageSource, locale)
+                    : messageSource.getMessage("ui.journey.test.fehler.unbekannt", null, locale);
+            model.addAttribute("fehler", fehlerText);
         }
 
         return "journey/ergebnis :: ergebnis";

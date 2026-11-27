@@ -25,7 +25,7 @@
                 <span th:replace="~{fragments/icons :: download}"></span>
                 <span th:text="#{ui.lauf.aktion.pdf_download}">PDF herunterladen</span>
             </a>
-            <button type="button" class="btn-ui btn-ui-primary" @click="window.print()">
+            <button type="button" class="btn-ui btn-ui-primary" onclick="window.print()">
                 <span th:replace="~{fragments/icons :: printer}"></span>
                 <span th:text="#{ui.lauf.bericht.drucken}">Bericht drucken / Als PDF speichern</span>
             </button>

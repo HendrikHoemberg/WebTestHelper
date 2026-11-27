@@ -1,5 +1,7 @@
 <!DOCTYPE html>
-<html th:replace="~{layout :: seite(#{ui.titel.stummschaltungen}, ~{::main})}" xmlns:th="http://www.thymeleaf.org">
+<html th:replace="~{layout :: seite(#{ui.titel.stummschaltungen}, ~{::main})}"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <title th:text="#{ui.titel.stummschaltungen}">Stummschaltungen</title>
 </head>
@@ -38,7 +40,7 @@
                             data-hx-trigger="change"
                             data-hx-target="#regelvorschau"
                             data-hx-include="closest form">
-                        <option value="" th:text="#{ui.stummschaltungen.neu.website.global}">Alle Websites (global)</option>
+                        <option sec:authorize="hasRole('ADMIN')" value="" th:text="#{ui.stummschaltungen.neu.website.global}">Alle Websites (global)</option>
                         <option th:each="site : ${sites}" th:value="${site.id}" th:text="${site.name}"></option>
                     </select>
                 </div>
@@ -208,6 +210,7 @@
                             <span th:if="${!rule.isExpired(now)}" class="status-badge badge-warning aktiv" th:text="#{ui.stummschaltungen.status.aktiv}">Aktiv</span>
                         </td>
                         <td x-data="{ loeschenOffen: false }">
+                            <th:block th:if="${rule.siteId != null or #authorization.expression('hasRole(''ADMIN'')')}">
                             <button type="button" class="btn-ui btn-ui-secondary btn-danger-hover btn-ui-sm button link-loeschen"
                                     @click="loeschenOffen = true">
                                 <span th:replace="~{fragments/icons :: trash}"></span>
@@ -236,6 +239,8 @@
                                     </div>
                                 </div>
                             </div>
+                            </th:block>
+                            <span th:unless="${rule.siteId != null or #authorization.expression('hasRole(''ADMIN'')')}" class="text-gedaempft">–</span>
                         </td>
                     </tr>
                 </tbody>

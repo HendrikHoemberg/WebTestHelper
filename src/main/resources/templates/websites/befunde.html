@@ -82,14 +82,14 @@
                 <!-- Paginierung -->
                 <div th:if="${page.pageCount() > 1}" class="pagination-zeile" style="display: flex; justify-content: center; align-items: center; gap: 1rem; margin-top: 1.5rem;">
                     <a th:if="${page.page() > 1}"
-                       th:href="@{/websites/{id}/befunde(id=${site.siteId}, severities=${filter.severities}, triageStatuses=${filter.triageStatuses}, observed=${filter.observed}, checkTypes=${filter.checkTypes}, page=${page.page() - 1}, size=${page.size()})}"
-                       th:attr="data-hx-get=@{/websites/{id}/befunde(id=${site.siteId}, severities=${filter.severities}, triageStatuses=${filter.triageStatuses}, observed=${filter.observed}, checkTypes=${filter.checkTypes}, page=${page.page() - 1}, size=${page.size()})}"
+                       th:href="@{/websites/{id}/befunde(id=${site.siteId}, q=${filter.q}, severities=${filter.severities}, triageStatuses=${filter.triageStatuses}, observed=${filter.observed}, checkTypes=${filter.checkTypes}, page=${page.page() - 1}, size=${page.size()})}"
+                       th:attr="data-hx-get=@{/websites/{id}/befunde(id=${site.siteId}, q=${filter.q}, severities=${filter.severities}, triageStatuses=${filter.triageStatuses}, observed=${filter.observed}, checkTypes=${filter.checkTypes}, page=${page.page() - 1}, size=${page.size()})}"
                        data-hx-target="#befunde-liste-container" data-hx-swap="innerHTML" data-hx-push-url="true"
                        class="btn-ui btn-ui-secondary btn-ui-sm button sekundär klein" th:text="#{ui.befunde.pagination.vorherige}">Vorherige</a>
                     <span class="pagination-info" style="font-size: 0.85rem; color: var(--text-muted); font-variant-numeric: tabular-nums;" th:text="#{ui.befunde.pagination.seite(${page.page()}, ${page.pageCount()})}">Seite 1 von 3</span>
                     <a th:if="${page.page() < page.pageCount()}"
-                       th:href="@{/websites/{id}/befunde(id=${site.siteId}, severities=${filter.severities}, triageStatuses=${filter.triageStatuses}, observed=${filter.observed}, checkTypes=${filter.checkTypes}, page=${page.page() + 1}, size=${page.size()})}"
-                       th:attr="data-hx-get=@{/websites/{id}/befunde(id=${site.siteId}, severities=${filter.severities}, triageStatuses=${filter.triageStatuses}, observed=${filter.observed}, checkTypes=${filter.checkTypes}, page=${page.page() + 1}, size=${page.size()})}"
+                       th:href="@{/websites/{id}/befunde(id=${site.siteId}, q=${filter.q}, severities=${filter.severities}, triageStatuses=${filter.triageStatuses}, observed=${filter.observed}, checkTypes=${filter.checkTypes}, page=${page.page() + 1}, size=${page.size()})}"
+                       th:attr="data-hx-get=@{/websites/{id}/befunde(id=${site.siteId}, q=${filter.q}, severities=${filter.severities}, triageStatuses=${filter.triageStatuses}, observed=${filter.observed}, checkTypes=${filter.checkTypes}, page=${page.page() + 1}, size=${page.size()})}"
                        data-hx-target="#befunde-liste-container" data-hx-swap="innerHTML" data-hx-push-url="true"
                        class="btn-ui btn-ui-secondary btn-ui-sm button sekundär klein" th:text="#{ui.befunde.pagination.naechste}">Nächste</a>
                 </div>
@@ -101,6 +101,13 @@
     function findingsSelection() {
         return {
             selected: [],
+            init() {
+                document.addEventListener('htmx:afterSwap', (evt) => {
+                    if (evt.detail && evt.detail.target && evt.detail.target.id === 'befunde-liste-container') {
+                        this.selected = [];
+                    }
+                });
+            },
             toggle(id) {
                 const index = this.selected.indexOf(id);
                 if (index > -1) {

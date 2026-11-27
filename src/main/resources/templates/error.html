@@ -14,9 +14,9 @@
         </div>
         <div class="anmelde-karte" style="text-align: center;">
             <h1 style="font-size: 1.4rem; margin-bottom: 0.75rem;"
-                th:text="${status != null && status == 404} ? #{ui.fehler.nicht_gefunden} : #{ui.fehler.allgemein}">Seite nicht gefunden</h1>
+                th:text="${status != null && status == 404} ? #{ui.fehler.nicht_gefunden} : (${status != null && status == 403} ? #{ui.fehler.keine_berechtigung} : #{ui.fehler.allgemein})">Seite nicht gefunden</h1>
             <p style="color: var(--text-muted); margin-bottom: 1.5rem;"
-               th:text="${status != null && status == 404} ? #{ui.fehler.nicht_gefunden.text} : #{ui.fehler.allgemein.text}">Die angeforderte Seite wurde nicht gefunden.</p>
+               th:text="${status != null && status == 404} ? #{ui.fehler.nicht_gefunden.text} : (${status != null && status == 403} ? #{ui.fehler.keine_berechtigung.text} : #{ui.fehler.allgemein.text})">Die angeforderte Seite wurde nicht gefunden.</p>
             <div class="form-aktionen">
                 <a th:href="@{/}" class="btn-ui btn-ui-primary button primär" th:text="#{ui.fehler.zurueck}">Zur Übersicht</a>
             </div>

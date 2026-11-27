@@ -181,9 +181,9 @@
     </section>
 
     <!-- Ausgangsbestand-Aktion -->
-    <section th:if="${run.status.name() == 'COMPLETED'}" class="card-box detail-bereich">
+    <section th:if="${run.status.name() == 'COMPLETED' and (run.baselineAccepted or #authorization.expression('hasRole(''ADMIN'')'))}" class="card-box detail-bereich">
         <h2 th:text="#{ui.lauf.ausgangsbestand.titel}">Ausgangsbestand</h2>
-        <div th:if="${!run.baselineAccepted}" x-data="{ offen: false }" class="ausgangsbestand-block">
+        <div sec:authorize="hasRole('ADMIN')" th:if="${!run.baselineAccepted}" x-data="{ offen: false }" class="ausgangsbestand-block">
             <div class="ausgangsbestand-zeile" style="display: flex; align-items: center; gap: 0.5rem;">
                 <button type="button" @click="offen = true" class="btn-ui btn-ui-secondary button sekundär">
                     <span th:replace="~{fragments/icons :: check}"></span>

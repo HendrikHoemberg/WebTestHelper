@@ -21,15 +21,19 @@
             <h1 class="page-main-title" th:text="#{ui.journey.liste.ueberschrift(${site.name})}">Abläufe für Website</h1>
         </div>
         <div class="header-actions-cluster seiten-kopf-aktionen" x-data="{ wirdVorbereitet: false }">
-            <a th:href="@{/websites/{id}/aufzeichnen(id=${site.siteId})}"
-               class="btn-ui btn-ui-primary button primär"
-               :class="{ 'inaktiv': wirdVorbereitet }"
-               :style="wirdVorbereitet ? 'pointer-events: none; opacity: 0.75;' : ''"
-               @click="wirdVorbereitet = true">
-                <span th:replace="~{fragments/icons :: record}"></span>
-                <span x-show="!wirdVorbereitet" th:text="#{ui.journey.liste.aufzeichnen}">Ablauf aufzeichnen</span>
-                <span x-cloak x-show="wirdVorbereitet" th:text="#{ui.journey.liste.wird_vorbereitet}">Browser wird gestartet...</span>
-            </a>
+            <form sec:authorize="hasRole('ADMIN')"
+                  th:action="@{/websites/{id}/aufzeichnen(id=${site.siteId})}"
+                  method="post" class="inline-form"
+                  @submit="wirdVorbereitet = true">
+                <button type="submit"
+                        class="btn-ui btn-ui-primary button primär"
+                        :class="{ 'inaktiv': wirdVorbereitet }"
+                        :disabled="wirdVorbereitet">
+                    <span th:replace="~{fragments/icons :: record}"></span>
+                    <span x-show="!wirdVorbereitet" th:text="#{ui.journey.liste.aufzeichnen}">Ablauf aufzeichnen</span>
+                    <span x-cloak x-show="wirdVorbereitet" th:text="#{ui.journey.liste.wird_vorbereitet}">Browser wird gestartet...</span>
+                </button>
+            </form>
             <a th:href="@{/websites/{id}(id=${site.siteId})}" class="btn-ui btn-ui-secondary button sekundär" th:text="#{ui.journey.detail.zurueck_website}">Zurück zur Website</a>
         </div>
     </header>
@@ -37,6 +41,7 @@
     <div th:replace="~{fragments/site-tabs :: tabs(${site}, 'journeys')}"></div>
 
     <div th:if="${flashMessage}" class="hinweis erfolgs-meldung" role="status" style="margin-bottom: 1.5rem;" th:text="${flashMessage}"></div>
+    <div th:if="${flashError}" class="fehler fehler-meldung" role="alert" style="margin-bottom: 1.5rem;" th:text="${flashError}"></div>
 
     <div class="card-box detail-bereich" style="margin-bottom: 1.5rem;">
         <div class="abschnitt-ueberschrift-zeile" style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); margin-bottom: 0.75rem; padding-bottom: 0.5rem;">
@@ -57,10 +62,12 @@
 
     <div th:if="${#lists.isEmpty(journeys)}" class="card-box leer-zustand" style="text-align: center; padding: 3rem 1.5rem;">
         <p th:text="#{ui.journey.liste.leer}" style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1.25rem;">Noch keine Abläufe aufgezeichnet.</p>
-        <a sec:authorize="hasRole('ADMIN')" th:href="@{/websites/{id}/aufzeichnen(id=${site.siteId})}" class="btn-ui btn-ui-primary button primär">
-            <span th:replace="~{fragments/icons :: record}"></span>
-            <span th:text="#{ui.journey.liste.aufzeichnen}">Ablauf aufzeichnen</span>
-        </a>
+        <form sec:authorize="hasRole('ADMIN')" th:action="@{/websites/{id}/aufzeichnen(id=${site.siteId})}" method="post" class="inline-form" style="display: inline-block;">
+            <button type="submit" class="btn-ui btn-ui-primary button primär">
+                <span th:replace="~{fragments/icons :: record}"></span>
+                <span th:text="#{ui.journey.liste.aufzeichnen}">Ablauf aufzeichnen</span>
+            </button>
+        </form>
     </div>
 
     <div th:if="${not #lists.isEmpty(journeys)}" class="card-box" style="padding: 0; overflow: hidden;">
@@ -109,7 +116,8 @@
                         <td class="text-rechts zell-aktion" style="white-space: nowrap;" x-data="{ loeschenOffen: false }">
                             <div style="display: flex; align-items: center; justify-content: flex-end; gap: 0.5rem;">
                                 <a th:href="@{/websites/{siteId}/journeys/{journeyId}(siteId=${site.siteId}, journeyId=${journey.id})}" class="btn-ui btn-ui-secondary btn-ui-sm" th:text="#{ui.journey.liste.ansehen}">Ansehen</a>
-                                <button type="button"
+                                <button sec:authorize="hasRole('ADMIN')"
+                                        type="button"
                                         th:attr="data-hx-post=@{/websites/{siteId}/journeys/{journeyId}/jetzt-ausfuehren(siteId=${site.siteId}, journeyId=${journey.id})}"
                                         data-hx-target="#journey-ergebnis"
                                         data-hx-swap="innerHTML"
@@ -125,13 +133,13 @@
                                         <span th:text="#{ui.journey.test.laeuft}">Wird geprüft …</span>
                                     </span>
                                 </button>
-                                <button type="button" class="btn-ui btn-ui-secondary btn-danger-hover btn-ui-sm"
+                                <button sec:authorize="hasRole('ADMIN')" type="button" class="btn-ui btn-ui-secondary btn-danger-hover btn-ui-sm"
                                         @click="loeschenOffen = true"
                                         th:text="#{ui.journey.loeschen}">Löschen</button>
                             </div>
 
                             <!-- Löschen-Modal -->
-                            <div x-cloak x-show="loeschenOffen" @keydown.escape.window="loeschenOffen = false" class="wth-modal text-links" style="text-align: left;">
+                            <div sec:authorize="hasRole('ADMIN')" x-cloak x-show="loeschenOffen" @keydown.escape.window="loeschenOffen = false" class="wth-modal text-links" style="text-align: left;">
                                 <div class="wth-modal-backdrop" @click.self="loeschenOffen = false"></div>
                                 <div class="wth-modal-dialog" role="dialog" aria-modal="true" th:attr="aria-labelledby=${'modal-loeschen-journey-' + journey.id}">
                                     <div class="wth-modal-kopf">

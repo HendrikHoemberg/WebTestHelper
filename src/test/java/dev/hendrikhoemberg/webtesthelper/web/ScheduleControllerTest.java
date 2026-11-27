@@ -248,7 +248,9 @@ class ScheduleControllerTest {
                         .param("zeitplaene[2].enabled", "true"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("websites/konfiguration"))
-                .andExpect(model().attributeHasFieldErrors("zeitplaene", "zeitplaene[1].timezone"));
+                .andExpect(model().attributeHasFieldErrors("zeitplaene", "zeitplaene[1].timezone"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()
+                        .string(org.hamcrest.Matchers.containsString("x-data=\"{ offen: true }\"")));
 
         verify(scheduleService, never()).update(anyLong(), anyString(), anyString(), anyBoolean(), any());
     }
@@ -270,7 +272,9 @@ class ScheduleControllerTest {
                         .param("zeitplaene[1].enabled", "true"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("websites/konfiguration"))
-                .andExpect(model().attributeHasFieldErrors("zeitplaene", "zeitplaene[1].cron"));
+                .andExpect(model().attributeHasFieldErrors("zeitplaene", "zeitplaene[1].cron"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()
+                        .string(org.hamcrest.Matchers.containsString("x-data=\"{ offen: true }\"")));
 
         verify(scheduleService, never()).update(anyLong(), anyString(), anyString(), anyBoolean(), any());
     }

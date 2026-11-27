@@ -5,11 +5,12 @@ import dev.hendrikhoemberg.webtesthelper.model.Severity;
 import dev.hendrikhoemberg.webtesthelper.model.TriageStatus;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
 import dev.hendrikhoemberg.webtesthelper.reporting.FindingView;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.thymeleaf.TemplateEngine;
+import org.springframework.context.support.ResourceBundleMessageSource;
 import org.thymeleaf.context.Context;
+import org.thymeleaf.spring6.SpringTemplateEngine;
+import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 
 import java.util.List;
 import java.util.Locale;
@@ -17,11 +18,25 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest
 class BefundzeileViewTest {
 
-    @Autowired
-    private TemplateEngine templateEngine;
+    private SpringTemplateEngine templateEngine;
+
+    @BeforeEach
+    void setUp() {
+        ClassLoaderTemplateResolver resolver = new ClassLoaderTemplateResolver();
+        resolver.setPrefix("templates/");
+        resolver.setSuffix(".html");
+        resolver.setCharacterEncoding("UTF-8");
+
+        ResourceBundleMessageSource messageSource = new ResourceBundleMessageSource();
+        messageSource.setBasename("messages");
+        messageSource.setDefaultEncoding("UTF-8");
+
+        templateEngine = new SpringTemplateEngine();
+        templateEngine.setTemplateResolver(resolver);
+        templateEngine.setTemplateEngineMessageSource(messageSource);
+    }
 
     @Test
     void rendersMonochromeSplitCardWithSvgCameraAndNoEmojis() {

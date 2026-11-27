@@ -1,5 +1,6 @@
 package dev.hendrikhoemberg.webtesthelper.web;
 
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -7,7 +8,9 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -22,19 +25,33 @@ public class SecurityConfig implements WebMvcConfigurer {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        LoginUrlAuthenticationEntryPoint loginEntryPoint = new LoginUrlAuthenticationEntryPoint("/anmelden");
+        AuthenticationEntryPoint htmxAwareEntryPoint = (request, response, authException) -> {
+            if ("true".equalsIgnoreCase(request.getHeader("HX-Request"))) {
+                response.setHeader("HX-Redirect", "/anmelden");
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            } else {
+                loginEntryPoint.commence(request, response, authException);
+            }
+        };
+
         http.headers(headers -> headers
                 .contentSecurityPolicy(csp -> csp
                         .policyDirectives("default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ws: wss:; frame-ancestors 'self';")
                 )
             )
             .requestCache(rc -> rc.requestCache(new SkipErrorDispatchRequestCache()))
+            .exceptionHandling(ex -> ex.authenticationEntryPoint(htmxAwareEntryPoint))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/anmelden", "/vendor/**", "/css/**", "/favicon.ico").permitAll()
+                .requestMatchers("/anmelden", "/vendor/**", "/css/**", "/favicon.ico",
+                        "/actuator/health", "/actuator/health/liveness", "/actuator/health/readiness").permitAll()
                 .requestMatchers("/einstellungen/**",
                         "/postausgang", "/postausgang/**", "/actuator/**",
                         "/websites/neu", "/websites/*/bearbeiten",
+                        "/websites/*/einrichtung", "/websites/*/einrichtung/**",
+                        "/websites/*/aufzeichnen", "/websites/*/recorder",
                         "/websites/*/journeys/*/bearbeiten", "/websites/*/journeys/*/bearbeiten/**",
-                        "/recorder/alle-beenden").hasRole("ADMIN")
+                        "/recorder/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/websites", "/websites/*", "/websites/*/loeschen",
                         "/websites/*/zeitplaene",
                         "/websites/*/empfaenger", "/websites/*/empfaenger/**",
@@ -44,11 +61,6 @@ public class SecurityConfig implements WebMvcConfigurer {
                         "/websites/*/journeys/*/jetzt-ausfuehren",
                         "/laeufe/*/ausgangsbestand", "/laeufe/*/ausgangsbestand/**").hasRole("ADMIN")
                 .requestMatchers("/stummschaltungen/**", "/stummschaltungen").authenticated()
-                .requestMatchers(HttpMethod.GET, "/websites/*/einrichtung", "/websites/*/einrichtung/stand")
-                        .authenticated()
-                .requestMatchers(HttpMethod.POST, "/websites/*/einrichtung", "/websites/*/einrichtung/neu")
-                        .authenticated()
-                .requestMatchers("/recorder/ws/**", "/recorder/ws/*").authenticated()
                 .requestMatchers("/tutorial/**").authenticated()
                 .anyRequest().authenticated())
             .formLogin(login -> login.loginPage("/anmelden").defaultSuccessUrl("/", false).permitAll())

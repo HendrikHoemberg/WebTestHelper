@@ -31,7 +31,7 @@
                 <span th:text="#{ui.websites.detail.pruefen}">Jetzt prüfen</span>
             </button>
         </form>
-        <details class="mehr-menue">
+        <details sec:authorize="hasRole('ADMIN')" class="mehr-menue">
             <summary class="btn-ui btn-ui-secondary btn-icon-only button sekundär" th:title="#{ui.websites.detail.mehr}" th:attr="aria-label=#{ui.websites.detail.mehr}">
                 <span th:replace="~{fragments/icons :: more_horizontal}"></span>
             </summary>

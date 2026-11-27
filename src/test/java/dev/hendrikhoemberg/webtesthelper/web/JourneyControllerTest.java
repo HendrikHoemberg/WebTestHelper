@@ -160,14 +160,32 @@ class JourneyControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void listJourneys_whenEmpty_asAdmin_rendersAufzeichnenLink() throws Exception {
+    void listJourneys_whenEmpty_asAdmin_rendersAufzeichnenPostForm() throws Exception {
         when(journeyService.findBySite(1L)).thenReturn(List.of());
         when(journeyHealthService.healthBySite(1L)).thenReturn(Map.of());
 
         mvc.perform(get("/websites/1/journeys"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("/websites/1/aufzeichnen")))
+                .andExpect(content().string(containsString("action=\"/websites/1/aufzeichnen\"")))
+                .andExpect(content().string(containsString("method=\"post\"")))
+                .andExpect(content().string(not(containsString("href=\"/websites/1/aufzeichnen\""))))
                 .andExpect(content().string(not(containsString("/websites/1/recorder"))));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void listJourneys_asUser_hidesAdminOnlyControlsAndRendersFlashError() throws Exception {
+        JourneyStep step = new JourneyStep(UUID.randomUUID(), 0, StepAction.GOTO, List.of(), "https://example.com", null, false, 5000);
+        JourneyDefinition journey = new JourneyDefinition(42L, 1L, "Warenkorb", true, List.of(step));
+        when(journeyService.findBySite(1L)).thenReturn(List.of(journey));
+        when(journeyHealthService.healthBySite(1L)).thenReturn(Map.of());
+
+        mvc.perform(get("/websites/1/journeys").flashAttr("flashError", "Ein Ablauf mit diesem Namen existiert bereits."))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Ein Ablauf mit diesem Namen existiert bereits.")))
+                .andExpect(content().string(not(containsString("/websites/1/aufzeichnen"))))
+                .andExpect(content().string(not(containsString("/websites/1/journeys/42/jetzt-ausfuehren"))))
+                .andExpect(content().string(not(containsString("/websites/1/journeys/42/loeschen"))));
     }
 
     @Test
@@ -459,16 +477,18 @@ class JourneyControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void runNow_whenReplayThrows_rendersErrorResultWithoutRecordingHealth() throws Exception {
+    void runNow_whenReplayThrows_rendersLocalizedGermanErrorWithoutLeakingRawException() throws Exception {
         JourneyDefinition journey = new JourneyDefinition(10L, 1L, "Anmeldung", true, List.of());
         when(journeyService.findDefinition(10L)).thenReturn(Optional.of(journey));
         when(journeyReplayer.replay(eq(journey), eq(testSite), isNull()))
-                .thenThrow(new IllegalStateException("Kein Browser verfügbar"));
+                .thenThrow(new NullPointerException("Secret internal English crash"));
 
         mvc.perform(post("/websites/1/journeys/10/jetzt-ausfuehren").with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(view().name("journey/ergebnis :: ergebnis"))
-                .andExpect(content().string(containsString("Der Ablauf konnte nicht ausgeführt werden")));
+                .andExpect(content().string(containsString("Der Ablauf konnte nicht ausgeführt werden")))
+                .andExpect(content().string(not(containsString("NullPointerException"))))
+                .andExpect(content().string(not(containsString("Secret internal English crash"))));
     }
 
     @Test
@@ -515,7 +535,7 @@ class JourneyControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "USER")
+    @WithMockUser(roles = "ADMIN")
     void listJourneys_runButtonHasDisabledEltAndIndicatorClasses() throws Exception {
         JourneyStep step = new JourneyStep(UUID.randomUUID(), 0, StepAction.GOTO, List.of(), "https://example.com", null, false, 5000);
         JourneyDefinition journey = new JourneyDefinition(42L, 1L, "Warenkorb", true, List.of(step));
@@ -567,7 +587,7 @@ class JourneyControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     void detail_rendersDeleteButtonAndModal() throws Exception {
         long siteId = 1L;
         long journeyId = 42L;
@@ -581,7 +601,7 @@ class JourneyControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     void detail_rendersStartButtonAndResultContainer() throws Exception {
         long siteId = 1L;
         long journeyId = 42L;
@@ -602,7 +622,23 @@ class JourneyControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "USER")
+    void detail_asUser_hidesAdminOnlyControls() throws Exception {
+        long siteId = 1L;
+        long journeyId = 42L;
+        JourneyDefinition journey = new JourneyDefinition(journeyId, siteId, "Warenkorb", true, List.of());
+        when(journeyService.findDefinition(journeyId)).thenReturn(Optional.of(journey));
+
+        mvc.perform(get("/websites/{siteId}/journeys/{journeyId}", siteId, journeyId))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("Ablauf starten"))))
+                .andExpect(content().string(not(containsString("/websites/1/journeys/42/jetzt-ausfuehren"))))
+                .andExpect(content().string(not(containsString("/websites/1/journeys/42/bearbeiten"))))
+                .andExpect(content().string(not(containsString("/websites/1/journeys/42/loeschen"))));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
     void list_rendersDeleteButtonAndModalForEachJourney() throws Exception {
         long siteId = 1L;
         JourneyDefinition journey = new JourneyDefinition(42L, siteId, "Warenkorb", true, List.of());

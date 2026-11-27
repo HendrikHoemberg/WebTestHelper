@@ -182,4 +182,19 @@ class OutboxControllerTest {
                 .andExpect(content().string(containsString("SMTP 500")))
                 .andExpect(content().string(containsString("<b>Hallo</b>")));
     }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void outboxModalUsesSandboxedIframeAndLocalizedStateLabels() throws Exception {
+        when(outboxService.recent(50)).thenReturn(List.of());
+        when(outboxService.failedCount()).thenReturn(0);
+
+        mvc.perform(get("/postausgang"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("<iframe")))
+                .andExpect(content().string(containsString("sandbox=\"\"")))
+                .andExpect(content().string(containsString(":srcdoc=\"detail?.bodyHtml")))
+                .andExpect(content().string(not(containsString("x-html=\"detail?.bodyHtml\""))))
+                .andExpect(content().string(not(containsString("x-text=\"detail?.state\""))));
+    }
 }

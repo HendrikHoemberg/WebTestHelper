@@ -482,7 +482,7 @@ class RunControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "USER")
+    @WithMockUser(roles = "ADMIN")
     void baselineButtonPresentWithAlpineWarningWhenBaselineNotAccepted() throws Exception {
         long runId = 108L;
         long siteId = 42L;
@@ -500,6 +500,26 @@ class RunControllerTest {
                 .andExpect(content().string(containsString("Bestehende Mängel als bekannt markieren")))
                 .andExpect(content().string(containsString("x-data=\"{ offen: false }\"")))
                 .andExpect(content().string(containsString("Hiermit werden alle")));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void baselineButtonHiddenForUserWhenBaselineNotAccepted() throws Exception {
+        long runId = 108L;
+        long siteId = 42L;
+        RunSummary summary = sampleSummary(runId, siteId, RunStatus.COMPLETED, false, false, null);
+        SiteContext site = sampleSite(siteId);
+        RunDiff diff = new RunDiff(runId, Map.of());
+
+        when(runService.summary(runId)).thenReturn(summary);
+        when(siteService.contextFor(siteId)).thenReturn(site);
+        when(findingService.diffForReport(siteId, runId)).thenReturn(diff);
+        when(findingViewFactory.of(eq(diff), any(Locale.class))).thenReturn(Map.of());
+
+        mvc.perform(get("/laeufe/" + runId))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("Bestehende Mängel als bekannt markieren"))))
+                .andExpect(content().string(not(containsString("/laeufe/108/ausgangsbestand"))));
     }
 
     @Test
@@ -612,7 +632,9 @@ class RunControllerTest {
                 .andExpect(view().name("laeufe/druck"))
                 .andExpect(model().attributeExists("run", "site", "sections"))
                 .andExpect(content().string(containsString("Bericht Prüflauf")))
-                .andExpect(content().string(containsString("Tote Links")));
+                .andExpect(content().string(containsString("Tote Links")))
+                .andExpect(content().string(containsString("onclick=\"window.print()\"")))
+                .andExpect(content().string(not(containsString("@click=\"window.print()\""))));
     }
 
     @Test

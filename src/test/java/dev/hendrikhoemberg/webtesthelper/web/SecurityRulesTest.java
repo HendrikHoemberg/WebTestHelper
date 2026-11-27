@@ -92,7 +92,20 @@ class SecurityRulesTest {
 
     @Test
     @WithMockUser(roles = "USER")
-    void userCanReachAllSetupPaths() throws Exception {
+    void userCannotReachSetupPaths() throws Exception {
+        mvc.perform(get("/websites/1/einrichtung"))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/websites/1/einrichtung/stand"))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/websites/1/einrichtung").with(csrf()))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/websites/1/einrichtung/neu").with(csrf()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void adminCanReachAllSetupPaths() throws Exception {
         mvc.perform(get("/websites/1/einrichtung"))
                 .andExpect(status().isNotFound());
         mvc.perform(get("/websites/1/einrichtung/stand"))
@@ -100,6 +113,46 @@ class SecurityRulesTest {
         mvc.perform(post("/websites/1/einrichtung").with(csrf()))
                 .andExpect(status().isNotFound());
         mvc.perform(post("/websites/1/einrichtung/neu").with(csrf()))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void anonymousHtmxRequestReturns401WithHxRedirectHeader() throws Exception {
+        mvc.perform(get("/uebersicht/kacheln").header("HX-Request", "true"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(header().string("HX-Redirect", "/anmelden"))
+                .andExpect(header().doesNotExist("Location"));
+    }
+
+    @Test
+    void anonymousActuatorHealthProbesArePermitted() throws Exception {
+        for (String path : java.util.List.of(
+                "/actuator/health",
+                "/actuator/health/liveness",
+                "/actuator/health/readiness")) {
+            mvc.perform(get(path))
+                    .andExpect(status().is(org.hamcrest.Matchers.in(java.util.List.of(200, 404))))
+                    .andExpect(header().doesNotExist("Location"));
+        }
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void userCannotAccessNonHealthActuatorEndpoints() throws Exception {
+        mvc.perform(get("/actuator/metrics"))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/actuator/info"))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/actuator/env"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void adminCanAccessActuatorEndpoints() throws Exception {
+        mvc.perform(get("/actuator/metrics"))
+                .andExpect(status().isNotFound());
+        mvc.perform(get("/actuator/info"))
                 .andExpect(status().isNotFound());
     }
 
@@ -212,8 +265,32 @@ class SecurityRulesTest {
 
     @Test
     @WithMockUser(roles = "USER")
-    void userCanAccessRecorderWebSocketEndpointInSecurityFilter() throws Exception {
-        // Authenticated user passes Spring Security filter chain (returns 404 in mock MVC without controller)
+    void userCannotAccessRecorderEndpointsOrWebSocket() throws Exception {
+        mvc.perform(post("/websites/1/aufzeichnen").with(csrf()))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/websites/1/recorder").with(csrf()))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/recorder/5f01ffa4-9864-4996-b761-bef67e716e76"))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/recorder/5f01ffa4-9864-4996-b761-bef67e716e76/beenden").with(csrf()))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/recorder/5f01ffa4-9864-4996-b761-bef67e716e76/speichern").with(csrf()))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/recorder/meine-sitzungen-beenden").with(csrf()))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/recorder/ws/5f01ffa4-9864-4996-b761-bef67e716e76"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void adminCanAccessRecorderEndpointsAndWebSocketInSecurityFilter() throws Exception {
+        mvc.perform(post("/websites/1/aufzeichnen").with(csrf()))
+                .andExpect(status().isNotFound());
+        mvc.perform(post("/websites/1/recorder").with(csrf()))
+                .andExpect(status().isNotFound());
+        mvc.perform(get("/recorder/5f01ffa4-9864-4996-b761-bef67e716e76"))
+                .andExpect(status().isNotFound());
         mvc.perform(get("/recorder/ws/5f01ffa4-9864-4996-b761-bef67e716e76"))
                 .andExpect(status().isNotFound());
     }

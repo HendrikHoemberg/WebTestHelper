@@ -60,10 +60,13 @@
                           th:errors="*{zeitplaene[__${status.index}__].zeit}" class="feld-fehler">Fehler</span>
                 </div>
 
-                <div x-data="{ offen: false }" class="zeitplan-erweitert">
+                <div th:with="erweitertFehler=${#fields.hasErrors('zeitplaene[' + status.index + '].cron') or #fields.hasErrors('zeitplaene[' + status.index + '].timezone')}"
+                     th:attr="x-data=|{ offen: ${erweitertFehler} }|"
+                     class="zeitplan-erweitert">
                     <button type="button" @click="offen = !offen" class="btn-ui btn-ui-secondary btn-ui-sm button sekundär klein"
                             th:text="#{ui.zeitplan.erweitert}">Erweitert</button>
-                    <div x-show="offen" class="zeitplan-erweitert-panel" style="display: none; margin-top: 0.75rem; padding: 0.75rem; background: var(--surface-card); border: 1px solid var(--border-subtle); border-radius: 6px;">
+                    <div x-show="offen" class="zeitplan-erweitert-panel"
+                         th:style="${erweitertFehler} ? 'margin-top: 0.75rem; padding: 0.75rem; background: var(--surface-card); border: 1px solid var(--border-subtle); border-radius: 6px;' : 'display: none; margin-top: 0.75rem; padding: 0.75rem; background: var(--surface-card); border: 1px solid var(--border-subtle); border-radius: 6px;'">
                         <p class="hinweis-text" style="font-size: 0.8rem; margin-bottom: 0.5rem;" th:text="#{ui.zeitplan.erweitert.hinweis}">Hier können Fachleute einen festen Zeitplan hinterlegen.</p>
                         <div class="form-gruppe" style="margin-bottom: 0.5rem;">
                             <label th:for="${'cron-' + status.index}" th:text="#{ui.zeitplan.erweitert.cron}" style="font-size: 0.75rem;">Cron-Ausdruck</label>

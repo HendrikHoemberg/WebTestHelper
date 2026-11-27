@@ -394,4 +394,34 @@ class MuteRuleControllerTest extends AbstractPostgresTest {
                 .andExpect(content().string(not(containsString("bearbeiten"))))
                 .andExpect(content().string(not(containsString("/stummschaltungen/" + expiredEntity.getId() + "/bearbeiten"))));
     }
+
+    @Test
+    @WithMockUser(username = "dan_user", roles = "USER")
+    void userDoesNotSeeGlobalOptionOrGlobalRuleDeleteButton() throws Exception {
+        long globalRuleId = muteRuleService.create(new MuteRuleForm(
+                null, CheckType.DEAD_LINK, "*twitter.com*", null, "Global Twitter",
+                now.plus(30, ChronoUnit.DAYS)), "admin", now);
+        long siteRuleId = muteRuleService.create(new MuteRuleForm(
+                siteA, CheckType.DEAD_LINK, "*linkedin.com*", null, "Site LinkedIn",
+                now.plus(30, ChronoUnit.DAYS)), "dan_user", now);
+
+        mvc.perform(get("/stummschaltungen"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("Alle Websites (global)"))))
+                .andExpect(content().string(not(containsString("/stummschaltungen/" + globalRuleId + "/loeschen"))))
+                .andExpect(content().string(containsString("/stummschaltungen/" + siteRuleId + "/loeschen")));
+    }
+
+    @Test
+    @WithMockUser(username = "admin", roles = "ADMIN")
+    void adminSeesGlobalOptionAndGlobalRuleDeleteButton() throws Exception {
+        long globalRuleId = muteRuleService.create(new MuteRuleForm(
+                null, CheckType.DEAD_LINK, "*twitter.com*", null, "Global Twitter",
+                now.plus(30, ChronoUnit.DAYS)), "admin", now);
+
+        mvc.perform(get("/stummschaltungen"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Alle Websites (global)")))
+                .andExpect(content().string(containsString("/stummschaltungen/" + globalRuleId + "/loeschen")));
+    }
 }

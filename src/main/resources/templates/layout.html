@@ -163,7 +163,7 @@
                 <span th:replace="~{fragments/icons :: alert}"></span>
                 <span th:text="#{ui.banner.planung_pausiert}">Die Planung ist angehalten. Es startet kein Prüflauf von selbst.</span>
             </div>
-            <a th:href="@{/einstellungen}" class="banner-link" th:text="#{ui.banner.planung_oeffnen}">Zu den Einstellungen</a>
+            <a sec:authorize="hasRole('ADMIN')" th:href="@{/einstellungen}" class="banner-link" th:text="#{ui.banner.planung_oeffnen}">Zu den Einstellungen</a>
         </div>
 
         <main class="workspace-content" th:replace="${inhalt}"></main>

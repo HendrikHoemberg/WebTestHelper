@@ -75,10 +75,6 @@
 
         <div class="filter-aktionen" style="padding-top: 1rem; border-top: 1px solid var(--border-subtle);">
             <a th:href="@{/websites/{id}/befunde(id=${site.siteId})}"
-               th:attr="data-hx-get=@{/websites/{id}/befunde(id=${site.siteId})}"
-               data-hx-target="#befunde-liste-container"
-               data-hx-swap="innerHTML"
-               data-hx-push-url="true"
                class="btn-ui btn-ui-secondary btn-ui-sm button sekundär klein" style="width: 100%;" th:text="#{ui.befunde.filter.zuruecksetzen}">Filter zurücksetzen</a>
         </div>
     </form>

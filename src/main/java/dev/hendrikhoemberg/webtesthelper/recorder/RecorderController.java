@@ -3,7 +3,9 @@ package dev.hendrikhoemberg.webtesthelper.recorder;
 import dev.hendrikhoemberg.webtesthelper.catalog.JourneyService;
 import dev.hendrikhoemberg.webtesthelper.catalog.SiteService;
 import dev.hendrikhoemberg.webtesthelper.model.JourneyStep;
+import dev.hendrikhoemberg.webtesthelper.model.NormalizedUrl;
 import dev.hendrikhoemberg.webtesthelper.model.SiteContext;
+import dev.hendrikhoemberg.webtesthelper.model.UrlNormalizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSource;
@@ -54,11 +56,11 @@ public class RecorderController {
         this.messageSource = Objects.requireNonNull(messageSource, "messageSource must not be null");
     }
 
-    @GetMapping({"/websites/{siteId}/aufzeichnen", "/websites/{siteId}/recorder"})
-    public String record(@PathVariable("siteId") long siteId,
-                         @RequestParam(value = "startUrl", required = false) String startUrl,
-                         Principal principal,
-                         Model model) {
+    @PostMapping({"/websites/{siteId}/aufzeichnen", "/websites/{siteId}/recorder"})
+    public String startRecording(@PathVariable("siteId") long siteId,
+                                 @RequestParam(value = "startUrl", required = false) String startUrl,
+                                 Principal principal,
+                                 Model model) {
         SiteContext site;
         try {
             site = siteService.contextFor(siteId);
@@ -66,19 +68,12 @@ public class RecorderController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Website nicht gefunden: " + siteId, e);
         }
 
+        String effectiveStartUrl = resolveValidatedStartUrl(startUrl, site);
         String username = usernameOf(principal);
-        String effectiveStartUrl = (startUrl != null && !startUrl.isBlank()) ? startUrl : site.baseUrl().value();
 
         try {
             RecordingSession session = sessionRegistry.open(siteId, effectiveStartUrl, username);
-            model.addAttribute("site", site);
-            model.addAttribute("session", session);
-            model.addAttribute("sessionId", session.sessionId());
-            model.addAttribute("wsUrl", "/recorder/ws/" + session.sessionId());
-            model.addAttribute("defaultJourneyName", journeyService.resolveUniqueName(siteId, "Neuer Ablauf"));
-            model.addAttribute("capacityExceeded", false);
-            model.addAttribute("startFailed", false);
-            return "journey/record";
+            return "redirect:/recorder/" + session.sessionId();
         } catch (RecorderCapacityException e) {
             model.addAttribute("site", site);
             model.addAttribute("capacityExceeded", true);
@@ -86,14 +81,52 @@ public class RecorderController {
             model.addAttribute("capacityLimit", e.limit());
             model.addAttribute("userActiveSessions", sessionRegistry.activeSessionsForUser(username));
             return "journey/record";
-        }
- catch (RuntimeException e) {
+        } catch (RuntimeException e) {
             log.warn("Aufnahmesitzung für Website {} konnte nicht gestartet werden", siteId, e);
             model.addAttribute("site", site);
             model.addAttribute("capacityExceeded", false);
             model.addAttribute("startFailed", true);
             return "journey/record";
         }
+    }
+
+    @GetMapping("/recorder/{sessionId}")
+    public String showSession(@PathVariable("sessionId") UUID sessionId,
+                              Principal principal,
+                              Model model) {
+        String username = usernameOf(principal);
+        RecordingSession session = sessionRegistry.find(sessionId, username)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Aufnahmesitzung nicht gefunden: " + sessionId));
+
+        SiteContext site;
+        try {
+            site = siteService.contextFor(session.siteId());
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Website nicht gefunden: " + session.siteId(), e);
+        }
+
+        model.addAttribute("site", site);
+        model.addAttribute("session", session);
+        model.addAttribute("sessionId", session.sessionId());
+        model.addAttribute("wsUrl", "/recorder/ws/" + session.sessionId());
+        model.addAttribute("defaultJourneyName", journeyService.resolveUniqueName(session.siteId(), "Neuer Ablauf"));
+        model.addAttribute("capacityExceeded", false);
+        model.addAttribute("startFailed", false);
+        return "journey/record";
+    }
+
+    private static String resolveValidatedStartUrl(String startUrl, SiteContext site) {
+        if (startUrl == null || startUrl.isBlank()) {
+            return site.baseUrl().value();
+        }
+        String trimmed = startUrl.trim();
+        NormalizedUrl normalized = UrlNormalizer.normalize(trimmed)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ungültige Start-URL"));
+        if (!normalized.origin().equals(site.baseUrl().origin())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Start-URL gehört nicht zur Origin der Website");
+        }
+        return normalized.value();
     }
 
     @PostMapping("/recorder/{sessionId}/beenden")
@@ -113,7 +146,8 @@ public class RecorderController {
     public String saveSession(@PathVariable("sessionId") UUID sessionId,
                               @RequestParam(value = "name", required = false) String name,
                               Principal principal,
-                              RedirectAttributes redirectAttributes) {
+                              RedirectAttributes redirectAttributes,
+                              Locale locale) {
         String username = usernameOf(principal);
         RecordingSession session = sessionRegistry.find(sessionId, username)
                 .orElseThrow(() -> new ResponseStatusException(
@@ -130,13 +164,23 @@ public class RecorderController {
 
         try {
             long journeyId = journeyService.create(siteId, effectiveName, steps);
-            sessionRegistry.close(sessionId);
             return "redirect:/websites/" + siteId + "/journeys/" + journeyId + "/bearbeiten";
         } catch (IllegalArgumentException e) {
             log.warn("Fehler beim Speichern der Aufnahmesitzung {}: {}", sessionId, e.getMessage());
-            redirectAttributes.addFlashAttribute("flashError", e.getMessage());
+            redirectAttributes.addFlashAttribute("flashError", resolveSaveError(e, locale));
             return "redirect:/websites/" + siteId + "/journeys";
+        } finally {
+            sessionRegistry.close(sessionId);
         }
+    }
+
+    private String resolveSaveError(IllegalArgumentException e, Locale locale) {
+        String key = e.getMessage();
+        String fallback = messageSource.getMessage("ui.journey.fehler.speichern", null, locale);
+        if ("journey.name.blank".equals(key) || "journey.name.duplicate".equals(key)) {
+            return messageSource.getMessage(key, null, fallback, locale);
+        }
+        return fallback;
     }
 
     @PostMapping("/recorder/meine-sitzungen-beenden")

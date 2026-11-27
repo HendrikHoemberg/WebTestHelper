@@ -9,6 +9,9 @@
     <div th:replace="~{fragments/site-kopf :: kopf(${site}, ${trafficLight})}"></div>
     <div th:replace="~{fragments/site-tabs :: tabs(${site}, 'konfiguration')}"></div>
 
+    <div th:if="${flashMessage}" class="hinweis erfolgs-meldung" role="status" style="margin-bottom: 1.5rem;" th:text="${flashMessage}"></div>
+    <div th:if="${flashError}" class="fehler fehler-meldung" role="alert" style="margin-bottom: 1.5rem;" th:text="${flashError}"></div>
+
     <div class="detail-raster">
         <!-- Prüfumfang & Grenzen -->
         <section class="card-box detail-bereich">
@@ -82,7 +85,7 @@
             </button>
             <div class="hinweis" aria-live="polite"></div>
         </div>
-        <form th:action="@{/websites/{id}/pruefungen(id=${site.siteId})}" method="post">
+        <form sec:authorize="hasRole('ADMIN')" th:action="@{/websites/{id}/pruefungen(id=${site.siteId})}" method="post">
             <p th:if="${checkSettingsError}" class="fehler-text" th:text="${checkSettingsError}">Fehler</p>
             <details th:each="cat : ${checkCategories}" class="pruefung-gruppe" open>
                 <summary style="font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); cursor: pointer; padding: 0.5rem 0;"
@@ -114,6 +117,23 @@
                 </button>
             </div>
         </form>
+        <div sec:authorize="!hasRole('ADMIN')">
+            <details th:each="cat : ${checkCategories}" class="pruefung-gruppe" open>
+                <summary style="font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); cursor: pointer; padding: 0.5rem 0;"
+                         th:text="#{${'ui.checkcat.' + cat.name()}}">Inhalt</summary>
+                <div class="pruefungen-gitter" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin: 0.5rem 0 1rem;">
+                    <div th:each="row : ${checkRows}" th:if="${row.category == cat}" class="pruefung-karte" style="background: var(--surface-subtle); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 1rem;">
+                        <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.35rem; color: var(--text-main);" th:text="#{${row.check.titleKey}}">Prüfungs-Titel</h3>
+                        <p style="font-size: 0.825rem; color: var(--text-muted); margin: 0 0 0.75rem; line-height: 1.4;" th:text="#{${row.check.descriptionKey}}">Prüfungs-Beschreibung</p>
+                        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; font-size: 0.85rem;">
+                            <span th:if="${row.enabled}" class="status-badge badge-healthy" th:text="#{ui.websites.detail.pruefungen.status.aktiv}">Aktiviert</span>
+                            <span th:unless="${row.enabled}" class="status-badge status-inaktiv" th:text="#{ui.websites.detail.pruefungen.status.inaktiv}">Deaktiviert</span>
+                            <span class="text-gedaempft" th:text="#{ui.websites.detail.pruefungen.schweregrad} + ': ' + (${row.severityOverride == null} ? #{ui.websites.detail.pruefungen.schweregrad.standard} : #{${'ui.severity.' + row.severityOverride.name()}})">Schweregrad: Standard</span>
+                        </div>
+                    </div>
+                </div>
+            </details>
+        </div>
     </section>
 
     <!-- Zeitpläne -->

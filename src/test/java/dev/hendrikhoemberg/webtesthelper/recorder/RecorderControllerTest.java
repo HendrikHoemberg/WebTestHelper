@@ -80,8 +80,8 @@ class RecorderControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "alice", roles = "USER")
-    void record_opensSessionAndRendersCanvasScreen_whenCapacityAvailable() throws Exception {
+    @WithMockUser(username = "alice", roles = "ADMIN")
+    void startRecording_viaPost_opensSessionAndRedirectsToRecorderView() throws Exception {
         UUID sessionId = UUID.randomUUID();
         RecordingSession session = mock(RecordingSession.class);
         when(session.sessionId()).thenReturn(sessionId);
@@ -91,7 +91,53 @@ class RecorderControllerTest {
 
         when(sessionRegistry.open(1L, "https://acme.example.com/", "alice")).thenReturn(session);
 
+        mvc.perform(post("/websites/1/aufzeichnen").with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/recorder/" + sessionId));
+
+        verify(sessionRegistry).open(1L, "https://acme.example.com/", "alice");
+    }
+
+    @Test
+    @WithMockUser(username = "alice", roles = "ADMIN")
+    void startRecording_viaGet_isMethodNotAllowedAndDoesNotOpenSession() throws Exception {
         mvc.perform(get("/websites/1/aufzeichnen"))
+                .andExpect(status().isMethodNotAllowed());
+
+        verify(sessionRegistry, never()).open(anyLong(), anyString(), anyString());
+    }
+
+    @Test
+    @WithMockUser(username = "alice", roles = "ADMIN")
+    void startRecording_withoutCsrf_isForbidden() throws Exception {
+        mvc.perform(post("/websites/1/aufzeichnen"))
+                .andExpect(status().isForbidden());
+
+        verify(sessionRegistry, never()).open(anyLong(), anyString(), anyString());
+    }
+
+    @Test
+    @WithMockUser(username = "alice", roles = "USER")
+    void startRecording_asRegularUser_isForbidden() throws Exception {
+        mvc.perform(post("/websites/1/aufzeichnen").with(csrf()))
+                .andExpect(status().isForbidden());
+
+        verify(sessionRegistry, never()).open(anyLong(), anyString(), anyString());
+    }
+
+    @Test
+    @WithMockUser(username = "alice", roles = "ADMIN")
+    void showSession_rendersCanvasScreenForOwner() throws Exception {
+        UUID sessionId = UUID.randomUUID();
+        RecordingSession session = mock(RecordingSession.class);
+        when(session.sessionId()).thenReturn(sessionId);
+        when(session.siteId()).thenReturn(1L);
+        when(session.startUrl()).thenReturn("https://acme.example.com/");
+        when(session.username()).thenReturn("alice");
+
+        when(sessionRegistry.find(sessionId, "alice")).thenReturn(Optional.of(session));
+
+        mvc.perform(get("/recorder/" + sessionId))
                 .andExpect(status().isOk())
                 .andExpect(view().name("journey/record"))
                 .andExpect(model().attributeExists("site", "sessionId", "wsUrl"))
@@ -101,13 +147,21 @@ class RecorderControllerTest {
                 .andExpect(content().string(containsString("Theatermodus")))
                 .andExpect(content().string(not(containsString("Aufzeichnung beenden"))))
                 .andExpect(content().string(not(containsString("Maximale Anzahl gleichzeitiger Aufzeichnungssitzungen"))));
-
-        verify(sessionRegistry).open(1L, "https://acme.example.com/", "alice");
     }
 
     @Test
-    @WithMockUser(username = "alice", roles = "USER")
-    void record_supportsRecorderAliasUrl() throws Exception {
+    @WithMockUser(username = "bob", roles = "ADMIN")
+    void showSession_byNonOwner_returns404() throws Exception {
+        UUID sessionId = UUID.randomUUID();
+        when(sessionRegistry.find(sessionId, "bob")).thenReturn(Optional.empty());
+
+        mvc.perform(get("/recorder/" + sessionId))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(username = "alice", roles = "ADMIN")
+    void startRecording_supportsRecorderAliasUrl() throws Exception {
         UUID sessionId = UUID.randomUUID();
         RecordingSession session = mock(RecordingSession.class);
         when(session.sessionId()).thenReturn(sessionId);
@@ -116,13 +170,13 @@ class RecorderControllerTest {
         when(session.username()).thenReturn("alice");
         when(sessionRegistry.open(1L, "https://acme.example.com/", "alice")).thenReturn(session);
 
-        mvc.perform(get("/websites/1/recorder"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("journey/record"));
+        mvc.perform(post("/websites/1/recorder").with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/recorder/" + sessionId));
     }
 
     @Test
-    @WithMockUser(username = "alice", roles = "USER")
+    @WithMockUser(username = "alice", roles = "ADMIN")
     void activeRecorderHeaderDoesNotContainDuplicateEndButton() throws Exception {
         UUID sessionId = UUID.randomUUID();
         RecordingSession session = mock(RecordingSession.class);
@@ -130,9 +184,9 @@ class RecorderControllerTest {
         when(session.siteId()).thenReturn(1L);
         when(session.startUrl()).thenReturn("https://acme.example.com/");
         when(session.username()).thenReturn("alice");
-        when(sessionRegistry.open(1L, "https://acme.example.com/", "alice")).thenReturn(session);
+        when(sessionRegistry.find(sessionId, "alice")).thenReturn(Optional.of(session));
 
-        org.springframework.test.web.servlet.MvcResult result = mvc.perform(get("/websites/1/aufzeichnen"))
+        org.springframework.test.web.servlet.MvcResult result = mvc.perform(get("/recorder/" + sessionId))
                 .andExpect(status().isOk())
                 .andReturn();
         String html = result.getResponse().getContentAsString();
@@ -143,7 +197,7 @@ class RecorderControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "alice", roles = "USER")
+    @WithMockUser(username = "alice", roles = "ADMIN")
     void record_rendersScriptThatMarksSessionClosedOnFormSubmit_preventingUnloadBeaconRace() throws Exception {
         UUID sessionId = UUID.randomUUID();
         RecordingSession session = mock(RecordingSession.class);
@@ -151,29 +205,11 @@ class RecorderControllerTest {
         when(session.siteId()).thenReturn(1L);
         when(session.startUrl()).thenReturn("https://acme.example.com/");
         when(session.username()).thenReturn("alice");
-        when(sessionRegistry.open(1L, "https://acme.example.com/", "alice")).thenReturn(session);
+        when(sessionRegistry.find(sessionId, "alice")).thenReturn(Optional.of(session));
 
-        mvc.perform(get("/websites/1/aufzeichnen"))
+        mvc.perform(get("/recorder/" + sessionId))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("addEventListener('submit', function()")));
-    }
-
-    @Test
-    @WithMockUser(username = "alice", roles = "USER")
-    void record_whenCapacityExceeded_rendersCapacityExceededStateInGermanWithoutOfferingSession() throws Exception {
-        when(sessionRegistry.open(eq(1L), any(), eq("alice")))
-                .thenThrow(new RecorderCapacityException(2));
-
-        mvc.perform(get("/websites/1/aufzeichnen"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("journey/record"))
-                .andExpect(model().attributeExists("site", "capacityExceeded"))
-                .andExpect(content().string(containsString("Maximale Anzahl gleichzeitiger Aufzeichnungssitzungen (2) erreicht.")))
-                .andExpect(content().string(containsString("Bitte beenden Sie eine laufende Sitzung oder versuchen Sie es später erneut.")))
-                .andExpect(content().string(containsString("Eigene Aufzeichnungen beenden")))
-                .andExpect(content().string(containsString("/recorder/meine-sitzungen-beenden")))
-                .andExpect(content().string(not(containsString("Alle Aufzeichnungen zurücksetzen"))))
-                .andExpect(content().string(not(containsString("<canvas id=\"recorder-canvas\""))));
     }
 
     @Test
@@ -182,16 +218,22 @@ class RecorderControllerTest {
         when(sessionRegistry.open(eq(1L), any(), eq("admin")))
                 .thenThrow(new RecorderCapacityException(2));
 
-        mvc.perform(get("/websites/1/aufzeichnen"))
+        mvc.perform(post("/websites/1/aufzeichnen").with(csrf()))
                 .andExpect(status().isOk())
+                .andExpect(view().name("journey/record"))
+                .andExpect(model().attributeExists("site", "capacityExceeded"))
+                .andExpect(content().string(containsString("Maximale Anzahl gleichzeitiger Aufzeichnungssitzungen (2) erreicht.")))
+                .andExpect(content().string(containsString("Bitte beenden Sie eine laufende Sitzung oder versuchen Sie es später erneut.")))
                 .andExpect(content().string(containsString("Eigene Aufzeichnungen beenden")))
+                .andExpect(content().string(containsString("/recorder/meine-sitzungen-beenden")))
                 .andExpect(content().string(containsString("Alle Aufzeichnungen zurücksetzen")))
-                .andExpect(content().string(containsString("/recorder/alle-beenden")));
+                .andExpect(content().string(containsString("/recorder/alle-beenden")))
+                .andExpect(content().string(not(containsString("<canvas id=\"recorder-canvas\""))));
     }
 
     @Test
-    @WithMockUser(username = "alice", roles = "USER")
-    void record_whenCustomStartUrlProvided_opensSessionWithProvidedUrl() throws Exception {
+    @WithMockUser(username = "alice", roles = "ADMIN")
+    void record_whenSameOriginStartUrlProvided_opensSessionWithProvidedUrl() throws Exception {
         UUID sessionId = UUID.randomUUID();
         RecordingSession session = mock(RecordingSession.class);
         when(session.sessionId()).thenReturn(sessionId);
@@ -201,16 +243,36 @@ class RecorderControllerTest {
 
         when(sessionRegistry.open(1L, "https://acme.example.com/checkout", "alice")).thenReturn(session);
 
-        mvc.perform(get("/websites/1/aufzeichnen").param("startUrl", "https://acme.example.com/checkout"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("journey/record"))
-                .andExpect(model().attributeExists("site", "sessionId", "wsUrl"));
+        mvc.perform(post("/websites/1/aufzeichnen")
+                        .with(csrf())
+                        .param("startUrl", "https://acme.example.com/checkout"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/recorder/" + sessionId));
 
         verify(sessionRegistry).open(1L, "https://acme.example.com/checkout", "alice");
     }
 
     @Test
-    @WithMockUser(username = "alice", roles = "USER")
+    @WithMockUser(username = "alice", roles = "ADMIN")
+    void record_whenStartUrlIsInvalidOrOffOrigin_returns400AndNeverOpensSession() throws Exception {
+        for (String badUrl : List.of(
+                "file:///etc/passwd",
+                "javascript:alert(1)",
+                "https://evil.example.com/",
+                "http://acme.example.com/",
+                "https://acme.example.com:8443/checkout",
+                "not a url")) {
+            mvc.perform(post("/websites/1/aufzeichnen")
+                            .with(csrf())
+                            .param("startUrl", badUrl))
+                    .andExpect(status().isBadRequest());
+        }
+
+        verify(sessionRegistry, never()).open(anyLong(), anyString(), anyString());
+    }
+
+    @Test
+    @WithMockUser(username = "alice", roles = "ADMIN")
     void closeSession_viaPost_closesSessionAndRedirects() throws Exception {
         UUID sessionId = UUID.randomUUID();
         RecordingSession session = mock(RecordingSession.class);
@@ -228,7 +290,7 @@ class RecorderControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "bob", roles = "USER")
+    @WithMockUser(username = "bob", roles = "ADMIN")
     void closeSession_byAnyoneButTheOwner_leavesTheSessionRunning() throws Exception {
         // Ownership is checked at lookup so there is one place to get it right (Task 3).
         // Closing bypassed it, so any authenticated user holding a session id could end
@@ -245,7 +307,7 @@ class RecorderControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "alice", roles = "USER")
+    @WithMockUser(username = "alice", roles = "ADMIN")
     void record_whenTheBrowserFailsToStart_doesNotBlameTheCapacityLimit() throws Exception {
         // open() wraps every failure in IllegalStateException. Treating all of them as
         // "come back later, two people are recording" tells the user to wait for something
@@ -254,7 +316,7 @@ class RecorderControllerTest {
                 .thenThrow(new IllegalStateException("Aufnahmesitzung konnte nicht gestartet werden",
                         new RuntimeException("Chromium ist nicht startbar")));
 
-        mvc.perform(get("/websites/1/aufzeichnen"))
+        mvc.perform(post("/websites/1/aufzeichnen").with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(model().attribute("capacityExceeded", false))
                 .andExpect(model().attribute("startFailed", true))
@@ -264,26 +326,26 @@ class RecorderControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "alice", roles = "USER")
+    @WithMockUser(username = "alice", roles = "ADMIN")
     void record_whenCapacityExceeded_namesTheConfiguredLimitRatherThanAHardcodedTwo() throws Exception {
         when(sessionRegistry.open(eq(1L), any(), eq("alice")))
                 .thenThrow(new RecorderCapacityException(2));
 
-        mvc.perform(get("/websites/1/aufzeichnen"))
+        mvc.perform(post("/websites/1/aufzeichnen").with(csrf()))
                 .andExpect(model().attribute("capacityLimit", 2));
     }
 
     @Test
-    @WithMockUser(username = "alice", roles = "USER")
+    @WithMockUser(username = "alice", roles = "ADMIN")
     void record_whenSiteNotFound_returns404() throws Exception {
         when(siteService.contextFor(999L)).thenThrow(new IllegalArgumentException("Site existiert nicht: 999"));
 
-        mvc.perform(get("/websites/999/aufzeichnen"))
+        mvc.perform(post("/websites/999/aufzeichnen").with(csrf()))
                 .andExpect(status().isNotFound());
     }
 
     @Test
-    @WithMockUser(username = "alice", roles = "USER")
+    @WithMockUser(username = "alice", roles = "ADMIN")
     void saveSession_drainsEventsBuildsStepsCreatesJourneyClosesSessionAndRedirectsToEditScreen() throws Exception {
         UUID sessionId = UUID.randomUUID();
         RecordingSession session = mock(RecordingSession.class);
@@ -320,7 +382,7 @@ class RecorderControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "alice", roles = "USER")
+    @WithMockUser(username = "alice", roles = "ADMIN")
     void saveSession_disambiguatesDuplicateNameWhenSaving() throws Exception {
         UUID sessionId = UUID.randomUUID();
         RecordingSession session = mock(RecordingSession.class);
@@ -346,8 +408,8 @@ class RecorderControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "alice", roles = "USER")
-    void saveSession_whenCreateFails_redirectsWithFlashErrorWithout404() throws Exception {
+    @WithMockUser(username = "alice", roles = "ADMIN")
+    void saveSession_whenCreateFails_closesSessionAndRedirectsWithLocalizedFlashError() throws Exception {
         UUID sessionId = UUID.randomUUID();
         RecordingSession session = mock(RecordingSession.class);
         IntentCapture capture = mock(IntentCapture.class);
@@ -366,11 +428,14 @@ class RecorderControllerTest {
                         .param("name", "Duplikat"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/websites/1/journeys"))
-                .andExpect(flash().attribute("flashError", "journey.name.duplicate"));
+                .andExpect(flash().attribute("flashError", not(containsString("journey.name.duplicate"))))
+                .andExpect(flash().attribute("flashError", containsString("bereits")));
+
+        verify(sessionRegistry).close(sessionId);
     }
 
     @Test
-    @WithMockUser(username = "bob", roles = "USER")
+    @WithMockUser(username = "bob", roles = "ADMIN")
     void saveSession_byAnyoneButTheOwner_leavesTheSessionRunning() throws Exception {
         UUID aliceSession = UUID.randomUUID();
         when(sessionRegistry.find(eq(aliceSession), eq("bob"))).thenReturn(Optional.empty());
@@ -385,8 +450,8 @@ class RecorderControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "alice", roles = "USER")
-    void closeMySessions_asAuthenticatedUser_closesUserSessionsAndRedirects() throws Exception {
+    @WithMockUser(username = "alice", roles = "ADMIN")
+    void closeMySessions_asAdmin_closesUserSessionsAndRedirects() throws Exception {
         when(sessionRegistry.closeAllForUser("alice")).thenReturn(2);
 
         mvc.perform(post("/recorder/meine-sitzungen-beenden")
@@ -429,7 +494,11 @@ class RecorderControllerTest {
     void unauthenticatedAccess_redirectsToLogin() throws Exception {
         UUID sessionId = UUID.randomUUID();
 
-        mvc.perform(get("/websites/1/aufzeichnen"))
+        mvc.perform(post("/websites/1/aufzeichnen").with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/anmelden"));
+
+        mvc.perform(get("/recorder/" + sessionId))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/anmelden"));
 

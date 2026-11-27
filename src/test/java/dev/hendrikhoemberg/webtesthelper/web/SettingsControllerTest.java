@@ -742,5 +742,57 @@ class SettingsControllerTest {
                 .andExpect(content().string(containsString("formaction=\"/einstellungen/postfach-test\"")))
                 .andExpect(content().string(containsString("formaction=\"/einstellungen/webhook-test\"")));
     }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void postTestMailWithInvalidBaseUrlDoesNotSaveBaseUrlAndFlashesError() throws Exception {
+        mvc.perform(post("/einstellungen/testmail")
+                        .with(csrf())
+                        .param("host", "smtp.newhost.com")
+                        .param("port", "587")
+                        .param("tls", "STARTTLS")
+                        .param("fromAddress", "new@example.com")
+                        .param("baseUrl", "javascript:alert(1)"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/einstellungen"))
+                .andExpect(flash().attributeExists("testmailFehler"));
+
+        verify(appSettings, never()).saveBaseUrl(any());
+        verify(appSettings, never()).saveSmtp(any());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void postPostfachTestConnectionFailureFlashesLocalizedGermanMessageWithoutRawException() throws Exception {
+        when(appSettings.imap()).thenReturn(new ImapSettings(
+                "127.0.0.1",
+                1,
+                TlsMode.NONE,
+                "imap-user",
+                "test-pass",
+                "INBOX",
+                "verify@example.com"
+        ));
+
+        var result = mvc.perform(post("/einstellungen/postfach-test").with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/einstellungen"))
+                .andExpect(flash().attributeExists("postfachFehler"))
+                .andReturn();
+
+        String error = String.valueOf(result.getFlashMap().get("postfachFehler"));
+        assertThat(error)
+                .doesNotContain("Exception")
+                .doesNotContain("java.")
+                .doesNotContain("jakarta.")
+                .doesNotContain("Connection refused");
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void postSettings_invalidWebhookUrlKeyExistsInBundle() throws Exception {
+        java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("messages", java.util.Locale.GERMAN);
+        assertThat(bundle.containsKey("ui.einstellungen.fehler.webhookUrl.invalid")).isTrue();
+    }
 }
 

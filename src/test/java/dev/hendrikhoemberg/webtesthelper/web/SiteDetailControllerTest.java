@@ -258,13 +258,15 @@ class SiteDetailControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "USER")
+    @WithMockUser(roles = "ADMIN")
     void getKonfigurationRendersGroupedChecksAndPanels() throws Exception {
         stubCommon();
 
-        mvc.perform(get("/websites/42/konfiguration"))
+        mvc.perform(get("/websites/42/konfiguration")
+                        .flashAttr("flashMessage", "Die Konfiguration der Prüfungen wurde gespeichert."))
                 .andExpect(status().isOk())
                 .andExpect(view().name("websites/konfiguration"))
+                .andExpect(content().string(containsString("Die Konfiguration der Prüfungen wurde gespeichert.")))
                 .andExpect(content().string(containsString("Prüfumfang & Grenzen")))
                 .andExpect(content().string(containsString("Prüfungen speichern")))
                 .andExpect(content().string(containsString("name=\"aktiv\"")))
@@ -272,6 +274,34 @@ class SiteDetailControllerTest {
                 .andExpect(content().string(containsString("Inhalt")))
                 .andExpect(content().string(containsString("Technik")))
                 .andExpect(content().string(containsString("Rechtliches")));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void getKonfigurationAsUserRendersChecksReadOnlyWithoutSaveForm() throws Exception {
+        stubCommon();
+
+        mvc.perform(get("/websites/42/konfiguration"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("websites/konfiguration"))
+                .andExpect(content().string(containsString("Prüfumfang & Grenzen")))
+                .andExpect(content().string(containsString("Inhalt")))
+                .andExpect(content().string(not(containsString("Prüfungen speichern"))))
+                .andExpect(content().string(not(containsString("/websites/42/pruefungen"))))
+                .andExpect(content().string(not(containsString("name=\"aktiv\""))))
+                .andExpect(content().string(not(containsString("/websites/42/einrichtung/neu"))));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void pausedBannerHidesSettingsLinkForUser() throws Exception {
+        stubCommon();
+        when(appSettings.schedulingPaused()).thenReturn(true);
+
+        mvc.perform(get("/websites/42"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Die Planung ist angehalten")))
+                .andExpect(content().string(not(containsString("Zu den Einstellungen"))));
     }
 
     @Test

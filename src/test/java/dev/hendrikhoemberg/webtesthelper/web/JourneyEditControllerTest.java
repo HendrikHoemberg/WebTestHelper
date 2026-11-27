@@ -378,7 +378,7 @@ class JourneyEditControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void editJourney_post_whenNameBlankOrDuplicate_rendersFormWithError() throws Exception {
+    void editJourney_post_whenNameBlankOrDuplicate_rendersFormWithLocalizedGermanError() throws Exception {
         UUID id0 = UUID.randomUUID();
         JourneyStep s0 = new JourneyStep(id0, 0, StepAction.GOTO, List.of(), "https://acme.example.com/", null, false, 5000);
         JourneyDefinition journey = new JourneyDefinition(10L, 1L, "Original-Name", true, List.of(s0));
@@ -396,7 +396,9 @@ class JourneyEditControllerTest {
                         .param("steps[0].value", "https://acme.example.com/"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("journey/edit"))
-                .andExpect(model().attributeExists("errorMessage"));
+                .andExpect(model().attributeExists("errorMessage"))
+                .andExpect(content().string(not(containsString("journey.name.duplicate"))))
+                .andExpect(content().string(containsString("bereits")));
     }
 
     @Test

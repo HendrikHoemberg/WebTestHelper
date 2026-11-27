@@ -4,7 +4,8 @@ document.addEventListener("alpine:init", function () {
     Alpine.data("wthKopiere", () => ({
         kopiert: false,
         kopiere(event) {
-            const url = event.target.getAttribute("data-url");
+            const trigger = event.currentTarget || (event.target && event.target.closest ? event.target.closest("[data-url]") : null);
+            const url = trigger ? trigger.getAttribute("data-url") : null;
             if (!url) {
                 return;
             }
